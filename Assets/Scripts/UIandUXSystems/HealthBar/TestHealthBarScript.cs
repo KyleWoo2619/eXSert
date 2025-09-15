@@ -1,13 +1,17 @@
+using System;
 using UnityEngine;
 //Written By Brandon
 public class TestHealthBarScript : MonoBehaviour
 {
+    [SerializeField] [Range(1, 100)] private int amountOfHPEffected;
+
+
     //Tests script to show healthbar functionality
     public void TakeDamage()
     {
         var health = GameObject.FindWithTag("Player").GetComponent<HealthBarManager>();
 
-        health.LoseHP(1);
+        health.LoseHP(amountOfHPEffected);
 
         Debug.Log(health.health);
     }
@@ -16,7 +20,7 @@ public class TestHealthBarScript : MonoBehaviour
     {
         var health = GameObject.FindWithTag("Player").GetComponent<HealthBarManager>();
 
-        health.HealHP(1);
+        health.HealHP(amountOfHPEffected);
 
         Debug.Log(health.health);
 

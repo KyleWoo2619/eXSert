@@ -1,7 +1,11 @@
 using UnityEngine;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine.UI;
+using Unity.VisualScripting;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 //Written by Brandon
 public class HealthBarManager : MonoBehaviour, IHealthSystem, IDataPersistenceManager
 {
@@ -38,6 +42,7 @@ public class HealthBarManager : MonoBehaviour, IHealthSystem, IDataPersistenceMa
         if (health <= 0)
         {
             Debug.Log("You're Dead");
+            health = 0;
         }
     }
 
