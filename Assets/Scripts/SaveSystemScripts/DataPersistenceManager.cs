@@ -1,12 +1,17 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.UI;
 using System.Linq;
+using UnityEngine.UI;
+using Unity.VisualScripting;
 //Written By Brandon
 public class DataPersistenceManager : MonoBehaviour
 {
 
     private GameData gameData;
+
+    [SerializeField] Button loadButton;
 
     [SerializeField] private string fileName;
     public static DataPersistenceManager instance { get; private set; }
@@ -49,6 +54,7 @@ public class DataPersistenceManager : MonoBehaviour
         //If it doesnt, it will call the NewGame function
         if(this.gameData == null)
         {
+            loadButton.enabled = false;
             Debug.Log("Intializing");
             NewGame();
         }
