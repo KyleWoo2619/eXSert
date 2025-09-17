@@ -1,13 +1,9 @@
 using UnityEngine;
 using UnityEngine.UI;
 using Unity.VisualScripting;
-
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
-
+using Singletons;
 //Written by Brandon
-public class HealthBarManager : MonoBehaviour, IHealthSystem, IDataPersistenceManager
+public class HealthBarManager : Singletons.Singleton<HealthBarManager>, IHealthSystem, IDataPersistenceManager
 {
     public float maxHealth;
     public float health;
