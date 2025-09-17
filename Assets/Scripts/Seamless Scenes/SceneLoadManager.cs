@@ -9,7 +9,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using Singletons;
 
-public class SceneManager : Singleton<SceneManager>
+public class SceneLoadManager : Singleton<SceneLoadManager>
 {
     public string sceneAName;
     public string sceneBName;
