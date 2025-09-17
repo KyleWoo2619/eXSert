@@ -1,14 +1,19 @@
+/*
+Written by Brandon Wahl
+
+Handles data persistence and ensures data is properly saved and loaded
+
+*/
+
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine.UI;
-using Unity.VisualScripting;
 using UnityEngine.SceneManagement;
 using System.IO;
 using Singletons;
 
-//Written By Brandon
 public class DataPersistenceManager : Singletons.Singleton<DataPersistenceManager>
+
 {
     [Header("Debugging")]
     [SerializeField] private bool initializeDataIfNull = false;
@@ -56,6 +61,7 @@ public class DataPersistenceManager : Singletons.Singleton<DataPersistenceManage
 
         this.selectedProfileId = fileDataHandler.GetMostRecentUpdatedProfile();
 
+        //If the editor is using a test profile, it will warn them so they are aware
         if (overrideSelectedProfileId)
         {
             this.selectedProfileId = testSelectedProfile;
@@ -143,6 +149,7 @@ public class DataPersistenceManager : Singletons.Singleton<DataPersistenceManage
             dataPersistenceObj.SaveData(gameData);
         }
 
+        //Saves the current time, converts to binary, and assigns the data to gameData
         gameData.lastUpdated = System.DateTime.Now.ToBinary();
 
         fileDataHandler.Save(gameData, selectedProfileId);
@@ -157,6 +164,7 @@ public class DataPersistenceManager : Singletons.Singleton<DataPersistenceManage
         return new List<IDataPersistenceManager>(dataPeristenceObjects);
     }
 
+    //Returns true or false if there is game data
     public bool HasGameData()
     {
         return gameData != null;
