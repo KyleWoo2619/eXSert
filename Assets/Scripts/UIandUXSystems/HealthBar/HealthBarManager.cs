@@ -1,3 +1,10 @@
+/*
+Written by Brandon Wahl
+
+Uses the health interfaces to increase or decreae hp amount and sets the healthbar accordingly
+
+*/
+
 using UnityEngine;
 using UnityEngine.UI;
 using Unity.VisualScripting;
@@ -6,7 +13,6 @@ using Unity.VisualScripting;
 using UnityEditor;
 #endif
 
-//Written by Brandon
 public class HealthBarManager : MonoBehaviour, IHealthSystem, IDataPersistenceManager
 {
     public float maxHealth;

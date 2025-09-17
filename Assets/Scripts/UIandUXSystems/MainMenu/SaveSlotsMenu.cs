@@ -1,3 +1,10 @@
+/*
+Written by Brandon Wahl
+
+Handles the save slot menu and the actions of the buttons clicked
+
+*/
+
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -19,6 +26,7 @@ public class SaveSlotsMenu : Menu
         saveSlots = this.GetComponentsInChildren<SaveSlots>();
     }
 
+    //When a save slot is clicked, it gathers the profile Id and loads the proper data
     public void OnSaveSlotClicked(SaveSlots slot)
     {
         DisableMenuButtons();
@@ -35,12 +43,14 @@ public class SaveSlotsMenu : Menu
         SceneManager.LoadSceneAsync("SampleScene");
     }
 
+    //When the back button is click it activates the main menu again
     public void OnBackClicked()
     {
         mainMenu.ActivateMenu();
         this.DeactivateMenu();
     }
 
+    //Activates the main menu when called
     public void ActivateMenu(bool isLoadingGame)
     {
         this.gameObject.SetActive(true);
@@ -51,6 +61,7 @@ public class SaveSlotsMenu : Menu
 
         Dictionary<string, GameData> profilesGameData = DataPersistenceManager.instance.GetAllProfilesGameData();
 
+        //Disables and enables interactability of save slots depending if there is data attached to the profile Id
         foreach (SaveSlots saveSlot in saveSlots)
         {
             GameData profileData = null;
@@ -68,6 +79,7 @@ public class SaveSlotsMenu : Menu
  
     }
 
+    //Makes it so when clicking buttons other buttons are noninteractable so no errors occur
     public void DisableMenuButtons()
     {
         foreach(SaveSlots saveSlot in saveSlots)
@@ -77,6 +89,7 @@ public class SaveSlotsMenu : Menu
         backButton.gameObject.SetActive(false);
     }
 
+    //Disables main menu
     public void DeactivateMenu()
     {
         this.gameObject.SetActive(false);

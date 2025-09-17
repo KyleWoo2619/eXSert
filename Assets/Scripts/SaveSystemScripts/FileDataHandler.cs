@@ -1,9 +1,16 @@
+/*
+Written by Brandon Wahl
+
+Handles data that is save and loaded. When respective functions are called, this script will save or read data from a json file
+
+*/
+
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System;
 using System.IO;
-//Written By Brandon
+
 public class FileDataHandler
 {
     //These two variables make up the file path
@@ -65,6 +72,7 @@ public class FileDataHandler
 
     public void Save(GameData data, string profileId)
     {
+        //If there is no profileId, the save will not be loaded
         if (profileId == null)
         {
             return;
@@ -98,6 +106,7 @@ public class FileDataHandler
         }
     }
 
+    //Gathers each profile that already exists and is responsible with loaded the data into the main menu
     public Dictionary<string, GameData> LoadAllProfiles()
     {
         Dictionary<string, GameData> profileDictionary = new Dictionary<string, GameData>();
@@ -109,14 +118,17 @@ public class FileDataHandler
 
             string fullPath = Path.Combine(dataDirPath, profileId, dataFileName);
 
+            //If the file gather doesn't exists, it will move onto the next file
             if (!File.Exists(fullPath))
             {
                 Debug.LogWarning("This directory does not contain data");
                 continue;
             }
 
+            //Assigns local var profileData to data connected with a profileId
             GameData profileData = Load(profileId);
 
+            //If the profile data exists, it will be added to the dictionary above
             if (profileData != null)
             {
                 profileDictionary.Add(profileId, profileData);
@@ -130,12 +142,14 @@ public class FileDataHandler
         return profileDictionary;
     }
 
+    //Gathers which profile was used last for QOL
     public string GetMostRecentUpdatedProfile()
     {
         string mostRecentProfileId = null;
 
         Dictionary<string, GameData> profilesGameData = LoadAllProfiles();
 
+        //Goes through each profile in the dictionary above to gather which Id was used last
         foreach (KeyValuePair<string, GameData> pair in profilesGameData)
         {
             string profileId = pair.Key;
@@ -152,6 +166,7 @@ public class FileDataHandler
             }
             else
             {
+                //Compares the previously most recently saved data to the newest data thats been saved. If the new time is greater, then that data will now be assigned to the variable mostRecentProfileId
                 DateTime mostRecentDateTime = DateTime.FromBinary(profilesGameData[mostRecentProfileId].lastUpdated);
                 DateTime newDateTime = DateTime.FromBinary(gameData.lastUpdated);
 
