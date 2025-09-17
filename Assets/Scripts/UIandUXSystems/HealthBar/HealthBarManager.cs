@@ -8,12 +8,10 @@ Uses the health interfaces to increase or decreae hp amount and sets the healthb
 using UnityEngine;
 using UnityEngine.UI;
 using Unity.VisualScripting;
+using Singletons;
 
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
+public class HealthBarManager : Singletons.Singleton<HealthBarManager>, IHealthSystem, IDataPersistenceManager
 
-public class HealthBarManager : MonoBehaviour, IHealthSystem, IDataPersistenceManager
 {
     public float maxHealth;
     public float health;

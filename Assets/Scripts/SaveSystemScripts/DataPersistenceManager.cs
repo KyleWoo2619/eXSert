@@ -6,14 +6,14 @@ Handles data persistence and ensures data is properly saved and loaded
 */
 
 using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
-using Unity.UI;
 using System.Linq;
 using UnityEngine.SceneManagement;
 using System.IO;
+using Singletons;
 
-public class DataPersistenceManager : MonoBehaviour
+public class DataPersistenceManager : Singletons.Singleton<DataPersistenceManager>
+
 {
     [Header("Debugging")]
     [SerializeField] private bool initializeDataIfNull = false;
