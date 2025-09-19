@@ -8,8 +8,9 @@ Assigns events to their action in the player's action map
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Singletons;
 
-    public class InputReader : MonoBehaviour
+    public class InputReader : Singletons.Singleton<InputReader>
     {
         [SerializeField] private InputActionAsset playerControls;
 
@@ -21,19 +22,25 @@ using UnityEngine.InputSystem;
         [SerializeField] private string move = "Move";
         [SerializeField] private string jump = "Jump";
         [SerializeField] private string look = "Look";
+        [SerializeField] private string changeStance = "ChangeStance";
+        [SerializeField] private string guard = "Guard";
 
         
         private InputAction moveAction;
         private InputAction jumpAction;
         private InputAction lookAction;
+        private InputAction changeStanceAction;
+        private InputAction guardAction;
 
         [Header("DeadzoneValues")]
         [SerializeField] private float leftStickDeadzoneValue;
 
-        //Gets the input and sets the variable
+       // Gets the input and sets the variable
         public Vector2 MoveInput { get; private set; }
         public Vector2 LookInput { get; private set; }
         public bool JumpTrigger { get; private set; }
+        public bool ChangeStanceTrigger { get; private set; }
+        public bool GuardTrigger { get; private set; }
 
         public static InputReader Instance { get; private set; }
 
@@ -49,10 +56,12 @@ using UnityEngine.InputSystem;
                 Destroy(gameObject);
             }
 
-            //Assigns the input action variables to the action in the action map
+           // Assigns the input action variables to the action in the action map
             moveAction = playerControls.FindActionMap(actionMapName).FindAction(move);
             jumpAction = playerControls.FindActionMap(actionMapName).FindAction(jump);
             lookAction = playerControls.FindActionMap(actionMapName).FindAction(look);
+            changeStanceAction = playerControls.FindActionMap(actionMapName).FindAction(changeStance);
+            guardAction = playerControls.FindActionMap(actionMapName).FindAction(guard);
 
             RegisterInputAction();
             
@@ -72,15 +81,28 @@ using UnityEngine.InputSystem;
             jumpAction.performed += context => JumpTrigger = true;
             jumpAction.canceled += context => JumpTrigger = false;
 
+            changeStanceAction.performed += context => ChangeStanceTrigger = true;
+            changeStanceAction.canceled += context => ChangeStanceTrigger = false;
+
+            guardAction.performed += context => GuardTrigger = true;
+            guardAction.canceled += context => GuardTrigger = false;
+
+    }
+
+        //If the button is held down it returns true and vice versa
+        public bool GetGuard()
+        {
+            return GuardTrigger;
         }
-        
+
         //Turns the actions on
         private void OnEnable()
         {
             moveAction.Enable();
             jumpAction.Enable();
             lookAction.Enable();
-
+            changeStanceAction.Enable();
+            guardAction.Enable();
         }
 
     }
