@@ -13,7 +13,7 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
     private CharacterController characterController;
     private InputReader input;
 
-    [Tooltip("Speed of player")][SerializeField][Range(4, 8)] private float speed;
+    [Tooltip("Speed of player")][SerializeField] internal float speed;
 
     internal Vector3 currentMovement = Vector3.zero;
 
