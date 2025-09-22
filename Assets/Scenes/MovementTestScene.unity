@@ -597,10 +597,7 @@ GameObject:
   - component: {fileID: 1608035028}
   - component: {fileID: 1608035027}
   - component: {fileID: 1608035031}
-  - component: {fileID: 1608035026}
   - component: {fileID: 1608035025}
-  - component: {fileID: 1608035024}
-  - component: {fileID: 1608035023}
   - component: {fileID: 1608035033}
   - component: {fileID: 1608035032}
   m_Layer: 0
@@ -610,37 +607,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1608035023
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1608035022}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8ff16fa9f94f7db42b58a479cba8b0a6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GroundCheck
-  maxDistance: 1
-  layerMask:
-    serializedVersion: 2
-    m_Bits: 8
---- !u!114 &1608035024
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1608035022}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b946ed39cba553045889a1f703d6f480, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerRotation
-  mouseSens: 1
-  upDownRange: 15
-  invertYAxis: 0
 --- !u!114 &1608035025
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -654,20 +620,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   speed: 5.34
---- !u!114 &1608035026
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1608035022}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 916f99004351e5b43a32db99178748fb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerJumping
   gravity: 9.81
   jumpHeight: 1
+  boxSize: {x: 0.8, y: 0.1, z: 0.8}
+  maxDistance: 1
+  layerMask:
+    serializedVersion: 2
+    m_Bits: 8
+  mouseSens: 1
+  upDownRange: 10
+  invertYAxis: 0
 --- !u!136 &1608035027
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -800,6 +762,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01a0e82a04cd6b944b5aed9073b7153c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Guard
+  canGuard: 0
 --- !u!114 &1608035033
 MonoBehaviour:
   m_ObjectHideFlags: 0

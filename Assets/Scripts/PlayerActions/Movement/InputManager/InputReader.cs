@@ -9,8 +9,9 @@ using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Singletons;
+using UnityEditor.ShaderGraph.Serialization;
 
-    public class InputReader : Singletons.Singleton<InputReader>
+public class InputReader : Singletons.Singleton<InputReader>
     {
         [SerializeField] private InputActionAsset playerControls;
 
@@ -25,7 +26,8 @@ using Singletons;
         [SerializeField] private string changeStance = "ChangeStance";
         [SerializeField] private string guard = "Guard";
 
-        
+        public bool ableToGuard;    
+
         private InputAction moveAction;
         private InputAction jumpAction;
         private InputAction lookAction;
@@ -89,11 +91,14 @@ using Singletons;
 
     }
 
+        
+
         //If the button is held down it returns true and vice versa
         public bool GetGuard()
         {
             return GuardTrigger;
         }
+
 
         //Turns the actions on
         private void OnEnable()
@@ -103,6 +108,7 @@ using Singletons;
             lookAction.Enable();
             changeStanceAction.Enable();
             guardAction.Enable();
+            
         }
 
     }

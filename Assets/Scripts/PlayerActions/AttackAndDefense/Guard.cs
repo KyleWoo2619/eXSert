@@ -20,6 +20,7 @@ public class Guard : MonoBehaviour
         input = InputReader.Instance;
         movement = GetComponent<PlayerMovement>();
         originalSpeed = movement.speed;
+        canGuard = true;
     }
 
     // Update is called once per frame
@@ -31,24 +32,27 @@ public class Guard : MonoBehaviour
     //If the player is able to guard they will be in the guard state until they let go of the button
     void OnGuardHold()
     {
-        if (input.GetGuard() && canGuard)
+        if (canGuard)
         {
+            if (input.GetGuard())
+            {
 
                 Debug.Log("Is Guarding");
-                canGuard = false;
                 movement.speed = originalSpeed / 2;
-                GuardCoolDown();
-        } 
-        else
-        {
-            movement.speed = originalSpeed;
+
+            } else
+            {
+                movement.speed = originalSpeed; 
+            }
+
         }
+
     }
 
     //Cooldown so players can't infinitely guard
-    private IEnumerator GuardCoolDown()
-    {
-        yield return new WaitForSeconds(3);
-        canGuard = true;
-    }
+    //private IEnumerator GuardCoolDown()
+    //{
+    //    yield return new WaitForSeconds(3);
+    //    canGuard = true;
+    //}
 }
