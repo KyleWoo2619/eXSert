@@ -620,9 +620,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   speed: 5.34
-  gravity: 9.81
-  jumpHeight: 1
-  boxSize: {x: 0.8, y: 0.1, z: 0.8}
+  gravity: -9.81
+  jumpHeight: 1.1
+  terminalVelocity: 50
+  fallSpeed: 0.545
+  boxSize: {x: 0.4, y: 0.1, z: 0.6}
   maxDistance: 1
   layerMask:
     serializedVersion: 2
@@ -718,7 +720,7 @@ Transform:
   m_GameObject: {fileID: 1608035022}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: -0.498, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:

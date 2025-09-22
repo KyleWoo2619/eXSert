@@ -18,8 +18,10 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
     internal Vector3 currentMovement = Vector3.zero;
 
     [Header("Player Jump Settings")]
-    [SerializeField] private float gravity = 9.81f;
+    [SerializeField] private float gravity = -9.81f;
     [Tooltip("How high the player will jump")][SerializeField][Range(1, 10)] private float jumpHeight;
+    [SerializeField] private float terminalVelocity = 20;
+    [SerializeField][Range(.1f, 1)] private float fallSpeed;
 
     [Header("GroundCheck Variables")]
     [SerializeField] private Vector3 boxSize = new Vector3(.8f, .1f, .8f);
@@ -90,30 +92,34 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
 
     private void Jumping()
     {
+        float verticalVel;
+        verticalVel = currentMovement.y;
+
 
         //Checks if player is grounded
         if (AmIGrounded())
         {
 
-            jumpHeight = 5;
-
-            currentMovement.y = 0;
+            verticalVel = 0;
 
             //Checks if the action map action is trigger
             if (input.JumpTrigger)
             {
                 //Increases y pos according to the square root of the jump height multiplied by gravity
-                currentMovement.y += Mathf.Sqrt(jumpHeight * gravity);
+                currentMovement.y += Mathf.Sqrt(jumpHeight * (-gravity));
                 Debug.Log("Hi");
-
-                characterController.Move(currentMovement * Time.deltaTime);
             }
 
         }
         //If the player is not grounded they will continously fall until they are grounded
         else
         {
-            currentMovement.y -= gravity * Time.deltaTime;
+            currentMovement.y += gravity * Time.deltaTime;
+
+            currentMovement.y += (gravity * fallSpeed) * Time.deltaTime;
+
+            currentMovement.y = Mathf.Clamp(currentMovement.y, -terminalVelocity, float.MaxValue);
+            
         }
 
     }
