@@ -39,13 +39,22 @@
                     "id": "412ad651-8f89-46aa-a350-f4e5a03d34a1",
                     "expectedControlType": "",
                     "processors": "",
-                    "interactions": "",
+                    "interactions": "Hold",
                     "initialStateCheck": false
                 },
                 {
                     "name": "ChangeStance",
                     "type": "Button",
                     "id": "e7ceabac-f2bf-4f24-81fc-bba44acaf39d",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Attack",
+                    "type": "Button",
+                    "id": "909a5766-eea8-47c8-acef-26975acc6fb1",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -248,6 +257,28 @@
                     "processors": "",
                     "groups": "",
                     "action": "ChangeStance",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "c07f947f-a9b0-4821-8692-8ece383d545f",
+                    "path": "<Mouse>/rightButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Attack",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "fe0f89c6-cb17-4d1b-a6de-4a34a98a7805",
+                    "path": "<Gamepad>/rightTrigger",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Attack",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

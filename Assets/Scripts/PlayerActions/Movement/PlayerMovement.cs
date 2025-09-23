@@ -20,7 +20,7 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
 
     [Header("Player Jump Settings")]
     [SerializeField] private float gravity = -9.81f;
-    [Tooltip("How high the player will jump")][SerializeField][Range(.05f, 3)] private float jumpHeight;
+    [Tooltip("How high the player will jump")][SerializeField][Range(.05f, 10)] private float jumpHeight;
     [SerializeField] [Range(15, 50)] private float terminalVelocity = 20;
     [SerializeField][Range(.1f, 2)] private float fallSpeed;
     [SerializeField][Range(5, 50)] private float playerWeight;
@@ -110,7 +110,6 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
             {
                 //Increases y pos according to the square root of the jump height multiplied by gravity
                 currentMovement.y += Mathf.Sqrt((jumpHeight * (-gravity)) / playerWeight);
-                Debug.Log("Hi");
             }
 
         }
@@ -145,13 +144,11 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
     {
         if (Physics.BoxCast(transform.position, boxSize, -transform.up, transform.rotation, maxDistance, layerMask))
         {
-            Debug.Log("Yes");
 
             return true;
         }
         else
         {
-            Debug.Log("No");
 
             return false;
         }

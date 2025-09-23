@@ -13,7 +13,7 @@ using UnityEngine.InputSystem;
 public class ChangeStance : MonoBehaviour
 {
     private InputReader input;
-    [SerializeField] [Range(0, 1)] private int currentStance;
+    internal int currentStance;
     [SerializeField] bool canChangeStance = true;
 
     void Start()
