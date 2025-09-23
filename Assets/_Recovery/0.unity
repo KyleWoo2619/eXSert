@@ -597,7 +597,10 @@ GameObject:
   - component: {fileID: 1608035028}
   - component: {fileID: 1608035027}
   - component: {fileID: 1608035031}
+  - component: {fileID: 1608035026}
   - component: {fileID: 1608035025}
+  - component: {fileID: 1608035024}
+  - component: {fileID: 1608035023}
   - component: {fileID: 1608035033}
   - component: {fileID: 1608035032}
   m_Layer: 0
@@ -607,6 +610,37 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &1608035023
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1608035022}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ff16fa9f94f7db42b58a479cba8b0a6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GroundCheck
+  maxDistance: 1
+  layerMask:
+    serializedVersion: 2
+    m_Bits: 8
+--- !u!114 &1608035024
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1608035022}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b946ed39cba553045889a1f703d6f480, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerRotation
+  mouseSens: 1
+  upDownRange: 15
+  invertYAxis: 0
 --- !u!114 &1608035025
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -620,18 +654,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   speed: 5.34
-  gravity: -9.81
-  jumpHeight: 1.1
-  terminalVelocity: 50
-  fallSpeed: 0.545
-  boxSize: {x: 0.4, y: 0.1, z: 0.6}
-  maxDistance: 1
-  layerMask:
-    serializedVersion: 2
-    m_Bits: 8
-  mouseSens: 1
-  upDownRange: 10
-  invertYAxis: 0
+--- !u!114 &1608035026
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1608035022}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 916f99004351e5b43a32db99178748fb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerJumping
+  gravity: 9.81
+  jumpHeight: 1
 --- !u!136 &1608035027
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -720,7 +756,7 @@ Transform:
   m_GameObject: {fileID: 1608035022}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.498, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
