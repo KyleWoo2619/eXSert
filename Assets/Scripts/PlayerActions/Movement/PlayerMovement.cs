@@ -8,6 +8,7 @@ Handles player movement and saves/loads player position
 using UnityEngine;
 using UnityEditor;
 using System.Collections;
+using System.ComponentModel;
 public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
 {
     private CharacterController characterController;
@@ -19,9 +20,10 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
 
     [Header("Player Jump Settings")]
     [SerializeField] private float gravity = -9.81f;
-    [Tooltip("How high the player will jump")][SerializeField][Range(1, 10)] private float jumpHeight;
-    [SerializeField] private float terminalVelocity = 20;
-    [SerializeField][Range(.1f, 1)] private float fallSpeed;
+    [Tooltip("How high the player will jump")][SerializeField][Range(.05f, 3)] private float jumpHeight;
+    [SerializeField] [Range(15, 50)] private float terminalVelocity = 20;
+    [SerializeField][Range(.1f, 2)] private float fallSpeed;
+    [SerializeField][Range(5, 50)] private float playerWeight;
 
     [Header("GroundCheck Variables")]
     [SerializeField] private Vector3 boxSize = new Vector3(.8f, .1f, .8f);
@@ -93,7 +95,7 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
     private void Jumping()
     {
         float verticalVel;
-        verticalVel = currentMovement.y;
+        verticalVel = characterController.velocity.y;
 
 
         //Checks if player is grounded
@@ -101,12 +103,13 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
         {
 
             verticalVel = 0;
+            
 
             //Checks if the action map action is trigger
             if (input.JumpTrigger)
             {
                 //Increases y pos according to the square root of the jump height multiplied by gravity
-                currentMovement.y += Mathf.Sqrt(jumpHeight * (-gravity));
+                currentMovement.y += Mathf.Sqrt((jumpHeight * (-gravity)) / playerWeight);
                 Debug.Log("Hi");
             }
 
@@ -116,7 +119,7 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
         {
             currentMovement.y += gravity * Time.deltaTime;
 
-            currentMovement.y += (gravity * fallSpeed) * Time.deltaTime;
+            currentMovement.y += ((gravity * fallSpeed) * Time.deltaTime) * (playerWeight * .1f);
 
             currentMovement.y = Mathf.Clamp(currentMovement.y, -terminalVelocity, float.MaxValue);
             
