@@ -32,7 +32,7 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
 
 
     [Header("Player Rotation Settings")]
-    [Tooltip("Mouse Sensitivity")][SerializeField][Range(1, 3)] private float mouseSens;
+    [Tooltip("Mouse Sensitivity")][SerializeField][Range(1, 3)] internal float mouseSens;
     [Tooltip("Range of looking up or down")][SerializeField][Range(10, 100)] private float upDownRange;
     private float verticalRotation;
 
@@ -128,15 +128,18 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
 
     public void Rotation()
     {
+        input.mouseSens = mouseSens;
         float mouseYInput = invertYAxis ? -input.LookInput.y : input.LookInput.y;
 
-        float mouseXRotation = input.LookInput.x * mouseSens;
+        float mouseXRotation = input.LookInput.x * input.mouseSens;
         transform.Rotate(0, mouseXRotation, 0);
 
-        verticalRotation -= mouseYInput * mouseSens;
+        verticalRotation -= mouseYInput * input.mouseSens;
 
         verticalRotation = Mathf.Clamp(verticalRotation, -upDownRange, upDownRange);
         mainCamera.transform.localRotation = Quaternion.Euler(verticalRotation, 0, 0);
+
+        
     }
 
     //Returns true or false if boxcast collides with the layermask

@@ -27,7 +27,8 @@ public class InputReader : Singletons.Singleton<InputReader>
         [SerializeField] private string guard = "Guard";
         [SerializeField] private string attack = "Attack";
 
-        public bool ableToGuard;    
+        public bool ableToGuard;
+        internal float mouseSens;
 
         private InputAction moveAction;
         private InputAction jumpAction;
