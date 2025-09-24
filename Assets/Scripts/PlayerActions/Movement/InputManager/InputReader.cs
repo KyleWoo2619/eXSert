@@ -25,14 +25,17 @@ public class InputReader : Singletons.Singleton<InputReader>
         [SerializeField] private string look = "Look";
         [SerializeField] private string changeStance = "ChangeStance";
         [SerializeField] private string guard = "Guard";
+        [SerializeField] private string attack = "Attack";
 
-        public bool ableToGuard;    
+        public bool ableToGuard;
+        internal float mouseSens;
 
         private InputAction moveAction;
         private InputAction jumpAction;
         private InputAction lookAction;
         private InputAction changeStanceAction;
         private InputAction guardAction;
+        private InputAction attackAction;
 
         [Header("DeadzoneValues")]
         [SerializeField] private float leftStickDeadzoneValue;
@@ -43,6 +46,7 @@ public class InputReader : Singletons.Singleton<InputReader>
         public bool JumpTrigger { get; private set; }
         public bool ChangeStanceTrigger { get; private set; }
         public bool GuardTrigger { get; private set; }
+        public bool AttackTrigger { get; internal set; }
 
         public static InputReader Instance { get; private set; }
 
@@ -64,6 +68,7 @@ public class InputReader : Singletons.Singleton<InputReader>
             lookAction = playerControls.FindActionMap(actionMapName).FindAction(look);
             changeStanceAction = playerControls.FindActionMap(actionMapName).FindAction(changeStance);
             guardAction = playerControls.FindActionMap(actionMapName).FindAction(guard);
+            attackAction = playerControls.FindActionMap(actionMapName).FindAction(attack);
 
             RegisterInputAction();
             
@@ -89,6 +94,9 @@ public class InputReader : Singletons.Singleton<InputReader>
             guardAction.performed += context => GuardTrigger = true;
             guardAction.canceled += context => GuardTrigger = false;
 
+            attackAction.performed += context => AttackTrigger = true;
+            attackAction.canceled += context => AttackTrigger = false;
+
     }
 
         
@@ -108,7 +116,10 @@ public class InputReader : Singletons.Singleton<InputReader>
             lookAction.Enable();
             changeStanceAction.Enable();
             guardAction.Enable();
+            attackAction.Enable();
             
         }
+
+    
 
     }
