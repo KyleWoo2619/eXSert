@@ -26,6 +26,7 @@ public class InputReader : Singletons.Singleton<InputReader>
         [SerializeField] private string changeStance = "ChangeStance";
         [SerializeField] private string guard = "Guard";
         [SerializeField] private string attack = "Attack";
+        [SerializeField] private string dash = "Dash";
 
         public bool ableToGuard;
         internal float mouseSens;
@@ -36,6 +37,7 @@ public class InputReader : Singletons.Singleton<InputReader>
         private InputAction changeStanceAction;
         private InputAction guardAction;
         private InputAction attackAction;
+        private InputAction dashAction;
 
         [Header("DeadzoneValues")]
         [SerializeField] private float leftStickDeadzoneValue;
@@ -43,10 +45,11 @@ public class InputReader : Singletons.Singleton<InputReader>
        // Gets the input and sets the variable
         public Vector2 MoveInput { get; private set; }
         public Vector2 LookInput { get; private set; }
-        public bool JumpTrigger { get; private set; }
+        public bool JumpTrigger { get; internal set; }
         public bool ChangeStanceTrigger { get; private set; }
         public bool GuardTrigger { get; private set; }
         public bool AttackTrigger { get; internal set; }
+        public bool DashTrigger { get; private set; }
 
         public static InputReader Instance { get; private set; }
 
@@ -69,8 +72,9 @@ public class InputReader : Singletons.Singleton<InputReader>
             changeStanceAction = playerControls.FindActionMap(actionMapName).FindAction(changeStance);
             guardAction = playerControls.FindActionMap(actionMapName).FindAction(guard);
             attackAction = playerControls.FindActionMap(actionMapName).FindAction(attack);
+            dashAction = playerControls.FindActionMap(actionMapName).FindAction(dash);
 
-            RegisterInputAction();
+        RegisterInputAction();
             
             //Sets gamepad deadzone
             InputSystem.settings.defaultDeadzoneMin = leftStickDeadzoneValue;
@@ -97,6 +101,9 @@ public class InputReader : Singletons.Singleton<InputReader>
             attackAction.performed += context => AttackTrigger = true;
             attackAction.canceled += context => AttackTrigger = false;
 
+            dashAction.performed += context => DashTrigger = true;
+            dashAction.canceled += context => DashTrigger = false;
+
     }
 
         
@@ -117,9 +124,22 @@ public class InputReader : Singletons.Singleton<InputReader>
             changeStanceAction.Enable();
             guardAction.Enable();
             attackAction.Enable();
+            dashAction.Enable();
             
         }
 
-    
+        private void OnDisable()
+        {
+            moveAction.Disable();
+            jumpAction.Disable();
+            lookAction.Disable();
+            changeStanceAction.Disable();
+            guardAction.Disable();
+            attackAction.Disable();
+            dashAction.Disable();
 
-    }
+        }
+
+
+
+}
