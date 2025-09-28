@@ -11,20 +11,62 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour
     protected NavMeshAgent agent;
     protected StateMachine<TState, TTrigger> enemyAI; // StateMachine<StateEnum, TriggerEnum> is from the Stateless library
 
-    // Expose the current state in the Inspector (read-only)
-    [SerializeField] private TState currentState;
+    [Header("State Machine")]
+    [SerializeField, Tooltip("The current state of the enemy's state machine. Read-only; for debugging and visualization.")]
+    private TState currentState;
 
-    // Health properties // THIS IS NOT CURRENTLY USING BRANDON'S HEALTH UI SYSTEM
-    [SerializeField] protected float maxHealth = 100f;
-    [SerializeField, MaxHealthSlider]
+    [Header("Health")]
+    [SerializeField, Tooltip("Maximum health value for this enemy.")]
+    protected float maxHealth = 100f;
+    [SerializeField, MaxHealthSlider, Tooltip("Current health value for this enemy.")]
     protected float currentHealth = 100f;
-    [SerializeField] protected float lowHealthThresholdPercent = 0.25f;
+    [SerializeField, Tooltip("Percent of max health at which the enemy is considered low health (e.g., will flee or recover).")]
+    protected float lowHealthThresholdPercent = 0.25f;
+    [SerializeField, Tooltip("Enable or disable low health behavior (fleeing, recovering, etc.).")]
+    protected bool handleLowHealth = true;
+
+    [Header("Zone Management")]
+    [SerializeField, Tooltip("The zone this enemy is currently in.")]
+    public Zone currentZone;
+    [SerializeField, Tooltip("How long the enemy remains idle before relocating to another zone.")]
+    protected float idleTimerDuration = 15f;
+
+    [Header("Detection")]
+    [SerializeField, Tooltip("Radius of the detection sphere for spotting the player.")]
+    protected float detectionRange = 10f;
+    [SerializeField, Tooltip("Show the detection range gizmo in the Scene view.")]
+    protected bool showDetectionGizmo = true;
+
+    [Header("Attack")]
+    [SerializeField, Tooltip("Size of the attack box collider (width, height, depth) used for attack range.")]
+    protected Vector3 attackBoxSize = new Vector3(2f, 2f, 2f);
+    [SerializeField, Tooltip("Distance in front of the enemy where the attack box is positioned.")]
+    protected float attackBoxDistance = 1.5f;
+    [SerializeField, Tooltip("Time in seconds between attacks (attack cooldown).")]
+    protected float attackInterval = 1.0f;
+    [SerializeField, Tooltip("Time in seconds the attack box is enabled (attack active duration).")]
+    protected float attackActiveDuration = 0.5f;
+    [SerializeField, Tooltip("Show the attack range gizmo in the Scene view.")]
+    protected bool showAttackGizmo = true;
+    
+
+    // Non-serialized fields
+    protected SphereCollider detectionCollider;
+    protected BoxCollider attackCollider;
+    protected bool isAttackBoxActive = false;
     protected bool hasFiredLowHealth = false;
     protected Coroutine recoverCoroutine;
-
-    // Zone management
-    [SerializeField] public Zone currentZone;
+    protected Coroutine idleTimerCoroutine;
+    protected Coroutine idleWanderCoroutine;
+    protected Coroutine zoneArrivalCoroutine;
+    protected Coroutine attackLoopCoroutine;
     private Vector3 lastZoneCheckPosition;
+
+    protected Renderer enemyRenderer;
+    protected Color patrolColor = Color.green;
+    protected Color chaseColor = Color.yellow;
+    protected Color attackColor = new Color(1f, 0.5f, 0f); // Orange
+    protected Color hitboxActiveColor = Color.red;
 
     // Awake is called when the script instance is being loaded
     protected virtual void Awake()
@@ -36,6 +78,21 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour
         }
         agent = this.gameObject.GetComponent<NavMeshAgent>();
         // enemyAI and currentState should be initialized in the derived class
+
+        // Detection collider
+        detectionCollider = gameObject.AddComponent<SphereCollider>();
+        detectionCollider.isTrigger = true;
+        detectionCollider.radius = detectionRange;
+
+        // Attack collider
+        attackCollider = gameObject.AddComponent<BoxCollider>();
+        attackCollider.isTrigger = true;
+        attackCollider.size = attackBoxSize;
+        attackCollider.center = new Vector3(0f, 0f, attackBoxDistance);
+        attackCollider.enabled = false; // Default off
+
+        // Automatically assign the capsule's MeshRenderer
+        enemyRenderer = GetComponent<MeshRenderer>();
     }
 
     // Helper to initialize the state machine and inspector state
@@ -65,8 +122,15 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour
     }
 
     // --- PASSIVE MOVEMENT AND BEHAVIOR METHODS ---
+    protected virtual void SetEnemyColor(Color color)
+    {
+        if (enemyRenderer != null)
+            enemyRenderer.material.color = color;
+    }
+
     protected virtual void OnEnterIdle()
     {
+        SetEnemyColor(patrolColor);
         Debug.Log($"{gameObject.name} entered Idle state.");
         ResetIdleTimer();
         hasFiredLowHealth = false;
@@ -90,10 +154,6 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour
         idleTimerCoroutine = StartCoroutine(IdleTimerCoroutine());
     }
 
-    protected Coroutine idleTimerCoroutine;
-    [SerializeField]
-    protected float idleTimerDuration = 15f;
-
     protected virtual IEnumerator IdleTimerCoroutine()
     {
         yield return new WaitForSeconds(idleTimerDuration);
@@ -108,8 +168,6 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour
         }
         idleTimerCoroutine = null;
     }
-
-    protected Coroutine idleWanderCoroutine;
 
     protected virtual IEnumerator IdleWanderLoop()
     {
@@ -151,9 +209,6 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour
         currentZone = null; // Not in any zone
     }
 
-    // Simple wandering behavior within the current zone
-    protected Coroutine zoneArrivalCoroutine;
-
     protected virtual void IdleWander()
     {
         if (currentZone == null) return;
@@ -183,6 +238,7 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour
 
     protected virtual void OnEnterRelocate()
     {
+        SetEnemyColor(patrolColor);
         Zone[] otherZones = GetOtherZones();
         if (otherZones.Length == 0)
         {
@@ -239,9 +295,6 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour
         recoverCoroutine = null;
     }
 
-    [SerializeField]
-    protected bool handleLowHealth = true; // Toggle to enable/disable low health behavior (fleeing, recovering, etc.)
-
     protected virtual void CheckHealthThreshold()
     {
         if (!handleLowHealth)
@@ -253,34 +306,6 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour
             TryFireTriggerByName("LowHealth");
         }
     }
-
-    /* 
-       // Phase-based behavior (optional), we can use this later for bosses or special enemies
-       // For a boss, you can override CheckHealthThreshold() and/or SetHealth() in the derived class to implement custom phase logic, 
-       // ignoring the base low health logic if desired. Instead of doing this V
-    [SerializeField]
-    protected float[] phaseThresholdPercents = new float[] { 0.75f, 0.5f, 0.25f };
-    protected int currentPhase = 0;
-
-    protected virtual void CheckPhaseThresholds()
-    {
-        // Example: phase triggers named "Phase1", "Phase2", etc.
-        while (currentPhase < phaseThresholdPercents.Length &&
-               currentHealth <= maxHealth * phaseThresholdPercents[currentPhase])
-        {
-            string triggerName = $"Phase{currentPhase + 1}";
-            if (System.Enum.TryParse(triggerName, out TTrigger phaseTrigger))
-            {
-                enemyAI.Fire(phaseTrigger);
-            }
-            else
-            {
-                Debug.LogWarning($"{typeof(TTrigger).Name} does not contain a '{triggerName}' trigger.");
-            }
-            currentPhase++;
-        }
-    }
-    */
 
     protected virtual void OnRecoveredHealth()
     {
@@ -315,6 +340,179 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour
         {
             Debug.LogWarning($"{typeof(TTrigger).Name} does not contain a '{triggerName}' trigger. Check your enum definition.");
             return false;
+        }
+    }
+
+    protected virtual void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            // Check which collider is currently triggering this event
+            // This works because OnTriggerEnter is called for each trigger collider on the GameObject
+            // Use Physics.OverlapSphere or OverlapBox if you need to check proximity
+
+            // Check if this is the detection collider
+            if (detectionCollider != null && detectionCollider.enabled && detectionCollider.bounds.Contains(other.transform.position))
+            {
+                if (TryFireTriggerByName("SeePlayer")) // Doing it this way to not cause many duplicate Debug.Logs
+                {
+                    Debug.Log($"{gameObject.name} detected player (detection collider).");
+                }
+            }
+            // Check if this is the attack collider
+            else if (attackCollider != null && attackCollider.enabled && attackCollider.bounds.Contains(other.transform.position))
+            {
+                if (TryFireTriggerByName("InAttackRange"))
+                {
+                    Debug.Log($"{gameObject.name} detected player (attack collider).");
+                }
+            }
+        }
+    }
+
+    protected virtual void OnTriggerStay(Collider other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            if (detectionCollider != null && detectionCollider.enabled && detectionCollider.bounds.Contains(other.transform.position))
+            {
+                // Only fire SeePlayer if not already in Chase
+                if (!enemyAI.State.Equals((TState)System.Enum.Parse(typeof(TState), "Chase")))
+                {
+                    TryFireTriggerByName("SeePlayer");
+                }
+            }
+        }
+    }
+
+    protected virtual void MoveToAttackRange(Transform player)
+    {
+        // Get direction from enemy to player
+        Vector3 direction = (player.position - transform.position).normalized;
+
+        // Calculate reach: half the box's depth (z) plus the offset distance in front of the enemy
+        // Subtract a small buffer to move a little closer
+        // This is to prevent stopping just before the attack box edge
+        float chaseBuffer = 0.2f;
+        float reach = (Mathf.Max(attackBoxSize.x, attackBoxSize.z) * 0.5f) + attackBoxDistance - chaseBuffer;
+
+        // Position the enemy so the player is just inside the front face of the attack box
+        Vector3 targetPosition = player.position - direction * reach;
+
+        // Keep the target position at the same Y as the enemy (for ground-based movement)
+        targetPosition.y = transform.position.y;
+
+        agent.SetDestination(targetPosition);
+    }
+
+    protected virtual IEnumerator AttackLoop()
+    {
+        while (enemyAI.State.Equals((TState)System.Enum.Parse(typeof(TState), "Attack")))
+        {
+            // Calculate the world position and rotation for the attack box
+            Vector3 boxCenter = transform.position + transform.forward * attackBoxDistance;
+            Vector3 boxHalfExtents = attackBoxSize * 0.5f;
+            Quaternion boxRotation = transform.rotation;
+
+            // Check if player is within the attack box bounds before enabling
+            bool playerInAttackBox = false;
+            Collider[] hits = Physics.OverlapBox(
+                boxCenter,
+                boxHalfExtents,
+                boxRotation
+            );
+
+            foreach (var hit in hits)
+            {
+                if (hit.CompareTag("Player"))
+                {
+                    playerInAttackBox = true;
+                    break;
+                }
+            }
+
+            if (playerInAttackBox)
+            {
+                isAttackBoxActive = true;
+                attackCollider.enabled = true;
+                SetEnemyColor(hitboxActiveColor);
+                yield return new WaitForSeconds(attackActiveDuration);
+                isAttackBoxActive = false;
+                attackCollider.enabled = false;
+                SetEnemyColor(attackColor);
+            }
+            else
+            {
+                isAttackBoxActive = false;
+                attackCollider.enabled = false;
+                SetEnemyColor(attackColor);
+                yield return new WaitForSeconds(0.1f);
+            }
+
+            yield return new WaitForSeconds(attackInterval);
+        }
+        isAttackBoxActive = false;
+        attackCollider.enabled = false;
+        SetEnemyColor(attackColor);
+    }
+
+    protected virtual void OnEnterChase()
+    {
+        SetEnemyColor(chaseColor);
+    }
+
+    protected virtual void OnEnterAttack()
+    {
+        SetEnemyColor(attackColor);
+        if (attackLoopCoroutine != null)
+            StopCoroutine(attackLoopCoroutine);
+        attackLoopCoroutine = StartCoroutine(AttackLoop());
+    }
+
+    protected virtual void OnExitAttack()
+    {
+        if (attackLoopCoroutine != null)
+            StopCoroutine(attackLoopCoroutine);
+        attackCollider.enabled = false;
+    }
+
+    // Draw gizmos for detection and attack colliders
+    protected virtual void OnDrawGizmos()
+    {
+        // Detection range gizmo (sphere)
+        if (showDetectionGizmo)
+        {
+            Gizmos.color = new Color(0f, 0.7f, 1f, 0.3f); // Cyan, semi-transparent
+            Gizmos.DrawWireSphere(transform.position, detectionRange);
+            Gizmos.color = new Color(0f, 0.7f, 1f, 0.1f);
+            Gizmos.DrawSphere(transform.position, detectionRange);
+        }
+
+        // Attack range gizmo (box)
+        if (showAttackGizmo)
+        {
+            Gizmos.color = new Color(1f, 0.2f, 0.2f, 0.3f); // Red, semi-transparent
+            Vector3 boxCenter = transform.position + transform.forward * attackBoxDistance;
+            Gizmos.matrix = Matrix4x4.TRS(boxCenter, transform.rotation, Vector3.one);
+            Gizmos.DrawWireCube(Vector3.zero, attackBoxSize);
+            Gizmos.color = new Color(1f, 0.2f, 0.2f, 0.1f);
+            Gizmos.DrawCube(Vector3.zero, attackBoxSize);
+            Gizmos.matrix = Matrix4x4.identity;
+            // Also draw the effective attack range as a sphere for reference
+            float attackRange = (Mathf.Max(attackBoxSize.x, attackBoxSize.z) * 0.5f) + attackBoxDistance;
+            Gizmos.color = new Color(1f, 0.2f, 0.2f, 0.2f);
+            Gizmos.DrawWireSphere(transform.position, attackRange);
+        }
+    }
+
+    protected virtual void OnValidate()
+    {
+        if (detectionCollider != null)
+            detectionCollider.radius = detectionRange;
+        if (attackCollider != null)
+        {
+            attackCollider.size = attackBoxSize;
+            attackCollider.center = new Vector3(0f, 0f, attackBoxDistance);
         }
     }
 }
