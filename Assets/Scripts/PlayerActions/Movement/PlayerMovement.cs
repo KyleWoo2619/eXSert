@@ -21,6 +21,7 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
     [Header("Player Jump Settings")]
     [SerializeField] private float gravity = -9.81f;
     [Tooltip("How high the player will jump")][SerializeField][Range(5f, 15)] private float jumpHeight;
+    [SerializeField][Range(1f, 10)] private float doubleJumpHeight;
     [SerializeField] [Range(15, 50)] private float terminalVelocity = 20;
     [SerializeField][Range(.1f, 2)] private float fallSpeed;
     [SerializeField] private bool canDoubleJump;
@@ -39,7 +40,8 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
     [Header("Dash Settings")]
     [SerializeField] [Range(1, 5)] private float dashSpeed;
     [SerializeField] private float dashTime;
-    [SerializeField] private float dashCooldown;
+    private float dashCurrentTime;
+    [SerializeField] private float dashCoolDown;
 
     [Header("Camera Settings")]
     [SerializeField] bool invertYAxis = false;
@@ -123,7 +125,7 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
         }
         else if (input.JumpTrigger && canDoubleJump)
         {
-            currentMovement.y += jumpHeight / 2;
+            currentMovement.y += doubleJumpHeight;
             StartCoroutine(CanDoubleJump());
         }
         //If the player is not grounded they will continously fall until they are grounded
@@ -174,26 +176,26 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
 
     public void Dash()
     {
-        dashCooldown -= Time.deltaTime;
+        dashCurrentTime -= Time.deltaTime;
 
-        if (dashCooldown < -1)
+        if (dashCurrentTime < -1)
         {
-            dashCooldown = -1;
+            dashCurrentTime = -1;
         }
 
-        if(input.DashTrigger && dashCooldown <= 0)
+        if(input.DashTrigger && dashCurrentTime <= 0)
         {
             StartCoroutine(DashCoroutine(currentMovement));
         }
     }
     private IEnumerator DashCoroutine(Vector3 direction)
     {
-        float startime = Time.time;
+        float starttime = Time.time;
 
-        while (Time.time < startime + dashTime)
+        while (Time.time < starttime + dashTime)
         {
             characterController.Move(direction * dashSpeed * Time.deltaTime);
-            dashCooldown = 3;
+            dashCurrentTime = dashCoolDown;
 
             yield return null;
         }
