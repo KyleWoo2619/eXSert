@@ -51,7 +51,7 @@ public class InputReader : Singletons.Singleton<InputReader>
         public bool AttackTrigger { get; internal set; }
         public bool DashTrigger { get; private set; }
 
-        public static InputReader Instance { get; private set; }
+        public static new InputReader Instance { get; private set; }
 
         private void Awake()
         {
