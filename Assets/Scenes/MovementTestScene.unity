@@ -621,10 +621,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   speed: 5.34
   gravity: -9.81
-  jumpHeight: 1.1
+  jumpHeight: 5
+  doubleJumpHeight: 1
   terminalVelocity: 50
   fallSpeed: 0.545
-  playerWeight: 5
+  canDoubleJump: 0
   boxSize: {x: 0.4, y: 0.1, z: 0.6}
   maxDistance: 1
   layerMask:
@@ -632,6 +633,9 @@ MonoBehaviour:
     m_Bits: 8
   mouseSens: 1
   upDownRange: 10
+  dashSpeed: 1
+  dashTime: 0
+  dashCoolDown: 0
   invertYAxis: 0
 --- !u!136 &1608035027
 CapsuleCollider:
