@@ -9,6 +9,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Unity.VisualScripting;
 using Singletons;
+using UnityEngine.SceneManagement;
 
 public class HealthBarManager : Singletons.Singleton<HealthBarManager>, IHealthSystem, IDataPersistenceManager
 
@@ -43,10 +44,22 @@ public class HealthBarManager : Singletons.Singleton<HealthBarManager>, IHealthS
         SetHealth();
 
         //detects if the gameobject has gone below their health count
+       
+    }
+
+    public void Death()
+    {
         if (health <= 0)
         {
-            Debug.Log("You're Dead");
-            health = 0;
+            if (this.gameObject.tag == "Player")
+            {
+                SceneManager.LoadSceneAsync("PlaceholderScene");
+                health = 0;
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
         }
     }
 
@@ -69,4 +82,17 @@ public class HealthBarManager : Singletons.Singleton<HealthBarManager>, IHealthS
         data.health = slider.value;
     }
 
+    private void OnTriggerEnter(Collider other)
+    {
+        HitboxDamageManager hitboxDamageManager = other.GetComponent<HitboxDamageManager>();
+
+        if (other.tag == "Enemy" && this.gameObject.tag == "Player")
+        { 
+            LoseHP(hitboxDamageManager.damageAmount);
+        }
+        else if (other.tag == "Player" && this.gameObject.tag == "Player")
+        {
+            LoseHP(hitboxDamageManager.damageAmount);
+        }
+    }
 }
