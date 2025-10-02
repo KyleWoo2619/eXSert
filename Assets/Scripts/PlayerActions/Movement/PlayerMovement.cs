@@ -20,10 +20,11 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
 
     [Header("Player Jump Settings")]
     [SerializeField] private float gravity = -9.81f;
-    [Tooltip("How high the player will jump")][SerializeField][Range(.05f, 10)] private float jumpHeight;
+    [Tooltip("How high the player will jump")][SerializeField][Range(5f, 15)] private float jumpHeight;
+    [SerializeField][Range(1f, 10)] private float doubleJumpHeight;
     [SerializeField] [Range(15, 50)] private float terminalVelocity = 20;
     [SerializeField][Range(.1f, 2)] private float fallSpeed;
-    [SerializeField][Range(5, 50)] private float playerWeight;
+    [SerializeField] private bool canDoubleJump;
 
     [Header("GroundCheck Variables")]
     [SerializeField] private Vector3 boxSize = new Vector3(.8f, .1f, .8f);
@@ -35,6 +36,12 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
     [Tooltip("Mouse Sensitivity")][SerializeField][Range(1, 3)] internal float mouseSens;
     [Tooltip("Range of looking up or down")][SerializeField][Range(10, 100)] private float upDownRange;
     private float verticalRotation;
+
+    [Header("Dash Settings")]
+    [SerializeField] [Range(1, 5)] private float dashSpeed;
+    [SerializeField] private float dashTime;
+    private float dashCurrentTime;
+    [SerializeField] private float dashCoolDown;
 
     [Header("Camera Settings")]
     [SerializeField] bool invertYAxis = false;
@@ -58,7 +65,7 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
         Move();
         Jumping();
         Rotation();
-
+        Dash();
     }
 
     public void LoadData(GameData data)
@@ -101,29 +108,54 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
         //Checks if player is grounded
         if (AmIGrounded())
         {
-
-            verticalVel = 0;
+            currentMovement.y = 0;
             
+            canDoubleJump = false;
 
             //Checks if the action map action is trigger
             if (input.JumpTrigger)
             {
                 //Increases y pos according to the square root of the jump height multiplied by gravity
-                currentMovement.y += Mathf.Sqrt((jumpHeight * (-gravity)) / playerWeight);
+                currentMovement.y += Mathf.Sqrt((jumpHeight * (-gravity)));
+                StartCoroutine(CanDoubleJump());
             }
 
+            
+
+        }
+        else if (input.JumpTrigger && canDoubleJump)
+        {
+            currentMovement.y += doubleJumpHeight;
+            StartCoroutine(CanDoubleJump());
         }
         //If the player is not grounded they will continously fall until they are grounded
         else
         {
+
+            input.JumpTrigger = false;
+
             currentMovement.y += gravity * Time.deltaTime;
 
-            currentMovement.y += ((gravity * fallSpeed) * Time.deltaTime) * (playerWeight * .1f);
+            currentMovement.y += ((gravity * fallSpeed) * Time.deltaTime);
 
             currentMovement.y = Mathf.Clamp(currentMovement.y, -terminalVelocity, float.MaxValue);
             
         }
 
+    }
+
+    private IEnumerator CanDoubleJump()
+    {
+        if (!canDoubleJump)
+        {
+            yield return new WaitForSeconds(.1f);
+            canDoubleJump = true;
+        }
+        else
+        {
+            yield return new WaitForSeconds(.01f);
+            canDoubleJump = false;
+        }
     }
 
     public void Rotation()
@@ -140,6 +172,33 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
         mainCamera.transform.localRotation = Quaternion.Euler(verticalRotation, 0, 0);
 
         
+    }
+
+    public void Dash()
+    {
+        dashCurrentTime -= Time.deltaTime;
+
+        if (dashCurrentTime < -1)
+        {
+            dashCurrentTime = -1;
+        }
+
+        if(input.DashTrigger && dashCurrentTime <= 0)
+        {
+            StartCoroutine(DashCoroutine(currentMovement));
+        }
+    }
+    private IEnumerator DashCoroutine(Vector3 direction)
+    {
+        float starttime = Time.time;
+
+        while (Time.time < starttime + dashTime)
+        {
+            characterController.Move(direction * dashSpeed * Time.deltaTime);
+            dashCurrentTime = dashCoolDown;
+
+            yield return null;
+        }
     }
 
     //Returns true or false if boxcast collides with the layermask
