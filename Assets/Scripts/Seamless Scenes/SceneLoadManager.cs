@@ -11,39 +11,34 @@ using Singletons;
 
 public class SceneLoadManager : Singleton<SceneLoadManager>
 {
-    public string sceneAName;
-    public string sceneBName;
-
-    public bool isSceneALoaded { get; private set; } = false;
-    public bool isSceneBLoaded { get; private set; } = false;
+    [SerializeField]
+    private SceneAsset sceneA;
+    [SerializeField]
+    private SceneAsset sceneB;
 
     // functions
 
     public void ToggleSceneA()
     {
-        if (isSceneALoaded)
+        if (sceneA.IsLoaded())
         {
-            UnityEngine.SceneManagement.SceneManager.UnloadSceneAsync(sceneAName);
-            isSceneALoaded = false;
+            sceneA.Unload();
         }
         else
         {
-            UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(sceneAName, LoadSceneMode.Additive);
-            isSceneALoaded = true;
+            sceneA.Load();
         }
     }
 
     public void ToggleSceneB()
     {
-        if (isSceneBLoaded)
+        if (sceneB.IsLoaded())
         {
-            UnityEngine.SceneManagement.SceneManager.UnloadSceneAsync(sceneBName);
-            isSceneBLoaded = false;
+            sceneB.Unload();
         }
         else
         {
-            UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(sceneBName, LoadSceneMode.Additive);
-            isSceneBLoaded = true;
+            sceneB.Load();
         }
     }
 }
