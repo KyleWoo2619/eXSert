@@ -25,7 +25,8 @@ public class InputReader : Singletons.Singleton<InputReader>
         [SerializeField] private string look = "Look";
         [SerializeField] private string changeStance = "ChangeStance";
         [SerializeField] private string guard = "Guard";
-        [SerializeField] private string attack = "Attack";
+        [SerializeField] private string lightAttack = "LightAttack";
+        [SerializeField] private string heavyAttack = "HeavyAttack";
         [SerializeField] private string dash = "Dash";
 
         public bool ableToGuard;
@@ -36,7 +37,8 @@ public class InputReader : Singletons.Singleton<InputReader>
         private InputAction lookAction;
         private InputAction changeStanceAction;
         private InputAction guardAction;
-        private InputAction attackAction;
+        private InputAction lightAttackAction;
+        private InputAction heavyAttackAction;
         private InputAction dashAction;
 
         [Header("DeadzoneValues")]
@@ -48,10 +50,17 @@ public class InputReader : Singletons.Singleton<InputReader>
         public bool JumpTrigger { get; internal set; }
         public bool ChangeStanceTrigger { get; private set; }
         public bool GuardTrigger { get; private set; }
-        public bool AttackTrigger { get; internal set; }
-        public bool DashTrigger { get; private set; }
+        public bool LightAttackTrigger { get; internal set; }
+        public bool HeavyAttackTrigger {  get; internal set; }
+        public bool DashTrigger { get; internal set; }
 
         public static new InputReader Instance { get; private set; }
+
+        // Reset methods for triggers that need manual resetting
+        public void ResetDashTrigger()
+        {
+            DashTrigger = false;
+        }
 
         private void Awake()
         {
@@ -71,7 +80,8 @@ public class InputReader : Singletons.Singleton<InputReader>
             lookAction = playerControls.FindActionMap(actionMapName).FindAction(look);
             changeStanceAction = playerControls.FindActionMap(actionMapName).FindAction(changeStance);
             guardAction = playerControls.FindActionMap(actionMapName).FindAction(guard);
-            attackAction = playerControls.FindActionMap(actionMapName).FindAction(attack);
+            lightAttackAction = playerControls.FindActionMap(actionMapName).FindAction(lightAttack);
+            heavyAttackAction = playerControls.FindActionMap(actionMapName).FindAction(heavyAttack);
             dashAction = playerControls.FindActionMap(actionMapName).FindAction(dash);
 
         RegisterInputAction();
@@ -98,8 +108,11 @@ public class InputReader : Singletons.Singleton<InputReader>
             guardAction.performed += context => GuardTrigger = true;
             guardAction.canceled += context => GuardTrigger = false;
 
-            attackAction.performed += context => AttackTrigger = true;
-            attackAction.canceled += context => AttackTrigger = false;
+            lightAttackAction.performed += context => LightAttackTrigger = true;
+            lightAttackAction.canceled += context => LightAttackTrigger = false;
+
+            heavyAttackAction.performed += context => HeavyAttackTrigger = true;
+            heavyAttackAction.canceled += context => HeavyAttackTrigger = false;
 
             dashAction.performed += context => DashTrigger = true;
             dashAction.canceled += context => DashTrigger = false;
@@ -123,7 +136,8 @@ public class InputReader : Singletons.Singleton<InputReader>
             lookAction.Enable();
             changeStanceAction.Enable();
             guardAction.Enable();
-            attackAction.Enable();
+            lightAttackAction.Enable();
+            heavyAttackAction.Enable();
             dashAction.Enable();
             
         }
@@ -135,7 +149,8 @@ public class InputReader : Singletons.Singleton<InputReader>
             lookAction.Disable();
             changeStanceAction.Disable();
             guardAction.Disable();
-            attackAction.Disable();
+            lightAttackAction.Disable();
+            heavyAttackAction.Disable();
             dashAction.Disable();
 
         }
