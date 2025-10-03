@@ -90,9 +90,6 @@ public class HealthBarManager : Singletons.Singleton<HealthBarManager>, IHealthS
         { 
             LoseHP(hitboxDamageManager.damageAmount);
         }
-        else if (other.tag == "Player" && this.gameObject.tag == "Player")
-        {
-            LoseHP(hitboxDamageManager.damageAmount);
-        }
+        //Add one for Player hitting enemies
     }
 }
