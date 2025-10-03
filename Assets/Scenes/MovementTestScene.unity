@@ -246,56 +246,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!1 &65441626
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 65441628}
-  - component: {fileID: 65441627}
-  m_Layer: 0
-  m_Name: InputHandler
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &65441627
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 65441626}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 262193d21bb2a3f4f81184d9d147cd4c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::InputReader
-  playerControls: {fileID: -944628639613478452, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
-  actionMapName: Gameplay
-  move: Move
-  jump: Jump
-  look: Look
-  leftStickDeadzoneValue: 0.2
---- !u!4 &65441628
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 65441626}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 172.43744, y: 0, z: 1217.3394}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &737405943
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -646,11 +596,10 @@ GameObject:
   - component: {fileID: 1608035029}
   - component: {fileID: 1608035028}
   - component: {fileID: 1608035027}
-  - component: {fileID: 1608035026}
-  - component: {fileID: 1608035025}
-  - component: {fileID: 1608035024}
-  - component: {fileID: 1608035023}
   - component: {fileID: 1608035031}
+  - component: {fileID: 1608035025}
+  - component: {fileID: 1608035033}
+  - component: {fileID: 1608035032}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -658,37 +607,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1608035023
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1608035022}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8ff16fa9f94f7db42b58a479cba8b0a6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GroundCheck
-  maxDistance: 1
-  layerMask:
-    serializedVersion: 2
-    m_Bits: 8
---- !u!114 &1608035024
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1608035022}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b946ed39cba553045889a1f703d6f480, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerRotation
-  mouseSens: 1
-  upDownRange: 15
-  invertYAxis: 0
 --- !u!114 &1608035025
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -702,20 +620,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   speed: 5.34
---- !u!114 &1608035026
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1608035022}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 916f99004351e5b43a32db99178748fb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerJumping
-  gravity: 9.81
-  jumpHeight: 1
+  gravity: -9.81
+  jumpHeight: 5
+  doubleJumpHeight: 1
+  terminalVelocity: 50
+  fallSpeed: 0.545
+  canDoubleJump: 0
+  boxSize: {x: 0.4, y: 0.1, z: 0.6}
+  maxDistance: 1
+  layerMask:
+    serializedVersion: 2
+    m_Bits: 8
+  mouseSens: 1
+  upDownRange: 10
+  dashSpeed: 1
+  dashTime: 0
+  dashCoolDown: 0
+  invertYAxis: 0
 --- !u!136 &1608035027
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -804,7 +725,7 @@ Transform:
   m_GameObject: {fileID: 1608035022}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: -0.498, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -836,12 +757,95 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1608035032
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1608035022}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01a0e82a04cd6b944b5aed9073b7153c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Guard
+  canGuard: 0
+--- !u!114 &1608035033
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1608035022}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb8412354a21c34c81b54ed92779f04, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ChangeStance
+  canChangeStance: 1
+--- !u!1001 &4488866101003928886
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 4152515858628106587, guid: bd4d8eaac56332440b873bea490d2306, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 172.43744
+      objectReference: {fileID: 0}
+    - target: {fileID: 4152515858628106587, guid: bd4d8eaac56332440b873bea490d2306, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4152515858628106587, guid: bd4d8eaac56332440b873bea490d2306, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1217.3394
+      objectReference: {fileID: 0}
+    - target: {fileID: 4152515858628106587, guid: bd4d8eaac56332440b873bea490d2306, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4152515858628106587, guid: bd4d8eaac56332440b873bea490d2306, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4152515858628106587, guid: bd4d8eaac56332440b873bea490d2306, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4152515858628106587, guid: bd4d8eaac56332440b873bea490d2306, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4152515858628106587, guid: bd4d8eaac56332440b873bea490d2306, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4152515858628106587, guid: bd4d8eaac56332440b873bea490d2306, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4152515858628106587, guid: bd4d8eaac56332440b873bea490d2306, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5427838382954189658, guid: bd4d8eaac56332440b873bea490d2306, type: 3}
+      propertyPath: m_Name
+      value: InputHandler
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: bd4d8eaac56332440b873bea490d2306, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 58960405}
-  - {fileID: 65441628}
+  - {fileID: 4488866101003928886}
   - {fileID: 1608035030}
   - {fileID: 737405943}
   - {fileID: 1219303306}

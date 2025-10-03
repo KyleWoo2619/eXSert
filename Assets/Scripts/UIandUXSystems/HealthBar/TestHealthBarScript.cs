@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using TMPro;
 //Written By Brandon
-public class TestHealthBarScript : MonoBehaviour
+public class PlayerHealthBar : MonoBehaviour
 {
     [SerializeField] [Range(1, 10 )] private int amountOfHPEffected;
     [SerializeField] private TMP_Text healthText;

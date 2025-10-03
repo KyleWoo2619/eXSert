@@ -8,17 +8,50 @@ Handles player movement and saves/loads player position
 using UnityEngine;
 using UnityEditor;
 using System.Collections;
+using System.ComponentModel;
 public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
 {
     private CharacterController characterController;
     private InputReader input;
 
-    [Tooltip("Speed of player")][SerializeField][Range(4, 8)] private float speed;
+    [Tooltip("Speed of player")][SerializeField] internal float speed;
 
     internal Vector3 currentMovement = Vector3.zero;
 
-    //GroundCheck Variables
+    [Header("Player Jump Settings")]
+    [SerializeField] private float gravity = -9.81f;
+    [Tooltip("How high the player will jump")][SerializeField][Range(5f, 15)] private float jumpHeight;
+    [SerializeField][Range(1f, 10)] private float doubleJumpHeight;
+    [SerializeField] [Range(15, 50)] private float terminalVelocity = 20;
+    [SerializeField][Range(.1f, 2)] private float fallSpeed;
+    [SerializeField] private bool canDoubleJump;
 
+    [Header("GroundCheck Variables")]
+    [SerializeField] private Vector3 boxSize = new Vector3(.8f, .1f, .8f);
+    [SerializeField] private float maxDistance;
+    [Tooltip("Which layer the ground check detects for")] public LayerMask layerMask;
+
+
+    [Header("Player Rotation Settings")]
+    [Tooltip("Mouse Sensitivity")][SerializeField][Range(1, 3)] internal float mouseSens;
+    [Tooltip("Range of looking up or down")][SerializeField][Range(10, 100)] private float upDownRange;
+    private float verticalRotation;
+
+    [Header("Dash Settings")]
+    [SerializeField] [Range(1, 5)] private float dashSpeed;
+    [SerializeField] private float dashTime;
+    private float dashCurrentTime;
+    [SerializeField] private float dashCoolDown;
+
+    [Header("Camera Settings")]
+    [SerializeField] bool invertYAxis = false;
+
+    private Camera mainCamera;
+
+    void Awake()
+    {
+        mainCamera = Camera.main;
+    }
 
     void Start()
     {
@@ -30,7 +63,9 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
     public void Update()
     {
         Move();
-
+        Jumping();
+        Rotation();
+        Dash();
     }
 
     public void LoadData(GameData data)
@@ -64,5 +99,127 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
         characterController.Move(currentMovement * Time.deltaTime);
     }
 
+    private void Jumping()
+    {
+        float verticalVel;
+        verticalVel = characterController.velocity.y;
 
+
+        //Checks if player is grounded
+        if (AmIGrounded())
+        {
+            currentMovement.y = 0;
+            
+            canDoubleJump = false;
+
+            //Checks if the action map action is trigger
+            if (input.JumpTrigger)
+            {
+                //Increases y pos according to the square root of the jump height multiplied by gravity
+                currentMovement.y += Mathf.Sqrt((jumpHeight * (-gravity)));
+                StartCoroutine(CanDoubleJump());
+            }
+
+            
+
+        }
+        else if (input.JumpTrigger && canDoubleJump)
+        {
+            currentMovement.y += doubleJumpHeight;
+            StartCoroutine(CanDoubleJump());
+        }
+        //If the player is not grounded they will continously fall until they are grounded
+        else
+        {
+
+            input.JumpTrigger = false;
+
+            currentMovement.y += gravity * Time.deltaTime;
+
+            currentMovement.y += ((gravity * fallSpeed) * Time.deltaTime);
+
+            currentMovement.y = Mathf.Clamp(currentMovement.y, -terminalVelocity, float.MaxValue);
+            
+        }
+
+    }
+
+    private IEnumerator CanDoubleJump()
+    {
+        if (!canDoubleJump)
+        {
+            yield return new WaitForSeconds(.1f);
+            canDoubleJump = true;
+        }
+        else
+        {
+            yield return new WaitForSeconds(.01f);
+            canDoubleJump = false;
+        }
+    }
+
+    public void Rotation()
+    {
+        input.mouseSens = mouseSens;
+        float mouseYInput = invertYAxis ? -input.LookInput.y : input.LookInput.y;
+
+        float mouseXRotation = input.LookInput.x * input.mouseSens;
+        transform.Rotate(0, mouseXRotation, 0);
+
+        verticalRotation -= mouseYInput * input.mouseSens;
+
+        verticalRotation = Mathf.Clamp(verticalRotation, -upDownRange, upDownRange);
+        mainCamera.transform.localRotation = Quaternion.Euler(verticalRotation, 0, 0);
+
+        
+    }
+
+    public void Dash()
+    {
+        dashCurrentTime -= Time.deltaTime;
+
+        if (dashCurrentTime < -1)
+        {
+            dashCurrentTime = -1;
+        }
+
+        if(input.DashTrigger && dashCurrentTime <= 0)
+        {
+            StartCoroutine(DashCoroutine(currentMovement));
+        }
+    }
+    private IEnumerator DashCoroutine(Vector3 direction)
+    {
+        float starttime = Time.time;
+
+        while (Time.time < starttime + dashTime)
+        {
+            characterController.Move(direction * dashSpeed * Time.deltaTime);
+            dashCurrentTime = dashCoolDown;
+
+            yield return null;
+        }
+    }
+
+    //Returns true or false if boxcast collides with the layermask
+    public bool AmIGrounded()
+    {
+        if (Physics.BoxCast(transform.position, boxSize, -transform.up, transform.rotation, maxDistance, layerMask))
+        {
+
+            return true;
+        }
+        else
+        {
+
+            return false;
+        }
+    }
+
+    //Draws the boxcast for debugging
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawCube(transform.position - transform.up * maxDistance, boxSize);
+    }
 }
