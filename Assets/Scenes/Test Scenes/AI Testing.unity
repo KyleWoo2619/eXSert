@@ -586,14 +586,16 @@ MonoBehaviour:
   maxHealth: 100
   currentHealth: 100
   lowHealthThresholdPercent: 0.25
+  handleLowHealth: 1
   currentZone: {fileID: 0}
+  idleTimerDuration: 15
   detectionRange: 10
+  showDetectionGizmo: 1
   attackBoxSize: {x: 2, y: 2, z: 2}
   attackBoxDistance: 1.5
-  showDetectionGizmo: 1
+  attackInterval: 1
+  attackActiveDuration: 0.5
   showAttackGizmo: 1
-  idleTimerDuration: 15
-  handleLowHealth: 1
 --- !u!1 &1166336217
 GameObject:
   m_ObjectHideFlags: 0
@@ -726,7 +728,7 @@ Transform:
   m_GameObject: {fileID: 1689837680}
   serializedVersion: 2
   m_LocalRotation: {x: 0.13097234, y: -0, z: -0, w: 0.99138606}
-  m_LocalPosition: {x: 0, y: 11.54, z: -30.96}
+  m_LocalPosition: {x: 0, y: 11.54, z: -40.95}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
