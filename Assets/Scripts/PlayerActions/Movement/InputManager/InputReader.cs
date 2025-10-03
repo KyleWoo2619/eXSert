@@ -52,9 +52,15 @@ public class InputReader : Singletons.Singleton<InputReader>
         public bool GuardTrigger { get; private set; }
         public bool LightAttackTrigger { get; internal set; }
         public bool HeavyAttackTrigger {  get; internal set; }
-        public bool DashTrigger { get; private set; }
+        public bool DashTrigger { get; internal set; }
 
         public static new InputReader Instance { get; private set; }
+
+        // Reset methods for triggers that need manual resetting
+        public void ResetDashTrigger()
+        {
+            DashTrigger = false;
+        }
 
         private void Awake()
         {
