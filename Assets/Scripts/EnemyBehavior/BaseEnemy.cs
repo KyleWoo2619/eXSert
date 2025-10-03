@@ -51,9 +51,14 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     public float attackActiveDuration = 0.5f;
     [SerializeField, Tooltip("Show the attack range gizmo in the Scene view.")]
     protected bool showAttackGizmo = true;
-    
+
+    [Header("Enemy Health Bar")]
+    [SerializeField, Tooltip("Prefab for the enemy's health bar UI.")]
+    public GameObject healthBarPrefab;
 
     // Non-serialized fields
+    [HideInInspector]
+    public EnemyHealthBar healthBarInstance;
     protected SphereCollider detectionCollider;
     [HideInInspector]
     public BoxCollider attackCollider;

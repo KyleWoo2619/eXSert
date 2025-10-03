@@ -45,6 +45,12 @@ namespace Behaviors
             // Wait for SFX duration
             yield return new WaitForSeconds(1f);
 
+            // Destroy health bar if it exists
+            if (enemy.healthBarInstance != null)
+            {
+                Object.Destroy(enemy.healthBarInstance.gameObject);
+                enemy.healthBarInstance = null;
+            }
             Object.Destroy(enemy.gameObject);
         }
 
@@ -54,4 +60,4 @@ namespace Behaviors
             Debug.Log($"{enemy.gameObject.name} death SFX played.");
         }
     }
-} 
+}
