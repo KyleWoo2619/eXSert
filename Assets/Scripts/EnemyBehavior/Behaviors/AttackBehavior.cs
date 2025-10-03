@@ -158,16 +158,19 @@ namespace Behaviors
             if (damageSentThisEnable) return;
             damageSentThisEnable = true;
 
-            // Call a method on the player's health system
-            var healthSystem = playerCollider.GetComponent<IHealthSystem>();
-            if (healthSystem != null)
+            // Only apply damage if the collider has the "Player" tag
+            if (playerCollider.CompareTag("Player"))
             {
-                healthSystem.LoseHP(enemy.damage);
-                Debug.Log($"{enemy.gameObject.name} attacked {playerCollider.gameObject.name} for {enemy.damage} damage.");
-            }
-            else
-            {
-                Debug.LogWarning($"{playerCollider.gameObject.name} does not have an IHealthSystem component.");
+                var healthSystem = playerCollider.GetComponent<IHealthSystem>();
+                if (healthSystem != null)
+                {
+                    healthSystem.LoseHP(enemy.damage);
+                    Debug.Log($"{enemy.gameObject.name} attacked {playerCollider.gameObject.name} for {enemy.damage} damage.");
+                }
+                else
+                {
+                    Debug.LogWarning($"{playerCollider.gameObject.name} has Player tag but no IHealthSystem component.");
+                }
             }
         }
 
