@@ -140,9 +140,18 @@ namespace eXsert
                     ""initialStateCheck"": false
                 },
                 {
-                    ""name"": ""Attack"",
+                    ""name"": ""LightAttack"",
                     ""type"": ""Button"",
                     ""id"": ""909a5766-eea8-47c8-acef-26975acc6fb1"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""HeavyAttack"",
+                    ""type"": ""Button"",
+                    ""id"": ""e5ab59cf-2859-49a1-be38-04cab2bfc111"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
@@ -283,7 +292,7 @@ namespace eXsert
                 {
                     ""name"": """",
                     ""id"": ""73fbf574-ea09-4b1b-8cf0-d96ff8cbdf35"",
-                    ""path"": ""<Gamepad>/buttonSouth"",
+                    ""path"": ""<Gamepad>/buttonEast"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
@@ -360,22 +369,44 @@ namespace eXsert
                 {
                     ""name"": """",
                     ""id"": ""c07f947f-a9b0-4821-8692-8ece383d545f"",
-                    ""path"": ""<Mouse>/rightButton"",
+                    ""path"": ""<Mouse>/leftButton"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""Attack"",
+                    ""action"": ""LightAttack"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
                 {
                     ""name"": """",
                     ""id"": ""fe0f89c6-cb17-4d1b-a6de-4a34a98a7805"",
-                    ""path"": ""<Gamepad>/rightTrigger"",
+                    ""path"": ""<Gamepad>/buttonSouth"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""Attack"",
+                    ""action"": ""LightAttack"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""cd69d440-de2d-425e-b3ba-767409a81a91"",
+                    ""path"": ""<Mouse>/rightButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""HeavyAttack"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""de796435-4246-46a2-a1a0-94d74f07379a"",
+                    ""path"": ""<Gamepad>/buttonWest"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""HeavyAttack"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -393,7 +424,7 @@ namespace eXsert
                 {
                     ""name"": """",
                     ""id"": ""0668f626-5179-45f1-8735-d1d246d7dd74"",
-                    ""path"": ""<Gamepad>/buttonEast"",
+                    ""path"": ""<Gamepad>/rightTrigger"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
@@ -441,7 +472,8 @@ namespace eXsert
             m_Gameplay_Jump = m_Gameplay.FindAction("Jump", throwIfNotFound: true);
             m_Gameplay_Guard = m_Gameplay.FindAction("Guard", throwIfNotFound: true);
             m_Gameplay_ChangeStance = m_Gameplay.FindAction("ChangeStance", throwIfNotFound: true);
-            m_Gameplay_Attack = m_Gameplay.FindAction("Attack", throwIfNotFound: true);
+            m_Gameplay_LightAttack = m_Gameplay.FindAction("LightAttack", throwIfNotFound: true);
+            m_Gameplay_HeavyAttack = m_Gameplay.FindAction("HeavyAttack", throwIfNotFound: true);
             m_Gameplay_Dash = m_Gameplay.FindAction("Dash", throwIfNotFound: true);
             // UI
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
@@ -532,7 +564,8 @@ namespace eXsert
         private readonly InputAction m_Gameplay_Jump;
         private readonly InputAction m_Gameplay_Guard;
         private readonly InputAction m_Gameplay_ChangeStance;
-        private readonly InputAction m_Gameplay_Attack;
+        private readonly InputAction m_Gameplay_LightAttack;
+        private readonly InputAction m_Gameplay_HeavyAttack;
         private readonly InputAction m_Gameplay_Dash;
         /// <summary>
         /// Provides access to input actions defined in input action map "Gameplay".
@@ -566,9 +599,13 @@ namespace eXsert
             /// </summary>
             public InputAction @ChangeStance => m_Wrapper.m_Gameplay_ChangeStance;
             /// <summary>
-            /// Provides access to the underlying input action "Gameplay/Attack".
+            /// Provides access to the underlying input action "Gameplay/LightAttack".
             /// </summary>
-            public InputAction @Attack => m_Wrapper.m_Gameplay_Attack;
+            public InputAction @LightAttack => m_Wrapper.m_Gameplay_LightAttack;
+            /// <summary>
+            /// Provides access to the underlying input action "Gameplay/HeavyAttack".
+            /// </summary>
+            public InputAction @HeavyAttack => m_Wrapper.m_Gameplay_HeavyAttack;
             /// <summary>
             /// Provides access to the underlying input action "Gameplay/Dash".
             /// </summary>
@@ -614,9 +651,12 @@ namespace eXsert
                 @ChangeStance.started += instance.OnChangeStance;
                 @ChangeStance.performed += instance.OnChangeStance;
                 @ChangeStance.canceled += instance.OnChangeStance;
-                @Attack.started += instance.OnAttack;
-                @Attack.performed += instance.OnAttack;
-                @Attack.canceled += instance.OnAttack;
+                @LightAttack.started += instance.OnLightAttack;
+                @LightAttack.performed += instance.OnLightAttack;
+                @LightAttack.canceled += instance.OnLightAttack;
+                @HeavyAttack.started += instance.OnHeavyAttack;
+                @HeavyAttack.performed += instance.OnHeavyAttack;
+                @HeavyAttack.canceled += instance.OnHeavyAttack;
                 @Dash.started += instance.OnDash;
                 @Dash.performed += instance.OnDash;
                 @Dash.canceled += instance.OnDash;
@@ -646,9 +686,12 @@ namespace eXsert
                 @ChangeStance.started -= instance.OnChangeStance;
                 @ChangeStance.performed -= instance.OnChangeStance;
                 @ChangeStance.canceled -= instance.OnChangeStance;
-                @Attack.started -= instance.OnAttack;
-                @Attack.performed -= instance.OnAttack;
-                @Attack.canceled -= instance.OnAttack;
+                @LightAttack.started -= instance.OnLightAttack;
+                @LightAttack.performed -= instance.OnLightAttack;
+                @LightAttack.canceled -= instance.OnLightAttack;
+                @HeavyAttack.started -= instance.OnHeavyAttack;
+                @HeavyAttack.performed -= instance.OnHeavyAttack;
+                @HeavyAttack.canceled -= instance.OnHeavyAttack;
                 @Dash.started -= instance.OnDash;
                 @Dash.performed -= instance.OnDash;
                 @Dash.canceled -= instance.OnDash;
@@ -824,12 +867,19 @@ namespace eXsert
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnChangeStance(InputAction.CallbackContext context);
             /// <summary>
-            /// Method invoked when associated input action "Attack" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// Method invoked when associated input action "LightAttack" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
             /// </summary>
             /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnAttack(InputAction.CallbackContext context);
+            void OnLightAttack(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "HeavyAttack" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnHeavyAttack(InputAction.CallbackContext context);
             /// <summary>
             /// Method invoked when associated input action "Dash" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
             /// </summary>

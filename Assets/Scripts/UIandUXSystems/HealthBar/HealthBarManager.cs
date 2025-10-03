@@ -46,6 +46,7 @@ public class HealthBarManager : MonoBehaviour, IHealthSystem, IDataPersistenceMa
        
     }
 
+    //On death, if this is assigned to the player it will take them to the "Gameover" screen. If it is on any other object however, they will be destroyed.
     public void Death()
     {
         if (health <= 0)
@@ -81,13 +82,4 @@ public class HealthBarManager : MonoBehaviour, IHealthSystem, IDataPersistenceMa
         data.health = slider.value;
     }
 
-    private void OnTriggerEnter(Collider other)
-    {
-        HitboxDamageManager hitboxDamageManager = other.GetComponent<HitboxDamageManager>();
-
-        if (other.tag == "Enemy" && this.gameObject.tag == "Player")
-        { 
-            LoseHP(hitboxDamageManager.damageAmount);
-        }
-    }
 }
