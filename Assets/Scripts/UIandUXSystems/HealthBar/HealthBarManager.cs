@@ -8,10 +8,9 @@ Uses the health interfaces to increase or decreae hp amount and sets the healthb
 using UnityEngine;
 using UnityEngine.UI;
 using Unity.VisualScripting;
-using Singletons;
 using UnityEngine.SceneManagement;
 
-public class HealthBarManager : Singletons.Singleton<HealthBarManager>, IHealthSystem, IDataPersistenceManager
+public class HealthBarManager : MonoBehaviour, IHealthSystem, IDataPersistenceManager
 
 {
     public float maxHealth;
@@ -90,6 +89,5 @@ public class HealthBarManager : Singletons.Singleton<HealthBarManager>, IHealthS
         { 
             LoseHP(hitboxDamageManager.damageAmount);
         }
-        //Add one for Player hitting enemies
     }
 }
