@@ -78,6 +78,29 @@ public class TestingEnemy : BaseEnemy<EnemyState, EnemyTrigger>
             Debug.Log($"{gameObject.name} Manually calling OnEnterIdle for initial Idle state");
             idleBehavior.OnEnter(this);
         }
+
+        if (healthBarPrefab != null)
+        {
+            var canvas = FindAnyObjectByType<Canvas>();
+            if (canvas == null)
+            {
+                Debug.LogError($"{gameObject.name}: No Canvas found in the scene for health bar instantiation.");
+                return;
+            }
+            var healthBarObj = Instantiate(healthBarPrefab, canvas.transform);
+            var healthBar = healthBarObj.GetComponent<EnemyHealthBar>();
+            if (healthBar == null)
+            {
+                Debug.LogError($"{gameObject.name}: healthBarPrefab does not have an EnemyHealthBar component.");
+                return;
+            }
+            healthBarInstance = healthBar;
+            healthBarInstance.SetEnemy(this);
+        }
+        else
+        {
+            Debug.LogError($"{gameObject.name}: healthBarPrefab is not assigned in the Inspector.");
+        }
     }
 
     protected override void ConfigureStateMachine()

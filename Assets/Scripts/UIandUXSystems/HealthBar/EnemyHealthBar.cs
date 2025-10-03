@@ -1,34 +1,36 @@
-using System.Net.NetworkInformation;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class EnemyHealthBar : MonoBehaviour
 {
-    private BaseEnemy<EnemyState, EnemyTrigger> enemy;
-    private float health;
-    private float maxHealth;
+    private TestingEnemy enemy;
     [SerializeField] private Slider slider;
+    [SerializeField] private Vector3 worldOffset = new Vector3(0, 2f, 0); // Offset above enemy
 
-    void Start()
+    public void SetEnemy(TestingEnemy enemy)
     {
-        enemy = this.GetComponent<BaseEnemy<EnemyState, EnemyTrigger>>();
-
-        slider.maxValue = enemy.maxHealth;
-        
-
+        this.enemy = enemy;
+        if (slider != null)
+        {
+            slider.maxValue = enemy.maxHP;
+            slider.value = enemy.currentHP;
+        }
     }
 
-    // Update is called once per frame
     void Update()
     {
-        SetHealth();
-    }
+        if (enemy == null || slider == null)
+            return;
 
-    internal void SetHealth()
-    {
-        health = enemy.currentHealth;
-        
-        slider.value = health;
+        // Update health value
+        slider.value = enemy.currentHP;
 
+        // Position health bar above enemy in screen space
+        if (Camera.main != null)
+        {
+            Vector3 worldPos = enemy.transform.position + worldOffset;
+            Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
+            transform.position = screenPos;
+        }
     }
 }
