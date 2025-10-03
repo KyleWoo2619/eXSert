@@ -161,7 +161,7 @@ namespace Behaviors
             // Only apply damage if the collider has the "Player" tag
             if (playerCollider.CompareTag("Player"))
             {
-                var healthSystem = playerCollider.GetComponent<IHealthSystem>();
+                playerCollider.TryGetComponent<IHealthSystem>(out var healthSystem);
                 if (healthSystem != null)
                 {
                     healthSystem.LoseHP(enemy.damage);
