@@ -4,12 +4,13 @@ using UnityEngine;
 using UnityEngine.AI;
 
 // BaseEnemy is generic so derived classes can define their own states and triggers
-public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour
+public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     where TState : struct, System.Enum
     where TTrigger : struct, System.Enum
 {
-    protected NavMeshAgent agent;
-    protected StateMachine<TState, TTrigger> enemyAI; // StateMachine<StateEnum, TriggerEnum> is from the Stateless library
+    [HideInInspector]
+    public NavMeshAgent agent;
+    public StateMachine<TState, TTrigger> enemyAI; // StateMachine<StateEnum, TriggerEnum> is from the Stateless library
 
     [Header("State Machine")]
     [SerializeField, Tooltip("The current state of the enemy's state machine. Read-only; for debugging and visualization.")]
@@ -17,9 +18,9 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour
 
     [Header("Health")]
     [SerializeField, Tooltip("Maximum health value for this enemy.")]
-    protected float maxHealth = 100f;
+    public float maxHealth = 100f;
     [SerializeField, MaxHealthSlider, Tooltip("Current health value for this enemy.")]
-    protected float currentHealth = 100f;
+    public float currentHealth = 100f;
     [SerializeField, Tooltip("Percent of max health at which the enemy is considered low health (e.g., will flee or recover).")]
     protected float lowHealthThresholdPercent = 0.25f;
     [SerializeField, Tooltip("Enable or disable low health behavior (fleeing, recovering, etc.).")]
@@ -29,7 +30,7 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour
     [SerializeField, Tooltip("The zone this enemy is currently in.")]
     public Zone currentZone;
     [SerializeField, Tooltip("How long the enemy remains idle before relocating to another zone.")]
-    protected float idleTimerDuration = 15f;
+    public float idleTimerDuration = 15f;
 
     [Header("Detection")]
     [SerializeField, Tooltip("Radius of the detection sphere for spotting the player.")]
@@ -38,35 +39,56 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour
     protected bool showDetectionGizmo = true;
 
     [Header("Attack")]
+    [SerializeField, Tooltip("Damage dealt to the player per attack.")]
+    public float damage = 10f;
     [SerializeField, Tooltip("Size of the attack box collider (width, height, depth) used for attack range.")]
-    protected Vector3 attackBoxSize = new Vector3(2f, 2f, 2f);
+    public Vector3 attackBoxSize = new Vector3(2f, 2f, 2f);
     [SerializeField, Tooltip("Distance in front of the enemy where the attack box is positioned.")]
-    protected float attackBoxDistance = 1.5f;
+    public float attackBoxDistance = 1.5f;
     [SerializeField, Tooltip("Time in seconds between attacks (attack cooldown).")]
-    protected float attackInterval = 1.0f;
+    public float attackInterval = 1.0f;
     [SerializeField, Tooltip("Time in seconds the attack box is enabled (attack active duration).")]
-    protected float attackActiveDuration = 0.5f;
+    public float attackActiveDuration = 0.5f;
     [SerializeField, Tooltip("Show the attack range gizmo in the Scene view.")]
     protected bool showAttackGizmo = true;
-    
+
+    [Header("Enemy Health Bar")]
+    [SerializeField, Tooltip("Prefab for the enemy's health bar UI.")]
+    public GameObject healthBarPrefab;
 
     // Non-serialized fields
+    [HideInInspector]
+    public EnemyHealthBar healthBarInstance;
     protected SphereCollider detectionCollider;
-    protected BoxCollider attackCollider;
-    protected bool isAttackBoxActive = false;
-    protected bool hasFiredLowHealth = false;
+    [HideInInspector]
+    public BoxCollider attackCollider;
+    [HideInInspector]
+    public bool isAttackBoxActive = false;
+    [HideInInspector]
+    public bool hasFiredLowHealth = false;
     protected Coroutine recoverCoroutine;
     protected Coroutine idleTimerCoroutine;
     protected Coroutine idleWanderCoroutine;
     protected Coroutine zoneArrivalCoroutine;
     protected Coroutine attackLoopCoroutine;
-    private Vector3 lastZoneCheckPosition;
+    //private Vector3 lastZoneCheckPosition;
 
     protected Renderer enemyRenderer;
-    protected Color patrolColor = Color.green;
-    protected Color chaseColor = Color.yellow;
-    protected Color attackColor = new Color(1f, 0.5f, 0f); // Orange
-    protected Color hitboxActiveColor = Color.red;
+    [HideInInspector]
+    public Color patrolColor = Color.green;
+    [HideInInspector]
+    public Color chaseColor = Color.yellow;
+    [HideInInspector]
+    public Color attackColor = new Color(1f, 0.5f, 0f); // Orange
+    [HideInInspector]
+    public Color hitboxActiveColor = Color.red;
+
+    private Transform playerTarget;
+    public Transform PlayerTarget
+    {
+        get => playerTarget;
+        set => playerTarget = value;
+    }
 
     // Awake is called when the script instance is being loaded
     protected virtual void Awake()
@@ -122,79 +144,13 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour
     }
 
     // --- PASSIVE MOVEMENT AND BEHAVIOR METHODS ---
-    protected virtual void SetEnemyColor(Color color)
+    public void SetEnemyColor(Color color)
     {
         if (enemyRenderer != null)
             enemyRenderer.material.color = color;
     }
 
-    protected virtual void OnEnterIdle()
-    {
-        SetEnemyColor(patrolColor);
-        Debug.Log($"{gameObject.name} entered Idle state.");
-        ResetIdleTimer();
-        hasFiredLowHealth = false;
-        CheckHealthThreshold();
-
-        if (idleWanderCoroutine != null)
-        {
-            StopCoroutine(idleWanderCoroutine);
-        }
-        UpdateCurrentZone();
-        idleWanderCoroutine = StartCoroutine(IdleWanderLoop());
-    }
-
-    // The timer for how long the enemy has been idle before relocating
-    protected virtual void ResetIdleTimer()
-    {
-        if (idleTimerCoroutine != null)
-        {
-            StopCoroutine(idleTimerCoroutine);
-        }
-        idleTimerCoroutine = StartCoroutine(IdleTimerCoroutine());
-    }
-
-    protected virtual IEnumerator IdleTimerCoroutine()
-    {
-        yield return new WaitForSeconds(idleTimerDuration);
-
-        // Fire the IdleTimerElapsed trigger if still in Idle state
-        if (enemyAI.State.Equals((TState)System.Enum.Parse(typeof(TState), "Idle")))
-        {
-            if (TryFireTriggerByName("IdleTimerElapsed"))
-            {
-                Debug.Log($"{gameObject.name} Idle timer elapsed, firing IdleTimerElapsed trigger. Relocating...");
-            }
-        }
-        idleTimerCoroutine = null;
-    }
-
-    protected virtual IEnumerator IdleWanderLoop()
-    {
-        while (true)
-        {
-            float waitTime = Random.Range(2f, 4f);
-            yield return new WaitForSeconds(waitTime);
-            IdleWander();
-        }
-    }
-
-    protected Zone[] GetOtherZones()
-    {
-        Zone[] allZones = Object.FindObjectsByType<Zone>(FindObjectsSortMode.None);
-        if (currentZone == null)
-            return allZones;
-        // Exclude the current zone
-        var otherZones = new System.Collections.Generic.List<Zone>();
-        foreach (var zone in allZones)
-        {
-            if (zone != currentZone)
-                otherZones.Add(zone);
-        }
-        return otherZones.ToArray();
-    }
-
-    protected virtual void UpdateCurrentZone()
+    public virtual void UpdateCurrentZone()
     {
         Debug.Log($"{gameObject.name} Updating current zone.");
         Zone[] zones = Object.FindObjectsByType<Zone>(FindObjectsSortMode.None);
@@ -208,95 +164,41 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour
         }
         currentZone = null; // Not in any zone
     }
-
-    protected virtual void IdleWander()
-    {
-        if (currentZone == null) return;
-        Vector3 target = currentZone.GetRandomPointInZone();
-
-        UnityEngine.AI.NavMeshHit hit;
-        if (NavMesh.SamplePosition(target, out hit, 2.0f, NavMesh.AllAreas))
-        {
-            agent.SetDestination(hit.position);
-        }
-    }
-
-    protected virtual IEnumerator WaitForArrivalAndUpdateZone()
-    {
-        // Wait until the agent reaches its destination
-        while (agent.pathPending || agent.remainingDistance > agent.stoppingDistance)
-            yield return null;
-
-        // Optionally, wait until the agent fully stops
-        while (agent.hasPath && agent.velocity.sqrMagnitude > 0.01f)
-            yield return null;
-
-        TryFireTriggerByName("ReachZone");
-        UpdateCurrentZone();
-        zoneArrivalCoroutine = null;
-    }
-
-    protected virtual void OnEnterRelocate()
-    {
-        SetEnemyColor(patrolColor);
-        Zone[] otherZones = GetOtherZones();
-        if (otherZones.Length == 0)
-        {
-            // No other zones to relocate to, transition back to Idle
-            TryFireTriggerByName("ReachZone");
-            return;
-        }
-
-        // Pick a random other zone and set as target
-        Zone targetZone = otherZones[Random.Range(0, otherZones.Length)];
-        // Move to a random point in the target zone
-        Vector3 target = targetZone.GetRandomPointInZone();
-        UnityEngine.AI.NavMeshHit hit;
-        if (NavMesh.SamplePosition(target, out hit, 2.0f, NavMesh.AllAreas))
-        {
-            agent.SetDestination(hit.position);
-            // Start a coroutine to check when destination is reached
-            if (zoneArrivalCoroutine != null)
-                StopCoroutine(zoneArrivalCoroutine);
-            zoneArrivalCoroutine = StartCoroutine(WaitForArrivalAndUpdateZone());
-        }
-    }
-
     // --- HEALTH MANAGEMENT METHODS ---
+    // --- IHealthSystem Implementation ---
+    // Property for currentHP (read-only for interface, uses currentHealth internally)
+    public float currentHP => currentHealth;
+
+    // Property for maxHP (read-only for interface, uses maxHealth internally)
+    public float maxHP => maxHealth;
+
+    // LoseHP is called to apply damage to the enemy
+    public void LoseHP(float damage)
+    {
+        SetHealth(currentHealth - damage);
+    }
+
+    // HealHP is called to restore health (used by RecoverBehavior)
+    public void HealHP(float hp)
+    {
+        SetHealth(currentHealth + hp);
+    }
+
+    // SetHealth now clamps and updates health, but expects the new value
     public virtual void SetHealth(float value)
     {
         currentHealth = Mathf.Clamp(value, 0, maxHealth);
         CheckHealthThreshold();
     }
 
-    protected virtual void OnEnterRecover()
+    public virtual void CheckHealthThreshold()
     {
-        if (recoverCoroutine != null)
-            StopCoroutine(recoverCoroutine);
-        recoverCoroutine = StartCoroutine(RecoverHealthOverTime());
-    }
-
-    protected virtual IEnumerator RecoverHealthOverTime()
-    {
-        float targetHealth = maxHealth * 0.8f;
-        float recoverRate = 0.1f; // 10% of missing health per second (adjust as needed)
-
-        while (currentHealth < targetHealth)
+        // Fire Die trigger if health reaches zero
+        if (currentHealth <= 0)
         {
-            float missing = maxHealth - currentHealth;
-            float delta = recoverRate * missing * Time.deltaTime;
-            currentHealth = Mathf.Min(currentHealth + delta, targetHealth);
-            yield return null;
+            TryFireTriggerByName("Die");
         }
 
-        // Fire the RecoveredHealth trigger when done
-        TryFireTriggerByName("RecoveredHealth");
-
-        recoverCoroutine = null;
-    }
-
-    protected virtual void CheckHealthThreshold()
-    {
         if (!handleLowHealth)
             return;
 
@@ -306,13 +208,6 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour
             TryFireTriggerByName("LowHealth");
         }
     }
-
-    protected virtual void OnRecoveredHealth()
-    {
-        hasFiredLowHealth = false;
-    }
-
-
 
     // Method to fire triggers safely by value, returns true if fired
     protected bool FireTrigger(TTrigger trigger)
@@ -330,7 +225,7 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour
     }
 
     // Helper to fire triggers by name (string), returns true if fired
-    protected bool TryFireTriggerByName(string triggerName)
+    public bool TryFireTriggerByName(string triggerName)
     {
         if (System.Enum.TryParse(triggerName, out TTrigger trigger))
         {
@@ -383,97 +278,6 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour
                 }
             }
         }
-    }
-
-    protected virtual void MoveToAttackRange(Transform player)
-    {
-        // Get direction from enemy to player
-        Vector3 direction = (player.position - transform.position).normalized;
-
-        // Calculate reach: half the box's depth (z) plus the offset distance in front of the enemy
-        // Subtract a small buffer to move a little closer
-        // This is to prevent stopping just before the attack box edge
-        float chaseBuffer = 0.2f;
-        float reach = (Mathf.Max(attackBoxSize.x, attackBoxSize.z) * 0.5f) + attackBoxDistance - chaseBuffer;
-
-        // Position the enemy so the player is just inside the front face of the attack box
-        Vector3 targetPosition = player.position - direction * reach;
-
-        // Keep the target position at the same Y as the enemy (for ground-based movement)
-        targetPosition.y = transform.position.y;
-
-        agent.SetDestination(targetPosition);
-    }
-
-    protected virtual IEnumerator AttackLoop()
-    {
-        while (enemyAI.State.Equals((TState)System.Enum.Parse(typeof(TState), "Attack")))
-        {
-            // Calculate the world position and rotation for the attack box
-            Vector3 boxCenter = transform.position + transform.forward * attackBoxDistance;
-            Vector3 boxHalfExtents = attackBoxSize * 0.5f;
-            Quaternion boxRotation = transform.rotation;
-
-            // Check if player is within the attack box bounds before enabling
-            bool playerInAttackBox = false;
-            Collider[] hits = Physics.OverlapBox(
-                boxCenter,
-                boxHalfExtents,
-                boxRotation
-            );
-
-            foreach (var hit in hits)
-            {
-                if (hit.CompareTag("Player"))
-                {
-                    playerInAttackBox = true;
-                    break;
-                }
-            }
-
-            if (playerInAttackBox)
-            {
-                isAttackBoxActive = true;
-                attackCollider.enabled = true;
-                SetEnemyColor(hitboxActiveColor);
-                yield return new WaitForSeconds(attackActiveDuration);
-                isAttackBoxActive = false;
-                attackCollider.enabled = false;
-                SetEnemyColor(attackColor);
-            }
-            else
-            {
-                isAttackBoxActive = false;
-                attackCollider.enabled = false;
-                SetEnemyColor(attackColor);
-                yield return new WaitForSeconds(0.1f);
-            }
-
-            yield return new WaitForSeconds(attackInterval);
-        }
-        isAttackBoxActive = false;
-        attackCollider.enabled = false;
-        SetEnemyColor(attackColor);
-    }
-
-    protected virtual void OnEnterChase()
-    {
-        SetEnemyColor(chaseColor);
-    }
-
-    protected virtual void OnEnterAttack()
-    {
-        SetEnemyColor(attackColor);
-        if (attackLoopCoroutine != null)
-            StopCoroutine(attackLoopCoroutine);
-        attackLoopCoroutine = StartCoroutine(AttackLoop());
-    }
-
-    protected virtual void OnExitAttack()
-    {
-        if (attackLoopCoroutine != null)
-            StopCoroutine(attackLoopCoroutine);
-        attackCollider.enabled = false;
     }
 
     // Draw gizmos for detection and attack colliders
@@ -539,7 +343,9 @@ public enum EnemyState
 
     Fled,           // Fled is when the enemy has successfully escaped (out of attack range) and is no longer in immediate danger.
 
-    Recover         // Recover is when the enemy is regaining health passively while idle.
+    Recover,        // Recover is when the enemy is regaining health passively while idle.
+
+    Death           // Death is when the enemy has been defeated and is no longer active.
 }
 
 public enum EnemyTrigger
@@ -566,7 +372,9 @@ public enum EnemyTrigger
 
     IdleTimerElapsed,  // Timer for how long the enemy has been idle before relocating
 
-    Attacked           // The enemy has been attacked by the player
+    Attacked,           // The enemy has been attacked by the player
+
+    Die                 // The enemy has been defeated
 }
 
 // Static class to hold shared (default) state machine configurations
@@ -616,5 +424,23 @@ public static class EnemyStateMachineConfig
         sm.Configure(EnemyState.Recover)  // Essentially the same as Idle but with health regen, maybe no movement at all
             .SubstateOf(EnemyState.Patrol) // Recover is a substate of Patrol
             .Permit(EnemyTrigger.RecoveredHealth, EnemyState.Idle); // Once it recovers health, it goes back to Idle
+
+        // Permit Die from any state except Death itself
+        foreach (EnemyState state in System.Enum.GetValues(typeof(EnemyState)))
+        {
+            if (state != EnemyState.Death)
+            {
+                sm.Configure(state)
+                    .Permit(EnemyTrigger.Die, EnemyState.Death);
+            }
+            else
+            {
+                sm.Configure(state)
+                    .Ignore(EnemyTrigger.Die);
+            }
+        }
+
+        // Configure Death state (no outgoing transitions)
+        sm.Configure(EnemyState.Death);
     }
 }

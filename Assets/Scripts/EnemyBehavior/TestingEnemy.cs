@@ -6,6 +6,7 @@
 
 using UnityEngine;
 using System.Collections;
+using Behaviors;
 
 // This is an example of how to create custom states and triggers for a specific enemy type
 // You would still need to re-implement all the reused states/triggers in the new enums
@@ -36,8 +37,14 @@ public enum TestingEnemyTrigger
 // This also means that you would need to implement all of the state machine configurations in this class
 public class TestingEnemy : BaseEnemy<EnemyState, EnemyTrigger>
 {
+    private IEnemyStateBehavior idleBehavior;
+    private IEnemyStateBehavior relocateBehavior;
+    private IEnemyStateBehavior chaseBehavior;
+    private IEnemyStateBehavior attackBehavior;
+    private IEnemyStateBehavior recoverBehavior;
+    private IEnemyStateBehavior deathBehavior;
+
     // Reference to the player (set this appropriately in your game)
-    protected Transform playerTarget;
 
     protected Coroutine lookAtPlayerCoroutine;
     protected Coroutine chaseCoroutine;
@@ -46,29 +53,60 @@ public class TestingEnemy : BaseEnemy<EnemyState, EnemyTrigger>
     protected override void Awake()
     {
         base.Awake();
+        idleBehavior = new IdleBehavior();
+        relocateBehavior = new RelocateBehavior();
+        recoverBehavior = new RecoverBehavior();
+        chaseBehavior = new ChaseBehavior();
+        attackBehavior = new AttackBehavior();
+        deathBehavior = new DeathBehavior();
+
         Debug.Log($"{gameObject.name} Awake called");
+
+        // Find the player by tag (if not set elsewhere)
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj != null)
+            PlayerTarget = playerObj.transform;
+    }
+
+    protected virtual void Start()
+    {
         InitializeStateMachine(EnemyState.Idle);
         ConfigureStateMachine();
         Debug.Log($"{gameObject.name} State machine initialized");
-
-        // Find the player by tag (if not set elsewhere)
-        if (playerTarget == null)
-        {
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null)
-                playerTarget = playerObj.transform;
-        }
-
-        // Manually call OnEnterIdle if starting in Idle
         if (enemyAI.State.Equals(EnemyState.Idle))
         {
             Debug.Log($"{gameObject.name} Manually calling OnEnterIdle for initial Idle state");
-            OnEnterIdle();
+            idleBehavior.OnEnter(this);
+        }
+
+        if (healthBarPrefab != null)
+        {
+            var canvas = FindAnyObjectByType<Canvas>();
+            if (canvas == null)
+            {
+                Debug.LogError($"{gameObject.name}: No Canvas found in the scene for health bar instantiation.");
+                return;
+            }
+            var healthBarObj = Instantiate(healthBarPrefab, canvas.transform);
+            var healthBar = healthBarObj.GetComponent<EnemyHealthBar>();
+            if (healthBar == null)
+            {
+                Debug.LogError($"{gameObject.name}: healthBarPrefab does not have an EnemyHealthBar component.");
+                return;
+            }
+            healthBarInstance = healthBar;
+            healthBarInstance.SetEnemy(this);
+        }
+        else
+        {
+            Debug.LogError($"{gameObject.name}: healthBarPrefab is not assigned in the Inspector.");
         }
     }
 
     protected override void ConfigureStateMachine()
     {
+        base.ConfigureStateMachine();
+
         Debug.Log($"{gameObject.name} ConfigureStateMachine called");
         EnemyStateMachineConfig.ConfigureBasic(enemyAI); // ConfigureBasic is a static helper method to set up the default states and triggers
                                                          // It would not be used again in this derived class if you had custom states/triggers
@@ -77,167 +115,41 @@ public class TestingEnemy : BaseEnemy<EnemyState, EnemyTrigger>
         enemyAI.Configure(EnemyState.Idle)
             .OnEntry(() => {
                 Debug.Log($"{gameObject.name} OnEntry lambda for Idle called");
-                OnEnterIdle();
+                idleBehavior.OnEnter(this);
             })
             .OnExit(() => {
-                if (idleTimerCoroutine != null)
-                {
-                    StopCoroutine(idleTimerCoroutine);
-                    idleTimerCoroutine = null; // The purpose of setting idleTimerCoroutine to null is to indicate that the coroutine is no longer running
-                }
-                if (idleWanderCoroutine != null)
-                {
-                    StopCoroutine(idleWanderCoroutine);
-                    idleWanderCoroutine = null;
-                }
+                idleBehavior.OnExit(this);
             });
 
         enemyAI.Configure(EnemyState.Relocate)
-            .OnEntry(() => OnEnterRelocate())
-            .OnExit(() => {
-                if (zoneArrivalCoroutine != null)
-                {
-                    StopCoroutine(zoneArrivalCoroutine);
-                    zoneArrivalCoroutine = null;
-                }
-            });
+            .OnEntry(() => relocateBehavior.OnEnter(this))
+            .OnExit(() => relocateBehavior.OnExit(this));
 
         enemyAI.Configure(EnemyState.Recover)
-            .OnEntry(() => OnEnterRecover())
-            .OnExit(() => {
-                if (recoverCoroutine != null)
-                {
-                    StopCoroutine(recoverCoroutine);
-                    recoverCoroutine = null;
-                }
-            });
+            .OnEntry(() => recoverBehavior.OnEnter(this))
+            .OnExit(() => recoverBehavior.OnExit(this));
 
         // --- CHASE STATE ---
         enemyAI.Configure(EnemyState.Chase)
-            .OnEntry(() => {
-                Debug.Log($"{gameObject.name} OnEntry for Chase called");
-                OnEnterChase();
-                if (playerTarget != null)
-                {
-                    if (chaseCoroutine != null)
-                        StopCoroutine(chaseCoroutine);
-                    chaseCoroutine = StartCoroutine(ChasePlayerLoop());
-                }
-            })
-            .OnExit(() => {
-                if (chaseCoroutine != null)
-                {
-                    StopCoroutine(chaseCoroutine);
-                    chaseCoroutine = null;
-                }
-                agent.ResetPath();
-            });
+            .OnEntry(() => chaseBehavior.OnEnter(this))
+            .OnExit(() => chaseBehavior.OnExit(this))
+            .Ignore(EnemyTrigger.SeePlayer);
 
         // --- ATTACK STATE ---
         enemyAI.Configure(EnemyState.Attack)
-            .OnEntry(() => {
-                Debug.Log($"{gameObject.name} OnEntry for Attack called");
-                OnEnterAttack();
-            })
-            .OnExit(() => {
-                Debug.Log($"{gameObject.name} OnExit for Attack called");
-                OnExitAttack();
-            })
+            .OnEntry(() => attackBehavior.OnEnter(this))
+            .OnExit(() => attackBehavior.OnExit(this))
             .Ignore(EnemyTrigger.SeePlayer); // Ignore SeePlayer trigger in Attack state
+
+        // --- DEATH STATE ---
+        enemyAI.Configure(EnemyState.Death)
+            .OnEntry(() => deathBehavior.OnEnter(this))
+            .Ignore(EnemyTrigger.SeePlayer)
+            .Ignore(EnemyTrigger.LowHealth);
     }
 
     protected override void Update()
     {
         base.Update();
-    }
-
-    protected virtual IEnumerator LookAtPlayerLoop()
-    {
-        while (enemyAI.State.Equals(EnemyState.Attack) && playerTarget != null)
-        {
-            if (!isAttackBoxActive) // Only rotate when attack box is disabled
-            {
-                Vector3 direction = (playerTarget.position - transform.position).normalized;
-                direction.y = 0;
-                if (direction != Vector3.zero)
-                {
-                    Quaternion targetRotation = Quaternion.LookRotation(direction);
-                    float t = 0f;
-                    Quaternion startRotation = transform.rotation;
-                    while (t < 1f && !isAttackBoxActive)
-                    {
-                        t += Time.deltaTime;
-                        transform.rotation = Quaternion.Slerp(startRotation, targetRotation, t);
-                        yield return null;
-                    }
-                }
-            }
-            yield return new WaitForSeconds(1f);
-        }
-    }
-
-    protected IEnumerator MonitorAttackRangeLoop()
-    {
-        while (enemyAI.State.Equals(EnemyState.Attack) && playerTarget != null)
-        {
-            float attackRange = (Mathf.Max(attackBoxSize.x, attackBoxSize.z) * 0.5f) + attackBoxDistance;
-            float distance = Vector3.Distance(transform.position, playerTarget.position);
-
-            if (distance > attackRange)
-            {
-                TryFireTriggerByName("OutOfAttackRange");
-                yield break; // Stop monitoring when out of range
-            }
-
-            yield return new WaitForSeconds(0.1f); // Check 10 times per second
-        }
-    }
-
-    protected override void OnEnterAttack()
-    {
-        base.OnEnterAttack();
-        if (lookAtPlayerCoroutine != null)
-            StopCoroutine(lookAtPlayerCoroutine);
-        lookAtPlayerCoroutine = StartCoroutine(LookAtPlayerLoop());
-
-        if (attackRangeMonitorCoroutine != null)
-            StopCoroutine(attackRangeMonitorCoroutine);
-        attackRangeMonitorCoroutine = StartCoroutine(MonitorAttackRangeLoop());
-    }
-
-    protected override void OnExitAttack()
-    {
-        base.OnExitAttack();
-        if (lookAtPlayerCoroutine != null)
-            StopCoroutine(lookAtPlayerCoroutine);
-        lookAtPlayerCoroutine = null;
-
-        if (attackRangeMonitorCoroutine != null)
-            StopCoroutine(attackRangeMonitorCoroutine);
-        attackRangeMonitorCoroutine = null;
-    }
-
-    protected IEnumerator ChasePlayerLoop()
-    {
-        while (enemyAI.State.Equals(EnemyState.Chase) && playerTarget != null)
-        {
-            float attackRange = (Mathf.Max(attackBoxSize.x, attackBoxSize.z) * 0.5f) + attackBoxDistance;
-            float distance = Vector3.Distance(transform.position, playerTarget.position);
-
-            MoveToAttackRange(playerTarget);
-
-            if (distance <= attackRange)
-            {
-                TryFireTriggerByName("InAttackRange");
-                yield break; // Stop coroutine when attack range is reached
-            }
-
-            yield return null; // Wait for next frame
-        }
-    }
-
-    protected override void OnEnterChase()
-    {
-        base.OnEnterChase(); // Sets color to yellow
     }
 }

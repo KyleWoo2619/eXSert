@@ -15,6 +15,23 @@ public class BaseEnemyEditor : Editor
         {
             EditorGUILayout.HelpBox("maxHealth must be greater than 0!", MessageType.Error);
         }
+
+        // Add "Test Enemy Death" button under Health section
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Health Testing", EditorStyles.boldLabel);
+        if (GUILayout.Button("Test Enemy Death"))
+        {
+            // Use reflection to call SetHealth(0f) on the enemy
+            var method = baseEnemy.GetType().GetMethod("SetHealth");
+            if (method != null)
+            {
+                method.Invoke(baseEnemy, new object[] { 0f });
+            }
+            else
+            {
+                Debug.LogWarning($"{baseEnemy.name}: SetHealth(float) method not found.");
+            }
+        }
     }
 }
 #endif

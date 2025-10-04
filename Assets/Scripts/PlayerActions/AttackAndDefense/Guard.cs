@@ -30,23 +30,20 @@ public class Guard : MonoBehaviour
     }
 
     //If the player is able to guard they will be in the guard state until they let go of the button
-    void OnGuardHold()
+    public void OnGuardHold()
     {
-        if (canGuard)
+        if (canGuard && input != null)
         {
-            if (input.GetGuard())
+            if (input.GuardTrigger)
             {
-
-                Debug.Log("Is Guarding");
+                Debug.Log("Is Guarding - Camera should zoom in");
                 movement.speed = originalSpeed / 2;
-
-            } else
+            } 
+            else
             {
                 movement.speed = originalSpeed; 
             }
-
         }
-
     }
 
     //Cooldown so players can't infinitely guard

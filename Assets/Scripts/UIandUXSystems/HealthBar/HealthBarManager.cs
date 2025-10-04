@@ -8,10 +8,9 @@ Uses the health interfaces to increase or decreae hp amount and sets the healthb
 using UnityEngine;
 using UnityEngine.UI;
 using Unity.VisualScripting;
-using Singletons;
 using UnityEngine.SceneManagement;
 
-public class HealthBarManager : Singletons.Singleton<HealthBarManager>, IHealthSystem, IDataPersistenceManager
+public class HealthBarManager : MonoBehaviour, IHealthSystem, IDataPersistenceManager
 
 {
     public float maxHealth;
@@ -47,6 +46,7 @@ public class HealthBarManager : Singletons.Singleton<HealthBarManager>, IHealthS
        
     }
 
+    //On death, if this is assigned to the player it will take them to the "Gameover" screen. If it is on any other object however, they will be destroyed.
     public void Death()
     {
         if (health <= 0)
@@ -82,17 +82,4 @@ public class HealthBarManager : Singletons.Singleton<HealthBarManager>, IHealthS
         data.health = slider.value;
     }
 
-    private void OnTriggerEnter(Collider other)
-    {
-        HitboxDamageManager hitboxDamageManager = other.GetComponent<HitboxDamageManager>();
-
-        if (other.tag == "Enemy" && this.gameObject.tag == "Player")
-        { 
-            LoseHP(hitboxDamageManager.damageAmount);
-        }
-        else if (other.tag == "Player" && this.gameObject.tag == "Player")
-        {
-            LoseHP(hitboxDamageManager.damageAmount);
-        }
-    }
 }
