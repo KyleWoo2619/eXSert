@@ -303,7 +303,7 @@ namespace eXsert
                 {
                     ""name"": """",
                     ""id"": ""73fbf574-ea09-4b1b-8cf0-d96ff8cbdf35"",
-                    ""path"": ""<Gamepad>/buttonEast"",
+                    ""path"": ""<Gamepad>/buttonSouth"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
@@ -391,7 +391,7 @@ namespace eXsert
                 {
                     ""name"": """",
                     ""id"": ""fe0f89c6-cb17-4d1b-a6de-4a34a98a7805"",
-                    ""path"": ""<Gamepad>/buttonSouth"",
+                    ""path"": ""<Gamepad>/buttonWest"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
@@ -413,7 +413,7 @@ namespace eXsert
                 {
                     ""name"": """",
                     ""id"": ""de796435-4246-46a2-a1a0-94d74f07379a"",
-                    ""path"": ""<Gamepad>/buttonWest"",
+                    ""path"": ""<Gamepad>/buttonNorth"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
