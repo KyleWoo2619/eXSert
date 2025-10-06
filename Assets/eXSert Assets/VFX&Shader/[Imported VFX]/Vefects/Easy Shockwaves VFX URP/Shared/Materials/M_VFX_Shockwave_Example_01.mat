@@ -1,0 +1,115 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: M_VFX_Shockwave_Example_01
+  m_Shader: {fileID: 4800000, guid: 60ffc169b2e46424ab2dae7e73d467cd, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 0
+  m_EnableInstancingVariants: 1
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BaseTexture:
+        m_Texture: {fileID: 2800000, guid: f1e3dfe2def118f4088a81914ed7ab7e, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _IntensityMask:
+        m_Texture: {fileID: 2800000, guid: 504551a45813a5e4ab030aada700596e, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NoiseDistortionTexture:
+        m_Texture: {fileID: 2800000, guid: 8a635c01852d10342874a696292bbfd0, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NoiseTexture:
+        m_Texture: {fileID: 2800000, guid: 7437ec4c7494cc5409d26f1abc0906eb, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OpacityMask:
+        m_Texture: {fileID: 2800000, guid: 2401d00237c89774f86ad01377e9ab1f, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _TextureSample5:
+        m_Texture: {fileID: 2800000, guid: 0325fcc4a3af92d42bf31cd760509112, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _TileTexture:
+        m_Texture: {fileID: 2800000, guid: f1e3dfe2def118f4088a81914ed7ab7e, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _texcoord:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _texcoord2:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_Lightmaps:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_LightmapsInd:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_ShadowMasks:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _AlphaCutoff: 0.5
+    - _Cull: 0
+    - _CustomOffset: 1
+    - _CustomOffsetBase: 0
+    - _CustomOffsetLerp: 1
+    - _DepthFade: 0.3
+    - _Dst: 10
+    - _EroVertoffset: 0
+    - _Erosion: 0
+    - _ErosionSmoothness: 1
+    - _IMMult: 5
+    - _IMPower: 5
+    - _IntensityMaskMultiply: 5
+    - _IntensityMaskPower: 5
+    - _Noise01: 1
+    - _Noise01Intensity: 1
+    - _Noise02: 0.5
+    - _Noise02Intensity: 0.1
+    - _OpacityMultiply: 1
+    - _QueueControl: 0
+    - _QueueOffset: 0
+    - _ReceiveShadows: 1
+    - _Src: 5
+    - _ZTest: 2
+    - _ZWrite: 0
+    - __dirty: 0
+    m_Colors:
+    - _Control: {r: 1, g: 0, b: 1, a: 0}
+    - _EmissionColor: {r: 1, g: 1, b: 1, a: 1}
+    - _IntensityMaskUVS: {r: 1, g: 1, b: 0, a: 0}
+    - _Noise01UVP: {r: -0.07, g: -0.3, b: 0, a: 0}
+    - _Noise01UVS: {r: 1, g: 1, b: 0, a: 0}
+    - _Noise02UVP: {r: 0.13, g: -0.1, b: 0, a: 0}
+    - _Noise02UVS: {r: 2, g: 2, b: 0, a: 0}
+    - _NoiseDistUVP: {r: 0.02, g: -0.1, b: 0, a: 0}
+    - _NoiseDistUVS: {r: 1, g: 1, b: 0, a: 0}
+    - _Tile02UVP: {r: -0.05, g: -0.2, b: 0, a: 0}
+    - _TileControl: {r: 5, g: 5, b: 3, a: 0}
+    - _TileUVS: {r: 1, g: 1, b: 0, a: 0}
+  m_BuildTextureStacks: []
