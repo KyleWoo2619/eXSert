@@ -53,8 +53,8 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     protected bool showAttackGizmo = true;
 
     [Header("Enemy Health Bar")]
-    [SerializeField, Tooltip("Prefab for the enemy's health bar UI.")]
-    public GameObject healthBarPrefab;
+    [SerializeField, Tooltip("Prefab for the enemy's health bar UI (must have EnemyHealthBar component).")]
+    public EnemyHealthBar healthBarPrefab;
 
     // Non-serialized fields
     [HideInInspector]

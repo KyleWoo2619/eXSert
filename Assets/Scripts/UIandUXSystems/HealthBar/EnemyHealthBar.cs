@@ -1,36 +1,54 @@
 using UnityEngine;
 using UnityEngine.UI;
+using Behaviors;
 
+[RequireComponent(typeof(Canvas))]
 public class EnemyHealthBar : MonoBehaviour
 {
-    private TestingEnemy enemy;
+    private BaseEnemy<EnemyState, EnemyTrigger> enemy;
     [SerializeField] private Slider slider;
-    [SerializeField] private Vector3 worldOffset = new Vector3(0, 2f, 0); // Offset above enemy
+    [SerializeField] private Vector3 worldOffset = new Vector3(0, 2f, 0);
+    private Transform target;
 
-    public void SetEnemy(TestingEnemy enemy)
+    void Awake()
     {
-        this.enemy = enemy;
-        if (slider != null)
+        if (!slider) slider = GetComponentInChildren<Slider>(true);
+
+        var c = GetComponent<Canvas>();
+        if (c.renderMode == RenderMode.WorldSpace && c.worldCamera == null && Camera.main)
+            c.worldCamera = Camera.main;
+    }
+
+    public void SetEnemy(BaseEnemy<EnemyState, EnemyTrigger> e)
+    {
+        enemy = e;
+        target = e.transform;
+
+        if (slider)
         {
-            slider.maxValue = enemy.maxHP;
-            slider.value = enemy.currentHP;
+            slider.minValue = 0f;
+            slider.maxValue = e.maxHP;
+            slider.value    = e.currentHP;
         }
     }
 
-    void Update()
+    void LateUpdate()
     {
-        if (enemy == null || slider == null)
-            return;
+        if (!enemy || !slider || !target) return;
 
-        // Update health value
+        // value update
         slider.value = enemy.currentHP;
 
-        // Position health bar above enemy in screen space
-        if (Camera.main != null)
+        // follow + face camera (upright)
+        transform.position = target.position + worldOffset;
+
+        var cam = Camera.main;
+        if (cam)
         {
-            Vector3 worldPos = enemy.transform.position + worldOffset;
-            Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
-            transform.position = screenPos;
+            Vector3 dir = transform.position - cam.transform.position;
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 1e-6f)
+                transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
         }
     }
 }
