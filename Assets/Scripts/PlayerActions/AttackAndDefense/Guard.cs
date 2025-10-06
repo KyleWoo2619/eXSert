@@ -121,7 +121,7 @@ public class Guard : MonoBehaviour
             moveCam.Priority = 20;   // Active
             guardCam.Priority = 0;   // Inactive
             
-            Debug.Log("Switched to Move Camera with preserved orientation");
+            // Debug.Log("Switched to Move Camera with preserved orientation");
         }
         else
         {
