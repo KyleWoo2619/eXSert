@@ -15,11 +15,26 @@ public class HealthBarManager : MonoBehaviour, IHealthSystem, IDataPersistenceMa
 {
     public float maxHealth;
     public float health;
-    public Slider slider;
+    private Slider slider;
+
+    //Temporary ways to reset the scene the player is currently in for demonstration
+    Scene scene;
+    string sceneName;
 
     //Assigns the variables from the health interfaces to variables in this class
     float IHealthSystem.currentHP => health; 
     float IHealthSystem.maxHP => maxHealth;
+
+    void Start()
+    {
+        scene = SceneManager.GetActiveScene();
+        sceneName = scene.name;
+    }
+
+    void Update()
+    {
+        Death();
+    }
 
     //Grabs the function from the health interface, updates the health count, and updates the health bar
     public void HealHP(float hp)
@@ -49,12 +64,12 @@ public class HealthBarManager : MonoBehaviour, IHealthSystem, IDataPersistenceMa
     //On death, if this is assigned to the player it will take them to the "Gameover" screen. If it is on any other object however, they will be destroyed.
     public void Death()
     {
-        if (health <= 0)
+        if (this.health <= 0)
         {
+
             if (this.gameObject.tag == "Player")
             {
-                SceneManager.LoadSceneAsync("PlaceholderScene");
-                health = 0;
+                SceneManager.LoadSceneAsync(sceneName);
             }
             else
             {
@@ -80,6 +95,22 @@ public class HealthBarManager : MonoBehaviour, IHealthSystem, IDataPersistenceMa
     {
         data.health = health;
         data.health = slider.value;
+    }
+
+    //If the player collides with a trigger tagged with enemy, it'll gather it's hitbox damage amount and apply it to the player
+    private void OnTriggerEnter(Collider other)
+    {
+        var hitbox = other.GetComponent<HitboxDamageManager>();
+
+        if(other.tag == "Enemy")
+        {
+            LoseHP(hitbox.damageAmount);
+
+            if(this.health <= 0)
+            {
+                Death();
+            }
+        }
     }
 
 }

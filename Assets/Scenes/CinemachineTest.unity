@@ -5733,7 +5733,7 @@ GameObject:
   - component: {fileID: 457827657}
   m_Layer: 0
   m_Name: Cube
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -5757,8 +5757,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 1, y: 1, z: 2.1197295}
+  m_Center: {x: 0, y: 0, z: -0.55986494}
 --- !u!23 &457827658
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -8290,6 +8290,7 @@ GameObject:
   - component: {fileID: 811204606}
   - component: {fileID: 811204605}
   - component: {fileID: 811204609}
+  - component: {fileID: 811204610}
   m_Layer: 0
   m_Name: PlayerModel
   m_TagString: Player
@@ -8480,6 +8481,20 @@ MonoBehaviour:
   UseImpactDirection: 0
   ScaleImpactWithMass: 0
   ScaleImpactWithSpeed: 0
+--- !u!114 &811204610
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 811204598}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40544968a29fc124c83c3ecb3aa2c052, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HealthBarManager
+  maxHealth: 1
+  health: 1
 --- !u!1 &811232187
 GameObject:
   m_ObjectHideFlags: 0
@@ -25781,7 +25796,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2047113692}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.043547984, y: -0.017480243, z: 0.0007620689, w: 0.99889815}
+  m_LocalRotation: {x: 0.043546937, y: -0.018803941, z: 0.0008197771, w: 0.9988741}
   m_LocalPosition: {x: 5.15596, y: 2.02, z: -3.615611}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
