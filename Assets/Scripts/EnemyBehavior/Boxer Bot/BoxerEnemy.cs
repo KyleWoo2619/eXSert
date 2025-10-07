@@ -247,16 +247,16 @@ public class BoxerEnemy : BaseEnemy<EnemyState, EnemyTrigger>
         PlayMoveAnimation();
     }
 
-    protected override void Update()
-    {
-        base.Update();
+    // protected override void Update()
+    // {
+    //     base.Update();
         
-        // Debug animation state (can be disabled in production)
-        if (Input.GetKeyDown(KeyCode.B) && gameObject.name.Contains("Boxer")) // Press B to debug this boxer
-        {
-            DebugAnimationState();
-        }
-    }
+    //     // Debug animation state (can be disabled in production)
+    //     if (Input.GetKeyDown(KeyCode.B) && gameObject.name.Contains("Boxer")) // Press B to debug this boxer
+    //     {
+    //         DebugAnimationState();
+    //     }
+    // }
     
     [ContextMenu("Debug Animation State")]
     public void DebugAnimationState()
