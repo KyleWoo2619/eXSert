@@ -31,17 +31,14 @@ public class InputReader : Singleton<InputReader>
     private InputAction heavyAttackAction;
     private InputAction dashAction;
 
+    public static bool inputBusy = false;
+
     [Header("DeadzoneValues")]
     [SerializeField] private float leftStickDeadzoneValue;
 
     // Gets the input and sets the variable
     public Vector2 MoveInput { get; private set; }
     public Vector2 LookInput { get; private set; }
-    public bool JumpTrigger { get; private set; } = false;
-    public bool ChangeStanceTrigger { get; private set; } = false;
-    public bool GuardTrigger { get; private set; } = false;
-    public bool LightAttackTrigger { get; private set; } = false;
-    public bool HeavyAttackTrigger { get; private set; } = false;
     public bool DashTrigger { get; private set; } = false;
 
     // Reset methods for triggers that need manual resetting
@@ -91,47 +88,6 @@ public class InputReader : Singleton<InputReader>
     {
         MoveInput = moveAction.ReadValue<Vector2>();
         LookInput = lookAction.ReadValue<Vector2>();
-        ChangeStanceTrigger = changeStanceAction.WasPerformedThisFrame();
-        GuardTrigger = guardAction.WasPerformedThisFrame();
-        LightAttackTrigger = lightAttackAction.WasPerformedThisFrame();
-        HeavyAttackTrigger = heavyAttackAction.WasPerformedThisFrame();
-    }
-
-    //Passes the input action to get/set variable when the action is performed or canceled
-    void RegisterInputAction()
-    {
-        moveAction.performed += context => MoveInput = context.ReadValue<Vector2>();
-        moveAction.canceled += context => MoveInput = context.ReadValue<Vector2>();
-
-        lookAction.performed += context => LookInput = context.ReadValue<Vector2>();
-        lookAction.canceled += context => LookInput = context.ReadValue<Vector2>();
-
-        jumpAction.performed += context => JumpTrigger = true;
-        jumpAction.canceled += context => JumpTrigger = false;
-
-        changeStanceAction.performed += context => ChangeStanceTrigger = true;
-        changeStanceAction.canceled += context => ChangeStanceTrigger = false;
-
-        guardAction.performed += context => GuardTrigger = true;
-        guardAction.canceled += context => GuardTrigger = false;
-
-        lightAttackAction.performed += context => LightAttackTrigger = true;
-        lightAttackAction.canceled += context => LightAttackTrigger = false;
-
-        heavyAttackAction.performed += context => HeavyAttackTrigger = true;
-        heavyAttackAction.canceled += context => HeavyAttackTrigger = false;
-
-        dashAction.performed += context => DashTrigger = true;
-        dashAction.canceled += context => DashTrigger = false;
-
-    }
-
-        
-
-    //If the button is held down it returns true and vice versa
-    public bool GetGuard()
-    {
-        return GuardTrigger;
     }
 
 

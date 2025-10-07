@@ -62,13 +62,13 @@ public class PlayerAttackManager : MonoBehaviour
 
     private void Update()
     {
-        if (_lightAttackAction.action != null && _lightAttackAction.action != null && _lightAttackAction.action.triggered)
+        if (_lightAttackAction.action.triggered && !InputReader.inputBusy)
             OnLightAttack();
         else
             animator.ResetTrigger("lightTrigger");
 
 
-        if (_heavyAttackAction.action != null && _heavyAttackAction.action != null && _heavyAttackAction.action.triggered)
+        if (!_lightAttackAction.action.triggered && _heavyAttackAction.action.triggered && !InputReader.inputBusy)
             OnHeavyAttack();
         else
             animator.ResetTrigger("heavyTrigger");

@@ -256,27 +256,4 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
             animator.SetBool("isGrounded", true);
         }
     }
-
-    //Returns true or false if boxcast collides with the layermask
-    public bool AmIGrounded()
-    {
-        if (Physics.BoxCast(transform.position, boxSize, -transform.up, transform.rotation, maxDistance, layerMask))
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-    
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.red;
-        Gizmos.DrawCube(transform.position - transform.up * maxDistance, boxSize);
-    }
-
-
-    //Draws the boxcast for debugging
-
 }
