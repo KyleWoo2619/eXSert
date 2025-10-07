@@ -127,8 +127,16 @@ namespace Behaviors
                     // Trigger attack animation for each attack cycle
                     TriggerAttackAnimation();
                     
+                    // Get the correct animation duration from BoxerEnemy
+                    float animationDuration = enemy.attackActiveDuration; // Default fallback
+                    if (enemy is BoxerEnemy boxerEnemy)
+                    {
+                        animationDuration = boxerEnemy.GetAttackAnimationDuration();
+                        Debug.Log($"{enemy.gameObject.name}: Using BoxerEnemy animation duration: {animationDuration}s");
+                    }
+                    
                     // Wait a brief moment for animation to start
-                    yield return new WaitForSeconds(0.1f);
+                    yield return new WaitForSeconds(0.2f);
                     
                     enemy.isAttackBoxActive = true;
                     enemy.attackCollider.enabled = true;
@@ -136,7 +144,8 @@ namespace Behaviors
                     // Only call damage once per hitbox enable
                     DealDamageToPlayerOnce(playerCollider);
 
-                    yield return new WaitForSeconds(enemy.attackActiveDuration);
+                    // Wait for the full animation duration instead of just attackActiveDuration
+                    yield return new WaitForSeconds(animationDuration - 0.2f); // Subtract the initial wait time
                     
                     enemy.isAttackBoxActive = false;
                     enemy.attackCollider.enabled = false;

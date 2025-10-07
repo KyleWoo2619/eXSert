@@ -30,16 +30,28 @@ namespace Behaviors
 
         private IEnumerator RecoverHealthOverTime()
         {
-            float targetHealth = enemy.maxHP * 0.8f;
+            // Get the EnemyHealthManager component
+            EnemyHealthManager healthManager = enemy.GetComponent<EnemyHealthManager>();
+            if (healthManager == null)
+            {
+                Debug.LogError($"{enemy.gameObject.name}: RecoverBehavior requires EnemyHealthManager component!");
+                yield break;
+            }
+
+            float targetHealth = healthManager.maxHP * 0.8f; // Recover to 80% health
             float recoverRate = 0.1f; // 10% of missing health per second
 
-            while (enemy.currentHP < targetHealth)
+            Debug.Log($"{enemy.gameObject.name}: Starting health recovery. Current: {healthManager.currentHP}/{healthManager.maxHP}, Target: {targetHealth}");
+
+            while (healthManager.currentHP < targetHealth)
             {
-                float missing = enemy.maxHP - enemy.currentHP;
+                float missing = healthManager.maxHP - healthManager.currentHP;
                 float delta = recoverRate * missing * Time.deltaTime;
-                enemy.HealHP(delta);
+                healthManager.HealHP(delta);
                 yield return null;
             }
+
+            Debug.Log($"{enemy.gameObject.name}: Health recovery complete! Final HP: {healthManager.currentHP}/{healthManager.maxHP}");
 
             // Fire the RecoveredHealth trigger when done
             enemy.TryFireTriggerByName("RecoveredHealth");

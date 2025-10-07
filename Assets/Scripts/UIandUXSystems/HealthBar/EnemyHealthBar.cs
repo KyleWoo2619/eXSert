@@ -5,7 +5,9 @@ using Behaviors;
 [RequireComponent(typeof(Canvas))]
 public class EnemyHealthBar : MonoBehaviour
 {
+    private EnemyHealthManager healthManager;
     private BaseEnemy<EnemyState, EnemyTrigger> enemy;
+    private IHealthSystem healthSystem; // Can be either enemy or healthManager
     [SerializeField] private Slider slider;
     [SerializeField] private Vector3 worldOffset = new Vector3(0, 2f, 0);
     private Transform target;
@@ -19,36 +21,55 @@ public class EnemyHealthBar : MonoBehaviour
             c.worldCamera = Camera.main;
     }
 
+    // Method to set up with EnemyHealthManager (preferred)
+    public void SetEnemyHealthManager(EnemyHealthManager manager)
+    {
+        healthManager = manager;
+        healthSystem = manager;
+        target = manager.transform;
+        
+        if (slider)
+        {
+            slider.minValue = 0f;
+            slider.maxValue = manager.maxHP;
+            slider.value = manager.currentHP;
+        }
+        
+        Debug.Log($"{gameObject.name}: Health bar set up with EnemyHealthManager");
+    }
+
+    // Method to set up with enemy directly (for backward compatibility)
     public void SetEnemy(BaseEnemy<EnemyState, EnemyTrigger> e)
     {
         enemy = e;
+        healthSystem = e;
         target = e.transform;
 
         if (slider)
         {
             slider.minValue = 0f;
             slider.maxValue = e.maxHP;
-            slider.value    = e.currentHP;
+            slider.value = e.currentHP;
         }
+        
+        Debug.Log($"{gameObject.name}: Health bar set up with BaseEnemy health system");
     }
 
     void LateUpdate()
     {
-        if (!enemy || !slider || !target) return;
+        if (healthSystem == null || !slider || !target) return;
 
-        // value update
-        slider.value = enemy.currentHP;
+        // value update using the health system interface
+        slider.value = healthSystem.currentHP;
 
-        // follow + face camera (upright)
+        // follow enemy position (BillboardUI component handles rotation)
         transform.position = target.position + worldOffset;
-
-        var cam = Camera.main;
-        if (cam)
+        
+        // DEBUG: Log any unwanted rotation
+        Vector3 currentRotation = transform.eulerAngles;
+        if (Mathf.Abs(currentRotation.x) > 0.1f || Mathf.Abs(currentRotation.z) > 0.1f)
         {
-            Vector3 dir = transform.position - cam.transform.position;
-            dir.y = 0f;
-            if (dir.sqrMagnitude > 1e-6f)
-                transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+            // Debug.LogWarning($"{gameObject.name}: Unwanted rotation detected! X:{currentRotation.x:F2}, Y:{currentRotation.y:F2}, Z:{currentRotation.z:F2}");
         }
     }
 }

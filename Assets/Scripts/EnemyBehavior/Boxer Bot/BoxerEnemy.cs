@@ -19,6 +19,10 @@ public class BoxerEnemy : BaseEnemy<EnemyState, EnemyTrigger>
     private const string ATTACK_TRIGGER = "Attack";
     private const string IS_MOVING = "IsMoving";
     private const string IS_ATTACKING = "IsAttacking";
+    
+    // Animation timing
+    [SerializeField] private float attackAnimationDuration = 2.0f; // Match your slow attack animation
+    [SerializeField] private bool forceAnimationTransitions = true; // Force immediate animation changes
 
     protected Coroutine lookAtPlayerCoroutine;
     protected Coroutine chaseCoroutine;
@@ -62,17 +66,20 @@ public class BoxerEnemy : BaseEnemy<EnemyState, EnemyTrigger>
             idleBehavior.OnEnter(this);
         }
 
-        // Initialize health bar if prefab is assigned
-        if (healthBarPrefab)
+        // Initialize health system - ensure current health is set to max health
+        currentHealth = maxHealth;
+        
+        // Initialize health bar using existing Canvas on this enemy
+        healthBarInstance = GetComponentInChildren<EnemyHealthBar>();
+        if (healthBarInstance != null)
         {
-            healthBarInstance = Instantiate(healthBarPrefab, transform); // parent to enemy
-            healthBarInstance.transform.localPosition = Vector3.zero;    // script adds offset
+            // Use BaseEnemy's IHealthSystem implementation directly
             healthBarInstance.SetEnemy(this);
-            Debug.Log($"{gameObject.name}: Health bar successfully initialized and parented.");
+            Debug.Log($"{gameObject.name}: Health bar initialized with BaseEnemy IHealthSystem. Health: {currentHealth}/{maxHealth}");
         }
         else
         {
-            Debug.LogWarning($"{gameObject.name}: healthBarPrefab not assigned.");
+            Debug.LogWarning($"{gameObject.name}: No EnemyHealthBar component found in children. Make sure there's a Canvas with EnemyHealthBar script attached.");
         }
     }
 
@@ -115,10 +122,13 @@ public class BoxerEnemy : BaseEnemy<EnemyState, EnemyTrigger>
         // --- CHASE STATE ---
         enemyAI.Configure(EnemyState.Chase)
             .OnEntry(() => {
-                PlayMoveAnimation();
+                Debug.Log($"{gameObject.name}: ENTERING Chase state");
+                // Force immediate transition to move animation (especially when coming from Attack state)
+                ForcePlayMoveAnimation();
                 chaseBehavior.OnEnter(this);
             })
             .OnExit(() => {
+                Debug.Log($"{gameObject.name}: EXITING Chase state");
                 StopMoveAnimation();
                 chaseBehavior.OnExit(this);
             })
@@ -127,10 +137,13 @@ public class BoxerEnemy : BaseEnemy<EnemyState, EnemyTrigger>
         // --- ATTACK STATE ---
         enemyAI.Configure(EnemyState.Attack)
             .OnEntry(() => {
-                // Don't play animation here - it's triggered per attack cycle in AttackBehavior
+                Debug.Log($"{gameObject.name}: ENTERING Attack state");
+                // Play attack animation immediately when entering attack state
+                PlayAttackAnimation();
                 attackBehavior.OnEnter(this);
             })
             .OnExit(() => {
+                Debug.Log($"{gameObject.name}: EXITING Attack state");
                 StopAttackAnimation();
                 attackBehavior.OnExit(this);
             })
@@ -160,10 +173,16 @@ public class BoxerEnemy : BaseEnemy<EnemyState, EnemyTrigger>
     {
         if (animator == null) return;
         
+        // Force immediate transition if needed
+        if (forceAnimationTransitions)
+        {
+            animator.Play("BoxingBot_Move", 0, 0f); // Play from beginning
+        }
+        
         animator.SetBool(IS_MOVING, true);
         animator.SetBool(IS_ATTACKING, false);
         animator.SetTrigger(MOVE_TRIGGER);
-        Debug.Log($"{gameObject.name}: Playing Move Animation");
+        Debug.Log($"{gameObject.name}: Playing Move Animation (BoxingBot_Move)");
     }
 
     private void StopMoveAnimation()
@@ -178,10 +197,16 @@ public class BoxerEnemy : BaseEnemy<EnemyState, EnemyTrigger>
     {
         if (animator == null) return;
         
+        // Force immediate transition to attack animation (cancel whatever is playing)
+        if (forceAnimationTransitions)
+        {
+            animator.Play("BoxingBot_Attack", 0, 0f); // Play from beginning immediately
+        }
+        
         animator.SetBool(IS_ATTACKING, true);
         animator.SetBool(IS_MOVING, false);
         animator.SetTrigger(ATTACK_TRIGGER);
-        Debug.Log($"{gameObject.name}: Playing Attack Animation");
+        Debug.Log($"{gameObject.name}: Playing Attack Animation (BoxingBot_Attack) - Duration: {attackAnimationDuration}s");
     }
 
     private void StopAttackAnimation()
@@ -208,9 +233,46 @@ public class BoxerEnemy : BaseEnemy<EnemyState, EnemyTrigger>
         Debug.Log($"{gameObject.name}: TriggerAttackAnimation called");
         PlayAttackAnimation();
     }
+    
+    // Public method to get attack animation duration for behaviors
+    public float GetAttackAnimationDuration()
+    {
+        return attackAnimationDuration;
+    }
+    
+    // Public method to immediately switch to move animation (for quick transitions)
+    public void ForcePlayMoveAnimation()
+    {
+        Debug.Log($"{gameObject.name}: ForcePlayMoveAnimation called - switching to BoxingBot_Move");
+        PlayMoveAnimation();
+    }
 
     protected override void Update()
     {
         base.Update();
+        
+        // Debug animation state (can be disabled in production)
+        if (Input.GetKeyDown(KeyCode.B) && gameObject.name.Contains("Boxer")) // Press B to debug this boxer
+        {
+            DebugAnimationState();
+        }
+    }
+    
+    [ContextMenu("Debug Animation State")]
+    public void DebugAnimationState()
+    {
+        if (animator == null)
+        {
+            Debug.LogError($"{gameObject.name}: No animator found!");
+            return;
+        }
+        
+        AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+        Debug.Log($"{gameObject.name} Animation Debug:");
+        Debug.Log($"  Current State: {stateInfo.shortNameHash}");
+        Debug.Log($"  Is Moving: {animator.GetBool(IS_MOVING)}");
+        Debug.Log($"  Is Attacking: {animator.GetBool(IS_ATTACKING)}");
+        Debug.Log($"  AI State: {enemyAI.State}");
+        Debug.Log($"  Attack Duration Setting: {attackAnimationDuration}s");
     }
 }

@@ -10,12 +10,12 @@ using UnityEngine.UI;
 using Unity.VisualScripting;
 using UnityEngine.SceneManagement;
 
-public class HealthBarManager : MonoBehaviour, IHealthSystem, IDataPersistenceManager
+public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersistenceManager
 
 {
     public float maxHealth;
     public float health;
-    private Slider slider;
+    [SerializeField] private Slider slider;
 
     //Temporary ways to reset the scene the player is currently in for demonstration
     Scene scene;
@@ -29,6 +29,12 @@ public class HealthBarManager : MonoBehaviour, IHealthSystem, IDataPersistenceMa
     {
         scene = SceneManager.GetActiveScene();
         sceneName = scene.name;
+        
+        // Initialize slider if not assigned
+        if (!slider)
+        {
+            Debug.LogWarning($"{gameObject.name}: HealthBarManager slider is not assigned. The PlayerHealthCanvas should handle UI updates instead.");
+        }
     }
 
     void Update()
@@ -81,7 +87,11 @@ public class HealthBarManager : MonoBehaviour, IHealthSystem, IDataPersistenceMa
     //sets the healthbar according to which function is done
     public void SetHealth()
     {
-        slider.value = health;
+        if (slider != null)
+        {
+            slider.value = health;
+        }
+        // Note: PlayerHealthCanvas will handle UI updates if this slider is null
     }
 
     //saves and loads data from this script
