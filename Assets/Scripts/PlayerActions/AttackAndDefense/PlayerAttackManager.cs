@@ -19,6 +19,11 @@ public class PlayerAttackManager : MonoBehaviour {
     [SerializeField] private float hitboxActiveDuration = 0.2f; // How long each hitbox stays active
     protected float lastAttackPressTime;
 
+    [Header("Debug Visualization")]
+    [SerializeField] private bool showHitboxesInGame = true;
+    [SerializeField] private Color hitboxColor = Color.red;
+    [SerializeField] private Material hitboxMaterial;
+
     private InputReader input;
     private ChangeStance changeStance;
 
@@ -89,6 +94,12 @@ public class PlayerAttackManager : MonoBehaviour {
     {
         InactivityCheck();
         Attack();
+        
+        // Draw hitboxes using Debug.DrawLine (visible in Scene view always)
+        if (showHitboxesInGame && comboHitboxes != null)
+        {
+            DrawDebugHitboxes();
+        }
     }
 
     private void Attack()
@@ -312,6 +323,93 @@ public class PlayerAttackManager : MonoBehaviour {
             }
         }
         Debug.Log("=== END HITBOX TEST ===");
+    }
+
+    private void OnDrawGizmos()
+    {
+        if (comboHitboxes == null) return;
+
+        // Draw all hitboxes with different alpha for active/inactive
+        for (int i = 0; i < comboHitboxes.Length; i++)
+        {
+            var hitbox = comboHitboxes[i];
+            if (hitbox == null) continue;
+
+            // Set color based on whether hitbox is active
+            if (hitbox.enabled)
+            {
+                Gizmos.color = hitboxColor;
+            }
+            else
+            {
+                Color inactiveColor = hitboxColor;
+                inactiveColor.a = 0.2f;
+                Gizmos.color = inactiveColor;
+            }
+
+            // Draw wireframe cube
+            Gizmos.matrix = hitbox.transform.localToWorldMatrix;
+            Gizmos.DrawWireCube(hitbox.center, hitbox.size);
+        }
+    }
+
+    private void DrawDebugHitboxes()
+    {
+        // Draw active hitboxes using Debug.DrawLine
+        for (int i = 0; i < comboHitboxes.Length; i++)
+        {
+            var hitbox = comboHitboxes[i];
+            if (hitbox == null || !hitbox.enabled) continue;
+
+            DrawDebugWireBox(hitbox);
+        }
+    }
+
+    private void DrawDebugWireBox(BoxCollider boxCollider)
+    {
+        // Get the 8 corners of the box in world space
+        Vector3[] corners = new Vector3[8];
+        Vector3 center = boxCollider.transform.TransformPoint(boxCollider.center);
+        Vector3 size = boxCollider.size;
+        Vector3 halfSize = size * 0.5f;
+        
+        // Calculate corners in local space then transform to world
+        Vector3[] localCorners = {
+            new Vector3(-halfSize.x, -halfSize.y, -halfSize.z),
+            new Vector3(halfSize.x, -halfSize.y, -halfSize.z),
+            new Vector3(halfSize.x, halfSize.y, -halfSize.z),
+            new Vector3(-halfSize.x, halfSize.y, -halfSize.z),
+            new Vector3(-halfSize.x, -halfSize.y, halfSize.z),
+            new Vector3(halfSize.x, -halfSize.y, halfSize.z),
+            new Vector3(halfSize.x, halfSize.y, halfSize.z),
+            new Vector3(-halfSize.x, halfSize.y, halfSize.z)
+        };
+        
+        for (int i = 0; i < 8; i++)
+        {
+            corners[i] = boxCollider.transform.TransformPoint(localCorners[i] + boxCollider.center);
+        }
+
+        // Draw the 12 edges using Debug.DrawLine (visible in Scene view)
+        float duration = Time.deltaTime;
+        
+        // Bottom face (0,1,5,4)
+        Debug.DrawLine(corners[0], corners[1], hitboxColor, duration);
+        Debug.DrawLine(corners[1], corners[5], hitboxColor, duration);
+        Debug.DrawLine(corners[5], corners[4], hitboxColor, duration);
+        Debug.DrawLine(corners[4], corners[0], hitboxColor, duration);
+        
+        // Top face (3,2,6,7)
+        Debug.DrawLine(corners[3], corners[2], hitboxColor, duration);
+        Debug.DrawLine(corners[2], corners[6], hitboxColor, duration);
+        Debug.DrawLine(corners[6], corners[7], hitboxColor, duration);
+        Debug.DrawLine(corners[7], corners[3], hitboxColor, duration);
+        
+        // Vertical edges
+        Debug.DrawLine(corners[0], corners[3], hitboxColor, duration);
+        Debug.DrawLine(corners[1], corners[2], hitboxColor, duration);
+        Debug.DrawLine(corners[5], corners[6], hitboxColor, duration);
+        Debug.DrawLine(corners[4], corners[7], hitboxColor, duration);
     }
 
 }
