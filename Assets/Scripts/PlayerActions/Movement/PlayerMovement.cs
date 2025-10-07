@@ -6,6 +6,7 @@ Handles player movement and saves/loads player position
 */
 
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEditor;
 using System.Collections;
 using System.ComponentModel;
@@ -15,6 +16,8 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
     private InputReader input;
 
     [Tooltip("Speed of player")][SerializeField] internal float speed;
+    [SerializeField] private Transform cameraTransform;
+    [SerializeField] private bool shouldFaceMoveDirection = true;
 
     internal Vector3 currentMovement = Vector3.zero;
 
@@ -30,11 +33,6 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
     [SerializeField] private Vector3 boxSize = new Vector3(.8f, .1f, .8f);
     [SerializeField] private float maxDistance;
     [Tooltip("Which layer the ground check detects for")] public LayerMask layerMask;
-
-
-    [Header("Player Rotation Settings")]
-    [Tooltip("Mouse Sensitivity")][SerializeField][Range(1, 3)] internal float mouseSens;
-    [Tooltip("Range of looking up or down")][SerializeField][Range(10, 100)] private float upDownRange;
     private float verticalRotation;
 
     [Header("Dash Settings")]
@@ -45,13 +43,6 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
 
     [Header("Camera Settings")]
     [SerializeField] bool invertYAxis = false;
-
-    private Camera mainCamera;
-
-    void Awake()
-    {
-        mainCamera = Camera.main;
-    }
 
     void Start()
     {
@@ -64,7 +55,6 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
     {
         Move();
         Jumping();
-        Rotation();
         Dash();
     }
 
@@ -82,66 +72,89 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
 
     private void Move()
     {
-        //Assigns the movement input gather to a local vector3
-        Vector3 horizontalMovement = new Vector3(input.MoveInput.x, 0, input.MoveInput.y);
+        // Debug checks
+        if (cameraTransform == null)
+        {
+            Debug.LogError("Camera Transform is NULL! Assign your Cinemachine camera to Camera Transform field.");
+            return;
+        }
+        
+        if (characterController == null)
+        {
+            Debug.LogError("Character Controller is NULL!");
+            return;
+        }
 
-        //Whenever player rotation changes, the player's direction changes accordingly
-        Vector3 worldDirection = transform.TransformDirection(horizontalMovement);
+        Vector3 forward = cameraTransform.forward;
+        Vector3 right = cameraTransform.right;
 
-        //Normalizes worldDirection
-        worldDirection.Normalize();
+        forward.y = 0;
+        right.y = 0;
 
-        //Mulitplies the direction moved by player speed
-        currentMovement.x = worldDirection.x * speed;
-        currentMovement.z = worldDirection.z * speed;
+        forward.Normalize();
+        right.Normalize();
 
-        //Moves the player
-        characterController.Move(currentMovement * Time.deltaTime);
+        // Use InputReader instead of Input System callbacks
+        Vector2 inputMove = input != null ? input.MoveInput : Vector2.zero;
+        Vector3 moveDirection = forward * inputMove.y + right * inputMove.x;
+        
+        // Debug movement
+        if (inputMove.magnitude > 0.1f)
+        {
+            // Debug.Log($"MoveInput: {inputMove}, MoveDirection: {moveDirection}, Speed: {speed}");
+        }
+        
+        // Move horizontally
+        Vector3 horizontalMovement = moveDirection * speed * Time.deltaTime;
+        
+        if (horizontalMovement.magnitude > 0.001f)
+        {
+            // Debug.Log($"Moving with: {horizontalMovement}");
+            characterController.Move(horizontalMovement);
+        }
+
+        // Rotate player to face movement direction if enabled
+        if (shouldFaceMoveDirection && moveDirection.sqrMagnitude > 0.001f)
+        {
+            Quaternion toRotation = Quaternion.LookRotation(moveDirection, Vector3.up);
+            transform.rotation = Quaternion.Slerp(transform.rotation, toRotation, Time.deltaTime * 10f);
+        }
     }
 
     private void Jumping()
     {
-        float verticalVel;
-        verticalVel = characterController.velocity.y;
-
-
         //Checks if player is grounded
         if (AmIGrounded())
         {
             currentMovement.y = 0;
-            
             canDoubleJump = false;
 
             //Checks if the action map action is trigger
-            if (input.JumpTrigger)
+            if (input != null && input.JumpTrigger)
             {
                 //Increases y pos according to the square root of the jump height multiplied by gravity
                 currentMovement.y += Mathf.Sqrt((jumpHeight * (-gravity)));
                 StartCoroutine(CanDoubleJump());
             }
-
-            
-
         }
-        else if (input.JumpTrigger && canDoubleJump)
+        else if (input != null && input.JumpTrigger && canDoubleJump)
         {
             currentMovement.y += doubleJumpHeight;
             StartCoroutine(CanDoubleJump());
         }
-        //If the player is not grounded they will continously fall until they are grounded
+        //If the player is not grounded they will continuously fall until they are grounded
         else
         {
-
-            input.JumpTrigger = false;
+            if (input != null)
+                input.JumpTrigger = false;
 
             currentMovement.y += gravity * Time.deltaTime;
-
             currentMovement.y += ((gravity * fallSpeed) * Time.deltaTime);
-
             currentMovement.y = Mathf.Clamp(currentMovement.y, -terminalVelocity, float.MaxValue);
-            
         }
 
+        // Apply vertical movement separately
+        characterController.Move(new Vector3(0, currentMovement.y, 0) * Time.deltaTime);
     }
 
     private IEnumerator CanDoubleJump()
@@ -158,22 +171,6 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
         }
     }
 
-    public void Rotation()
-    {
-        input.mouseSens = mouseSens;
-        float mouseYInput = invertYAxis ? -input.LookInput.y : input.LookInput.y;
-
-        float mouseXRotation = input.LookInput.x * input.mouseSens;
-        transform.Rotate(0, mouseXRotation, 0);
-
-        verticalRotation -= mouseYInput * input.mouseSens;
-
-        verticalRotation = Mathf.Clamp(verticalRotation, -upDownRange, upDownRange);
-        mainCamera.transform.localRotation = Quaternion.Euler(verticalRotation, 0, 0);
-
-        
-    }
-
     public void Dash()
     {
         dashCurrentTime -= Time.deltaTime;
@@ -183,9 +180,16 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
             dashCurrentTime = -1;
         }
 
-        if(input.DashTrigger && dashCurrentTime <= 0)
+        if (input != null && input.DashTrigger && dashCurrentTime <= 0)
         {
-            StartCoroutine(DashCoroutine(currentMovement));
+            // Use the current horizontal movement for dash direction
+            Vector3 dashDirection = new Vector3(currentMovement.x, 0, currentMovement.z).normalized;
+            if (dashDirection.magnitude < 0.1f) // If not moving, dash forward
+            {
+                dashDirection = transform.forward;
+            }
+            StartCoroutine(DashCoroutine(dashDirection * speed));
+            input.DashTrigger = false;
         }
     }
     private IEnumerator DashCoroutine(Vector3 direction)
@@ -206,20 +210,21 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
     {
         if (Physics.BoxCast(transform.position, boxSize, -transform.up, transform.rotation, maxDistance, layerMask))
         {
-
             return true;
         }
         else
         {
-
             return false;
         }
     }
-
-    //Draws the boxcast for debugging
+    
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
         Gizmos.DrawCube(transform.position - transform.up * maxDistance, boxSize);
     }
+
+
+    //Draws the boxcast for debugging
+
 }

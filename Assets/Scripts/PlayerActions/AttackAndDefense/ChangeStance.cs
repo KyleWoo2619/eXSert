@@ -25,7 +25,6 @@ public class ChangeStance : MonoBehaviour
     void Update()
     {
         ChangePlayerStance();
-        Debug.Log(currentStance);
     }
 
     //Gathers input from the player and changes which stance is currently equipped
@@ -46,7 +45,7 @@ public class ChangeStance : MonoBehaviour
                     currentStance++;
                 }
 
-                Debug.Log("Current stance: " + stance[currentStance]);
+                Debug.Log("Stance changed to: " + stance[currentStance] + " (Index: " + currentStance + ")");
                 canChangeStance = false;
                 StartCoroutine(StanceChangeCoolDown());
             }
