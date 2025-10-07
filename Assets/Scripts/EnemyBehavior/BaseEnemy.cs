@@ -25,6 +25,9 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     protected float lowHealthThresholdPercent = 0.25f;
     [SerializeField, Tooltip("Enable or disable low health behavior (fleeing, recovering, etc.).")]
     protected bool handleLowHealth = true;
+    
+    // Reference to the EnemyHealthManager component
+    protected EnemyHealthManager enemyHealthManager;
 
     [Header("Zone Management")]
     [SerializeField, Tooltip("The zone this enemy is currently in.")]
@@ -53,8 +56,7 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     protected bool showAttackGizmo = true;
 
     [Header("Enemy Health Bar")]
-    [SerializeField, Tooltip("Prefab for the enemy's health bar UI.")]
-    public GameObject healthBarPrefab;
+    // Health bar instance will be found automatically in children
 
     // Non-serialized fields
     [HideInInspector]
@@ -113,8 +115,23 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         attackCollider.center = new Vector3(0f, 0f, attackBoxDistance);
         attackCollider.enabled = false; // Default off
 
+        // Hurtbox collider - for receiving damage from player attacks
+        // This must be a non-trigger collider for OnTriggerEnter to work with player hitboxes
+        CapsuleCollider hurtboxCollider = gameObject.AddComponent<CapsuleCollider>();
+        hurtboxCollider.isTrigger = false; // Non-trigger for receiving damage
+        hurtboxCollider.height = 2f;
+        hurtboxCollider.radius = 0.5f;
+        hurtboxCollider.center = new Vector3(0, 1f, 0); // Centered on body
+
         // Automatically assign the capsule's MeshRenderer
         enemyRenderer = GetComponent<MeshRenderer>();
+
+        // Get the EnemyHealthManager component
+        enemyHealthManager = GetComponent<EnemyHealthManager>();
+        if (enemyHealthManager == null)
+        {
+            Debug.LogError($"{gameObject.name}: No EnemyHealthManager component found! Please add one to this enemy.");
+        }
     }
 
     // Helper to initialize the state machine and inspector state
@@ -236,6 +253,13 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
             Debug.LogWarning($"{typeof(TTrigger).Name} does not contain a '{triggerName}' trigger. Check your enum definition.");
             return false;
         }
+    }
+
+    // Method to trigger death from external scripts (like EnemyHealthManager)
+    public void TriggerEnemyDeath()
+    {
+        Debug.Log($"{gameObject.name}: TriggerEnemyDeath called");
+        TryFireTriggerByName("Die");
     }
 
     protected virtual void OnTriggerEnter(Collider other)

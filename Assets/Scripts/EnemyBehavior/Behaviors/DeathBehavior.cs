@@ -16,8 +16,7 @@ namespace Behaviors
             if (enemy.agent != null)
                 enemy.agent.enabled = false;
 
-            // Optionally set a "dead" color or visual
-            enemy.SetEnemyColor(Color.black);
+            // Removed SetEnemyColor - using animations instead
 
             // Start the death sequence coroutine
             if (deathSequenceCoroutine != null)

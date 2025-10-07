@@ -12,8 +12,7 @@ namespace Behaviors
         public void OnEnter(BaseEnemy<EnemyState, EnemyTrigger> enemy)
         {
             this.enemy = enemy;
-            // Set chase color or other visual feedback
-            enemy.SetEnemyColor(enemy.chaseColor);
+            // Removed SetEnemyColor - using animations instead
 
             // Find the player target (if not already set)
             if (playerTarget == null) { playerTarget = enemy.PlayerTarget; }
