@@ -840,15 +840,11 @@ namespace eXsert
             m_UI_Navigation = m_UI.FindAction("Navigation", throwIfNotFound: true);
             m_UI_Back = m_UI.FindAction("Back", throwIfNotFound: true);
             m_UI_Select = m_UI.FindAction("Select", throwIfNotFound: true);
-<<<<<<< HEAD
-            m_UI_Navigation = m_UI.FindAction("Navigation", throwIfNotFound: true);
+            m_UI_Resume = m_UI.FindAction("Resume", throwIfNotFound: true);
             // CameraControls
             m_CameraControls = asset.FindActionMap("CameraControls", throwIfNotFound: true);
             m_CameraControls_MouseZoom = m_CameraControls.FindAction("MouseZoom", throwIfNotFound: true);
             m_CameraControls_GamepadZoom = m_CameraControls.FindAction("GamepadZoom", throwIfNotFound: true);
-=======
-            m_UI_Resume = m_UI.FindAction("Resume", throwIfNotFound: true);
->>>>>>> origin/Digital-Prototype-Merge-Test
         }
 
         ~@PlayerControls()

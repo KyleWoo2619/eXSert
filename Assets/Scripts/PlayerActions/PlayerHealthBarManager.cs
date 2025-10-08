@@ -15,11 +15,7 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
 {
     public float maxHealth;
     public float health;
-<<<<<<<< HEAD:Assets/Scripts/PlayerActions/HealthBarManager.cs
-    private Slider slider;
-========
     [SerializeField] private Slider slider;
->>>>>>>> origin/Digital-Prototype-Merge-Test:Assets/Scripts/PlayerActions/PlayerHealthBarManager.cs
 
     //Temporary ways to reset the scene the player is currently in for demonstration
     Scene scene;
@@ -33,15 +29,13 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
     {
         scene = SceneManager.GetActiveScene();
         sceneName = scene.name;
-<<<<<<<< HEAD:Assets/Scripts/PlayerActions/HealthBarManager.cs
-========
         
         // Initialize slider if not assigned
         if (!slider)
         {
             Debug.LogWarning($"{gameObject.name}: HealthBarManager slider is not assigned. The PlayerHealthCanvas should handle UI updates instead.");
         }
->>>>>>>> origin/Digital-Prototype-Merge-Test:Assets/Scripts/PlayerActions/PlayerHealthBarManager.cs
+
     }
 
     void Update()
