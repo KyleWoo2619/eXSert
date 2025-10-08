@@ -44,9 +44,6 @@ public class TestingEnemy : BaseEnemy<EnemyState, EnemyTrigger>
     private IEnemyStateBehavior recoverBehavior;
     private IEnemyStateBehavior deathBehavior;
 
-    [SerializeField]
-    private GameObject healthBarPrefab; // Reference to the health bar prefab
-
     // Reference to the player (set this appropriately in your game)
 
     protected Coroutine lookAtPlayerCoroutine;

@@ -154,7 +154,7 @@ namespace eXsert
                     ""id"": ""e5ab59cf-2859-49a1-be38-04cab2bfc111"",
                     ""expectedControlType"": """",
                     ""processors"": """",
-                    ""interactions"": ""Press,Hold"",
+                    ""interactions"": """",
                     ""initialStateCheck"": false
                 },
                 {
@@ -481,15 +481,6 @@ namespace eXsert
             ""id"": ""caa73b14-2189-4780-addc-58a54de1ff42"",
             ""actions"": [
                 {
-                    ""name"": ""Navigation"",
-                    ""type"": ""Value"",
-                    ""id"": ""cf41a668-a9f5-4835-ace5-c4f985438238"",
-                    ""expectedControlType"": ""Vector2"",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": true
-                },
-                {
                     ""name"": ""Back"",
                     ""type"": ""Button"",
                     ""id"": ""687b4dc5-0e76-4ef9-ab0e-bb9884a0e30f"",
@@ -508,13 +499,13 @@ namespace eXsert
                     ""initialStateCheck"": false
                 },
                 {
-                    ""name"": ""Resume"",
-                    ""type"": ""Button"",
-                    ""id"": ""31a49b85-0f0c-4947-9840-421ec4d3d2a7"",
-                    ""expectedControlType"": """",
+                    ""name"": ""Navigation"",
+                    ""type"": ""Value"",
+                    ""id"": ""cf41a668-a9f5-4835-ace5-c4f985438238"",
+                    ""expectedControlType"": ""Vector2"",
                     ""processors"": """",
                     ""interactions"": """",
-                    ""initialStateCheck"": false
+                    ""initialStateCheck"": true
                 }
             ],
             ""bindings"": [
@@ -592,28 +583,6 @@ namespace eXsert
                     ""processors"": """",
                     ""groups"": "";Keyboard&Mouse"",
                     ""action"": ""Select"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""049b0a11-eeaa-431f-930f-33b407e79ce3"",
-                    ""path"": ""<Keyboard>/escape"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""Resume"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""b7cfaf6b-ecd6-4f94-b925-9e64beada836"",
-                    ""path"": ""<Gamepad>/start"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""Resume"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -837,18 +806,13 @@ namespace eXsert
             m_Gameplay_Pause = m_Gameplay.FindAction("Pause", throwIfNotFound: true);
             // UI
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
-            m_UI_Navigation = m_UI.FindAction("Navigation", throwIfNotFound: true);
             m_UI_Back = m_UI.FindAction("Back", throwIfNotFound: true);
             m_UI_Select = m_UI.FindAction("Select", throwIfNotFound: true);
-<<<<<<< HEAD
             m_UI_Navigation = m_UI.FindAction("Navigation", throwIfNotFound: true);
             // CameraControls
             m_CameraControls = asset.FindActionMap("CameraControls", throwIfNotFound: true);
             m_CameraControls_MouseZoom = m_CameraControls.FindAction("MouseZoom", throwIfNotFound: true);
             m_CameraControls_GamepadZoom = m_CameraControls.FindAction("GamepadZoom", throwIfNotFound: true);
-=======
-            m_UI_Resume = m_UI.FindAction("Resume", throwIfNotFound: true);
->>>>>>> origin/Digital-Prototype-Merge-Test
         }
 
         ~@PlayerControls()
@@ -1115,10 +1079,9 @@ namespace eXsert
         // UI
         private readonly InputActionMap m_UI;
         private List<IUIActions> m_UIActionsCallbackInterfaces = new List<IUIActions>();
-        private readonly InputAction m_UI_Navigation;
         private readonly InputAction m_UI_Back;
         private readonly InputAction m_UI_Select;
-        private readonly InputAction m_UI_Resume;
+        private readonly InputAction m_UI_Navigation;
         /// <summary>
         /// Provides access to input actions defined in input action map "UI".
         /// </summary>
@@ -1131,10 +1094,6 @@ namespace eXsert
             /// </summary>
             public UIActions(@PlayerControls wrapper) { m_Wrapper = wrapper; }
             /// <summary>
-            /// Provides access to the underlying input action "UI/Navigation".
-            /// </summary>
-            public InputAction @Navigation => m_Wrapper.m_UI_Navigation;
-            /// <summary>
             /// Provides access to the underlying input action "UI/Back".
             /// </summary>
             public InputAction @Back => m_Wrapper.m_UI_Back;
@@ -1143,9 +1102,9 @@ namespace eXsert
             /// </summary>
             public InputAction @Select => m_Wrapper.m_UI_Select;
             /// <summary>
-            /// Provides access to the underlying input action "UI/Resume".
+            /// Provides access to the underlying input action "UI/Navigation".
             /// </summary>
-            public InputAction @Resume => m_Wrapper.m_UI_Resume;
+            public InputAction @Navigation => m_Wrapper.m_UI_Navigation;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
@@ -1172,18 +1131,15 @@ namespace eXsert
             {
                 if (instance == null || m_Wrapper.m_UIActionsCallbackInterfaces.Contains(instance)) return;
                 m_Wrapper.m_UIActionsCallbackInterfaces.Add(instance);
-                @Navigation.started += instance.OnNavigation;
-                @Navigation.performed += instance.OnNavigation;
-                @Navigation.canceled += instance.OnNavigation;
                 @Back.started += instance.OnBack;
                 @Back.performed += instance.OnBack;
                 @Back.canceled += instance.OnBack;
                 @Select.started += instance.OnSelect;
                 @Select.performed += instance.OnSelect;
                 @Select.canceled += instance.OnSelect;
-                @Resume.started += instance.OnResume;
-                @Resume.performed += instance.OnResume;
-                @Resume.canceled += instance.OnResume;
+                @Navigation.started += instance.OnNavigation;
+                @Navigation.performed += instance.OnNavigation;
+                @Navigation.canceled += instance.OnNavigation;
             }
 
             /// <summary>
@@ -1195,18 +1151,15 @@ namespace eXsert
             /// <seealso cref="UIActions" />
             private void UnregisterCallbacks(IUIActions instance)
             {
-                @Navigation.started -= instance.OnNavigation;
-                @Navigation.performed -= instance.OnNavigation;
-                @Navigation.canceled -= instance.OnNavigation;
                 @Back.started -= instance.OnBack;
                 @Back.performed -= instance.OnBack;
                 @Back.canceled -= instance.OnBack;
                 @Select.started -= instance.OnSelect;
                 @Select.performed -= instance.OnSelect;
                 @Select.canceled -= instance.OnSelect;
-                @Resume.started -= instance.OnResume;
-                @Resume.performed -= instance.OnResume;
-                @Resume.canceled -= instance.OnResume;
+                @Navigation.started -= instance.OnNavigation;
+                @Navigation.performed -= instance.OnNavigation;
+                @Navigation.canceled -= instance.OnNavigation;
             }
 
             /// <summary>
@@ -1452,13 +1405,6 @@ namespace eXsert
         public interface IUIActions
         {
             /// <summary>
-            /// Method invoked when associated input action "Navigation" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
-            /// </summary>
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnNavigation(InputAction.CallbackContext context);
-            /// <summary>
             /// Method invoked when associated input action "Back" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
             /// </summary>
             /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
@@ -1473,12 +1419,12 @@ namespace eXsert
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnSelect(InputAction.CallbackContext context);
             /// <summary>
-            /// Method invoked when associated input action "Resume" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// Method invoked when associated input action "Navigation" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
             /// </summary>
             /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnResume(InputAction.CallbackContext context);
+            void OnNavigation(InputAction.CallbackContext context);
         }
         /// <summary>
         /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "CameraControls" which allows adding and removing callbacks.

@@ -66,7 +66,7 @@
                     "id": "e5ab59cf-2859-49a1-be38-04cab2bfc111",
                     "expectedControlType": "",
                     "processors": "",
-                    "interactions": "Press,Hold",
+                    "interactions": "",
                     "initialStateCheck": false
                 },
                 {
@@ -393,15 +393,6 @@
             "id": "caa73b14-2189-4780-addc-58a54de1ff42",
             "actions": [
                 {
-                    "name": "Navigation",
-                    "type": "Value",
-                    "id": "cf41a668-a9f5-4835-ace5-c4f985438238",
-                    "expectedControlType": "Vector2",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": true
-                },
-                {
                     "name": "Back",
                     "type": "Button",
                     "id": "687b4dc5-0e76-4ef9-ab0e-bb9884a0e30f",
@@ -420,13 +411,13 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Resume",
-                    "type": "Button",
-                    "id": "31a49b85-0f0c-4947-9840-421ec4d3d2a7",
-                    "expectedControlType": "",
+                    "name": "Navigation",
+                    "type": "Value",
+                    "id": "cf41a668-a9f5-4835-ace5-c4f985438238",
+                    "expectedControlType": "Vector2",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": true
                 }
             ],
             "bindings": [
@@ -504,28 +495,6 @@
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
                     "action": "Select",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "049b0a11-eeaa-431f-930f-33b407e79ce3",
-                    "path": "<Keyboard>/escape",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "Resume",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "b7cfaf6b-ecd6-4f94-b925-9e64beada836",
-                    "path": "<Gamepad>/start",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "Resume",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

@@ -16,7 +16,7 @@ namespace Behaviors
             this.enemy = enemy;
             playerTarget = enemy.PlayerTarget;
 
-            // Removed SetEnemyColor - using animations instead
+            enemy.SetEnemyColor(enemy.attackColor);
 
             if (lookAtPlayerCoroutine != null)
                 enemy.StopCoroutine(lookAtPlayerCoroutine);
@@ -122,67 +122,33 @@ namespace Behaviors
 
                 if (playerInAttackBox)
                 {
-                    Debug.Log($"{enemy.gameObject.name}: Player in attack box - starting attack sequence");
-                    
-                    // Trigger attack animation for each attack cycle
-                    TriggerAttackAnimation();
-                    
-                    // Get the correct animation duration from BoxerEnemy
-                    float animationDuration = enemy.attackActiveDuration; // Default fallback
-                    if (enemy is BoxerEnemy boxerEnemy)
-                    {
-                        animationDuration = boxerEnemy.GetAttackAnimationDuration();
-                        Debug.Log($"{enemy.gameObject.name}: Using BoxerEnemy animation duration: {animationDuration}s");
-                    }
-                    
-                    // Wait a brief moment for animation to start
-                    yield return new WaitForSeconds(0.2f);
-                    
                     enemy.isAttackBoxActive = true;
                     enemy.attackCollider.enabled = true;
+                    enemy.SetEnemyColor(enemy.hitboxActiveColor);
 
                     // Only call damage once per hitbox enable
                     DealDamageToPlayerOnce(playerCollider);
 
-                    // Wait for the full animation duration instead of just attackActiveDuration
-                    yield return new WaitForSeconds(animationDuration - 0.2f); // Subtract the initial wait time
-                    
+                    yield return new WaitForSeconds(enemy.attackActiveDuration);
                     enemy.isAttackBoxActive = false;
                     enemy.attackCollider.enabled = false;
+                    enemy.SetEnemyColor(enemy.attackColor);
 
                     ResetDamageFlag();
-                    
-                    Debug.Log($"{enemy.gameObject.name}: Attack sequence completed, waiting for next attack");
                 }
                 else
                 {
                     enemy.isAttackBoxActive = false;
                     enemy.attackCollider.enabled = false;
+                    enemy.SetEnemyColor(enemy.attackColor);
                     yield return new WaitForSeconds(0.1f);
                 }
 
-                // Wait for attack interval before next attack
                 yield return new WaitForSeconds(enemy.attackInterval);
             }
             enemy.isAttackBoxActive = false;
             enemy.attackCollider.enabled = false;
-            // Removed SetEnemyColor - using animations instead
-        }
-
-        private void TriggerAttackAnimation()
-        {
-            // Try to cast to BoxerEnemy to trigger animation
-            if (enemy is BoxerEnemy boxerEnemy)
-            {
-                Debug.Log($"{enemy.gameObject.name}: Triggering attack animation");
-                boxerEnemy.TriggerAttackAnimation();
-            }
-            else
-            {
-                Debug.LogWarning($"{enemy.gameObject.name}: Not a BoxerEnemy, cannot trigger attack animation");
-            }
-            
-            // For other enemy types, we could add similar logic later
+            enemy.SetEnemyColor(enemy.attackColor);
         }
 
         private bool damageSentThisEnable = false;

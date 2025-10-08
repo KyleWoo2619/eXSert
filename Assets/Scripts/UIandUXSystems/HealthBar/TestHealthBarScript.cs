@@ -9,7 +9,7 @@ public class PlayerHealthBar : MonoBehaviour
 
     private void Update()
     {
-        var health = GameObject.FindWithTag("Player").GetComponent<PlayerHealthBarManager>();
+        var health = GameObject.FindWithTag("Player").GetComponent<HealthBarManager>();
 
         healthText.text = health.health.ToString();
     }
@@ -17,7 +17,7 @@ public class PlayerHealthBar : MonoBehaviour
     //Tests script to show healthbar functionality
     public void TakeDamage()
     {
-        var health = GameObject.FindWithTag("Player").GetComponent<PlayerHealthBarManager>();
+        var health = GameObject.FindWithTag("Player").GetComponent<HealthBarManager>();
 
         health.LoseHP(amountOfHPEffected);
 
@@ -26,7 +26,7 @@ public class PlayerHealthBar : MonoBehaviour
 
     public void Heal()
     {
-        var health = GameObject.FindWithTag("Player").GetComponent<PlayerHealthBarManager>();
+        var health = GameObject.FindWithTag("Player").GetComponent<HealthBarManager>();
 
         health.HealHP(amountOfHPEffected);
 

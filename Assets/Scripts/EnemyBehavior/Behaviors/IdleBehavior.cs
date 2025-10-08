@@ -19,7 +19,7 @@ namespace Behaviors
                 Debug.LogError("NavMeshAgent not initialized!");
                 return;
             }
-            // Removed SetEnemyColor - using animations instead
+            enemy.SetEnemyColor(enemy.patrolColor);
             Debug.Log($"{enemy.gameObject.name} entered Idle state.");
             enemy.hasFiredLowHealth = false;
             enemy.CheckHealthThreshold();

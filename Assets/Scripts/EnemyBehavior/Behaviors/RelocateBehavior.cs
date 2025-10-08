@@ -12,7 +12,7 @@ namespace Behaviors
         public void OnEnter(BaseEnemy<EnemyState, EnemyTrigger> enemy)
         {
             this.enemy = enemy;
-            // Removed SetEnemyColor - using animations instead
+            enemy.SetEnemyColor(enemy.patrolColor);
             Zone[] otherZones = GetOtherZones();
             if (otherZones.Length == 0)
             {
