@@ -154,7 +154,7 @@ namespace eXsert
                     ""id"": ""e5ab59cf-2859-49a1-be38-04cab2bfc111"",
                     ""expectedControlType"": """",
                     ""processors"": """",
-                    ""interactions"": """",
+                    ""interactions"": ""Press,Hold"",
                     ""initialStateCheck"": false
                 },
                 {
@@ -194,7 +194,7 @@ namespace eXsert
                     ""path"": ""<Keyboard>/w"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""Move"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
@@ -205,7 +205,7 @@ namespace eXsert
                     ""path"": ""<Keyboard>/s"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""Move"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
@@ -216,7 +216,7 @@ namespace eXsert
                     ""path"": ""<Keyboard>/a"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""Move"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
@@ -227,7 +227,7 @@ namespace eXsert
                     ""path"": ""<Keyboard>/d"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""Move"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
@@ -249,7 +249,7 @@ namespace eXsert
                     ""path"": ""<Gamepad>/leftStick/up"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Gamepad"",
+                    ""groups"": """",
                     ""action"": ""Move"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
@@ -260,7 +260,7 @@ namespace eXsert
                     ""path"": ""<Gamepad>/leftStick/down"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Gamepad"",
+                    ""groups"": """",
                     ""action"": ""Move"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
@@ -271,7 +271,7 @@ namespace eXsert
                     ""path"": ""<Gamepad>/leftStick/left"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Gamepad"",
+                    ""groups"": """",
                     ""action"": ""Move"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
@@ -282,7 +282,7 @@ namespace eXsert
                     ""path"": ""<Gamepad>/leftStick/right"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Gamepad"",
+                    ""groups"": """",
                     ""action"": ""Move"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
@@ -293,7 +293,7 @@ namespace eXsert
                     ""path"": ""<Gamepad>/leftStick"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Gamepad"",
+                    ""groups"": """",
                     ""action"": ""Move"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -304,7 +304,7 @@ namespace eXsert
                     ""path"": ""<Keyboard>/space"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""Jump"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -315,7 +315,7 @@ namespace eXsert
                     ""path"": ""<Gamepad>/buttonSouth"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Gamepad"",
+                    ""groups"": """",
                     ""action"": ""Jump"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -326,7 +326,7 @@ namespace eXsert
                     ""path"": ""<Mouse>/delta"",
                     ""interactions"": """",
                     ""processors"": ""ScaleVector2(x=0.35,y=0.35)"",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""Look"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -337,7 +337,7 @@ namespace eXsert
                     ""path"": ""<Gamepad>/rightStick"",
                     ""interactions"": """",
                     ""processors"": ""StickDeadzone,ScaleVector2(x=0.7,y=0.7)"",
-                    ""groups"": "";Gamepad"",
+                    ""groups"": """",
                     ""action"": ""Look"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -348,7 +348,7 @@ namespace eXsert
                     ""path"": ""<Keyboard>/e"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""Guard"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -359,7 +359,7 @@ namespace eXsert
                     ""path"": ""<Gamepad>/rightShoulder"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Gamepad"",
+                    ""groups"": """",
                     ""action"": ""Guard"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -370,7 +370,7 @@ namespace eXsert
                     ""path"": ""<Keyboard>/q"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""ChangeStance"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -381,7 +381,7 @@ namespace eXsert
                     ""path"": ""<Gamepad>/leftShoulder"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Gamepad"",
+                    ""groups"": """",
                     ""action"": ""ChangeStance"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -392,7 +392,7 @@ namespace eXsert
                     ""path"": ""<Mouse>/leftButton"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""LightAttack"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -403,7 +403,7 @@ namespace eXsert
                     ""path"": ""<Gamepad>/buttonWest"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Gamepad"",
+                    ""groups"": """",
                     ""action"": ""LightAttack"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -414,7 +414,7 @@ namespace eXsert
                     ""path"": ""<Mouse>/rightButton"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""HeavyAttack"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -425,7 +425,7 @@ namespace eXsert
                     ""path"": ""<Gamepad>/buttonNorth"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Gamepad"",
+                    ""groups"": """",
                     ""action"": ""HeavyAttack"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -436,7 +436,7 @@ namespace eXsert
                     ""path"": ""<Keyboard>/shift"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""Dash"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -447,7 +447,7 @@ namespace eXsert
                     ""path"": ""<Gamepad>/rightTrigger"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Gamepad"",
+                    ""groups"": """",
                     ""action"": ""Dash"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -458,7 +458,7 @@ namespace eXsert
                     ""path"": ""<Keyboard>/escape"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""Pause"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -469,7 +469,7 @@ namespace eXsert
                     ""path"": ""<Gamepad>/start"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Gamepad"",
+                    ""groups"": """",
                     ""action"": ""Pause"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -480,6 +480,15 @@ namespace eXsert
             ""name"": ""UI"",
             ""id"": ""caa73b14-2189-4780-addc-58a54de1ff42"",
             ""actions"": [
+                {
+                    ""name"": ""Navigation"",
+                    ""type"": ""Value"",
+                    ""id"": ""cf41a668-a9f5-4835-ace5-c4f985438238"",
+                    ""expectedControlType"": ""Vector2"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                },
                 {
                     ""name"": ""Back"",
                     ""type"": ""Button"",
@@ -499,13 +508,13 @@ namespace eXsert
                     ""initialStateCheck"": false
                 },
                 {
-                    ""name"": ""Navigation"",
-                    ""type"": ""Value"",
-                    ""id"": ""cf41a668-a9f5-4835-ace5-c4f985438238"",
-                    ""expectedControlType"": ""Vector2"",
+                    ""name"": ""Resume"",
+                    ""type"": ""Button"",
+                    ""id"": ""31a49b85-0f0c-4947-9840-421ec4d3d2a7"",
+                    ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
-                    ""initialStateCheck"": true
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -515,7 +524,7 @@ namespace eXsert
                     ""path"": ""<Gamepad>/buttonEast"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Gamepad"",
+                    ""groups"": """",
                     ""action"": ""Back"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -526,7 +535,7 @@ namespace eXsert
                     ""path"": ""<Keyboard>/escape"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""Back"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -537,7 +546,7 @@ namespace eXsert
                     ""path"": ""<Keyboard>/backspace"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""Back"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -548,7 +557,7 @@ namespace eXsert
                     ""path"": ""<Gamepad>/buttonSouth"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Gamepad"",
+                    ""groups"": """",
                     ""action"": ""Select"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -559,7 +568,7 @@ namespace eXsert
                     ""path"": ""<Keyboard>/enter"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""Select"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -570,7 +579,7 @@ namespace eXsert
                     ""path"": ""<Mouse>/leftButton"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""Select"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
@@ -581,8 +590,30 @@ namespace eXsert
                     ""path"": ""<Keyboard>/space"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""Select"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""049b0a11-eeaa-431f-930f-33b407e79ce3"",
+                    ""path"": ""<Keyboard>/escape"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Resume"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""b7cfaf6b-ecd6-4f94-b925-9e64beada836"",
+                    ""path"": ""<Gamepad>/start"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Resume"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -603,7 +634,7 @@ namespace eXsert
                     ""path"": ""<Keyboard>/w"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""Navigation"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
@@ -614,7 +645,7 @@ namespace eXsert
                     ""path"": ""<Keyboard>/s"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""Navigation"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
@@ -625,7 +656,7 @@ namespace eXsert
                     ""path"": ""<Keyboard>/a"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""Navigation"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
@@ -636,7 +667,7 @@ namespace eXsert
                     ""path"": ""<Keyboard>/d"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
+                    ""groups"": """",
                     ""action"": ""Navigation"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
@@ -658,7 +689,7 @@ namespace eXsert
                     ""path"": ""<Gamepad>/leftStick/up"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Gamepad"",
+                    ""groups"": """",
                     ""action"": ""Navigation"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
@@ -669,7 +700,7 @@ namespace eXsert
                     ""path"": ""<Gamepad>/leftStick/down"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Gamepad"",
+                    ""groups"": """",
                     ""action"": ""Navigation"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
@@ -680,7 +711,7 @@ namespace eXsert
                     ""path"": ""<Gamepad>/leftStick/left"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Gamepad"",
+                    ""groups"": """",
                     ""action"": ""Navigation"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
@@ -691,7 +722,7 @@ namespace eXsert
                     ""path"": ""<Gamepad>/leftStick/right"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Gamepad"",
+                    ""groups"": """",
                     ""action"": ""Navigation"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
@@ -702,96 +733,15 @@ namespace eXsert
                     ""path"": ""<Gamepad>/leftStick"",
                     ""interactions"": """",
                     ""processors"": """",
-                    ""groups"": "";Gamepad"",
+                    ""groups"": """",
                     ""action"": ""Navigation"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
             ]
-        },
-        {
-            ""name"": ""CameraControls"",
-            ""id"": ""bc2cd920-3453-456d-9e05-05c99ced2fbe"",
-            ""actions"": [
-                {
-                    ""name"": ""MouseZoom"",
-                    ""type"": ""Value"",
-                    ""id"": ""5f4601c6-6b26-469d-88a4-3785f6e033d0"",
-                    ""expectedControlType"": ""Vector2"",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": true
-                },
-                {
-                    ""name"": ""GamepadZoom"",
-                    ""type"": ""Value"",
-                    ""id"": ""503d4fd5-d5e0-4d39-9b21-725bbeee8289"",
-                    ""expectedControlType"": ""Axis"",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": true
-                }
-            ],
-            ""bindings"": [
-                {
-                    ""name"": """",
-                    ""id"": ""2bfd6a94-3dc7-4d11-bb15-9fb7b094f0e3"",
-                    ""path"": ""<Mouse>/scroll"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""MouseZoom"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": ""1D Axis"",
-                    ""id"": ""abdb73bb-d578-4e17-bdbb-942a244c26bc"",
-                    ""path"": ""1DAxis"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""GamepadZoom"",
-                    ""isComposite"": true,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": ""negative"",
-                    ""id"": ""1ec8f584-5c3d-4001-bf55-f1200a4e5dbb"",
-                    ""path"": ""<Gamepad>/leftShoulder"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""GamepadZoom"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": ""positive"",
-                    ""id"": ""db475dd1-f2e7-4140-a632-a47756a81c6f"",
-                    ""path"": ""<Gamepad>/rightShoulder"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""GamepadZoom"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                }
-            ]
         }
     ],
-    ""controlSchemes"": [
-        {
-            ""name"": ""Keyboard&Mouse"",
-            ""bindingGroup"": ""Keyboard&Mouse"",
-            ""devices"": []
-        },
-        {
-            ""name"": ""Gamepad"",
-            ""bindingGroup"": ""Gamepad"",
-            ""devices"": []
-        }
-    ]
+    ""controlSchemes"": []
 }");
             // Gameplay
             m_Gameplay = asset.FindActionMap("Gameplay", throwIfNotFound: true);
@@ -806,20 +756,16 @@ namespace eXsert
             m_Gameplay_Pause = m_Gameplay.FindAction("Pause", throwIfNotFound: true);
             // UI
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
+            m_UI_Navigation = m_UI.FindAction("Navigation", throwIfNotFound: true);
             m_UI_Back = m_UI.FindAction("Back", throwIfNotFound: true);
             m_UI_Select = m_UI.FindAction("Select", throwIfNotFound: true);
-            m_UI_Navigation = m_UI.FindAction("Navigation", throwIfNotFound: true);
-            // CameraControls
-            m_CameraControls = asset.FindActionMap("CameraControls", throwIfNotFound: true);
-            m_CameraControls_MouseZoom = m_CameraControls.FindAction("MouseZoom", throwIfNotFound: true);
-            m_CameraControls_GamepadZoom = m_CameraControls.FindAction("GamepadZoom", throwIfNotFound: true);
+            m_UI_Resume = m_UI.FindAction("Resume", throwIfNotFound: true);
         }
 
         ~@PlayerControls()
         {
             UnityEngine.Debug.Assert(!m_Gameplay.enabled, "This will cause a leak and performance issues, PlayerControls.Gameplay.Disable() has not been called.");
             UnityEngine.Debug.Assert(!m_UI.enabled, "This will cause a leak and performance issues, PlayerControls.UI.Disable() has not been called.");
-            UnityEngine.Debug.Assert(!m_CameraControls.enabled, "This will cause a leak and performance issues, PlayerControls.CameraControls.Disable() has not been called.");
         }
 
         /// <summary>
@@ -1079,9 +1025,10 @@ namespace eXsert
         // UI
         private readonly InputActionMap m_UI;
         private List<IUIActions> m_UIActionsCallbackInterfaces = new List<IUIActions>();
+        private readonly InputAction m_UI_Navigation;
         private readonly InputAction m_UI_Back;
         private readonly InputAction m_UI_Select;
-        private readonly InputAction m_UI_Navigation;
+        private readonly InputAction m_UI_Resume;
         /// <summary>
         /// Provides access to input actions defined in input action map "UI".
         /// </summary>
@@ -1094,6 +1041,10 @@ namespace eXsert
             /// </summary>
             public UIActions(@PlayerControls wrapper) { m_Wrapper = wrapper; }
             /// <summary>
+            /// Provides access to the underlying input action "UI/Navigation".
+            /// </summary>
+            public InputAction @Navigation => m_Wrapper.m_UI_Navigation;
+            /// <summary>
             /// Provides access to the underlying input action "UI/Back".
             /// </summary>
             public InputAction @Back => m_Wrapper.m_UI_Back;
@@ -1102,9 +1053,9 @@ namespace eXsert
             /// </summary>
             public InputAction @Select => m_Wrapper.m_UI_Select;
             /// <summary>
-            /// Provides access to the underlying input action "UI/Navigation".
+            /// Provides access to the underlying input action "UI/Resume".
             /// </summary>
-            public InputAction @Navigation => m_Wrapper.m_UI_Navigation;
+            public InputAction @Resume => m_Wrapper.m_UI_Resume;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
@@ -1131,15 +1082,18 @@ namespace eXsert
             {
                 if (instance == null || m_Wrapper.m_UIActionsCallbackInterfaces.Contains(instance)) return;
                 m_Wrapper.m_UIActionsCallbackInterfaces.Add(instance);
+                @Navigation.started += instance.OnNavigation;
+                @Navigation.performed += instance.OnNavigation;
+                @Navigation.canceled += instance.OnNavigation;
                 @Back.started += instance.OnBack;
                 @Back.performed += instance.OnBack;
                 @Back.canceled += instance.OnBack;
                 @Select.started += instance.OnSelect;
                 @Select.performed += instance.OnSelect;
                 @Select.canceled += instance.OnSelect;
-                @Navigation.started += instance.OnNavigation;
-                @Navigation.performed += instance.OnNavigation;
-                @Navigation.canceled += instance.OnNavigation;
+                @Resume.started += instance.OnResume;
+                @Resume.performed += instance.OnResume;
+                @Resume.canceled += instance.OnResume;
             }
 
             /// <summary>
@@ -1151,15 +1105,18 @@ namespace eXsert
             /// <seealso cref="UIActions" />
             private void UnregisterCallbacks(IUIActions instance)
             {
+                @Navigation.started -= instance.OnNavigation;
+                @Navigation.performed -= instance.OnNavigation;
+                @Navigation.canceled -= instance.OnNavigation;
                 @Back.started -= instance.OnBack;
                 @Back.performed -= instance.OnBack;
                 @Back.canceled -= instance.OnBack;
                 @Select.started -= instance.OnSelect;
                 @Select.performed -= instance.OnSelect;
                 @Select.canceled -= instance.OnSelect;
-                @Navigation.started -= instance.OnNavigation;
-                @Navigation.performed -= instance.OnNavigation;
-                @Navigation.canceled -= instance.OnNavigation;
+                @Resume.started -= instance.OnResume;
+                @Resume.performed -= instance.OnResume;
+                @Resume.canceled -= instance.OnResume;
             }
 
             /// <summary>
@@ -1193,139 +1150,6 @@ namespace eXsert
         /// Provides a new <see cref="UIActions" /> instance referencing this action map.
         /// </summary>
         public UIActions @UI => new UIActions(this);
-
-        // CameraControls
-        private readonly InputActionMap m_CameraControls;
-        private List<ICameraControlsActions> m_CameraControlsActionsCallbackInterfaces = new List<ICameraControlsActions>();
-        private readonly InputAction m_CameraControls_MouseZoom;
-        private readonly InputAction m_CameraControls_GamepadZoom;
-        /// <summary>
-        /// Provides access to input actions defined in input action map "CameraControls".
-        /// </summary>
-        public struct CameraControlsActions
-        {
-            private @PlayerControls m_Wrapper;
-
-            /// <summary>
-            /// Construct a new instance of the input action map wrapper class.
-            /// </summary>
-            public CameraControlsActions(@PlayerControls wrapper) { m_Wrapper = wrapper; }
-            /// <summary>
-            /// Provides access to the underlying input action "CameraControls/MouseZoom".
-            /// </summary>
-            public InputAction @MouseZoom => m_Wrapper.m_CameraControls_MouseZoom;
-            /// <summary>
-            /// Provides access to the underlying input action "CameraControls/GamepadZoom".
-            /// </summary>
-            public InputAction @GamepadZoom => m_Wrapper.m_CameraControls_GamepadZoom;
-            /// <summary>
-            /// Provides access to the underlying input action map instance.
-            /// </summary>
-            public InputActionMap Get() { return m_Wrapper.m_CameraControls; }
-            /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.Enable()" />
-            public void Enable() { Get().Enable(); }
-            /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.Disable()" />
-            public void Disable() { Get().Disable(); }
-            /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.enabled" />
-            public bool enabled => Get().enabled;
-            /// <summary>
-            /// Implicitly converts an <see ref="CameraControlsActions" /> to an <see ref="InputActionMap" /> instance.
-            /// </summary>
-            public static implicit operator InputActionMap(CameraControlsActions set) { return set.Get(); }
-            /// <summary>
-            /// Adds <see cref="InputAction.started"/>, <see cref="InputAction.performed"/> and <see cref="InputAction.canceled"/> callbacks provided via <param cref="instance" /> on all input actions contained in this map.
-            /// </summary>
-            /// <param name="instance">Callback instance.</param>
-            /// <remarks>
-            /// If <paramref name="instance" /> is <c>null</c> or <paramref name="instance"/> have already been added this method does nothing.
-            /// </remarks>
-            /// <seealso cref="CameraControlsActions" />
-            public void AddCallbacks(ICameraControlsActions instance)
-            {
-                if (instance == null || m_Wrapper.m_CameraControlsActionsCallbackInterfaces.Contains(instance)) return;
-                m_Wrapper.m_CameraControlsActionsCallbackInterfaces.Add(instance);
-                @MouseZoom.started += instance.OnMouseZoom;
-                @MouseZoom.performed += instance.OnMouseZoom;
-                @MouseZoom.canceled += instance.OnMouseZoom;
-                @GamepadZoom.started += instance.OnGamepadZoom;
-                @GamepadZoom.performed += instance.OnGamepadZoom;
-                @GamepadZoom.canceled += instance.OnGamepadZoom;
-            }
-
-            /// <summary>
-            /// Removes <see cref="InputAction.started"/>, <see cref="InputAction.performed"/> and <see cref="InputAction.canceled"/> callbacks provided via <param cref="instance" /> on all input actions contained in this map.
-            /// </summary>
-            /// <remarks>
-            /// Calling this method when <paramref name="instance" /> have not previously been registered has no side-effects.
-            /// </remarks>
-            /// <seealso cref="CameraControlsActions" />
-            private void UnregisterCallbacks(ICameraControlsActions instance)
-            {
-                @MouseZoom.started -= instance.OnMouseZoom;
-                @MouseZoom.performed -= instance.OnMouseZoom;
-                @MouseZoom.canceled -= instance.OnMouseZoom;
-                @GamepadZoom.started -= instance.OnGamepadZoom;
-                @GamepadZoom.performed -= instance.OnGamepadZoom;
-                @GamepadZoom.canceled -= instance.OnGamepadZoom;
-            }
-
-            /// <summary>
-            /// Unregisters <param cref="instance" /> and unregisters all input action callbacks via <see cref="CameraControlsActions.UnregisterCallbacks(ICameraControlsActions)" />.
-            /// </summary>
-            /// <seealso cref="CameraControlsActions.UnregisterCallbacks(ICameraControlsActions)" />
-            public void RemoveCallbacks(ICameraControlsActions instance)
-            {
-                if (m_Wrapper.m_CameraControlsActionsCallbackInterfaces.Remove(instance))
-                    UnregisterCallbacks(instance);
-            }
-
-            /// <summary>
-            /// Replaces all existing callback instances and previously registered input action callbacks associated with them with callbacks provided via <param cref="instance" />.
-            /// </summary>
-            /// <remarks>
-            /// If <paramref name="instance" /> is <c>null</c>, calling this method will only unregister all existing callbacks but not register any new callbacks.
-            /// </remarks>
-            /// <seealso cref="CameraControlsActions.AddCallbacks(ICameraControlsActions)" />
-            /// <seealso cref="CameraControlsActions.RemoveCallbacks(ICameraControlsActions)" />
-            /// <seealso cref="CameraControlsActions.UnregisterCallbacks(ICameraControlsActions)" />
-            public void SetCallbacks(ICameraControlsActions instance)
-            {
-                foreach (var item in m_Wrapper.m_CameraControlsActionsCallbackInterfaces)
-                    UnregisterCallbacks(item);
-                m_Wrapper.m_CameraControlsActionsCallbackInterfaces.Clear();
-                AddCallbacks(instance);
-            }
-        }
-        /// <summary>
-        /// Provides a new <see cref="CameraControlsActions" /> instance referencing this action map.
-        /// </summary>
-        public CameraControlsActions @CameraControls => new CameraControlsActions(this);
-        private int m_KeyboardMouseSchemeIndex = -1;
-        /// <summary>
-        /// Provides access to the input control scheme.
-        /// </summary>
-        /// <seealso cref="UnityEngine.InputSystem.InputControlScheme" />
-        public InputControlScheme KeyboardMouseScheme
-        {
-            get
-            {
-                if (m_KeyboardMouseSchemeIndex == -1) m_KeyboardMouseSchemeIndex = asset.FindControlSchemeIndex("Keyboard&Mouse");
-                return asset.controlSchemes[m_KeyboardMouseSchemeIndex];
-            }
-        }
-        private int m_GamepadSchemeIndex = -1;
-        /// <summary>
-        /// Provides access to the input control scheme.
-        /// </summary>
-        /// <seealso cref="UnityEngine.InputSystem.InputControlScheme" />
-        public InputControlScheme GamepadScheme
-        {
-            get
-            {
-                if (m_GamepadSchemeIndex == -1) m_GamepadSchemeIndex = asset.FindControlSchemeIndex("Gamepad");
-                return asset.controlSchemes[m_GamepadSchemeIndex];
-            }
-        }
         /// <summary>
         /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "Gameplay" which allows adding and removing callbacks.
         /// </summary>
@@ -1405,6 +1229,13 @@ namespace eXsert
         public interface IUIActions
         {
             /// <summary>
+            /// Method invoked when associated input action "Navigation" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnNavigation(InputAction.CallbackContext context);
+            /// <summary>
             /// Method invoked when associated input action "Back" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
             /// </summary>
             /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
@@ -1419,34 +1250,12 @@ namespace eXsert
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnSelect(InputAction.CallbackContext context);
             /// <summary>
-            /// Method invoked when associated input action "Navigation" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// Method invoked when associated input action "Resume" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
             /// </summary>
             /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnNavigation(InputAction.CallbackContext context);
-        }
-        /// <summary>
-        /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "CameraControls" which allows adding and removing callbacks.
-        /// </summary>
-        /// <seealso cref="CameraControlsActions.AddCallbacks(ICameraControlsActions)" />
-        /// <seealso cref="CameraControlsActions.RemoveCallbacks(ICameraControlsActions)" />
-        public interface ICameraControlsActions
-        {
-            /// <summary>
-            /// Method invoked when associated input action "MouseZoom" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
-            /// </summary>
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnMouseZoom(InputAction.CallbackContext context);
-            /// <summary>
-            /// Method invoked when associated input action "GamepadZoom" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
-            /// </summary>
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnGamepadZoom(InputAction.CallbackContext context);
+            void OnResume(InputAction.CallbackContext context);
         }
     }
 }
