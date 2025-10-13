@@ -9,17 +9,19 @@ using UnityEngine.Audio;
 
 public class SoundManager : Singleton<SoundManager>
 {
-
+    public AudioSource masterSource;
     public AudioSource musicSource;
     public AudioSource sfxSource;
-
-    //Adjust volume of the audio sources
-    [Tooltip("Adjusts Volume of SFX"), Range(0f, 1f)] public float sfxVolume;
-    [Tooltip("Adjusts Volume of Music"), Range(0f, 1f)] public float musicVolume;
+    public AudioSource voiceSource;
 
     //Debug logs
     override protected void Awake()
     {
+        if (masterSource == null)
+        {
+            Debug.LogWarning("To have sound in the scene you must have a master volume source assigned!");
+        }
+
         if (musicSource == null)
         {
             Debug.LogWarning("To play music in the scene you must have a music source assigned!");
@@ -30,13 +32,11 @@ public class SoundManager : Singleton<SoundManager>
             Debug.LogWarning("To play SFX you must have an SFX source assigned!");
         }
 
-        base.Awake();
-    }
+        if (voiceSource == null)
+        {
+            Debug.LogWarning("To play voices in the scene you must have a voice source assigned!");
+        }
 
-    //Adjusts volume for both sfx and music
-    void FixedUpdate()
-    {
-        sfxSource.volume = sfxVolume;  
-        musicSource.volume = musicVolume; 
+        base.Awake();
     }
 }
