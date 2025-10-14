@@ -9,6 +9,7 @@ public class CombatManager : Singleton<CombatManager>
 
     public static bool isGuarding { get; private set; } = false;
 
+    // Unity Action event for stance change for other scripts to subscribe to
     public static event Action OnStanceChanged;
 
     override protected void Awake()
@@ -20,6 +21,8 @@ public class CombatManager : Singleton<CombatManager>
     {
         singleTargetMode = !singleTargetMode;
         Debug.Log("Stance changed. Current Stance: " + currentStance);
+
+        OnStanceChanged?.Invoke();
     }
 
     public static void EnterGuard()

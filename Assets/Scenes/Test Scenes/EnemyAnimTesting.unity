@@ -443,6 +443,7 @@ GameObject:
   - component: {fileID: 66183367}
   - component: {fileID: 66183366}
   - component: {fileID: 66183365}
+  - component: {fileID: 66183371}
   m_Layer: 0
   m_Name: TestEnemy (1)
   m_TagString: Untagged
@@ -478,7 +479,6 @@ MonoBehaviour:
   attackInterval: 1
   attackActiveDuration: 0.5
   showAttackGizmo: 1
-  healthBarPrefab: {fileID: 2629286879049192775, guid: 9345af66964a7d64489a46ae511c793b, type: 3}
   healthBarInstance: {fileID: 0}
   attackCollider: {fileID: 0}
   isAttackBoxActive: 0
@@ -487,6 +487,7 @@ MonoBehaviour:
   chaseColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   attackColor: {r: 1, g: 0.5, b: 0, a: 1}
   hitboxActiveColor: {r: 1, g: 0, b: 0, a: 1}
+  healthBarPrefab: {fileID: 2629286879049192775, guid: 9345af66964a7d64489a46ae511c793b, type: 3}
 --- !u!114 &66183366
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -579,22 +580,49 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 66183364}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
---- !u!4 &66183370
-Transform:
+--- !u!224 &66183370
+RectTransform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 66183364}
-  serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.649, y: 2.023, z: -5.508}
+  m_LocalPosition: {x: 0, y: 0, z: -5.508}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2034550581}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: -2.649, y: 2.023}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!223 &66183371
+Canvas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 66183364}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_RenderMode: 2
+  m_Camera: {fileID: 0}
+  m_PlaneDistance: 100
+  m_PixelPerfect: 0
+  m_ReceivesEvents: 1
+  m_OverrideSorting: 0
+  m_OverridePixelPerfect: 0
+  m_SortingBucketNormalizedSize: 0
+  m_VertexColorAlwaysGammaSpace: 0
+  m_AdditionalShaderChannelsFlag: 0
+  m_UpdateRectTransformForStandalone: 0
+  m_SortingLayerID: 0
+  m_SortingOrder: 0
+  m_TargetDisplay: 0
 --- !u!1 &70198988
 GameObject:
   m_ObjectHideFlags: 0
@@ -4699,9 +4727,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01a0e82a04cd6b944b5aed9073b7153c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Guard
-  canGuard: 0
-  moveCam: {fileID: 620258021}
-  guardCam: {fileID: 20867246}
+  _guardActionReference: {fileID: -4486452803221664991, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
 --- !u!114 &1140334426
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4714,7 +4740,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ceb8412354a21c34c81b54ed92779f04, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ChangeStance
-  canChangeStance: 1
+  _changeStanceAction: {fileID: -3287059089130689624, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
+  stanceCooldownTime: 1
 --- !u!114 &1140334427
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4731,7 +4758,8 @@ MonoBehaviour:
   _jumpAction: {fileID: 8978839087202845958, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
   _dashAction: {fileID: 3357771442123090606, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
   speed: 1
-  maxRunningSpeed: 5
+  maxNormalSpeed: 5
+  maxguardSpeed: 2.5
   friction: 3
   cameraTransform: {fileID: 620258016}
   shouldFaceMoveDirection: 1
@@ -4745,7 +4773,7 @@ MonoBehaviour:
   layerMask:
     serializedVersion: 2
     m_Bits: 8
-  dashSpeed: 1.5
+  dashSpeed: 5
   dashTime: 0.5
   dashCoolDown: 0.5
   invertYAxis: 0
@@ -5666,7 +5694,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 66183370}
+    m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 1e6acdd76798ecb46a2ba067af0e536c, type: 3}
       propertyPath: m_LocalPosition.x
@@ -23607,6 +23635,7 @@ MonoBehaviour:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
+  - {fileID: 66183370}
   - {fileID: 1607919706}
   - {fileID: 4152515859662596250}
   - {fileID: 822917304}
@@ -23616,4 +23645,3 @@ SceneRoots:
   - {fileID: 833635783}
   - {fileID: 281236669}
   - {fileID: 1524157577}
-  - {fileID: 66183370}

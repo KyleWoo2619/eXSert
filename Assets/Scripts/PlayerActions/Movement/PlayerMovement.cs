@@ -5,11 +5,12 @@ Handles player movement and saves/loads player position
 
 */
 
-using UnityEngine;
-using UnityEngine.InputSystem;
-using UnityEditor;
 using System.Collections;
 using System.ComponentModel;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using static UnityEngine.EventSystems.StandaloneInputModule;
 public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
 {
     private CharacterController characterController;
@@ -23,7 +24,8 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
 
     [Header("Player Movement Settings")]
     [Tooltip("Speed of player"), SerializeField] internal float speed;
-    [SerializeField] private float maxRunningSpeed = 5f;
+    [SerializeField] private float maxNormalSpeed = 5f;
+    [SerializeField] private float maxguardSpeed = 2.5f;
     [SerializeField, Range(0f, 20f)] private float friction = 3f;
     [SerializeField] private Transform cameraTransform;
     [SerializeField] private bool shouldFaceMoveDirection = true;
@@ -46,11 +48,18 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
     [Header("Dash Settings")]
     [SerializeField] [Range(1, 5)] private float dashSpeed;
     [SerializeField] private float dashTime;
-    private float dashCurrentTime;
     [SerializeField] private float dashCoolDown;
 
     [Header("Camera Settings")]
     [SerializeField] bool invertYAxis = false;
+
+    private float maxRunningSpeed => CombatManager.isGuarding ? maxguardSpeed : maxNormalSpeed;
+
+    private bool canDash = true;
+    private float dashCurrentTime = 0;
+
+    private Vector3 forward => new Vector3(cameraTransform.forward.x, 0f, cameraTransform.forward.z);
+    private Vector3 right => new Vector3(cameraTransform.right.x, 0f, cameraTransform.right.z);
 
     void Start()
     {
@@ -105,22 +114,12 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
 
     private void Move()
     {
-
-        Vector3 forward = cameraTransform.forward;
-        Vector3 right = cameraTransform.right;
-
-        forward.y = 0;
-        right.y = 0;
-
-        forward.Normalize();
-        right.Normalize();
-
         // Use InputReader instead of Input System callbacks
-        Vector2 inputMove = InputReader.Instance.MoveInput;
+        Vector2 inputMove = InputReader.MoveInput;
 
 
         // player input detected
-        if (inputMove != Vector2.zero)
+        if (inputMove != Vector2.zero && !InputReader.inputBusy)
         {
             if (animator != null)
                 animator.SetBool("moving", true);
@@ -128,7 +127,7 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
             Vector3 moveDirection = forward * inputMove.y + right * inputMove.x;
             moveDirection.Normalize();
 
-            // Move horizontally
+            // Move horizontally, apply speed and guard modifier if guarding
             Vector3 horizontalMovement = moveDirection * speed;
 
             if (horizontalMovement.magnitude > 0.001f)
@@ -181,7 +180,21 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
 
     private void OnDash()
     {
-        
+       if (canDash && !InputReader.inputBusy)
+        {
+            canDash = false;
+            InputReader.inputBusy = true;
+
+            // Use the current horizontal movement for dash direction
+            Vector3 dashDirection = (forward * InputReader.MoveInput.y) + (right * InputReader.MoveInput.x);
+            dashDirection.Normalize();
+
+            if (dashDirection.magnitude < 0.1f) // If not moving, dash forward
+            {
+                dashDirection = transform.forward;
+            }
+            StartCoroutine(DashCoroutine(dashDirection));
+        }
     }
 
     private IEnumerator CanDoubleJump()
@@ -198,38 +211,21 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
         }
     }
 
-    public void Dash()
-    {
-        dashCurrentTime -= Time.deltaTime;
-
-        if (dashCurrentTime < -1)
-        {
-            dashCurrentTime = -1;
-        }
-
-        if (InputReader.Instance != null && InputReader.Instance.DashTrigger && dashCurrentTime <= 0)
-        {
-            // Use the current horizontal movement for dash direction
-            Vector3 dashDirection = new Vector3(currentMovement.x, 0, currentMovement.z).normalized;
-            if (dashDirection.magnitude < 0.1f) // If not moving, dash forward
-            {
-                dashDirection = transform.forward;
-            }
-            StartCoroutine(DashCoroutine(dashDirection * speed));
-            // input.DashTrigger = false;
-        }
-    }
     private IEnumerator DashCoroutine(Vector3 direction)
     {
         float starttime = Time.time;
 
+
         while (Time.time < starttime + dashTime)
         {
             characterController.Move(direction * dashSpeed * Time.deltaTime);
-            dashCurrentTime = dashCoolDown;
 
             yield return null;
         }
+
+        yield return new WaitForSeconds(dashCoolDown);
+        canDash = true;
+        InputReader.inputBusy = false;
     }
 
     private void ApplyMovement()

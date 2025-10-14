@@ -37,7 +37,7 @@ public class InputReader : Singleton<InputReader>
     [SerializeField] private float leftStickDeadzoneValue;
 
     // Gets the input and sets the variable
-    public Vector2 MoveInput { get; private set; }
+    public static Vector2 MoveInput { get; private set; }
     public Vector2 LookInput { get; private set; }
     public bool DashTrigger { get; private set; } = false;
 
