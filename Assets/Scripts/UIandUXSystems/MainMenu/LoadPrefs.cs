@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.SocialPlatforms;
 public class LoadPrefs : MonoBehaviour
 {
     [Header("Settings")]
@@ -23,16 +24,10 @@ public class LoadPrefs : MonoBehaviour
     [Header("Graphics Settings")]
     [SerializeField] private TMP_Text brightnessTextValue = null;
     [SerializeField] private Slider brightnessSlider = null;
-
     [SerializeField] private TMP_Dropdown qualityDropdown;
-
     [SerializeField] private Toggle motionBlurToggle;
-
     [SerializeField] private Toggle cameraShakeToggle;
-
     [SerializeField] private TMP_Dropdown fpsDropdown;
-
-    [SerializeField] private Toggle fullScreenToggle;
 
     [Header("General Settings")]
     [SerializeField] private TMP_Text sensTextValue = null;
@@ -41,7 +36,6 @@ public class LoadPrefs : MonoBehaviour
     [SerializeField] private Toggle vibrationToggle;
     [SerializeField] private TMP_Text vibrationTextValue = null;
     [SerializeField] private Slider vibrationSlider;
-    [SerializeField] private TMP_Dropdown languageDropdown;
 
     private void Awake()
     {
@@ -97,20 +91,6 @@ public class LoadPrefs : MonoBehaviour
                 Application.targetFrameRate = localFPS;
             }
 
-            if (PlayerPrefs.HasKey("Fullscreen"))
-            {
-                int localFullscreen = PlayerPrefs.GetInt("masterFullScreen");
-
-                if (localFullscreen == 1)
-                {
-                    Screen.fullScreen = true;
-                    fullScreenToggle.isOn = true;
-                }
-                else
-                {
-                    Screen.fullScreen = false;
-                    fullScreenToggle.isOn = false;
-                }
             }
 
             if (PlayerPrefs.HasKey("masterMotionBlur"))
@@ -130,11 +110,24 @@ public class LoadPrefs : MonoBehaviour
                 float localSens = PlayerPrefs.GetFloat("masterSens");
                 sensTextValue.text = localSens.ToString("0.0");
                 sensSlider.value = localSens;
-            } else
+            }
+            else
             {
                 general.ResetButton();
             }
+
+            if (PlayerPrefs.HasKey("masterInvertY"))
+            {
+                int localInvert = PlayerPrefs.GetInt("masterInvertY");
+
+                if (localInvert == 1)
+                {
+                    CameraSettingsManager.Instance.invertY = true;
+                }
+                else
+                {
+                    CameraSettingsManager.Instance.invertY = false;
+                }
+            }
         }
     }
-
-}

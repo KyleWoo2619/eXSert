@@ -8,8 +8,6 @@ public class GraphicsSettings : MonoBehaviour, ISettings
     [SerializeField] private TMP_Text brightnessTextValue = null;
     [SerializeField] private Slider brightnessSlider = null;
     [SerializeField] private float defaultBrightness = 1f;
-    public TMP_Dropdown resolutionDropdown;
-    private Resolution[] resolutions;
     [SerializeField] private TMP_Dropdown qualityDropdown;
     [SerializeField] private TMP_Dropdown fpsDropdown;
     [SerializeField] private Toggle fullScreenToggle;
@@ -19,35 +17,8 @@ public class GraphicsSettings : MonoBehaviour, ISettings
 
     private int qualityLevel;
     private int fpsLevel;
-    private bool isFullScreen;
     private bool isMotionBlur;
     private float brightnessLevel;
-
-    private void Start()
-    {
-         resolutions = Screen.resolutions;
-        resolutionDropdown.ClearOptions();
-
-        List<string> options = new List<string>();
-
-        int currentResolutionIndex = 0;
-
-        for (int i = 0; i < resolutions.Length; i++)
-        {
-            string option = resolutions[i].width + " x " + resolutions[i].height;
-            options.Add(option);
-
-            if (resolutions[i].width == Screen.width && resolutions[i].height == Screen.height)
-            {
-                currentResolutionIndex = i;
-            }
-        }
-
-        resolutionDropdown.AddOptions(options);
-        resolutionDropdown.value = currentResolutionIndex;
-        resolutionDropdown.RefreshShownValue();
-
-    }
 
     public void SetBrightness(float brightness)
     {
@@ -61,20 +32,9 @@ public class GraphicsSettings : MonoBehaviour, ISettings
         isMotionBlur = motionBlur;
     }
 
-    public void SetFullScreen(bool isFullscreen)
-    {
-        isFullScreen = isFullscreen;
-    }
-
     public void SetQuality(int qualityIndex)
     {
         qualityLevel = qualityIndex;
-    }
-
-    public void SetResolution(int resolutionIndex)
-    {
-        Resolution resolution = resolutions[resolutionIndex];
-        Screen.SetResolution(resolution.width, resolution.height, Screen.fullScreen);
     }
 
     public void SetFPS(int framerate)
@@ -102,15 +62,10 @@ public class GraphicsSettings : MonoBehaviour, ISettings
         PlayerPrefs.SetInt("masterQuality", qualityLevel);
         QualitySettings.SetQualityLevel(qualityLevel);
 
-        PlayerPrefs.SetInt("masterFullScreen", (isFullScreen ? 1 : 0));
-        Screen.fullScreen = isFullScreen;
-
         PlayerPrefs.SetInt("masterFPS", fpsLevel);
         Application.targetFrameRate = fpsLevel;
 
         PlayerPrefs.SetInt("masterMotionBlur", (isMotionBlur ? 1 : 0));
-
-        //StartCoroutine(ConfirmationBox());
     }
 
     public void ResetButton()
@@ -130,9 +85,6 @@ public class GraphicsSettings : MonoBehaviour, ISettings
 
         motionBlurToggle.isOn = false;
 
-        Resolution currentResolution = Screen.currentResolution;
-        Screen.SetResolution(currentResolution.width, currentResolution.height, Screen.fullScreen);
-        resolutionDropdown.value = resolutions.Length;
         GraphicsApply();
         
     }
