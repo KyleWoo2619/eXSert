@@ -5,35 +5,22 @@ Manages the player's ability to guard
 
 */
 
-using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Unity.Cinemachine;
 
 public class Guard : MonoBehaviour
 {
-    private InputReader input;
-    [SerializeField] private bool canGuard;
-    private PlayerMovement movement;
-    private float originalSpeed;
-    
+    /*
+     * MOVE CAMERA FUNCTIONALITY TO CAMERA SCRIPT, REFERENCING CombatManager.isGuarding FOR STATE
+     * 
     [Header("Cinemachine Cameras")]
     [SerializeField] private CinemachineCamera moveCam;    // Your normal Cinemachine Camera
     [SerializeField] private CinemachineCamera guardCam;   // Your guard Cinemachine Camera
+    *
 
     private CinemachineOrbitalFollow moveOrb;
     private CinemachineOrbitalFollow guardOrb;
-
-    void Start()
-    {
-        input = InputReader.Instance;
-        movement = GetComponent<PlayerMovement>();
-        originalSpeed = movement.speed;
-        canGuard = true;
-        
-        // Initialize Cinemachine cameras
-        InitializeCinemachineCameras();
-    }
+    *
     
     private void InitializeCinemachineCameras()
     {
@@ -60,33 +47,43 @@ public class Guard : MonoBehaviour
             Debug.LogError("Please assign MoveCam and GuardCam Cinemachine Cameras in Inspector!");
         }
     }
+    */
 
-    // Update is called once per frame
-    void Update()
+    [SerializeField] InputActionReference _guardActionReference;
+
+    private void OnEnable()
     {
-        OnGuardHold();
+        if (_guardActionReference == null || _guardActionReference.action == null)
+            Debug.LogError("Guard Input Action Reference is not set in the inspector. Player won't be able to guard.");
+
+        else
+            _guardActionReference.action.Enable();
     }
 
-    //If the player is able to guard they will be in the guard state until they let go of the button
-    public void OnGuardHold()
+    private void Update()
     {
-        if (canGuard && input != null)
-        {
-            if (input.GuardTrigger)
+        if(_guardActionReference != null && _guardActionReference.action != null){
+            // Check if the guard button was pressed this frame and enter guard mode
+            if (_guardActionReference.action.WasPressedThisFrame() && !InputReader.inputBusy)
             {
-                // Enter Guard Mode
-                movement.speed = originalSpeed * 0.5f;
-                SwitchToGuardCamera();
+                CombatManager.EnterGuard();
             }
-            else
+
+            // Check if the guard button was released this frame and exit guard modes
+            if (_guardActionReference.action.WasReleasedThisFrame() && CombatManager.isGuarding)
             {
-                // Exit Guard Mode
-                movement.speed = originalSpeed;
-                SwitchToMoveCamera();
+                CombatManager.ExitGuard();
             }
         }
     }
 
+    private void OnDisable()
+    {
+        if (_guardActionReference != null && _guardActionReference.action != null)
+            _guardActionReference.action.Disable();
+    }
+
+    /*
     private void SwitchToGuardCamera()
     {
         if (moveCam != null && guardCam != null && moveOrb != null && guardOrb != null)
@@ -128,11 +125,5 @@ public class Guard : MonoBehaviour
             Debug.LogWarning("Cinemachine cameras or orbital components not properly assigned!");
         }
     }
-
-    //Cooldown so players can't infinitely guard
-    //private IEnumerator GuardCoolDown()
-    //{
-    //    yield return new WaitForSeconds(3);
-    //    canGuard = true;
-    //}
+    */
 }
