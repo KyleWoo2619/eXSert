@@ -14466,6 +14466,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c8691a6f2986ea34686099b376f12280, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraSettingsManager
+  invertY: 0
 --- !u!4 &1418273779
 Transform:
   m_ObjectHideFlags: 0
@@ -25838,6 +25839,7 @@ GameObject:
   - component: {fileID: 2047113697}
   - component: {fileID: 2047113696}
   - component: {fileID: 2047113695}
+  - component: {fileID: 2047113701}
   m_Layer: 0
   m_Name: GuardCamera
   m_TagString: Untagged
@@ -26071,6 +26073,18 @@ MonoBehaviour:
       Wait: 1
       Time: 2
     Restrictions: 0
+--- !u!114 &2047113701
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2047113692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d8941ebd7b745c4fa4b4bafa280a765, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InvertY
 --- !u!43 &2048679186
 Mesh:
   m_ObjectHideFlags: 0

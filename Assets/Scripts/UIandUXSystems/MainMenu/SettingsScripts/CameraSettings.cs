@@ -1,7 +1,7 @@
 using Unity.Cinemachine;
 using UnityEngine;
 
-public class InvertY : MonoBehaviour
+public class CameraSettings : MonoBehaviour
 {
     private CinemachineInputAxisController axisController;
     void Start()
@@ -12,18 +12,21 @@ public class InvertY : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-       foreach(var c in axisController.Controllers)
+        if (SettingsManager.Instance.invertY)
         {
-            if (c.Name == "Look Orbit X")
+            foreach (var c in axisController.Controllers)
             {
-                c.Input.Gain = CameraSettingsManager.Instance.sensitivity;
+                if (c.Name == "Look Orbit X")
+                {
+                    c.Input.Gain = SettingsManager.Instance.sensitivity;
+                }
+
+                if (c.Name == "Look Orbit Y" && SettingsManager.Instance.invertY)
+                {
+                    c.Input.Gain = 1;
+
+                }
             }
-            
-            if(c.Name == "Look Orbit Y" && CameraSettingsManager.Instance.invertY)
-            {
-                c.Input.Gain = 1;
-                
-            }
-        }  
+        }
     }
 }

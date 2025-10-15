@@ -20,7 +20,7 @@ public class GeneralSettings : MonoBehaviour, ISettings
 
     public void SetSens(float sens)
     {
-        CameraSettingsManager.Instance.sensitivity = sens;
+        SettingsManager.Instance.sensitivity = sens;
         sensTextValue.text = sens.ToString("0.0");
     }
 
@@ -35,23 +35,23 @@ public class GeneralSettings : MonoBehaviour, ISettings
 
     public void SetInvertY(bool invertYOn)
     {
-        CameraSettingsManager.Instance.invertY = invertYOn;
+        SettingsManager.Instance.invertY = invertYOn;
     }
 
     public void GeneralApply()
     {
 
-        PlayerPrefs.SetFloat("masterSens", CameraSettingsManager.Instance.sensitivity);
+        PlayerPrefs.SetFloat("masterSens", SettingsManager.Instance.sensitivity);
         
         if (invertYToggle.isOn)
         {
             PlayerPrefs.SetInt("masterInvertY", 1);
-            CameraSettingsManager.Instance.invertY = true;
+            SettingsManager.Instance.invertY = true;
         }
         else
         {
             PlayerPrefs.SetInt("masterInvertY", 0);
-            CameraSettingsManager.Instance.invertY = false;
+            SettingsManager.Instance.invertY = false;
         }
 
     }
@@ -59,7 +59,7 @@ public class GeneralSettings : MonoBehaviour, ISettings
     public void ResetButton()
     {
         sensTextValue.text = defaultSens.ToString("0.0");
-        CameraSettingsManager.Instance.sensitivity = defaultSens;
+        SettingsManager.Instance.sensitivity = defaultSens;
         sensSlider.value = defaultSens;
         GeneralApply();
     }

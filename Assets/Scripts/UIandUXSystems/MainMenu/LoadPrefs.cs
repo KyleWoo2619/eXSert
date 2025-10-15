@@ -122,11 +122,11 @@ public class LoadPrefs : MonoBehaviour
 
                 if (localInvert == 1)
                 {
-                    CameraSettingsManager.Instance.invertY = true;
+                    SettingsManager.Instance.invertY = true;
                 }
                 else
                 {
-                    CameraSettingsManager.Instance.invertY = false;
+                    SettingsManager.Instance.invertY = false;
                 }
             }
         }

@@ -3,10 +3,11 @@ using Singletons;
 using UnityEngine.InputSystem;
 using System;
 
-public class CameraSettingsManager : Singleton<CameraSettingsManager>
+public class SettingsManager : Singleton<SettingsManager>
 {
-    internal bool invertY;
+    [SerializeField] internal bool invertY;
     internal float sensitivity;
+    [SerializeField] internal bool comboProgression;
     protected override void Awake()
     {
         base.Awake();
