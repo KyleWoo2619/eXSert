@@ -14,10 +14,17 @@ public class PlayerController : MonoBehaviour
     private Vector2 moveInput;
     private Vector3 velocity;
 
+    [Space, Header("Audio")]
+    private AudioSource playSFX;
+    [SerializeField] AudioClip dashAudio;
+    [SerializeField] AudioClip jumpAudio;
+
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         controller = GetComponent<CharacterController>();
+        playSFX = SoundManager.Instance.sfxSource;
     }
 
     public void OnMove(InputAction.CallbackContext context)
@@ -28,11 +35,14 @@ public class PlayerController : MonoBehaviour
 
     public void OnJump(InputAction.CallbackContext context)
     {
+        playSFX.clip = jumpAudio;
+
         Debug.Log($"Jumping {context.performed} - Is Grounded: {controller.isGrounded}");
         if (context.performed && controller.isGrounded)
         {
             Debug.Log("We are supposed to jump");
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+            playSFX.Play();
         }
     }
 

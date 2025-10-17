@@ -28,15 +28,20 @@ public class PlayerAttackManager : MonoBehaviour
     [Space, Header("Animator")]
     [SerializeField] Animator animator;
 
+    [Space, Header("Audio")]
+    private AudioSource playSFX;
+    [SerializeField] AudioClip[] playerAttackClip;
+
 
     PlayerAttack currentAttack;
 
-
+    [Space]
     // brandon's stuff
     [SerializeField] private float amountOfTimeBetweenAttacks = 1.5f;
 
     private float lastAttackPressTime;
 
+    [Space, Header("Combo Colliders")]
     [SerializeField] private BoxCollider[] comboHitboxes;
 
     //The list is used to easily track which number of the combo the player is on
@@ -44,7 +49,7 @@ public class PlayerAttackManager : MonoBehaviour
 
     private void Start()
     {
-        if(_lightAttackAction.action == null)
+        if (_lightAttackAction.action == null)
             Debug.LogError("Light Attack Action is NULL! Assign the Light Attack Action to the Player Input component.");
 
         if (_heavyAttackAction.action == null)
@@ -58,6 +63,8 @@ public class PlayerAttackManager : MonoBehaviour
         }
 
         lastAttackPressTime = Time.time;
+        
+        playSFX = SoundManager.Instance.sfxSource;
     }
 
     private void Update()
@@ -100,6 +107,9 @@ public class PlayerAttackManager : MonoBehaviour
 
     private void Attack(bool light)
     {
+        
+        playSFX.clip = playerAttackClip[Random.Range(0, playerAttackClip.Length)];
+
         if (animator != null)
         {
             animator.SetBool("stance", CombatManager.singleTargetMode);
@@ -113,6 +123,8 @@ public class PlayerAttackManager : MonoBehaviour
         //First determines whether the heavy or light input is detected
         if (light)
         {
+            
+
             //Then checks which stance the player is in to properly activated a hitbox
             if (CombatManager.singleTargetMode)
             {
@@ -153,10 +165,13 @@ public class PlayerAttackManager : MonoBehaviour
             }
         }
         Debug.Log("Combo Amount: " + currentComboAmount.Count);
-        
+
         Debug.Log($"Performed Attack: {currentAttack.attackName}");
 
         lastAttackPressTime = Time.time;
+
+        playSFX.Play();
+
     }
 
     //If the player doesn't make an input within the designated amount of time, then it is reset
