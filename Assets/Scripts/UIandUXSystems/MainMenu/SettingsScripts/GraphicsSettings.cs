@@ -1,7 +1,11 @@
+/*
+    Controls the settings that involve graphics
+
+    written by Brandon Wahl
+*/
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using System.Collections.Generic;
 
 public class GraphicsSettings : MonoBehaviour, ISettings
 {
@@ -20,6 +24,7 @@ public class GraphicsSettings : MonoBehaviour, ISettings
     private bool isMotionBlur;
     private float brightnessLevel;
 
+    //Alls functions below change values based on player choice
     public void SetBrightness(float brightness)
     {
         Screen.brightness = brightness;
@@ -55,6 +60,7 @@ public class GraphicsSettings : MonoBehaviour, ISettings
         }
     }
 
+    //Applies graphic settings
     public void GraphicsApply()
     {
         PlayerPrefs.SetFloat("masterBrightness", brightnessLevel);
@@ -68,6 +74,7 @@ public class GraphicsSettings : MonoBehaviour, ISettings
         PlayerPrefs.SetInt("masterMotionBlur", (isMotionBlur ? 1 : 0));
     }
 
+    //Resets graphics settings
     public void ResetButton()
     {
 
@@ -86,6 +93,6 @@ public class GraphicsSettings : MonoBehaviour, ISettings
         motionBlurToggle.isOn = false;
 
         GraphicsApply();
-        
+
     }
 }

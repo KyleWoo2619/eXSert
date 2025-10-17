@@ -1,10 +1,15 @@
+/*
+    Controls the settings that involve audio
+
+    written by Brandon Wahl
+*/
+
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-public class AudioSettings : MonoBehaviour
+public class AudioSettings : MonoBehaviour, ISettings
 {
-    [SerializeField] private string setVolumeType = null;
     [SerializeField] private float defaultVolume = 0.5f;
     [SerializeField] private TMP_Text masterVolumeTextValue = null;
     [SerializeField] private Slider masterVolumeSlider = null;
@@ -15,11 +20,7 @@ public class AudioSettings : MonoBehaviour
     [SerializeField] private TMP_Text voiceVolumeTextValue = null;
     [SerializeField] private Slider voiceVolumeSlider = null;
 
-     public void SetVolumeType(string volumeType)
-    {
-        setVolumeType = volumeType;
-    }
-
+    //all functions below sets the volumes for each mixer depending on the slider
     public void SetSFXVolume(float volume)
     {
         SoundManager.Instance.sfxSource.volume = volume;
@@ -50,16 +51,17 @@ public class AudioSettings : MonoBehaviour
         masterVolumeTextValue.text = volume.ToString("0.0");
     }
 
+    //Applies volume levels
     public void VolumeApply()
     {
         PlayerPrefs.SetFloat("masterVolume", SoundManager.Instance.masterSource.volume);
         PlayerPrefs.SetFloat("sfxVolume", SoundManager.Instance.sfxSource.volume);
         PlayerPrefs.SetFloat("musicVolume", SoundManager.Instance.musicSource.volume);
         PlayerPrefs.SetFloat("voiceVolume", SoundManager.Instance.voiceSource.volume);
-        // StartCoroutine(ConfirmationBox());
 
     }
 
+    //Resets settings
     public void ResetButton()
     {
         SoundManager.Instance.masterSource.volume = defaultVolume;
