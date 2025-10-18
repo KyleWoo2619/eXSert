@@ -30,7 +30,8 @@ Material:
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
-  stringTagMap: {}
+  stringTagMap:
+    IgnoreProjection: False
   disabledShaderPasses:
   - MOTIONVECTORS
   m_LockedProperties: 
@@ -56,11 +57,12 @@ Material:
     m_Ints: []
     m_Floats:
     - _Ambient_Intensity: 1
+    - _LightCutoff: 0.2
     - _QueueControl: 0
     - _QueueOffset: 0
     - _RimLightPower: 50
     m_Colors:
-    - _GrimLightColor: {r: 2, g: 2, b: 2, a: 1}
+    - _GrimLightColor: {r: 0, g: 0, b: 0, a: 1}
     - _Tint: {r: 1, g: 1, b: 1, a: 0.85882354}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

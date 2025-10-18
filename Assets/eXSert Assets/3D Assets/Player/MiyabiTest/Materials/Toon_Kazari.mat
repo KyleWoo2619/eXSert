@@ -30,7 +30,9 @@ Material:
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
-  stringTagMap: {}
+  stringTagMap:
+    IgnoreProjection: False
+    RenderType: Opaque
   disabledShaderPasses:
   - MOTIONVECTORS
   m_LockedProperties: 
@@ -56,6 +58,7 @@ Material:
     m_Ints: []
     m_Floats:
     - _Ambient_Intensity: 1
+    - _LightCutoff: 0.2
     - _QueueControl: 0
     - _QueueOffset: 0
     - _RimLightPower: 91.2
