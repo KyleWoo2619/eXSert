@@ -21,20 +21,28 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
     Scene scene;
     string sceneName;
 
+    [Space, Header("Audio")]
+    private AudioSource playSFX;
+    [SerializeField] AudioClip damagedAudioClip;
+
     //Assigns the variables from the health interfaces to variables in this class
     float IHealthSystem.currentHP => health; 
     float IHealthSystem.maxHP => maxHealth;
+
 
     void Start()
     {
         scene = SceneManager.GetActiveScene();
         sceneName = scene.name;
-        
+
         // Initialize slider if not assigned
         if (!slider)
         {
             Debug.LogWarning($"{gameObject.name}: HealthBarManager slider is not assigned. The PlayerHealthCanvas should handle UI updates instead.");
         }
+        
+        playSFX = SoundManager.Instance.sfxSource;
+
     }
 
     void Update()
@@ -59,7 +67,10 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
     //Grabs the function from the health interface, updates the health count, and updates the health bar
     public void LoseHP(float damage)
     {
+        playSFX.clip = damagedAudioClip;
+        
         health -= damage;
+        playSFX.Play();
         
         SetHealth();
 

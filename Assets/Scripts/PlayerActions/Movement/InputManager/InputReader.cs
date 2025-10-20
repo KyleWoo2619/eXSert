@@ -13,7 +13,7 @@ using UnityEditor.ShaderGraph.Serialization;
 public class InputReader : Singleton<InputReader>
 {
     [SerializeField] private InputActionAsset _playerControls;
-    [SerializeField] private PlayerInput _playerInput;
+    [SerializeField] internal PlayerInput _playerInput;
 
     private static InputActionAsset playerControls;
     public static PlayerInput playerInput {get; private set; }
