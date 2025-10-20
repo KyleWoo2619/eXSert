@@ -12,59 +12,61 @@ using System;
 using UnityEngine.InputSystem;
 public class ChangeStance : MonoBehaviour
 {
-    private InputReader input;
-    internal int currentStance;
-    [SerializeField] bool canChangeStance = true;
+    [SerializeField] InputActionReference _changeStanceAction;
+    [SerializeField] float stanceCooldownTime = 1f;
 
-    void Start()
+    [Space, Header("Audio")]
+    private AudioSource playSFX;
+    [SerializeField] AudioClip changeStanceAudio;
+
+    private void Start()
     {
-        input = InputReader.Instance;
+        playSFX = SoundManager.Instance.sfxSource;
     }
 
-    // Update is called once per frame
-    void Update()
+    private void OnEnable()
     {
-        ChangePlayerStance();
-    }
+        if (_changeStanceAction == null || _changeStanceAction.action == null)
+            Debug.LogError("Change Stance Input Action Reference is not set in the inspector. Player won't be able to change stances.");
 
-    //Gathers input from the player and changes which stance is currently equipped
-    private void ChangePlayerStance()
-    {
-        var outOfBounds = stance.Count - 1;
-
-
-        if (canChangeStance)
+        // if the action is valid, enable it and register the performed event
+        else
         {
-            if (input.ChangeStanceTrigger)
-            {
-                if (currentStance == outOfBounds)
-                {
-                    currentStance--;
-                } else
-                {
-                    currentStance++;
-                }
+            playSFX = SoundManager.Instance.sfxSource;
+            playSFX.clip = changeStanceAudio;
 
-                Debug.Log("Stance changed to: " + stance[currentStance] + " (Index: " + currentStance + ")");
-                canChangeStance = false;
-                StartCoroutine(StanceChangeCoolDown());
-            }
+            playSFX.Play();
 
+            _changeStanceAction.action.Enable();
+            _changeStanceAction.action.performed += OnStanceChange;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (_changeStanceAction != null && _changeStanceAction.action != null)
+        {
+            _changeStanceAction.action.performed -= OnStanceChange; 
+            _changeStanceAction.action.Disable();
+        }
+    }
+
+    private void OnStanceChange(InputAction.CallbackContext context)
+    {
+        // checks to see if the player can change their stance
+        if (!InputReader.inputBusy)
+        {
+            InputReader.inputBusy = true;
+            CombatManager.ChangeStance();
+
+            StartCoroutine(StanceChangeCoolDown());
         }
     }
 
     //Cooldown so players can't infinitely change their stance
     private IEnumerator StanceChangeCoolDown()
     {
-
-        yield return new WaitForSeconds(1f);
-        canChangeStance = true;
+        yield return new WaitForSeconds(stanceCooldownTime);
+        InputReader.inputBusy = false;
     }
-
-    //Manages what stances the player is able to use
-    private Dictionary<int, string> stance = new Dictionary<int, string>()
-    {
-        {0, "Single Attack"},
-        {1, "Area of Effect"}
-    };
 }
