@@ -20,8 +20,6 @@ Uses the health interfaces to increase or decreae hp amount and sets the healthb
 
 using UnityEngine;
 using UnityEngine.UI;
-using Unity.VisualScripting;
-using UnityEngine.SceneManagement;
 
 public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersistenceManager
 
@@ -30,13 +28,6 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
     public float maxHealth;
     public float health;
     [SerializeField] private Slider slider;
-
-
-    // WT: Remove these scene variables below
-
-    //Temporary ways to reset the scene the player is currently in for demonstration
-    Scene scene;
-    string sceneName;
 
     // WT: Audio variables and logic should be under the player object and subscribed to the player hurt event
     [Space, Header("Audio")]
@@ -50,8 +41,6 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
 
     void Start()
     {
-        scene = SceneManager.GetActiveScene();
-        sceneName = scene.name;
 
         // Initialize slider if not assigned
         if (!slider)
@@ -61,19 +50,6 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
         
         playSFX = SoundManager.Instance.sfxSource;
 
-    }
-
-    void Update()
-    {
-        /* WT: 
-         * 
-         * Please rename the function to be a bit more specific
-         * It currently looks like the player is supposed to die every frame without context
-         * 
-         * Additionally, death checks only need to happen when health changes, not every frame
-         */
-
-        Death();
     }
 
     //Grabs the function from the health interface, updates the health count, and updates the health bar
@@ -121,7 +97,7 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
 
             if (this.gameObject.tag == "Player")
             {
-                SceneManager.LoadSceneAsync(sceneName);
+
             }
             else
             {
