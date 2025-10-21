@@ -450,7 +450,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &66183365
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4709,6 +4709,7 @@ MonoBehaviour:
   heavySingle: {fileID: 11400000, guid: 7297b6471934186418932d8ee7ce7938, type: 2}
   heavyAOE: {fileID: 11400000, guid: 0e05c38778063d24aa6e5efe0de454ad, type: 2}
   animator: {fileID: 688821179}
+  playerAttackClip: []
   amountOfTimeBetweenAttacks: 1.5
   comboHitboxes:
   - {fileID: 1079377228}
@@ -4742,6 +4743,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ChangeStance
   _changeStanceAction: {fileID: -3287059089130689624, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
   stanceCooldownTime: 1
+  changeStanceAudio: {fileID: 0}
 --- !u!114 &1140334427
 MonoBehaviour:
   m_ObjectHideFlags: 0

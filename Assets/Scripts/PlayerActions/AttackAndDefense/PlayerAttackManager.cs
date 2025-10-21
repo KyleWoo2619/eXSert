@@ -19,12 +19,6 @@ public class PlayerAttackManager : MonoBehaviour
     [SerializeField] private InputActionReference _lightAttackAction;
     [SerializeField] private InputActionReference _heavyAttackAction;
 
-    [Space, Header("Attack Objects")]
-    [SerializeField] PlayerAttack lightSingle;
-    [SerializeField] PlayerAttack lightAOE;
-    [SerializeField] PlayerAttack heavySingle;
-    [SerializeField] PlayerAttack heavyAOE;
-
     [Space, Header("Animator")]
     [SerializeField] Animator animator;
 
@@ -34,12 +28,6 @@ public class PlayerAttackManager : MonoBehaviour
 
 
     PlayerAttack currentAttack;
-
-    [Space]
-    // brandon's stuff
-    [SerializeField] private float amountOfTimeBetweenAttacks = 1.5f;
-
-    private float lastAttackPressTime;
 
     [Space, Header("Combo Colliders")]
     [SerializeField] private BoxCollider[] comboHitboxes;
@@ -61,8 +49,6 @@ public class PlayerAttackManager : MonoBehaviour
         {
             box.enabled = false;
         }
-
-        lastAttackPressTime = Time.time;
         
         playSFX = SoundManager.Instance.sfxSource;
     }
@@ -80,40 +66,53 @@ public class PlayerAttackManager : MonoBehaviour
         else
             animator.ResetTrigger("heavyTrigger");
 
-
-        if (currentComboAmount.Count > 0)
-            InactivityCheck();
     }
 
     public void OnLightAttack()
     {
+        if (InputReader.inputBusy) return;
+
         PerformLightAttack();
     }
 
     public void OnHeavyAttack()
     {
+        if (InputReader.inputBusy) return;
+
         PerformHeavyAttack();
     }
 
     private void PerformLightAttack()
     {
-        Attack(true);
+        InitiateAttack(true);
     }
 
     private void PerformHeavyAttack()
     {
-        Attack(false);
+        InitiateAttack(false);
     }
 
-    private void Attack(bool light)
+    private void InitiateAttack(bool lightAttack)
     {
-        
-        playSFX.clip = playerAttackClip[Random.Range(0, playerAttackClip.Length)];
+        /*
+         *              ,O,
+         *             ,OOO,
+         *       'oooooOOOOOooooo'
+         *         `OOOOOOOOOOO`
+         *           `OOOOOOO`
+         *           OOOO'OOOO
+         *          OOO'   'OOO
+         *         O'         'O
+         *         
+         * CHANGE this to reference the sound from the attack scriptable object later
+         */
+        if (playerAttackClip.Length > 0)
+            playSFX.clip = playerAttackClip[Random.Range(0, playerAttackClip.Length)];
 
         if (animator != null)
         {
             animator.SetBool("stance", CombatManager.singleTargetMode);
-            if (light)
+            if (lightAttack)
                 animator.SetTrigger("lightTrigger");
             else
                 animator.SetTrigger("heavyTrigger");
@@ -121,26 +120,17 @@ public class PlayerAttackManager : MonoBehaviour
 
 
         //First determines whether the heavy or light input is detected
-        if (light)
+        if (lightAttack)
         {
-            
 
             //Then checks which stance the player is in to properly activated a hitbox
             if (CombatManager.singleTargetMode)
             {
-                currentComboAmount.Add(comboHitboxes[0]);
-                comboHitboxes[0].enabled = true;
-                StartCoroutine(TurnOffHitboxes(comboHitboxes[0]));
-
-                currentAttack = lightSingle;
+                currentAttack = ComboManager.Attack(AttackType.LightSingle);
             }
             else
             {
-                currentComboAmount.Add(comboHitboxes[1]);
-                comboHitboxes[1].enabled = true;
-                StartCoroutine(TurnOffHitboxes(comboHitboxes[1]));
-
-                currentAttack = lightAOE;
+                currentAttack = ComboManager.Attack(AttackType.LightAOE);
             }
         }
 
@@ -149,53 +139,29 @@ public class PlayerAttackManager : MonoBehaviour
 
             if (CombatManager.singleTargetMode)
             {
-                currentComboAmount.Add(comboHitboxes[2]);
-                comboHitboxes[2].enabled = true;
-                StartCoroutine(TurnOffHitboxes(comboHitboxes[2]));
-
-                currentAttack = heavySingle;
+                currentAttack = ComboManager.Attack(AttackType.HeavySingle);
             }
             else
             {
-                currentComboAmount.Add(comboHitboxes[3]);
-                comboHitboxes[3].enabled = true;
-                StartCoroutine(TurnOffHitboxes(comboHitboxes[3]));
-
-                currentAttack = heavyAOE;
+                currentAttack = ComboManager.Attack(AttackType.HeavyAOE);
             }
         }
-        Debug.Log("Combo Amount: " + currentComboAmount.Count);
+
+        Debug.Log("Combo Amount: " + ComboManager.comboCount);
 
         Debug.Log($"Performed Attack: {currentAttack.attackName}");
 
         lastAttackPressTime = Time.time;
 
-        playSFX.Play();
+        if(playerAttackClip.Length > 0)
+            playSFX.Play();
 
     }
 
-    //If the player doesn't make an input within the designated amount of time, then it is reset
-    private void InactivityCheck()
+    public IEnumerator PerformAttack(PlayerAttack attack)
     {
-        if(Time.time - lastAttackPressTime > amountOfTimeBetweenAttacks)
-        {
-            ResetCombo();
-        }
-    }
 
-    //Clears the list which essentially clears the combo counter
-    private void ResetCombo()
-    {
-        Debug.Log("Combo Reset");
-        currentComboAmount.Clear();
+        StartCoroutine(ComboManager.WaitForInputReset());
+        return null;
     }
-
-    //Turns off the hitbox
-    private IEnumerator TurnOffHitboxes(BoxCollider box) 
-    {
-        yield return new WaitForSeconds(.2f);
-        box.enabled = false;
-    
-    }
-
 }

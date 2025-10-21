@@ -32,10 +32,13 @@ public class ChangeStance : MonoBehaviour
         // if the action is valid, enable it and register the performed event
         else
         {
-            playSFX = SoundManager.Instance.sfxSource;
-            playSFX.clip = changeStanceAudio;
+            if(changeStanceAudio != null)
+            {
+                playSFX = SoundManager.Instance.sfxSource;
+                playSFX.clip = changeStanceAudio;
 
-            playSFX.Play();
+                playSFX.Play();
+            }
 
             _changeStanceAction.action.Enable();
             _changeStanceAction.action.performed += OnStanceChange;
