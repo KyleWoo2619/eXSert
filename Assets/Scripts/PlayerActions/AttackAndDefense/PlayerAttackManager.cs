@@ -57,6 +57,8 @@ public class PlayerAttackManager : MonoBehaviour
 
     public void OnLightAttack()
     {
+        Debug.Log("Light Attack Input Detected");
+
         if (InputReader.inputBusy) return;
 
         PerformLightAttack();
@@ -64,6 +66,8 @@ public class PlayerAttackManager : MonoBehaviour
 
     public void OnHeavyAttack()
     {
+        Debug.Log("Heavy Attack Input Detected");
+
         if (InputReader.inputBusy) return;
 
         PerformHeavyAttack();

@@ -2,15 +2,17 @@
 Written by Brandon Wahl
 
 Handles player movement and saves/loads player position
-
+*
+* edited by Will T
+* 
+* Added dash functionality and modified jump to include double jump
+* Also added animator integration
 */
 
 using System.Collections;
-using System.ComponentModel;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using static UnityEngine.EventSystems.StandaloneInputModule;
+
 public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
 {
     private CharacterController characterController;
@@ -56,7 +58,6 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
     private float maxRunningSpeed => CombatManager.isGuarding ? maxguardSpeed : maxNormalSpeed;
 
     private bool canDash = true;
-    private float dashCurrentTime = 0;
 
     private Vector3 forward => new Vector3(cameraTransform.forward.x, 0f, cameraTransform.forward.z);
     private Vector3 right => new Vector3(cameraTransform.right.x, 0f, cameraTransform.right.z);
@@ -215,6 +216,12 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
     {
         float starttime = Time.time;
 
+        animator.SetBool("dashTrigger", true);
+
+        yield return null;
+
+        animator.SetBool("dashTrigger", false);
+
 
         while (Time.time < starttime + dashTime)
         {
@@ -223,9 +230,11 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
             yield return null;
         }
 
+        InputReader.inputBusy = false;
+
         yield return new WaitForSeconds(dashCoolDown);
         canDash = true;
-        InputReader.inputBusy = false;
+        
     }
 
     private void ApplyMovement()

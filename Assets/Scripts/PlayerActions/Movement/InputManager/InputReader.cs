@@ -2,6 +2,13 @@
  * Written by Brandon Wahl
  * 
  * Assigns events to their action in the player's action map
+ * 
+ * 
+ * 
+ * Editted by Will T
+ * 
+ * removed event assignments and now just reads input values directly from actions
+ * tried to simplify input management
 */
 
 using System;
