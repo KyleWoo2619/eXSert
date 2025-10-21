@@ -24,6 +24,8 @@ public class PlayerAttack : ScriptableObject
         Heavy
     }
 
+    // ---------------------------------------------------------------------------------------------
+
     [Header("General Properties")]
     [SerializeField, Tooltip("Name of the attack shown in UI and logs")]
     private string _attackName;
@@ -42,9 +44,10 @@ public class PlayerAttack : ScriptableObject
             (_attackWeight == AttackWeight.Light ? AttackType.LightSingle : AttackType.HeavySingle) :
             (_attackWeight == AttackWeight.Light ? AttackType.LightAOE : AttackType.HeavyAOE);
 
-
+    // ---------------------------------------------------------------------------------------------
 
     [Space, Header("Damage Properties")]
+
     [SerializeField, Tooltip("Damage dealt by this attack")]
     private int _damage = 5;
     public int damage { get => _damage; }
@@ -58,6 +61,8 @@ public class PlayerAttack : ScriptableObject
     [SerializeField, Tooltip("The angle at which enemies are knocked back. 0 is parallel to the ground")]
     private float _knockbackAngle = 0;
     public float knockbackAngle { get => _knockbackAngle; }
+
+    // ---------------------------------------------------------------------------------------------
 
     [Space, Header("Range Properties")]
 
@@ -91,7 +96,10 @@ public class PlayerAttack : ScriptableObject
         }
     }
 
+    // ---------------------------------------------------------------------------------------------
+
     [Space, Header("Timing")]
+
     [SerializeField, Tooltip("How much time after the attack starts before the attack damage is applied, " +
         "also prevents another attack or action to be started before this finished " +
         "This usually would incorporate how long the attack animation is")]
@@ -101,4 +109,44 @@ public class PlayerAttack : ScriptableObject
     [SerializeField, Tooltip("How much time after the damage is applied before the next input can be registered")]
     private float _endLag = 0.2f;
     public float endLag { get => _endLag; }
+
+    // ---------------------------------------------------------------------------------------------
+
+    [Space, Header("Sound Effects")]
+
+    [SerializeField, Tooltip("Sound effect played when the attack is performed")]
+    private AudioClip _attackSFX;
+    public AudioClip attackSFX { get => _attackSFX; }
+
+    [SerializeField, Tooltip("Sound effect played when the attack lands/hits an enemy")]
+    private AudioClip _hitSFX;
+    public AudioClip hitSFX { get => _hitSFX; }
+
+    // ---------------------------------------------------------------------------------------------
+
+    // Creates and returns a hitbox GameObject for this attack at the specified position and forward direction
+    public GameObject createHitBox(Vector3 playerPosition, Vector3 playerForward)
+    {
+        GameObject hitbox = new GameObject(attackName + " Hitbox");
+        hitbox.transform.position = playerPosition + (playerForward * distanceFromPlayer);
+        hitbox.transform.rotation = Quaternion.LookRotation(playerForward);
+        BoxCollider hb = hitbox.AddComponent<BoxCollider>();
+        hb.isTrigger = true;
+        hb.size = new Vector3(x: width, y: 1f, z: range);
+
+        // add additional components here as needed, e.g., HitboxDamageManager
+        HitboxDamageManager damageManager = hitbox.AddComponent<HitboxDamageManager>();
+
+        // set damage manager properties based on this attack
+        damageManager.weaponName = attackName;
+        damageManager.damageAmount = damage;
+
+        // personal tip to learn how to use HitBoxDamageManager
+
+
+        // put in a gizmo drawer for visualization
+
+
+        return hitbox;
+    }
 }

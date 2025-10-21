@@ -29,12 +29,6 @@ public class PlayerAttackManager : MonoBehaviour
 
     PlayerAttack currentAttack;
 
-    [Space, Header("Combo Colliders")]
-    [SerializeField] private BoxCollider[] comboHitboxes;
-
-    //The list is used to easily track which number of the combo the player is on
-    private List<BoxCollider> currentComboAmount = new List<BoxCollider>();
-
     private void Start()
     {
         if (_lightAttackAction.action == null)
@@ -42,13 +36,6 @@ public class PlayerAttackManager : MonoBehaviour
 
         if (_heavyAttackAction.action == null)
             Debug.LogError("Heavy Attack Action is NULL! Assign the Heavy Attack Action to the Player Input component.");
-
-
-        // ensures all hitboxes are off at start
-        foreach (BoxCollider box in comboHitboxes)
-        {
-            box.enabled = false;
-        }
         
         playSFX = SoundManager.Instance.sfxSource;
     }
@@ -125,43 +112,51 @@ public class PlayerAttackManager : MonoBehaviour
 
             //Then checks which stance the player is in to properly activated a hitbox
             if (CombatManager.singleTargetMode)
-            {
                 currentAttack = ComboManager.Attack(AttackType.LightSingle);
-            }
             else
-            {
                 currentAttack = ComboManager.Attack(AttackType.LightAOE);
-            }
         }
 
         else
         {
 
             if (CombatManager.singleTargetMode)
-            {
                 currentAttack = ComboManager.Attack(AttackType.HeavySingle);
-            }
             else
-            {
                 currentAttack = ComboManager.Attack(AttackType.HeavyAOE);
-            }
         }
+
+        // Calls the coroutine to handle the attack timing and hitbox activation depending on the attack chosen by ComboManager
+        StartCoroutine(PerformAttack(currentAttack));
 
         Debug.Log("Combo Amount: " + ComboManager.comboCount);
 
         Debug.Log($"Performed Attack: {currentAttack.attackName}");
 
-        lastAttackPressTime = Time.time;
-
-        if(playerAttackClip.Length > 0)
-            playSFX.Play();
-
     }
 
+    /*
+     * Coroutine to handle the timing of the attack, including start lag and end lag.
+     * It also manages the enabling and disabling of hitboxes and starts the timer for combo reset.
+     * Disables player input during the attack animation.
+     */
     public IEnumerator PerformAttack(PlayerAttack attack)
     {
+        PlayerAttack executedAttack = attack;
+        InputReader.inputBusy = true;
+
+        // Start the attack animation
+
+        yield return new WaitForSeconds(executedAttack.startLag);
+
+        // Here you would typically enable the hitbox and apply damage to enemies within range
+        Debug.Log($"Executing Attack: {executedAttack.attackName} with Damage: {executedAttack.damage}");
+
+        // End the attack animation
+        yield return new WaitForSeconds(executedAttack.endLag);
+        InputReader.inputBusy = false;
 
         StartCoroutine(ComboManager.WaitForInputReset());
-        return null;
+        yield return null;
     }
 }

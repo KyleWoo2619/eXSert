@@ -9,6 +9,7 @@
 using UnityEngine;
 using Singletons;
 using System;
+using System.Collections;
 
 public class CombatManager : Singleton<CombatManager>
 {
@@ -63,7 +64,7 @@ public class CombatManager : Singleton<CombatManager>
     }
 
     // Coroutine to handle parry window timing
-    private static System.Collections.IEnumerator ParryWindowCoroutine()
+    private static IEnumerator ParryWindowCoroutine()
     {
         yield return new WaitForSeconds(Instance._parryWindow);
 

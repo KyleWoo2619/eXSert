@@ -1,3 +1,8 @@
+/* 
+ * Written By Will T
+ * 
+ * Manages player attack combos, including tracking combo counts, outputting the correct attacks, and resetting combos after inactivity.
+ */
 using UnityEngine;
 using System.Collections;
 
@@ -59,6 +64,9 @@ public class ComboManager : Singletons.Singleton<ComboManager>
 
     public static IEnumerator WaitForInputReset()
     {
+        lastAttackTime = Time.time;
+        yield return null;
+
         while (true)
         {
             if (Time.time - lastAttackTime >= comboResetTime)
