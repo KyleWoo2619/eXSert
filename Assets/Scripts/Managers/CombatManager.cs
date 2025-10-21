@@ -11,8 +11,15 @@ using Singletons;
 using System;
 using System.Collections;
 
-public class CombatManager : Singleton<CombatManager>
+public class CombatManager : Singleton<CombatManager>, IHealthSystem
 {
+    public float maxHealth;
+    public float health;
+
+    //Assigns the variables from the health interfaces to variables in this class
+    float IHealthSystem.currentHP => health;
+    float IHealthSystem.maxHP => maxHealth; 
+    
     // Read-only property to check if in single target mode as a boolean
     public static bool singleTargetMode { get; private set; } = true;
 
@@ -80,5 +87,31 @@ public class CombatManager : Singleton<CombatManager>
         OnSuccessfulParry?.Invoke();
 
         // Additional logic for successful parry can be added here
+    }
+
+    public void HealHP(float hp)
+    {
+        health += hp;
+
+        //prevents going over max health
+        if (health > maxHealth)
+        {
+            health = maxHealth;
+        }
+    }
+
+    //Grabs the function from the health interface, updates the health count, and updates the health bar
+    public void LoseHP(float damage)
+    {
+        health -= damage;    
+    }
+
+    //On death, if this is assigned to the player it will take them to the "Gameover" screen. If it is on any other object however, they will be destroyed.
+    public void OnPlayerDeath()
+    {
+        if (health <= 0)
+        {
+            
+        }
     }
 }

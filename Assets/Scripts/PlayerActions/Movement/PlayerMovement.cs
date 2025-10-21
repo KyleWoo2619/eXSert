@@ -13,7 +13,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
+public class PlayerMovement : MonoBehaviour
 {
     private CharacterController characterController;
 
@@ -100,18 +100,6 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
         
         ApplyMovement();
     }
-
-    public void LoadData(GameData data)
-    {
-        this.transform.position = data.playerPos;
-
-    }
-
-    public void SaveData(GameData data)
-    {
-        data.playerPos = this.transform.position;
-    }
-
 
     private void Move()
     {

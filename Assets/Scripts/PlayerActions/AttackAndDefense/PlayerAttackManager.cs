@@ -121,7 +121,16 @@ public class PlayerAttackManager : MonoBehaviour
                 currentAttack = ComboManager.Attack(AttackType.HeavyAOE);
         }
 
+        currentAttack._sfxSource.clip = currentAttack.attackSFX;
+        currentAttack._sfxSource.Play();
         
+        //Not sure if there is a detection yet, but this will play on top of the attack sfx if the player hits an enemy
+       /* if(Player hits enemy)
+        {
+            currentAttack._sfxSource.PlayOneShot(currentAttack.hitSFX);
+        }
+        */
+
         // Calls the coroutine to handle the attack timing and hitbox activation depending on the attack chosen by ComboManager
         StartCoroutine(PerformAttack(currentAttack));
 
