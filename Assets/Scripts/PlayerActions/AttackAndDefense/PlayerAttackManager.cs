@@ -22,11 +22,6 @@ public class PlayerAttackManager : MonoBehaviour
     [Space, Header("Animator")]
     [SerializeField] Animator animator;
 
-    [Space, Header("Audio")]
-    private AudioSource playSFX;
-    [SerializeField] AudioClip[] playerAttackClip;
-
-
     PlayerAttack currentAttack;
 
     private void Start()
@@ -36,8 +31,6 @@ public class PlayerAttackManager : MonoBehaviour
 
         if (_heavyAttackAction.action == null)
             Debug.LogError("Heavy Attack Action is NULL! Assign the Heavy Attack Action to the Player Input component.");
-        
-        playSFX = SoundManager.Instance.sfxSource;
     }
 
     private void Update()
@@ -97,8 +90,6 @@ public class PlayerAttackManager : MonoBehaviour
          *         
          * CHANGE this to reference the sound from the attack scriptable object later
          */
-        if (playerAttackClip.Length > 0)
-            playSFX.clip = playerAttackClip[Random.Range(0, playerAttackClip.Length)];
 
         if (animator != null)
         {
@@ -130,6 +121,7 @@ public class PlayerAttackManager : MonoBehaviour
                 currentAttack = ComboManager.Attack(AttackType.HeavyAOE);
         }
 
+        
         // Calls the coroutine to handle the attack timing and hitbox activation depending on the attack chosen by ComboManager
         StartCoroutine(PerformAttack(currentAttack));
 
