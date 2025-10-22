@@ -1,5 +1,11 @@
+/*
+    Handles the logic for the scrolling list which contains the log buttons
+    Ensures that no button can have a duplicate as well.
+
+    Written by Brandon Wahl
+*/
+
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -14,9 +20,10 @@ public class LogScrollingList : MonoBehaviour
     [Header("Rect Transforms")]
     [SerializeField] private RectTransform scrollRectTransform;
     [SerializeField] private RectTransform contentRectTransform;
-    private Dictionary<string, LogButton> idToButtonMap = new Dictionary<string, LogButton>();
+    private Dictionary<string, LogButton> idToButtonMap = new Dictionary<string, LogButton>(); //Dict to hold id of buttons
 
 
+    //If the button for a log doesn't already exist, this function will make it
     public LogButton CreateButtonIfNotExists(Logs log, UnityAction selectAction)
     {
         LogButton logButton = null;
@@ -32,13 +39,14 @@ public class LogScrollingList : MonoBehaviour
         return logButton;
     }
 
+    //Used by the function above to instantiate the button into the content parent in the scroll list
     private LogButton InstantiateLogButton(Logs log, UnityAction selectAction)
     {
         LogButton logButton = Instantiate(
             logEntryButtonPrefab,
             contentParent.transform).GetComponent<LogButton>();
 
-        logButton.gameObject.name = log.info.logID + "_button";
+        logButton.gameObject.name = log.info.logID + "_button"; //assigns name in inspector
 
         RectTransform buttonRectTranform = logButton.GetComponent<RectTransform>();
 
@@ -53,6 +61,7 @@ public class LogScrollingList : MonoBehaviour
         return logButton;
     }
 
+    //So whenever you scroll down the menu will dynamically shift the scroll list
     private void UpdateScrolling(RectTransform buttonRectTransform)
     {
         float buttonYMin = Mathf.Abs(buttonRectTransform.anchoredPosition.y);
@@ -61,6 +70,7 @@ public class LogScrollingList : MonoBehaviour
         float contentYMin = contentRectTransform.anchoredPosition.y;
         float contentYMax = contentYMin + scrollRectTransform.rect.height;
 
+        //If the player is off screen then it will extend to show "hidden" logs
         if (buttonYMax > contentYMax)
         {
             contentRectTransform.anchoredPosition = new Vector2(

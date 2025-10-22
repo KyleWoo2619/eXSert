@@ -1,5 +1,10 @@
+/*
+    Scriptable objects for the hidden logs throughout the game.
+
+    Written by Brandon Wahl
+*/
+
 using UnityEngine;
-using System;
 using UnityEditor;
 
 [ExecuteInEditMode]
@@ -14,17 +19,18 @@ public class NavigationLogSO : ScriptableObject
     [TextArea(3, 10)]
     public string logDescription;
 
+    //This ensures that the idName cannot be repeated
     private void OnValidate()
     {
 
-        #if UNITY_EDITOR
+    #if UNITY_EDITOR
         string idName = this.name.Replace("Log", "");
         logID = "#00" + idName;
         EditorUtility.SetDirty(this);
 
-        #endif
-            
-        
+    #endif
+
+
     }
 
 }

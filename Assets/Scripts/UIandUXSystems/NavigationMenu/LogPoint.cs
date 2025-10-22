@@ -1,4 +1,8 @@
-using Unity.VisualScripting;
+/*
+    This script will be used for the actual points in the world where the logs will be located
+
+    Written by Brandon Wahl
+*/
 using UnityEngine;
 
 [RequireComponent(typeof(BoxCollider))]
@@ -17,6 +21,7 @@ public class LogPoint : MonoBehaviour
         logId = logInfoForPoint.logID;
     }
 
+    //Subscribes and unsubscribes to onLogStateChange
     private void OnEnable()
     {
         EventsManager.Instance.logEvents.onLogStateChange += LogStateChange;
@@ -27,16 +32,17 @@ public class LogPoint : MonoBehaviour
         EventsManager.Instance.logEvents.onLogStateChange -= LogStateChange;
     }
 
-   /* private void SubmitPressed()
-    {
-        if (!playerIsNear)
-        {
-            return;
-        }
+    /* private void SubmitPressed()
+     {
+         if (!playerIsNear)
+         {
+             return;
+         }
 
 
-    }*/
+     }*/
 
+    //Changes the log state if any such changes occur
     private void LogStateChange(Logs logs)
     {
         if (logs.info.logID.Equals(logId))
@@ -46,6 +52,7 @@ public class LogPoint : MonoBehaviour
         }
     }
 
+    //PlayerIsNear bool changes depending on these
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))

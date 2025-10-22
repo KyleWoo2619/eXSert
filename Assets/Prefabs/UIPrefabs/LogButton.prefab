@@ -236,9 +236,9 @@ MonoBehaviour:
   m_Transition: 1
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+    m_HighlightedColor: {r: 0.4433962, g: 0.4433962, b: 0.4433962, a: 1}
     m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+    m_SelectedColor: {r: 0.4245283, g: 0.29436633, b: 0.29436633, a: 1}
     m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
@@ -257,7 +257,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 7707155337593756429}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 3142429012365836420}
+        m_TargetAssemblyTypeName: LogButton, Assembly-CSharp
+        m_MethodName: hideMenuOnClick
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &3142429012365836420
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -270,3 +282,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fc6d02affe733ca43842fc80be29a6aa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LogButton
+  logMenuOverview: {fileID: 8248571779414093911, guid: 150dbc8e517ccdb45ba4068878aa9ff5, type: 3}
+  indivdualLogMenu: {fileID: 4659124088785059957, guid: 76fe31fdee7e20d4d9a0dec2da3d1f29, type: 3}

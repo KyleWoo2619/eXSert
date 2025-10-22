@@ -1,4 +1,8 @@
-using UnityEngine;
+/*
+    Temp file to store log data
+
+    Written by Brandon Wahl
+*/
 
 [System.Serializable]
 public class LogData

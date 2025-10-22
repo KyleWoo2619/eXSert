@@ -1,3 +1,10 @@
+/*
+    This singleton is suppose to manage of the existing log scriptable objects in eXsert.
+    It will manage if they're found or a duplicate, and temporarily handles the saving of the logs
+
+    Written by Brandon Wahl
+*/
+
 using UnityEngine;
 using Singletons;
 using System.Collections.Generic;
@@ -39,6 +46,7 @@ public class LogManager : Singleton<LogManager>
         }
     }
 
+    //This function will be used so the findLog function can change the state of the log to true, it will then store the data of the log
     private void ChangeTheStateOfLog(string id, LogState state)
     {
         Logs logs = GetLogById(id);
@@ -47,6 +55,7 @@ public class LogManager : Singleton<LogManager>
         logs.StoreLogState(id, state);
     }
 
+    //Changes the state of the log and if it is Found, it will turn isLogFound true
     private void FindLog(string id)
     {
         Debug.Log("Found Log: " + id);
@@ -59,6 +68,7 @@ public class LogManager : Singleton<LogManager>
         }
     }
 
+    //This dictionary will hold all the unique log entries and ensure there is no dupes
     private Dictionary<string, Logs> CreateLogMap()
     {
         NavigationLogSO[] allLogs = Resources.LoadAll<NavigationLogSO>("Logs");
@@ -75,6 +85,7 @@ public class LogManager : Singleton<LogManager>
         return idToLogMap;
     }
 
+    //Used to grab the specifc id string in a log
     private Logs GetLogById(string id)
     {
         Logs logs = logMap[id];
@@ -93,6 +104,7 @@ public class LogManager : Singleton<LogManager>
         }
     }
 
+    //Temporary save feature for logs
     private void SaveLog(Logs log)
     {
         try

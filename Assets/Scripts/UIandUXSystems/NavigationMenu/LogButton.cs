@@ -1,3 +1,9 @@
+/*
+    Handles the button logic for the dynamic log system.
+
+    Written by Brandon Wahl
+*/
+
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
@@ -12,12 +18,16 @@ public class LogButton : MonoBehaviour, ISelectHandler
     private GameObject indivdualLogMenu;
     public Button button { get; private set; }
 
-
-    public void InitializeButton(string logName, UnityAction selectAction)
+    //Grabs the two log menus and assigns them
+    void Awake()
     {
         logMenuOverview = GameObject.FindGameObjectWithTag("LogMenuOverview");
         indivdualLogMenu = GameObject.FindGameObjectWithTag("IndividualLogMenu");
+    }
 
+    //Components get assigned moment of initlization
+    public void InitializeButton(string logName, UnityAction selectAction)
+    {
         this.button = this.GetComponent<Button>();
         this.buttonText = this.GetComponentInChildren<TMP_Text>();
 
@@ -30,6 +40,7 @@ public class LogButton : MonoBehaviour, ISelectHandler
         onSelectAction();
     }
 
+    //Hides Menus
     public void hideMenuOnClick()
     {
         logMenuOverview.gameObject.SetActive(false);

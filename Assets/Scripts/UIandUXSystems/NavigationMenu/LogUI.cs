@@ -1,5 +1,10 @@
+/*
+    Contains all of the different pieces of text that will be changed depending on which log is selected
+
+    Written by Brandon Wahl
+*/
+
 using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
 public class LogUI : MonoBehaviour
 {
@@ -10,8 +15,8 @@ public class LogUI : MonoBehaviour
     [SerializeField] private TMP_Text logDescription;
     [SerializeField] private TMP_Text logLocation;
     [SerializeField] private TMP_Text logId_Date;
-    private Button firstSelected;
 
+    //LogStateChange beong subscribed and unsubscribed
     private void OnEnable()
     {
         EventsManager.Instance.logEvents.onLogStateChange += LogStateChange;
@@ -22,20 +27,16 @@ public class LogUI : MonoBehaviour
         EventsManager.Instance.logEvents.onLogStateChange -= LogStateChange;
     }
 
+    //Creates the button with the info from SetLogInfo
     private void LogStateChange(Logs log)
     {
         LogButton logButton = scrollingList.CreateButtonIfNotExists(log, () =>
         {
             SetLogInfo(log);
         });
-
-        if(firstSelected = null)
-        {
-            firstSelected = logButton.button;
-            firstSelected.Select();
-        }
     }
 
+    //Sets each log info
     private void SetLogInfo(Logs log)
     {
         logName.text = log.info.logName;

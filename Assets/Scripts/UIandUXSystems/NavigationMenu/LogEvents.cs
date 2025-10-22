@@ -1,7 +1,12 @@
 using System;
+/*
+    Handles the events assiocated with logs
 
-public class LogEvents 
+    Written by Brandon Wahl
+*/
+public class LogEvents
 {
+    //This action is meant to be subscribed when the log is found
     public event Action<string> onFoundLog;
     public void FoundLog(string id)
     {
@@ -10,7 +15,7 @@ public class LogEvents
             onFoundLog(id);
         }
     }
-    
+    //This action is meant to be subscribed when the state of a log is changed
     public event Action<Logs> onLogStateChange;
     public void LogStateChange(Logs id)
     {
