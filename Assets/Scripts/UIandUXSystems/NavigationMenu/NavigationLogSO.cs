@@ -19,7 +19,7 @@ public class NavigationLogSO : ScriptableObject
 
         #if UNITY_EDITOR
         string idName = this.name.Replace("Log", "");
-        logID = "00" + idName;
+        logID = "#00" + idName;
         EditorUtility.SetDirty(this);
 
         #endif
