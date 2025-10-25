@@ -33,6 +33,7 @@ public class LogUI : MonoBehaviour
         LogButton logButton = scrollingList.CreateButtonIfNotExists(log, () =>
         {
             SetLogInfo(log);
+           
         });
     }
 

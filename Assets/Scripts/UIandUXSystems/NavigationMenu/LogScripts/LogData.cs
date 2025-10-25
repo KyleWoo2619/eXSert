@@ -7,10 +7,10 @@
 [System.Serializable]
 public class LogData
 {
-    public LogState state;
+    public NavigationLogSO info;
 
-    public LogData(LogState state)
+    public LogData(NavigationLogSO info)
     {
-        this.state = state;
+        this.info = info;
     }
 }

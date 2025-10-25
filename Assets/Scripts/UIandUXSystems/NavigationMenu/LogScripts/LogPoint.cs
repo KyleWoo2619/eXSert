@@ -14,7 +14,7 @@ public class LogPoint : MonoBehaviour
 
     private bool playerIsNear = false;
     private string logId;
-    private LogState currentLogState;
+    private bool currentLogState;
 
     private void Awake()
     {
@@ -47,8 +47,8 @@ public class LogPoint : MonoBehaviour
     {
         if (logs.info.logID.Equals(logId))
         {
-            currentLogState = logs.state;
-            Debug.Log("Log with id " + logId + " updated to state: " + currentLogState);
+            currentLogState = logs.info.isFound;
+            Debug.Log("Log with id " + logId + " updated to state: Is Found " + currentLogState);
         }
     }
 

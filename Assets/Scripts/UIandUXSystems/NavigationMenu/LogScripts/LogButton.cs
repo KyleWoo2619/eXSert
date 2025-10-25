@@ -9,20 +9,19 @@ using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using TMPro;
 using UnityEngine.UI;
+using System.Threading;
 
 public class LogButton : MonoBehaviour, ISelectHandler
 {
     private TMP_Text buttonText;
     private UnityAction onSelectAction;
-    private GameObject logMenuOverview;
-    private GameObject indivdualLogMenu;
     public Button button { get; private set; }
+    private MenuEventSystemHandler logUI;
 
-    //Grabs the two log menus and assigns them
-    void Awake()
+    private void Awake()
     {
-        logMenuOverview = GameObject.FindGameObjectWithTag("LogMenuOverview");
-        indivdualLogMenu = GameObject.FindGameObjectWithTag("IndividualLogMenu");
+        logUI = GameObject.FindGameObjectWithTag("LogUI").GetComponent<MenuEventSystemHandler>();
+        logUI.Selectables.Add(this.button);
     }
 
     //Components get assigned moment of initlization
@@ -33,6 +32,7 @@ public class LogButton : MonoBehaviour, ISelectHandler
 
         this.buttonText.text = logName;
         this.onSelectAction = selectAction;
+
     }
 
     public void OnSelect(BaseEventData eventData)
@@ -43,7 +43,7 @@ public class LogButton : MonoBehaviour, ISelectHandler
     //Hides Menus
     public void hideMenuOnClick()
     {
-        logMenuOverview.gameObject.SetActive(false);
-        indivdualLogMenu.gameObject.SetActive(true);
+        GameObject.FindGameObjectWithTag("LogMenuOverview").SetActive(false);
+
     }
 }

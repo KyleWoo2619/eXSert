@@ -19,8 +19,11 @@ public class LogManager : Singleton<LogManager>
 
     private bool isLogFound = false;
 
+    private MenuEventSystemHandler logUI;
+
     protected override void Awake()
     {
+        logUI = GameObject.FindGameObjectWithTag("LogUI").GetComponent<MenuEventSystemHandler>();
 
         logMap = CreateLogMap();
 
@@ -47,12 +50,12 @@ public class LogManager : Singleton<LogManager>
     }
 
     //This function will be used so the findLog function can change the state of the log to true, it will then store the data of the log
-    private void ChangeTheStateOfLog(string id, LogState state)
+    private void ChangeTheStateOfLog(string id, NavigationLogSO log)
     {
         Logs logs = GetLogById(id);
-        logs.state = state;
+        logs.info.isFound = log.isFound;
         EventsManager.Instance.logEvents.LogStateChange(logs);
-        logs.StoreLogState(id, state);
+        logs.StoreLogState(id, log);
     }
 
     //Changes the state of the log and if it is Found, it will turn isLogFound true
@@ -60,12 +63,7 @@ public class LogManager : Singleton<LogManager>
     {
         Debug.Log("Found Log: " + id);
         Logs logs = GetLogById(id);
-        ChangeTheStateOfLog(logs.info.logID, LogState.FOUND);
-
-        if (logs.state == LogState.FOUND)
-        {
-            isLogFound = true;
-        }
+        ChangeTheStateOfLog(logs.info.logID, logs.info);
     }
 
     //This dictionary will hold all the unique log entries and ensure there is no dupes
@@ -128,7 +126,7 @@ public class LogManager : Singleton<LogManager>
             {
                 string serializedData = PlayerPrefs.GetString(logInfo.logID);
                 LogData logData = JsonUtility.FromJson<LogData>(serializedData);
-                log = new Logs(logInfo, logData.state);
+                log = new Logs(logInfo);
             }
             else
             {

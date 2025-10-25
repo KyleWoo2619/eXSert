@@ -28,15 +28,22 @@ public class LogScrollingList : MonoBehaviour
     {
         LogButton logButton = null;
 
-        if (!idToButtonMap.ContainsKey(log.info.logID))
+        if (log.info.isFound)
         {
-            logButton = InstantiateLogButton(log, selectAction);
+            if (!idToButtonMap.ContainsKey(log.info.logID))
+            {
+                logButton = InstantiateLogButton(log, selectAction);
+            }
+            else
+            {
+                logButton = idToButtonMap[log.info.logID];
+            }
+            return logButton;
         }
         else
         {
-            logButton = idToButtonMap[log.info.logID];
+            return logButton;
         }
-        return logButton;
     }
 
     //Used by the function above to instantiate the button into the content parent in the scroll list
