@@ -30,6 +30,7 @@ public class InputReader : Singleton<InputReader>
     private InputAction lightAttackAction;
     private InputAction heavyAttackAction;
     private InputAction dashAction;
+    private InputAction navigationMenuAction;
 
     public static bool inputBusy = false;
 
@@ -76,6 +77,7 @@ public class InputReader : Singleton<InputReader>
         lightAttackAction = playerInput.actions["LightAttack"];
         heavyAttackAction = playerInput.actions["HeavyAttack"];
         dashAction = playerInput.actions["Dash"];
+        navigationMenuAction = playerInput.actions["NavigationMenu"];
         
 
         //RegisterInputAction();
@@ -102,7 +104,7 @@ public class InputReader : Singleton<InputReader>
         lightAttackAction.Enable();
         heavyAttackAction.Enable();
         dashAction.Enable();
-            
+        navigationMenuAction.Enable();
     }
 
     private void OnDisable()
@@ -115,5 +117,6 @@ public class InputReader : Singleton<InputReader>
         lightAttackAction.Disable();
         heavyAttackAction.Disable();
         dashAction.Disable();
+        navigationMenuAction.Disable();
     }
 }

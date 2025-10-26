@@ -7,10 +7,12 @@ using Singletons;
 public class EventsManager : Singleton<EventsManager>
 {
     public LogEvents logEvents;
+    public DiaryEvents diaryEvents;
 
     protected override void Awake()
     {
         logEvents = new LogEvents();
+        diaryEvents = new DiaryEvents();
 
         base.Awake();
     }

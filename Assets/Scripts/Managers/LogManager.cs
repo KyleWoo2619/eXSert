@@ -17,13 +17,9 @@ public class LogManager : Singleton<LogManager>
 
     private Dictionary<string, Logs> logMap;
 
-    private bool isLogFound = false;
-
-    private MenuEventSystemHandler logUI;
 
     protected override void Awake()
     {
-        logUI = GameObject.FindGameObjectWithTag("LogUI").GetComponent<MenuEventSystemHandler>();
 
         logMap = CreateLogMap();
 

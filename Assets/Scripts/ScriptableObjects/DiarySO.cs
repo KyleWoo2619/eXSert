@@ -9,6 +9,8 @@ public class DiarySO : ScriptableObject
     [TextArea(3, 10)]
     public string diaryDescription;
 
+    public bool isFound;
+
     //This ensures that the idName cannot be repeated
     private void OnValidate()
     {
