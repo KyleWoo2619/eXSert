@@ -225,7 +225,7 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     }
 
     // Helper to fire triggers by name (string), returns true if fired
-    public bool TryFireTriggerByName(string triggerName)
+    public virtual bool TryFireTriggerByName(string triggerName)
     {
         if (System.Enum.TryParse(triggerName, out TTrigger trigger))
         {
@@ -240,6 +240,9 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
 
     protected virtual void OnTriggerEnter(Collider other)
     {
+        if (enemyAI == null)
+            return;
+
         if (other.CompareTag("Player"))
         {
             // Check which collider is currently triggering this event
@@ -321,6 +324,7 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     }
 }
 
+#region States and Triggers
 public enum EnemyState
 {
     Idle,           // My idea is that when in Idle, the enemy is moving around a section of the map (zone)
@@ -376,7 +380,7 @@ public enum EnemyTrigger
 
     Die                 // The enemy has been defeated
 }
-
+#endregion
 // Static class to hold shared (default) state machine configurations
 // It cannot be stored in BaseEnemy because it is generic
 // This also only stores Permits, not OnEntry/OnExit actions
@@ -411,8 +415,9 @@ public static class EnemyStateMachineConfig
             .Permit(EnemyTrigger.InAttackRange, EnemyState.Attack); // If it gets in range, it attacks
 
         sm.Configure(EnemyState.Attack)
-            .Permit(EnemyTrigger.OutOfAttackRange, EnemyState.Chase) // If the player moves out of range, it chases again
-            .Permit(EnemyTrigger.LowHealth, EnemyState.Flee);  // If low on health, it flees
+            .Permit(EnemyTrigger.OutOfAttackRange, EnemyState.Chase); // If the player moves out of range, it chases again
+            //.Permit(EnemyTrigger.LowHealth, EnemyState.Flee);  // If low on health, it flees
+            // Commented out until fleeing behavior is functional, or if we even want to use it at all
 
         sm.Configure(EnemyState.Flee) // This state can be used for unique fleeing behavior like calling for reinforcements or defensive manuevers
             .Permit(EnemyTrigger.OutOfAttackRange, EnemyState.Fled); // Once out of range, it goes to Fled
