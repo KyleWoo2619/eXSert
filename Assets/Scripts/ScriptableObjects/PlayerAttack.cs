@@ -5,8 +5,10 @@ public enum AttackType
 {
     LightSingle,
     LightAOE,
+    LightAerial,
     HeavySingle,
-    HeavyAOE
+    HeavyAOE,
+    HeavyAerial
 }
 
 [Serializable]
@@ -16,7 +18,8 @@ public class PlayerAttack : ScriptableObject
     private enum AttackCategory
     {
         Single,
-        AOE
+        AOE,
+        Aerial
     }
     private enum AttackWeight
     {
@@ -39,10 +42,38 @@ public class PlayerAttack : ScriptableObject
     private AttackWeight _attackWeight = AttackWeight.Light;
 
     // Combines the two private enums into one public enum for easier use
-    public AttackType attackType =>
-        _attackType == AttackCategory.Single ?
-            (_attackWeight == AttackWeight.Light ? AttackType.LightSingle : AttackType.HeavySingle) :
-            (_attackWeight == AttackWeight.Light ? AttackType.LightAOE : AttackType.HeavyAOE);
+    // uses a switch expression to return the correct AttackType based on the private enums selected
+    public AttackType attackType
+    {
+        get
+        {
+            switch (_attackWeight, _attackType)
+            {
+                case (AttackWeight.Light, AttackCategory.Single):
+                    return AttackType.LightSingle;
+
+                case (AttackWeight.Light, AttackCategory.AOE):
+                    return AttackType.LightAOE;
+
+                case (AttackWeight.Light, AttackCategory.Aerial):
+                    return AttackType.LightAerial;
+
+                case (AttackWeight.Heavy, AttackCategory.Single):
+                    return AttackType.HeavySingle;
+
+                case (AttackWeight.Heavy, AttackCategory.AOE):
+                    return AttackType.HeavyAOE;
+
+                case (AttackWeight.Heavy, AttackCategory.Aerial):
+                    return AttackType.HeavyAerial;
+
+                default:
+                throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        private set { }
+    }
 
     // ---------------------------------------------------------------------------------------------
 

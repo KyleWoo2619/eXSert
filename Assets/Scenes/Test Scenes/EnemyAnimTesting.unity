@@ -148,7 +148,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 20867240}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.011633317, y: 0.96275526, z: -0.041972328, w: 0.26684335}
+  m_LocalRotation: {x: 0.011543378, y: 0.96332467, z: -0.041997157, w: 0.26478034}
   m_LocalPosition: {x: -1.9018224, y: 1.05, z: 3.4962082}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -4500,7 +4500,6 @@ MonoBehaviour:
   _lightAttackAction: {fileID: -628986242458713345, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
   _heavyAttackAction: {fileID: -6650493235489168247, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
   animator: {fileID: 688821179}
-  playerAttackClip: []
 --- !u!114 &1140334425
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4550,9 +4549,9 @@ MonoBehaviour:
   friction: 3
   cameraTransform: {fileID: 620258016}
   shouldFaceMoveDirection: 1
-  gravity: 1
-  jumpForce: 15
-  doubleJumpForce: 30
+  gravity: 0.5
+  jumpForce: 10
+  doubleJumpForce: 15
   terminalVelocity: 29.9
   canDoubleJump: 0
   boxSize: {x: 0.05, y: 0.05, z: 0.05}
@@ -5972,6 +5971,56 @@ MonoBehaviour:
   m_MinRegionArea: 2
   m_NavMeshData: {fileID: 23800000, guid: 7934813de9cd8a44fac0be9c8ca1048b, type: 2}
   m_BuildHeightMesh: 0
+--- !u!1 &1644993073
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1644993075}
+  - component: {fileID: 1644993074}
+  m_Layer: 0
+  m_Name: ComboManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1644993074
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1644993073}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05c7deb4ee358244d94b142b3bba83a4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ComboManager
+  lightSingle: {fileID: 11400000, guid: 938b57d2e27b129479c59de461fdbd6b, type: 2}
+  lightAOE: {fileID: 11400000, guid: 8825addb1ba296747a8fad3d00fe27cd, type: 2}
+  lightAerial: {fileID: 11400000, guid: f690f72d61ffa264fb3a05965cfb9d85, type: 2}
+  heavySingle: {fileID: 11400000, guid: 7297b6471934186418932d8ee7ce7938, type: 2}
+  heavyAOE: {fileID: 11400000, guid: 0e05c38778063d24aa6e5efe0de454ad, type: 2}
+  heavyAerial: {fileID: 11400000, guid: 5444a20e47498874889fc772c31e09df, type: 2}
+--- !u!4 &1644993075
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1644993073}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -4.8808, y: 5.715, z: 5.5534}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1674015061
 GameObject:
   m_ObjectHideFlags: 0
@@ -23257,6 +23306,7 @@ SceneRoots:
   m_Roots:
   - {fileID: 66183370}
   - {fileID: 1607919706}
+  - {fileID: 1644993075}
   - {fileID: 4152515859662596250}
   - {fileID: 822917304}
   - {fileID: 415074848}

@@ -11,8 +11,10 @@ public class ComboManager : Singletons.Singleton<ComboManager>
     [Header("Attack Objects")]
     [SerializeField] PlayerAttack lightSingle;
     [SerializeField] PlayerAttack lightAOE;
+    [SerializeField] PlayerAttack lightAerial;
     [SerializeField] PlayerAttack heavySingle;
     [SerializeField] PlayerAttack heavyAOE;
+    [SerializeField] PlayerAttack heavyAerial;
 
     public static int comboCount { get; private set; } = 0;
 
@@ -46,6 +48,11 @@ public class ComboManager : Singletons.Singleton<ComboManager>
                 // Add logic to execute light AOE attack
                 return Instance.lightAOE;
 
+            case AttackType.LightAerial:
+                Debug.Log("Performing Light Aerial Attack: " + Instance.lightAerial.attackName);
+                // Add logic to execute light aerial attack
+                return Instance.lightAerial;
+
             case AttackType.HeavySingle:
                 Debug.Log("Performing Heavy Single Attack: " + Instance.heavySingle.attackName);
                 // Add logic to execute heavy single attack
@@ -55,6 +62,11 @@ public class ComboManager : Singletons.Singleton<ComboManager>
                 Debug.Log("Performing Heavy AOE Attack: " + Instance.heavyAOE.attackName);
                 // Add logic to execute heavy AOE attack
                 return Instance.heavyAOE;
+
+            case AttackType.HeavyAerial:
+                Debug.Log("Performing Heavy Aerial Attack: " + Instance.heavyAerial.attackName);
+                // Add logic to execute heavy aerial attack
+                return Instance.heavyAerial;
 
             default:
                 Debug.LogWarning("Unknown Attack Type");

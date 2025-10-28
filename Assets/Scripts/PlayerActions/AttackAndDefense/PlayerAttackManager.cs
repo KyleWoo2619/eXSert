@@ -7,8 +7,8 @@ It also checks for inactivity between inputs so the combo resets.
 
 */
 
+using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -24,6 +24,8 @@ public class PlayerAttackManager : MonoBehaviour
 
     PlayerAttack currentAttack;
 
+    public static event Action onAttack;
+
     private void Start()
     {
         if (_lightAttackAction.action == null)
@@ -37,14 +39,14 @@ public class PlayerAttackManager : MonoBehaviour
     {
         if (_lightAttackAction.action.triggered && !InputReader.inputBusy)
             OnLightAttack();
-        else
-            animator.ResetTrigger("lightTrigger");
+        //else
+            //animator.ResetTrigger("lightTrigger");
 
 
         if (!_lightAttackAction.action.triggered && _heavyAttackAction.action.triggered && !InputReader.inputBusy)
             OnHeavyAttack();
-        else
-            animator.ResetTrigger("heavyTrigger");
+        //else
+            //animator.ResetTrigger("heavyTrigger");
 
     }
 
@@ -104,9 +106,11 @@ public class PlayerAttackManager : MonoBehaviour
         //First determines whether the heavy or light input is detected
         if (lightAttack)
         {
-
+            if (!PlayerMovement.isGrounded)
+                currentAttack = ComboManager.Attack(AttackType.LightAerial);
+            
             //Then checks which stance the player is in to properly activated a hitbox
-            if (CombatManager.singleTargetMode)
+            else if (CombatManager.singleTargetMode)
                 currentAttack = ComboManager.Attack(AttackType.LightSingle);
             else
                 currentAttack = ComboManager.Attack(AttackType.LightAOE);
@@ -114,22 +118,29 @@ public class PlayerAttackManager : MonoBehaviour
 
         else
         {
+            if (!PlayerMovement.isGrounded)
+                currentAttack = ComboManager.Attack(AttackType.HeavyAerial);
 
-            if (CombatManager.singleTargetMode)
+            else if (CombatManager.singleTargetMode)
                 currentAttack = ComboManager.Attack(AttackType.HeavySingle);
             else
                 currentAttack = ComboManager.Attack(AttackType.HeavyAOE);
         }
 
-        currentAttack._sfxSource.clip = currentAttack.attackSFX;
-        currentAttack._sfxSource.Play();
-        
-        //Not sure if there is a detection yet, but this will play on top of the attack sfx if the player hits an enemy
-       /* if(Player hits enemy)
+        if (currentAttack.attackSFX != null)
         {
-            currentAttack._sfxSource.PlayOneShot(currentAttack.hitSFX);
+            currentAttack._sfxSource.clip = currentAttack.attackSFX;
+            currentAttack._sfxSource.Play();
         }
-        */
+
+        onAttack?.Invoke();
+
+        //Not sure if there is a detection yet, but this will play on top of the attack sfx if the player hits an enemy
+        /* if(Player hits enemy)
+         {
+             currentAttack._sfxSource.PlayOneShot(currentAttack.hitSFX);
+         }
+         */
 
         // Calls the coroutine to handle the attack timing and hitbox activation depending on the attack chosen by ComboManager
         StartCoroutine(PerformAttack(currentAttack));
@@ -156,6 +167,9 @@ public class PlayerAttackManager : MonoBehaviour
 
         // Here you would typically enable the hitbox and apply damage to enemies within range
         Debug.Log($"Executing Attack: {executedAttack.attackName} with Damage: {executedAttack.damage}");
+
+        animator.ResetTrigger("lightTrigger");
+        animator.ResetTrigger("heavyTrigger");
 
         // End the attack animation
         yield return new WaitForSeconds(executedAttack.endLag);

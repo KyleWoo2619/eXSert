@@ -15,7 +15,8 @@ using UnityEngine.InputSystem;
 
 public class PlayerMovement : MonoBehaviour
 {
-    private CharacterController characterController;
+    private static CharacterController characterController;
+    public static bool isGrounded { get {return characterController.isGrounded; } }
 
     [Header("Player Animator")]
     [SerializeField] private Animator animator;
@@ -38,6 +39,8 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float gravity = -9.81f;
     [Tooltip("How high the player will jump")][SerializeField][Range(10, 50)] private float jumpForce;
     [SerializeField, Range(10, 50)] private float doubleJumpForce;
+    [SerializeField, Range(0, 15)] private float airAttackHopForce = 5;
+
     [SerializeField, Range(1, 50)] private float terminalVelocity = 20;
     [SerializeField] private bool canDoubleJump;
 
@@ -45,7 +48,6 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private Vector3 boxSize = new Vector3(.8f, .1f, .8f);
     [SerializeField] private float maxDistance;
     [Tooltip("Which layer the ground check detects for")] public LayerMask layerMask;
-    private float verticalRotation;
 
     [Header("Dash Settings")]
     [SerializeField] [Range(1, 5)] private float dashSpeed;
@@ -65,6 +67,17 @@ public class PlayerMovement : MonoBehaviour
     void Start()
     {
         characterController = GetComponent<CharacterController>();
+
+        
+    }
+    private void OnEnable()
+    {
+        PlayerAttackManager.onAttack += AerialAttackHop;
+    }
+
+    private void OnDisable()
+    {
+        PlayerAttackManager.onAttack -= AerialAttackHop;
     }
 
     // Update is called once per frame
@@ -98,6 +111,15 @@ public class PlayerMovement : MonoBehaviour
         if (_dashAction != null && _dashAction.action != null && _dashAction.action.triggered)
             OnDash();
         
+        if (isGrounded)
+        {
+            animator.SetBool("isGrounded", true);
+        }
+        else
+        {
+            animator.SetBool("isGrounded", false);
+        }
+
         ApplyMovement();
     }
 
@@ -158,7 +180,10 @@ public class PlayerMovement : MonoBehaviour
 
             // animator trigger jump
             if (animator != null)
+            {
                 animator.SetBool("jumpTrigger", true);
+                animator.SetBool("isGrounded", false);
+            }
         }
         else if (canDoubleJump)
         {
@@ -223,6 +248,13 @@ public class PlayerMovement : MonoBehaviour
         yield return new WaitForSeconds(dashCoolDown);
         canDash = true;
         
+    }
+
+    private void AerialAttackHop()
+    {
+        if (characterController.isGrounded) return;
+
+        currentMovement.y = airAttackHopForce;
     }
 
     private void ApplyMovement()
