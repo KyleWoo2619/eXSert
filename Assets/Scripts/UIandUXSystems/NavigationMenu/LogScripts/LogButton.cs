@@ -9,7 +9,6 @@ using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using TMPro;
 using UnityEngine.UI;
-using System.Threading;
 
 public class LogButton : MonoBehaviour, ISelectHandler
 {

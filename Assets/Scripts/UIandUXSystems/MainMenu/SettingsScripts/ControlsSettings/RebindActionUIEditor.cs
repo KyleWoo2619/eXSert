@@ -1,3 +1,8 @@
+/*
+    Script providing by Unity that improves the GUI for the RebindActionUI script
+*/
+
+
 #if UNITY_EDITOR
 using System.Linq;
 using UnityEditor;

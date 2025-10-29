@@ -1,3 +1,9 @@
+/*
+    Script provided by Unity that handles the core functionality of the rebinding settings. This script takes in the input asset assigned,
+    and shows the respective name and button bind. By clicking on the button this script is attached to, it will allow the player to select
+    a new key binding.
+*/
+
 using System;
 using System.Collections.Generic;
 using UnityEngine.Events;

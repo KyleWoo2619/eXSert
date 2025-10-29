@@ -1,3 +1,11 @@
+/*
+    Written by Brandon
+
+    This script is assigned to a scroll view that includes the diaries that the player collects. This script will handle instantiating
+    the diary button if the button associated with that id has not be created yet. It also helps format the scroll view so it doesn't become
+    broken on scroll. 
+*/
+
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -15,7 +23,7 @@ public class DiaryScrollingList : MonoBehaviour
     private Dictionary<string, DiaryButton> idToButtonMap = new Dictionary<string, DiaryButton>(); //Dict to hold id of buttons
 
 
-    //If the button for a log doesn't already exist, this function will make it
+    //If the button for a diary doesn't already exist, this function will make it
     public DiaryButton CreateButtonIfNotExists(Diaries diary, UnityAction selectAction)
     {
         DiaryButton diaryButton = null;

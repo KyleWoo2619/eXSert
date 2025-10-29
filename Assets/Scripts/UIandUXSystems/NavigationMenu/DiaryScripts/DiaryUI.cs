@@ -1,3 +1,9 @@
+/*
+    Written by Brandon
+
+    This script will change the text and description of the diary view depending on which button is clicked.
+*/
+
 using UnityEngine;
 using TMPro;
 public class DiaryUI : MonoBehaviour
@@ -8,7 +14,7 @@ public class DiaryUI : MonoBehaviour
     [SerializeField] private TMP_Text diaryID;
     [SerializeField] private TMP_Text diaryDescription;
 
-    //LogStateChange beong subscribed and unsubscribed
+    //DiaryStateChange being subscribed and unsubscribed
     private void OnEnable()
     {
         EventsManager.Instance.diaryEvents.onDiaryStateChange += DiaryStateChange;
@@ -19,7 +25,7 @@ public class DiaryUI : MonoBehaviour
         EventsManager.Instance.diaryEvents.onDiaryStateChange -= DiaryStateChange;
     }
 
-    //Creates the button with the info from SetLogInfo
+    //Creates the button with the info from SetDiaryInfo
     private void DiaryStateChange(Diaries diaries)
     {
         DiaryButton diaryButton = scrollingList.CreateButtonIfNotExists(diaries, () =>
@@ -29,7 +35,7 @@ public class DiaryUI : MonoBehaviour
         });
     }
 
-    //Sets each log info
+    //Sets each diary info
     private void SetDiaryInfo(Diaries diaries)
     {
         diaryID.text = diaries.info.diaryID;

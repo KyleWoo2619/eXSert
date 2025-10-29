@@ -1,3 +1,9 @@
+/*
+    Written by Brandon
+
+    This script controls the functionality of the Diary Button
+*/
+
 using UnityEngine;
 using UnityEngine.EventSystems;
 using TMPro;
@@ -13,6 +19,7 @@ public class DiaryButton : MonoBehaviour, ISelectHandler
 
     private void Awake()
     {
+        //Adds the buttons that are instanitated to the MenuEventSystemHandler selectable list
         diaryUI = GameObject.FindGameObjectWithTag("DiaryUI").GetComponent<MenuEventSystemHandler>();
         diaryUI.Selectables.Add(this.button);
     }

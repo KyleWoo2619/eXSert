@@ -1,3 +1,9 @@
+/*
+
+Script provided by Unity that helps substitute text of the gamepad control scheme for icons representing buttons
+
+*/
+
 using System;
 using UnityEngine.UI;
 

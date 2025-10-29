@@ -32,15 +32,16 @@ public class LogPoint : MonoBehaviour
         EventsManager.Instance.logEvents.onLogStateChange -= LogStateChange;
     }
 
-    /* private void SubmitPressed()
-     {
-         if (!playerIsNear)
-         {
-             return;
-         }
+    //This script will directly switch the log state to found
+    private void SubmitPressed()
+    {
+        if (!playerIsNear)
+        {
+            return;
+        }
 
 
-     }*/
+    }
 
     //Changes the log state if any such changes occur
     private void LogStateChange(Logs logs)
