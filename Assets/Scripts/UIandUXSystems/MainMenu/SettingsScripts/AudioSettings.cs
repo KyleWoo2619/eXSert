@@ -23,21 +23,21 @@ public class AudioSettings : MonoBehaviour, ISettings
     //all functions below sets the volumes for each mixer depending on the slider
     public void SetSFXVolume(float volume)
     {
-        SoundManager.Instance.sfxSource.volume = volume;
+        SoundManager.Instance.sfxSource.volume = volume * SoundManager.Instance.masterSource.volume;
 
         sfxVolumeTextValue.text = volume.ToString("0.0");
     }
 
     public void SetMusicVolume(float volume)
     {
-        SoundManager.Instance.musicSource.volume = volume;
+        SoundManager.Instance.musicSource.volume = volume * SoundManager.Instance.masterSource.volume;
 
         musicVolumeTextValue.text = volume.ToString("0.0");
     }
 
     public void SetVoiceVolume(float volume)
     {
-        SoundManager.Instance.voiceSource.volume = volume;
+        SoundManager.Instance.voiceSource.volume = volume * SoundManager.Instance.masterSource.volume;
 
         voiceVolumeTextValue.text = volume.ToString("0.0");
     }
