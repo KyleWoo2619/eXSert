@@ -1,31 +1,41 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.SocialPlatforms;
 public class LoadPrefs : MonoBehaviour
 {
-    [Header("General Settings")]
+    [Header("Settings")]
     [SerializeField] private bool canUse = false;
-    [SerializeField] private Settings settings;
+    private AudioSettings sound;
+    private GraphicsSettings graphics;
+    private GeneralSettings general;
+    
 
-    [Header("Volume Settings")]
-    [SerializeField] private TMP_Text volumeTextValue = null;
-    [SerializeField] Slider volumeSlider = null;
+    [Header("Audio Settings")]
+    [SerializeField] private TMP_Text masterVolumeTextValue = null;
+    [SerializeField] Slider masterVolumeSlider = null;
+    [SerializeField] private TMP_Text musicVolumeTextValue = null;
+    [SerializeField] Slider musicVolumeSlider = null;
+    [SerializeField] private TMP_Text sfxVolumeTextValue = null;
+    [SerializeField] Slider sfxVolumeSlider = null;
+    [SerializeField] private TMP_Text voiceVolumeTextValue = null;
+    [SerializeField] Slider voiceVolumeSlider = null;
 
-    [Header("Brightness Settings")]
+    [Header("Graphics Settings")]
     [SerializeField] private TMP_Text brightnessTextValue = null;
     [SerializeField] private Slider brightnessSlider = null;
-
-    [Header("Quality Settings")]
     [SerializeField] private TMP_Dropdown qualityDropdown;
+    [SerializeField] private Toggle motionBlurToggle;
+    [SerializeField] private Toggle cameraShakeToggle;
+    [SerializeField] private TMP_Dropdown fpsDropdown;
 
-    [Header("Fullscreen Settings")]
-    [SerializeField] private Toggle fullScreenToggle;
-
-    [Header("Sensitivity Settings")]
+    [Header("General Settings")]
     [SerializeField] private TMP_Text sensTextValue = null;
     [SerializeField] private Slider sensSlider = null;
-
-    //[Header("Invert Y Settings")]
+    [SerializeField] private Toggle invertY;
+    [SerializeField] private Toggle vibrationToggle;
+    [SerializeField] private TMP_Text vibrationTextValue = null;
+    [SerializeField] private Slider vibrationSlider;
 
     private void Awake()
     {
@@ -33,42 +43,59 @@ public class LoadPrefs : MonoBehaviour
         {
             if (PlayerPrefs.HasKey("masterVolume"))
             {
-                float localVolume = PlayerPrefs.GetFloat("masterVolume");
+                float masterVolume = PlayerPrefs.GetFloat("masterVolume");
 
-                volumeTextValue.text = localVolume.ToString("0.0");
-                volumeSlider.value = localVolume;
-                AudioListener.volume = localVolume;
+                masterVolumeTextValue.text = masterVolume.ToString("0.0");
+                masterVolumeSlider.value = masterVolume;
+                SoundManager.Instance.masterSource.volume = masterVolume;
+
+                float musicVolume = PlayerPrefs.GetFloat("musicVolume");
+
+                musicVolumeTextValue.text = musicVolume.ToString("0.0");
+                musicVolumeSlider.value = musicVolume;
+                SoundManager.Instance.musicSource.volume = musicVolume;
+
+                float sfxVolume = PlayerPrefs.GetFloat("sfxVolume");
+
+                sfxVolumeTextValue.text = sfxVolume.ToString("0.0");
+                sfxVolumeSlider.value = sfxVolume;
+                SoundManager.Instance.sfxSource.volume = sfxVolume;
+
+                float voiceVolume = PlayerPrefs.GetFloat("voiceVolume");
+
+                voiceVolumeTextValue.text = voiceVolume.ToString("0.0");
+                voiceVolumeSlider.value = voiceVolume;
+                SoundManager.Instance.voiceSource.volume = voiceVolume;
+                
             } 
             else
             {
-                settings.ResetButton("Audio");
+                sound.ResetButton();
             }
 
             if (PlayerPrefs.HasKey("masterQuality"))
             {
-                int localQuality = PlayerPrefs.GetInt("masterVolume");
+                int localQuality = PlayerPrefs.GetInt("masterQuality");
                 qualityDropdown.value = localQuality;
                 QualitySettings.SetQualityLevel(localQuality);
             }
             else
             {
-                settings.ResetButton("Graphics");
+                graphics.ResetButton();
             }
 
-            if (PlayerPrefs.HasKey("Fullscreen"))
+            if (PlayerPrefs.HasKey("masterFPS"))
             {
-                int localFullscreen = PlayerPrefs.GetInt("masterFullScreen");
+                int localFPS = PlayerPrefs.GetInt("masterFPS");
+                fpsDropdown.value = localFPS;
+                Application.targetFrameRate = localFPS;
+            }
 
-                if(localFullscreen == 1)
-                {
-                    Screen.fullScreen = true;
-                    fullScreenToggle.isOn = true;
-                } 
-                else
-                {
-                    Screen.fullScreen = false;
-                    fullScreenToggle.isOn = false;
-                }
+            }
+
+            if (PlayerPrefs.HasKey("masterMotionBlur"))
+            {
+                
             }
 
             if (PlayerPrefs.HasKey("masterBrightness"))
@@ -84,7 +111,23 @@ public class LoadPrefs : MonoBehaviour
                 sensTextValue.text = localSens.ToString("0.0");
                 sensSlider.value = localSens;
             }
+            else
+            {
+                general.ResetButton();
+            }
+
+            if (PlayerPrefs.HasKey("masterInvertY"))
+            {
+                int localInvert = PlayerPrefs.GetInt("masterInvertY");
+
+                if (localInvert == 1)
+                {
+                    SettingsManager.Instance.invertY = true;
+                }
+                else
+                {
+                    SettingsManager.Instance.invertY = false;
+                }
+            }
         }
     }
-
-}

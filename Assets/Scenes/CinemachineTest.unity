@@ -5733,7 +5733,7 @@ GameObject:
   - component: {fileID: 457827657}
   m_Layer: 0
   m_Name: Cube
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -5757,8 +5757,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 1, y: 1, z: 2.1197295}
+  m_Center: {x: 0, y: 0, z: -0.55986494}
 --- !u!23 &457827658
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -8355,7 +8355,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d48d640fb1a5e246b982ef588cf168c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SingleAttackCombos
-  maxComboAmount: 2
+  _lightAttackAction: {fileID: -628986242458713345, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
+  _heavyAttackAction: {fileID: -6650493235489168247, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
+  lightSingle: {fileID: 11400000, guid: 938b57d2e27b129479c59de461fdbd6b, type: 2}
+  lightAOE: {fileID: 11400000, guid: 8825addb1ba296747a8fad3d00fe27cd, type: 2}
+  heavySingle: {fileID: 11400000, guid: 7297b6471934186418932d8ee7ce7938, type: 2}
+  heavyAOE: {fileID: 11400000, guid: 0e05c38778063d24aa6e5efe0de454ad, type: 2}
+  animator: {fileID: 0}
+  playerAttackClip: []
   amountOfTimeBetweenAttacks: 1.5
   comboHitboxes:
   - {fileID: 779103251}
@@ -8374,9 +8381,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01a0e82a04cd6b944b5aed9073b7153c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Guard
-  canGuard: 0
-  moveCam: {fileID: 1788656841}
-  guardCam: {fileID: 2047113699}
+  _guardActionReference: {fileID: -4486452803221664991, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
 --- !u!114 &811204607
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8389,7 +8394,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ceb8412354a21c34c81b54ed92779f04, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ChangeStance
-  canChangeStance: 1
+  _changeStanceAction: {fileID: -3287059089130689624, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
+  stanceCooldownTime: 1
+  changeStanceAudio: {fileID: 8300000, guid: c499d32b11e58a84089a5095ba2ad8d1, type: 3}
 --- !u!114 &811204608
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8402,14 +8409,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c34e62e92a160484aa309c223b8a1e94, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
+  animator: {fileID: 0}
+  _jumpAction: {fileID: 0}
+  _dashAction: {fileID: 0}
   speed: 5.34
+  maxRunningSpeed: 5
+  friction: 3
   cameraTransform: {fileID: 1788656842}
   shouldFaceMoveDirection: 1
   gravity: -9.81
-  jumpHeight: 5.13
-  doubleJumpHeight: 1
+  jumpForce: 10
+  doubleJumpForce: 10
   terminalVelocity: 29.9
-  fallSpeed: 0.81
   canDoubleJump: 0
   boxSize: {x: 0.05, y: 0.05, z: 0.05}
   maxDistance: 0.95
@@ -10437,6 +10448,10 @@ PrefabInstance:
       propertyPath: singleAttack
       value: Attack
       objectReference: {fileID: 0}
+    - target: {fileID: 8233409301193786098, guid: bd4d8eaac56332440b873bea490d2306, type: 3}
+      propertyPath: _playerControls
+      value: 
+      objectReference: {fileID: -944628639613478452, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -14421,6 +14436,51 @@ Transform:
   m_Children:
   - {fileID: 1982327011}
   m_Father: {fileID: 40347135}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1418273777
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1418273779}
+  - component: {fileID: 1418273778}
+  m_Layer: 0
+  m_Name: CameraSettingsManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1418273778
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1418273777}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8691a6f2986ea34686099b376f12280, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CameraSettingsManager
+  invertY: 0
+--- !u!4 &1418273779
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1418273777}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 30.74393, y: 0, z: 639.7017}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1428756631
 GameObject:
@@ -23333,6 +23393,7 @@ GameObject:
   - component: {fileID: 1788656839}
   - component: {fileID: 1788656843}
   - component: {fileID: 1788656838}
+  - component: {fileID: 1788656844}
   m_Layer: 0
   m_Name: MoveCamera
   m_TagString: Untagged
@@ -23566,6 +23627,18 @@ MonoBehaviour:
     FrequencyGain: 1
     Duration: 1
     m_NoiseOffsets: {x: 0, y: 0, z: 0}
+--- !u!114 &1788656844
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1788656836}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d8941ebd7b745c4fa4b4bafa280a765, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InvertY
 --- !u!43 &1790570108
 Mesh:
   m_ObjectHideFlags: 0
@@ -25766,6 +25839,7 @@ GameObject:
   - component: {fileID: 2047113697}
   - component: {fileID: 2047113696}
   - component: {fileID: 2047113695}
+  - component: {fileID: 2047113701}
   m_Layer: 0
   m_Name: GuardCamera
   m_TagString: Untagged
@@ -25781,7 +25855,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2047113692}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.043547984, y: -0.017480243, z: 0.0007620689, w: 0.99889815}
+  m_LocalRotation: {x: 0.04354734, y: -0.018320356, z: 0.00079869485, w: 0.99888307}
   m_LocalPosition: {x: 5.15596, y: 2.02, z: -3.615611}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -25999,6 +26073,18 @@ MonoBehaviour:
       Wait: 1
       Time: 2
     Restrictions: 0
+--- !u!114 &2047113701
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2047113692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d8941ebd7b745c4fa4b4bafa280a765, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InvertY
 --- !u!43 &2048679186
 Mesh:
   m_ObjectHideFlags: 0
@@ -26483,3 +26569,4 @@ SceneRoots:
   - {fileID: 99018466}
   - {fileID: 790838766}
   - {fileID: 90830242}
+  - {fileID: 1418273779}

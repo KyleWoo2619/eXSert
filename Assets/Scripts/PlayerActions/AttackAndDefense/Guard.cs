@@ -3,6 +3,12 @@ Written by Brandon Wahl
 
 Manages the player's ability to guard
 
+
+* 
+* Edited by Will T.
+* 
+* made it more streamlined by removing camera functionality to be handled in camera script
+* additionally added parry functionality with CombatManager
 */
 
 using UnityEngine;

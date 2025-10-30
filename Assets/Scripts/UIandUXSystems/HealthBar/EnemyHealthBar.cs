@@ -1,75 +1,62 @@
 using UnityEngine;
 using UnityEngine.UI;
-using Behaviors;
 
-[RequireComponent(typeof(Canvas))]
 public class EnemyHealthBar : MonoBehaviour
 {
-    private EnemyHealthManager healthManager;
-    private BaseEnemy<EnemyState, EnemyTrigger> enemy;
-    private IHealthSystem healthSystem; // Can be either enemy or healthManager
+    private IHealthSystem enemy;
+    private Transform enemyTransform;
     [SerializeField] private Slider slider;
-    [SerializeField] private Vector3 worldOffset = new Vector3(0, 2f, 0);
-    private Transform target;
+    [SerializeField] private Vector3 worldOffset = new Vector3(0, 2f, 0); // Offset above enemy
 
-    void Awake()
+    public void SetEnemy(IHealthSystem enemy)
     {
-        if (!slider) slider = GetComponentInChildren<Slider>(true);
+        this.enemy = enemy;
+        // Try to cast to MonoBehaviour to get the transform
+        if (enemy is MonoBehaviour mb)
+            enemyTransform = mb.transform;
+        else
+            enemyTransform = null;
 
-        var c = GetComponent<Canvas>();
-        if (c.renderMode == RenderMode.WorldSpace && c.worldCamera == null && Camera.main)
-            c.worldCamera = Camera.main;
-    }
-
-    // Method to set up with EnemyHealthManager (preferred)
-    public void SetEnemyHealthManager(EnemyHealthManager manager)
-    {
-        healthManager = manager;
-        healthSystem = manager;
-        target = manager.transform;
-        
-        if (slider)
+        if (slider != null)
         {
-            slider.minValue = 0f;
-            slider.maxValue = manager.maxHP;
-            slider.value = manager.currentHP;
+            slider.maxValue = enemy.maxHP;
+            slider.value = enemy.currentHP;
         }
-        
-        Debug.Log($"{gameObject.name}: Health bar set up with EnemyHealthManager");
     }
 
-    // Method to set up with enemy directly (for backward compatibility)
-    public void SetEnemy(BaseEnemy<EnemyState, EnemyTrigger> e)
+    public static EnemyHealthBar SetupHealthBar(GameObject healthBarPrefab, IHealthSystem enemy)
     {
-        enemy = e;
-        healthSystem = e;
-        target = e.transform;
-
-        if (slider)
+        var canvas = Object.FindAnyObjectByType<Canvas>();
+        if (canvas == null)
         {
-            slider.minValue = 0f;
-            slider.maxValue = e.maxHP;
-            slider.value = e.currentHP;
+            Debug.LogError("No Canvas found in the scene for health bar instantiation.");
+            return null;
         }
-        
-        Debug.Log($"{gameObject.name}: Health bar set up with BaseEnemy health system");
+        var healthBarObj = Object.Instantiate(healthBarPrefab, canvas.transform);
+        var healthBar = healthBarObj.GetComponent<EnemyHealthBar>();
+        if (healthBar == null)
+        {
+            Debug.LogError("healthBarPrefab does not have an EnemyHealthBar component.");
+            return null;
+        }
+        healthBar.SetEnemy(enemy);
+        return healthBar;
     }
 
-    void LateUpdate()
+    void Update()
     {
-        if (healthSystem == null || !slider || !target) return;
+        if (enemy == null || slider == null || enemyTransform == null)
+            return;
 
-        // value update using the health system interface
-        slider.value = healthSystem.currentHP;
+        // Update health value
+        slider.value = enemy.currentHP;
 
-        // follow enemy position (BillboardUI component handles rotation)
-        transform.position = target.position + worldOffset;
-        
-        // DEBUG: Log any unwanted rotation
-        Vector3 currentRotation = transform.eulerAngles;
-        if (Mathf.Abs(currentRotation.x) > 0.1f || Mathf.Abs(currentRotation.z) > 0.1f)
+        // Position health bar above enemy in screen space
+        if (Camera.main != null)
         {
-            // Debug.LogWarning($"{gameObject.name}: Unwanted rotation detected! X:{currentRotation.x:F2}, Y:{currentRotation.y:F2}, Z:{currentRotation.z:F2}");
+            Vector3 worldPos = enemyTransform.position + worldOffset;
+            Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
+            transform.position = screenPos;
         }
     }
 }

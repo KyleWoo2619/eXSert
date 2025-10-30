@@ -2065,7 +2065,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5759150374391336035}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.067398235, y: 0.25486445, z: -0.017810384, w: -0.9644607}
+  m_LocalRotation: {x: -0.06739611, y: 0.2549788, z: -0.01781837, w: -0.9644305}
   m_LocalPosition: {x: 1.7554469, y: 0.421, z: -3.0970964}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -3204,14 +3204,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c34e62e92a160484aa309c223b8a1e94, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
+  animator: {fileID: 0}
+  _jumpAction: {fileID: 0}
+  _dashAction: {fileID: 0}
   speed: 5.34
+  maxNormalSpeed: 5
+  maxguardSpeed: 2.5
+  friction: 3
   cameraTransform: {fileID: 8123879777740439402}
   shouldFaceMoveDirection: 1
   gravity: -9.81
-  jumpHeight: 5.13
-  doubleJumpHeight: 1
+  jumpForce: 10
+  doubleJumpForce: 10
   terminalVelocity: 29.9
-  fallSpeed: 0.697
   canDoubleJump: 0
   boxSize: {x: 0.05, y: 0.05, z: 0.05}
   maxDistance: 0.95
@@ -3234,7 +3239,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ceb8412354a21c34c81b54ed92779f04, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ChangeStance
-  canChangeStance: 1
+  _changeStanceAction: {fileID: 0}
+  stanceCooldownTime: 1
+  changeStanceAudio: {fileID: 0}
 --- !u!114 &6299906506182504679
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3247,9 +3254,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01a0e82a04cd6b944b5aed9073b7153c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Guard
-  canGuard: 0
-  moveCam: {fileID: 2363137162427099537}
-  guardCam: {fileID: 535209454342088948}
+  _guardActionReference: {fileID: 0}
 --- !u!114 &3399510406185504324
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3262,14 +3267,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d48d640fb1a5e246b982ef588cf168c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SingleAttackCombos
-  maxComboAmount: 2
-  amountOfTimeBetweenAttacks: 1.5
-  hitboxActiveDuration: 0.2
-  comboHitboxes:
-  - {fileID: 6443039955296123730}
-  - {fileID: 2000260186295302955}
-  - {fileID: 7186225426235600735}
-  - {fileID: 6144177159577505161}
+  _lightAttackAction: {fileID: 0}
+  _heavyAttackAction: {fileID: 0}
+  animator: {fileID: 0}
+  playerAttackClip: []
 --- !u!114 &4838647195634104951
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3345,6 +3346,7 @@ MonoBehaviour:
   maxHealth: 100
   health: 100
   slider: {fileID: 0}
+  damagedAudioClip: {fileID: 0}
 --- !u!1 &8443508169161702128
 GameObject:
   m_ObjectHideFlags: 0
@@ -3539,7 +3541,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 9059113733945906756}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.06739823, y: 0.25486445, z: -0.017810382, w: -0.9644607}
+  m_LocalRotation: {x: -0.06739612, y: 0.2549788, z: -0.017818375, w: -0.9644305}
   m_LocalPosition: {x: 1.7554469, y: 0.421, z: -3.0970964}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0

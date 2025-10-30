@@ -15,6 +15,15 @@ public class ChangeStance : MonoBehaviour
     [SerializeField] InputActionReference _changeStanceAction;
     [SerializeField] float stanceCooldownTime = 1f;
 
+    [Space, Header("Audio")]
+    private AudioSource playSFX;
+    [SerializeField] AudioClip changeStanceAudio;
+
+    private void Start()
+    {
+        playSFX = SoundManager.Instance.sfxSource;
+    }
+
     private void OnEnable()
     {
         if (_changeStanceAction == null || _changeStanceAction.action == null)
@@ -23,6 +32,14 @@ public class ChangeStance : MonoBehaviour
         // if the action is valid, enable it and register the performed event
         else
         {
+            if(changeStanceAudio != null)
+            {
+                playSFX = SoundManager.Instance.sfxSource;
+                playSFX.clip = changeStanceAudio;
+
+                playSFX.Play();
+            }
+
             _changeStanceAction.action.Enable();
             _changeStanceAction.action.performed += OnStanceChange;
         }

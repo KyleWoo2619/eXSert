@@ -1,6 +1,8 @@
 using eXsert;
 using Unity.Cinemachine;
 using UnityEngine;
+using UnityEngine.Animations;
+using UnityEngine.InputSystem;
 
 public class ThirdPersonCameraController : MonoBehaviour
 {
@@ -11,6 +13,8 @@ public class ThirdPersonCameraController : MonoBehaviour
     
     private CinemachineCamera cmCamera;
     private CinemachineOrbitalFollow orbital;
+
+    private CinemachineInputAxisController axisController;
 
     // Store original Three Ring settings to restore them
     private float originalRadius;
@@ -24,7 +28,7 @@ public class ThirdPersonCameraController : MonoBehaviour
     {        
         cmCamera = GetComponent<CinemachineCamera>();
         orbital = cmCamera?.GetComponent<CinemachineOrbitalFollow>();
-
+        axisController = GetComponent<CinemachineInputAxisController>();
         if (orbital == null)
         {
             Debug.LogError("ThirdPersonCameraController: CinemachineOrbitalFollow not found on this Camera.");
@@ -61,6 +65,8 @@ public class ThirdPersonCameraController : MonoBehaviour
         {
             UpdateCameraTransition();
         }
+
+       
     }
 
     private void StoreOriginalSettings()
