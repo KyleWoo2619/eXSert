@@ -2,6 +2,13 @@
  * Written by Brandon Wahl
  * 
  * Assigns events to their action in the player's action map
+ * 
+ * 
+ * 
+ * Editted by Will T
+ * 
+ * removed event assignments and now just reads input values directly from actions
+ * tried to simplify input management
 */
 
 using System;
@@ -13,7 +20,7 @@ using UnityEditor.ShaderGraph.Serialization;
 public class InputReader : Singleton<InputReader>
 {
     [SerializeField] private InputActionAsset _playerControls;
-    [SerializeField] private PlayerInput _playerInput;
+    [SerializeField] internal PlayerInput _playerInput;
 
     private static InputActionAsset playerControls;
     public static PlayerInput playerInput {get; private set; }
@@ -37,7 +44,7 @@ public class InputReader : Singleton<InputReader>
     [SerializeField] private float leftStickDeadzoneValue;
 
     // Gets the input and sets the variable
-    public Vector2 MoveInput { get; private set; }
+    public static Vector2 MoveInput { get; private set; }
     public Vector2 LookInput { get; private set; }
     public bool DashTrigger { get; private set; } = false;
 

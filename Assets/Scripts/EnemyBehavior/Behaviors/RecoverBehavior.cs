@@ -3,12 +3,14 @@ using System.Collections;
 
 namespace Behaviors
 {
-    public class RecoverBehavior : IEnemyStateBehavior
+    public class RecoverBehavior<TState, TTrigger> : IEnemyStateBehavior<TState, TTrigger>
+        where TState : struct, System.Enum
+        where TTrigger : struct, System.Enum
     {
         private Coroutine recoverCoroutine;
-        private BaseEnemy<EnemyState, EnemyTrigger> enemy;
+        private BaseEnemy<TState, TTrigger> enemy;
 
-        public void OnEnter(BaseEnemy<EnemyState, EnemyTrigger> enemy)
+        public virtual void OnEnter(BaseEnemy<TState, TTrigger> enemy)
         {
             this.enemy = enemy;
             // Optionally set color or other visual feedback
@@ -19,7 +21,7 @@ namespace Behaviors
             recoverCoroutine = enemy.StartCoroutine(RecoverHealthOverTime());
         }
 
-        public void OnExit(BaseEnemy<EnemyState, EnemyTrigger> enemy)
+        public virtual void OnExit(BaseEnemy<TState, TTrigger> enemy)
         {
             if (recoverCoroutine != null)
             {
@@ -44,6 +46,10 @@ namespace Behaviors
             // Fire the RecoveredHealth trigger when done
             enemy.TryFireTriggerByName("RecoveredHealth");
             recoverCoroutine = null;
+        }
+        public void Tick(BaseEnemy<TState, TTrigger> enemy)
+        {
+            // No per-frame logic needed for death
         }
     }
 }
