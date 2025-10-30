@@ -5,57 +5,36 @@ Uses the health interfaces to increase or decreae hp amount and sets the healthb
 
 */
 
+/*
+ * Written by Will T
+ * 
+ * Health Bar Manager should be attached to the health bar UI element of the player instead of the player object itself
+ * 
+ * A different script like CombatManager should handle the player's health logic 
+ * and variables and this script should just handle the health bar UI updates
+ * 
+ * Health Bar Manager should pull the health values from CombatManager 
+ * or another health system script instead of storing its own health values and handling health logic
+ * 
+ */
+
 using UnityEngine;
 using UnityEngine.UI;
-using Unity.VisualScripting;
-using UnityEngine.SceneManagement;
 
 public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersistenceManager
 
 {
     public float maxHealth;
     public float health;
-    [SerializeField] private Slider slider;
-
-    //Temporary ways to reset the scene the player is currently in for demonstration
-    Scene scene;
-    string sceneName;
-
-    [Space, Header("Audio")]
-    private AudioSource playSFX;
-    [SerializeField] AudioClip damagedAudioClip;
 
     //Assigns the variables from the health interfaces to variables in this class
     float IHealthSystem.currentHP => health; 
     float IHealthSystem.maxHP => maxHealth;
 
-
-    void Start()
-    {
-        scene = SceneManager.GetActiveScene();
-        sceneName = scene.name;
-
-        // Initialize slider if not assigned
-        if (!slider)
-        {
-            Debug.LogWarning($"{gameObject.name}: HealthBarManager slider is not assigned. The PlayerHealthCanvas should handle UI updates instead.");
-        }
-        
-        playSFX = SoundManager.Instance.sfxSource;
-
-    }
-
-    void Update()
-    {
-        Death();
-    }
-
     //Grabs the function from the health interface, updates the health count, and updates the health bar
     public void HealHP(float hp)
     {
         health += hp;
-
-        SetHealth();
 
         //prevents going over max health
         if (health > maxHealth)
@@ -67,71 +46,27 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
     //Grabs the function from the health interface, updates the health count, and updates the health bar
     public void LoseHP(float damage)
     {
-        playSFX.clip = damagedAudioClip;
-        
-        health -= damage;
-        playSFX.Play();
-        
-        SetHealth();
-
-        //detects if the gameobject has gone below their health count
-       
+        health -= damage;    
     }
 
     //On death, if this is assigned to the player it will take them to the "Gameover" screen. If it is on any other object however, they will be destroyed.
-    public void Death()
+    public void OnPlayerDeath()
     {
-        if (this.health <= 0)
+        if (health <= 0)
         {
-
-            if (this.gameObject.tag == "Player")
-            {
-                SceneManager.LoadSceneAsync(sceneName);
-            }
-            else
-            {
-                Destroy(gameObject);
-            }
+            
         }
     }
-
-    //sets the healthbar according to which function is done
-    public void SetHealth()
-    {
-        if (slider != null)
-        {
-            slider.value = health;
-        }
-        // Note: PlayerHealthCanvas will handle UI updates if this slider is null
-    }
-
-    //saves and loads data from this script
     public void LoadData(GameData data)
     {
         health = data.health;
-        slider.value = data.health;
+        //slider.value = data.health;
     }
 
     public void SaveData(GameData data)
     {
         data.health = health;
-        data.health = slider.value;
-    }
-
-    //If the player collides with a trigger tagged with enemy, it'll gather it's hitbox damage amount and apply it to the player
-    private void OnTriggerEnter(Collider other)
-    {
-        var hitbox = other.GetComponent<HitboxDamageManager>();
-
-        if(other.tag == "Enemy")
-        {
-            LoseHP(hitbox.damageAmount);
-
-            if(this.health <= 0)
-            {
-                Death();
-            }
-        }
+        //data.health = slider.value;
     }
 
 }
