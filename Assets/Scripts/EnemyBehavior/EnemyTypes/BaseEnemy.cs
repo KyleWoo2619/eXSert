@@ -1,14 +1,20 @@
+// BaseEnemy.cs
+// Purpose: Generic base class for all enemy types. Implements common systems: health, detection, colliders, state machine integration, and optional CrowdAgent registration.
+// Works with: Stateless state machine library, EnemyStateMachineConfig, NavMeshAgent, CrowdController, EnemyBehaviorProfile, HealthBar UI.
+// Notes: Derived classes define their own TState/TTrigger enums and configure the state machine. This file registers a CrowdAgent when available.
+
 using System.Collections;
 using Stateless;
 using UnityEngine;
 using UnityEngine.AI;
+using EnemyBehavior.Crowd;
 
 // BaseEnemy is generic so derived classes can define their own states and triggers
 public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
-    where TState : struct, System.Enum
-    where TTrigger : struct, System.Enum
+ where TState : struct, System.Enum
+ where TTrigger : struct, System.Enum
 {
-    [HideInInspector]
+    [SerializeField, Tooltip("Reference to the NavMeshAgent attached to this enemy. Serialized so agent settings can be tweaked per-enemy in the Inspector.")]
     public NavMeshAgent agent;
     public StateMachine<TState, TTrigger> enemyAI; // StateMachine<StateEnum, TriggerEnum> is from the Stateless library
 
@@ -55,6 +61,10 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     [Header("Enemy Health Bar")]
     [SerializeField, Tooltip("Prefab for the enemy's health bar UI.")]
     public GameObject healthBarPrefab;
+
+    [Header("Behavior")]
+    [SerializeField, Tooltip("Behavior profile to tune nav/avoidance/importance settings.")]
+    public EnemyBehaviorProfile behaviorProfile;
 
     // Non-serialized fields
     [HideInInspector]
@@ -115,6 +125,20 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
 
         // Automatically assign the capsule's MeshRenderer
         enemyRenderer = GetComponent<MeshRenderer>();
+
+        // Register with CrowdController as a CrowdAgent if available
+        try
+        {
+            var ca = new CrowdAgent() { Agent = agent, Profile = behaviorProfile };
+            if (CrowdController.Instance != null)
+            {
+                CrowdController.Instance.Register(ca);
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogWarning("BaseEnemy: failed to register CrowdAgent: " + ex.Message);
+        }
     }
 
     // Helper to initialize the state machine and inspector state
@@ -275,7 +299,8 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
             if (detectionCollider != null && detectionCollider.enabled && detectionCollider.bounds.Contains(other.transform.position))
             {
                 // Only fire SeePlayer if not already in Chase
-                if (!enemyAI.State.Equals((TState)System.Enum.Parse(typeof(TState), "Chase")))
+                // Use string comparison to avoid generic enum casting issues in the base class
+                if (!enemyAI.State.ToString().Equals("Chase"))
                 {
                     TryFireTriggerByName("SeePlayer");
                 }
@@ -327,58 +352,58 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
 #region States and Triggers
 public enum EnemyState
 {
-    Idle,           // My idea is that when in Idle, the enemy is moving around a section of the map (zone)
-                    // so it is idle in the sense that it is not actively searching for the player
+ Idle, // My idea is that when in Idle, the enemy is moving around a section of the map (zone)
+ // so it is idle in the sense that it is not actively searching for the player
 
-    Relocate,       // Relocate is a substate of Patrol where the enemy moves to a new area or waypoint
-                    // before transitioning to Idle. This could be used when the enemy loses sight of the player
-                    // and needs to move to a different location to search.
+ Relocate, // Relocate is a substate of Patrol where the enemy moves to a new area or waypoint
+ // before transitioning to Idle. This could be used when the enemy loses sight of the player
+ // and needs to move to a different location to search.
 
-    Patrol,         // Patrol is the main state where the enemy is actively moving from zone to zone.
-                    // It contains the shared trigger of seeing the player to transition to Chase.
+ Patrol, // Patrol is the main state where the enemy is actively moving from zone to zone.
+ // It contains the shared trigger of seeing the player to transition to Chase.
 
-    Reinforcements, // This state would be used when another enemy calls for help
+ Reinforcements, // This state would be used when another enemy calls for help
 
-    Chase,          // Chase is when the enemy has detected the player and is actively pursuing them.
+ Chase, // Chase is when the enemy has detected the player and is actively pursuing them.
 
-    Attack,         // Attack is when the enemy is in range to attack the player.
+ Attack, // Attack is when the enemy is in range to attack the player.
 
-    Flee,           // Flee is when the enemy is low on health and tries to escape from the player.
+ Flee, // Flee is when the enemy is low on health and tries to escape from the player.
 
-    Fled,           // Fled is when the enemy has successfully escaped (out of attack range) and is no longer in immediate danger.
+ Fled, // Fled is when the enemy has successfully escaped (out of attack range) and is no longer in immediate danger.
 
-    Recover,        // Recover is when the enemy is regaining health passively while idle.
+ Recover, // Recover is when the enemy is regaining health passively while idle.
 
-    Death           // Death is when the enemy has been defeated and is no longer active.
+ Death // Death is when the enemy has been defeated and is no longer active.
 }
 
 public enum EnemyTrigger
 {
-    SeePlayer,         // Within a certain detection radius or line of sight
+ SeePlayer, // Within a certain detection radius or line of sight
 
-    LosePlayer,        // Out of detection radius or line of sight for a certain time
+ LosePlayer, // Out of detection radius or line of sight for a certain time
 
-    AidRequested,      // Another enemy has called for help
+ AidRequested, // Another enemy has called for help
 
-    FailedAid,         // The aid request was unsuccessful (e.g., arrived and player was gone)
-                       // It would start a timer to relocate after a certain time after arriving if no player is seen
+ FailedAid, // The aid request was unsuccessful (e.g., arrived and player was gone)
+ // It would start a timer to relocate after a certain time after arriving if no player is seen
 
-    LowHealth,         // I was thinking LowHealth would be like 20-25% of max health
+ LowHealth, // I was thinking LowHealth would be like20-25% of max health
 
-    RecoveredHealth,   // We discussed whether or not enemies should have passive health regen
-                       // I think it could be interesting if they do, but it should be slow and only while idle
-                       // So I am including functionality for it for now
+ RecoveredHealth, // We discussed whether or not enemies should have passive health regen
+ // I think it could be interesting if they do, but it should be slow and only while idle
+ // So I am including functionality for it for now
 
-    InAttackRange,     // These ranges are based on the enemy's attack range, and not the player's
-    OutOfAttackRange,  // Therefore, they may need to be adjusted for how they interact with fleeing behavior
+ InAttackRange, // These ranges are based on the enemy's attack range, and not the player's
+ OutOfAttackRange, // Therefore, they may need to be adjusted for how they interact with fleeing behavior
 
-    ReachZone,         // Reached the new zone after relocating
+ ReachZone, // Reached the new zone after relocating
 
-    IdleTimerElapsed,  // Timer for how long the enemy has been idle before relocating
+ IdleTimerElapsed, // Timer for how long the enemy has been idle before relocating
 
-    Attacked,           // The enemy has been attacked by the player
+ Attacked, // The enemy has been attacked by the player
 
-    Die                 // The enemy has been defeated
+ Die // The enemy has been defeated
 }
 #endregion
 // Static class to hold shared (default) state machine configurations
@@ -387,65 +412,65 @@ public enum EnemyTrigger
 // Derived enemy classes will handle OnEntry/OnExit actions in their own ConfigureStateMachine method
 public static class EnemyStateMachineConfig
 {
-    public static void ConfigureBasic(StateMachine<EnemyState, EnemyTrigger> sm)
-    {
-        sm.Configure(EnemyState.Idle)
-            .SubstateOf(EnemyState.Patrol) // Idle is a substate of Patrol
-            .Permit(EnemyTrigger.LowHealth, EnemyState.Recover) // Only in Idle will it transition to Recover
-            .Permit(EnemyTrigger.IdleTimerElapsed, EnemyState.Relocate); // After some time in Idle, it relocates
-                                                                         // My idea is that it would be more dynamic
-                                                                         // if the enemy moved around from zone to zone
-                                                                         // instead of just standing still in one spot
+ public static void ConfigureBasic(StateMachine<EnemyState, EnemyTrigger> sm)
+ {
+ sm.Configure(EnemyState.Idle)
+ .SubstateOf(EnemyState.Patrol) // Idle is a substate of Patrol
+ .Permit(EnemyTrigger.LowHealth, EnemyState.Recover) // Only in Idle will it transition to Recover
+ .Permit(EnemyTrigger.IdleTimerElapsed, EnemyState.Relocate); // After some time in Idle, it relocates
+ // My idea is that it would be more dynamic
+ // if the enemy moved around from zone to zone
+ // instead of just standing still in one spot
 
-        sm.Configure(EnemyState.Relocate)
-            .SubstateOf(EnemyState.Patrol) // Relocate is a substate of Patrol
-            .Permit(EnemyTrigger.ReachZone, EnemyState.Idle); // Once it reaches the new zone, it goes to Idle
+ sm.Configure(EnemyState.Relocate)
+ .SubstateOf(EnemyState.Patrol) // Relocate is a substate of Patrol
+ .Permit(EnemyTrigger.ReachZone, EnemyState.Idle); // Once it reaches the new zone, it goes to Idle
 
-        sm.Configure(EnemyState.Patrol)
-            .Permit(EnemyTrigger.SeePlayer, EnemyState.Chase) // Shared trigger to Chase from Patrol
-            .Permit(EnemyTrigger.AidRequested, EnemyState.Reinforcements) // Shared trigger to call for reinforcements from Patrol
-            .Permit(EnemyTrigger.Attacked, EnemyState.Chase); // If attacked while patrolling, it chases the player
+ sm.Configure(EnemyState.Patrol)
+ .Permit(EnemyTrigger.SeePlayer, EnemyState.Chase) // Shared trigger to Chase from Patrol
+ .Permit(EnemyTrigger.AidRequested, EnemyState.Reinforcements) // Shared trigger to call for reinforcements from Patrol
+ .Permit(EnemyTrigger.Attacked, EnemyState.Chase); // If attacked while patrolling, it chases the player
 
-        sm.Configure(EnemyState.Reinforcements)
-            .Permit(EnemyTrigger.SeePlayer, EnemyState.Chase) // Shared trigger to Chase from Reinforcements
-            .Permit(EnemyTrigger.FailedAid, EnemyState.Relocate); // If the aid request fails, it relocates
+ sm.Configure(EnemyState.Reinforcements)
+ .Permit(EnemyTrigger.SeePlayer, EnemyState.Chase) // Shared trigger to Chase from Reinforcements
+ .Permit(EnemyTrigger.FailedAid, EnemyState.Relocate); // If the aid request fails, it relocates
 
-        sm.Configure(EnemyState.Chase)
-            .Permit(EnemyTrigger.LosePlayer, EnemyState.Relocate) // If it loses the player, it relocates
-            .Permit(EnemyTrigger.InAttackRange, EnemyState.Attack); // If it gets in range, it attacks
+ sm.Configure(EnemyState.Chase)
+ .Permit(EnemyTrigger.LosePlayer, EnemyState.Relocate) // If it loses the player, it relocates
+ .Permit(EnemyTrigger.InAttackRange, EnemyState.Attack); // If it gets in range, it attacks
 
-        sm.Configure(EnemyState.Attack)
-            .Permit(EnemyTrigger.OutOfAttackRange, EnemyState.Chase); // If the player moves out of range, it chases again
-            //.Permit(EnemyTrigger.LowHealth, EnemyState.Flee);  // If low on health, it flees
-            // Commented out until fleeing behavior is functional, or if we even want to use it at all
+ sm.Configure(EnemyState.Attack)
+ .Permit(EnemyTrigger.OutOfAttackRange, EnemyState.Chase); // If the player moves out of range, it chases again
+ //.Permit(EnemyTrigger.LowHealth, EnemyState.Flee); // If low on health, it flees
+ // Commented out until fleeing behavior is functional, or if we even want to use it at all
 
-        sm.Configure(EnemyState.Flee) // This state can be used for unique fleeing behavior like calling for reinforcements or defensive manuevers
-            .Permit(EnemyTrigger.OutOfAttackRange, EnemyState.Fled); // Once out of range, it goes to Fled
+ sm.Configure(EnemyState.Flee) // This state can be used for unique fleeing behavior like calling for reinforcements or defensive manuevers
+ .Permit(EnemyTrigger.OutOfAttackRange, EnemyState.Fled); // Once out of range, it goes to Fled
 
-        sm.Configure(EnemyState.Fled)
-            .Permit(EnemyTrigger.InAttackRange, EnemyState.Flee) // If the player comes back into range, it goes back to Flee
-            .Permit(EnemyTrigger.LosePlayer, EnemyState.Relocate); // If it loses the player while fleeing, it relocates
+ sm.Configure(EnemyState.Fled)
+ .Permit(EnemyTrigger.InAttackRange, EnemyState.Flee) // If the player comes back into range, it goes back to Flee
+ .Permit(EnemyTrigger.LosePlayer, EnemyState.Relocate); // If it loses the player while fleeing, it relocates
 
-        sm.Configure(EnemyState.Recover)  // Essentially the same as Idle but with health regen, maybe no movement at all
-            .SubstateOf(EnemyState.Patrol) // Recover is a substate of Patrol
-            .Permit(EnemyTrigger.RecoveredHealth, EnemyState.Idle); // Once it recovers health, it goes back to Idle
+ sm.Configure(EnemyState.Recover) // Essentially the same as Idle but with health regen, maybe no movement at all
+ .SubstateOf(EnemyState.Patrol) // Recover is a substate of Patrol
+ .Permit(EnemyTrigger.RecoveredHealth, EnemyState.Idle); // Once it recovers health, it goes back to Idle
 
-        // Permit Die from any state except Death itself
-        foreach (EnemyState state in System.Enum.GetValues(typeof(EnemyState)))
-        {
-            if (state != EnemyState.Death)
-            {
-                sm.Configure(state)
-                    .Permit(EnemyTrigger.Die, EnemyState.Death);
-            }
-            else
-            {
-                sm.Configure(state)
-                    .Ignore(EnemyTrigger.Die);
-            }
-        }
+ // Permit Die from any state except Death itself
+ foreach (EnemyState state in System.Enum.GetValues(typeof(EnemyState)))
+ {
+ if (state != EnemyState.Death)
+ {
+ sm.Configure(state)
+ .Permit(EnemyTrigger.Die, EnemyState.Death);
+ }
+ else
+ {
+ sm.Configure(state)
+ .Ignore(EnemyTrigger.Die);
+ }
+ }
 
-        // Configure Death state (no outgoing transitions)
-        sm.Configure(EnemyState.Death);
-    }
+ // Configure Death state (no outgoing transitions)
+ sm.Configure(EnemyState.Death);
+ }
 }

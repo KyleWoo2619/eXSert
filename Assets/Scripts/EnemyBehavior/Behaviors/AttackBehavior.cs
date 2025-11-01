@@ -1,3 +1,8 @@
+// AttackBehavior.cs
+// Purpose: Handles attack state logic for enemies (melee/ranged), damage application, and hit detection.
+// Works with: BaseEnemy attack triggers, EnemyProjectile, Player health systems.
+// Notes: Does not manage movement; only attack timing and hit application.
+
 using UnityEngine;
 using System.Collections;
 

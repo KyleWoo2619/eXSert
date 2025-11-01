@@ -1,3 +1,7 @@
+// FireBehavior.cs
+// Purpose: Manages firing logic for enemies (rate of fire, projectile spawning).
+// Works with: EnemyProjectile, Turret enemies, pooling systems.
+
 using System.Collections.Generic;
 using UnityEngine;
 

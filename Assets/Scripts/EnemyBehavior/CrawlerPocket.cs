@@ -1,3 +1,7 @@
+// CrawlerPocket.cs
+// Purpose: Defines spawn points (pockets) for crawler adds used by bosses or encounters.
+// Works with: BossRoombaController, ScenePoolManager
+
 using UnityEngine;
 using System.Collections.Generic;
 using System.ComponentModel;

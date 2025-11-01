@@ -1,3 +1,8 @@
+// AmbushBehavior.cs
+// Purpose: Behavior module for enemies that ambush the player from cover.
+// Works with: BaseEnemy state machine triggers, CrowdController for coordination.
+// Notes: Attach to enemy prefabs that should use ambush tactics.
+
 using UnityEngine;
 using System.Collections;
 

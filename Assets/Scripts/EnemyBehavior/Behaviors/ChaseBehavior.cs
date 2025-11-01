@@ -1,3 +1,7 @@
+// ChaseBehavior.cs
+// Purpose: Behavior module implementing Chase logic: pursuit and attack-range checks.
+// Works with: BaseEnemy state machine, PathRequestManager for pathing, NavMeshAgent movement.
+
 using UnityEngine;
 using System.Collections;
 

@@ -1,3 +1,7 @@
+// EnemyBehaviorProfile.cs
+// Purpose: Serializable data container to tune enemy movement, avoidance, importance, and other AI parameters.
+// Works with: BaseEnemy, CrowdAgent, NavMeshAgent settings, planners for hinting.
+
 using UnityEngine;
 
 [CreateAssetMenu(menuName = "AI/EnemyBehaviorProfile")]

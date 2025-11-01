@@ -1,3 +1,7 @@
+// DroneSwarmManager.cs
+// Purpose: Manages drone swarm creation, pooling, and high-level commands.
+// Works with: DroneEnemy, DroneCluster, CrowdController, FlowFieldService.
+
 using System.Collections.Generic;
 using UnityEngine;
 

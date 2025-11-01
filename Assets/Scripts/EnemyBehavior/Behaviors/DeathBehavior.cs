@@ -1,3 +1,7 @@
+// DeathBehavior.cs
+// Purpose: Handles enemy death sequence: disabling, playing SFX, cleanup, and object destruction.
+// Works with: BaseEnemy, BaseCrawlerEnemy pocket removal, EnemyHealthBar UI.
+
 using UnityEngine;
 using System.Collections;
 

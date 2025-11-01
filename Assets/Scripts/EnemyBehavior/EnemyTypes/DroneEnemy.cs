@@ -1,3 +1,7 @@
+// DroneEnemy.cs
+// Purpose: Drone enemy implementation with flying movement and swarm behavior.
+// Works with: DroneSwarmManager, FlowFieldService, CrowdController.
+
 using UnityEngine;
 using UnityEngine.AI;
 using Behaviors;

@@ -1,3 +1,7 @@
+// IPathPlanner.cs
+// Purpose: Interface describing path planners used by PathRequestManager. Implementations include NavMeshAStarPlanner, FlowFieldService, DijkstraPlanner.
+// Works with: PathRequestManager, PathQuery/PathTask types.
+
 using System.Collections.Generic;
 using UnityEngine;
 

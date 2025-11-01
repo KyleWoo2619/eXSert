@@ -1,3 +1,7 @@
+// IdleBehavior.cs
+// Purpose: Idle/Patrol behavior; supports wandering and idle timers that trigger relocations.
+// Works with: BaseEnemy, Zone management.
+
 using UnityEngine;
 using System.Collections;
 using UnityEngine.AI;

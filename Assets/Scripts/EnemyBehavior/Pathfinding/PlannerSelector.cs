@@ -1,3 +1,7 @@
+// PlannerSelector.cs
+// Purpose: Chooses the best planner for a given PathQuery based on capabilities and world state.
+// Works with: PathRequestManager and IPathPlanner implementations.
+
 using System.Collections.Generic;
 using UnityEngine;
 

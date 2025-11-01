@@ -1,3 +1,8 @@
+// BaseEnemyEditor.cs
+// Purpose: Custom inspector for BaseEnemy derived types to provide enhanced visualization and debugging in the Unity Editor.
+// Works with: BaseEnemy, ReadOnlyAttribute, MaxHealthSlider.
+// Notes: Editor-only code; not included in builds.
+
 using UnityEditor;
 using UnityEngine;
 

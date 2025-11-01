@@ -1,3 +1,7 @@
+// DijkstraPlanner.cs
+// Purpose: Simple Dijkstra-based planner used for small-grid pathing or as a reference planner.
+// Works with: FlowFieldService integration and PathRequestManager.
+
 using UnityEngine;
 
 public sealed class DijkstraPlanner : IPathPlanner

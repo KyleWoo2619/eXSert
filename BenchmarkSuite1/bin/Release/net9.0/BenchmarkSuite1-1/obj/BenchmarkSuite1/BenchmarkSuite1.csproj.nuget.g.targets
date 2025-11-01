@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <Import Project="$(NuGetPackageRoot)system.text.json\8.0.5\buildTransitive\net6.0\System.Text.Json.targets" Condition="Exists('$(NuGetPackageRoot)system.text.json\8.0.5\buildTransitive\net6.0\System.Text.Json.targets')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.codeanalysis.analyzers\3.11.0\buildTransitive\Microsoft.CodeAnalysis.Analyzers.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.codeanalysis.analyzers\3.11.0\buildTransitive\Microsoft.CodeAnalysis.Analyzers.targets')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.visualstudio.diagnosticshub.benchmarkdotnetdiagnosers\18.0.36421.1\build\Microsoft.VisualStudio.DiagnosticsHub.BenchmarkDotNetDiagnosers.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.visualstudio.diagnosticshub.benchmarkdotnetdiagnosers\18.0.36421.1\build\Microsoft.VisualStudio.DiagnosticsHub.BenchmarkDotNetDiagnosers.targets')" />
+  </ImportGroup>
+</Project>

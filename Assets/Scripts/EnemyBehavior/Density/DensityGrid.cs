@@ -1,3 +1,7 @@
+// DensityGrid.cs
+// Purpose: Spatial density grid used to stamp agent presence and provide cost/density samples for path planners and crowd steering.
+// Works with: CrowdController, planners (FlowField, A*), EnemyBehaviorProfile for personal space radius.
+
 using UnityEngine;
 
 namespace EnemyBehavior.Density
@@ -44,7 +48,7 @@ namespace EnemyBehavior.Density
  // simple disk falloff
  float dx = (x - cx) * cellSize;
  float dz = (z - cz) * cellSize;
- float d = Mathf.Sqrt(dx*dx + dz*dz);
+ float d = Mathf.Sqrt(dx * dx + dz * dz);
  if (d <= radius)
  {
  float fall =1f - (d / radius);
@@ -57,7 +61,7 @@ namespace EnemyBehavior.Density
  public void UpdateGrid(float dt)
  {
  float k = Mathf.Exp(-decayPerSecond * dt);
- for (int i =0;i<_cells.Length;i++) _cells[i] *= k;
+ for (int i =0; i < _cells.Length; i++) _cells[i] *= k;
  }
 
  public float SampleCost(Vector3 pos)
@@ -66,12 +70,21 @@ namespace EnemyBehavior.Density
  float fz = (pos.z - worldOrigin.y) / cellSize;
  int x0 = Mathf.FloorToInt(fx);
  int z0 = Mathf.FloorToInt(fz);
- if (x0 <0 || z0 <0 || x0 >= _w-1 || z0 >= _h-1) return0f;
- float tx = fx - x0; float tz = fz - z0;
+
+ // If out of range, return zero cost
+ if (x0 <0 || z0 <0 || x0 >= _w -1 || z0 >= _h -1)
+ {
+ return 0f;
+ }
+
+ float tx = fx - x0;
+ float tz = fz - z0;
+
  float c00 = _cells[z0 * _w + x0];
- float c10 = _cells[z0 * _w + (x0+1)];
- float c01 = _cells[(z0+1) * _w + x0];
- float c11 = _cells[(z0+1) * _w + (x0+1)];
+ float c10 = _cells[z0 * _w + (x0 +1)];
+ float c01 = _cells[(z0 +1) * _w + x0];
+ float c11 = _cells[(z0 +1) * _w + (x0 +1)];
+
  float cx0 = Mathf.Lerp(c00, c10, tx);
  float cx1 = Mathf.Lerp(c01, c11, tx);
  return Mathf.Lerp(cx0, cx1, tz);

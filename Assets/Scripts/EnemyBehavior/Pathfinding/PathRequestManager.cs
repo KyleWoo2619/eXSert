@@ -1,3 +1,7 @@
+// PathRequestManager.cs
+// Purpose: Central manager for path requests. Selects an appropriate planner and returns PathTask results synchronously.
+// Works with: IPathPlanner implementations, CrowdAgent path requests and BaseEnemy.
+
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -28,24 +32,34 @@ namespace EnemyBehavior.Pathfinding
  _selector = new PlannerSelector(_allPlanners);
  }
 
+ // Enqueue now performs an immediate synchronous path request and returns the PathTask.
  public PathTask Enqueue(PathQuery q)
  {
+ if (_selector == null)
+ {
+ // ensure selector exists
+ _selector = new PlannerSelector(_allPlanners);
+ }
+ var planner = _selector.Choose(q, _worldState);
+ if (planner == null)
+ {
+ // fallback: direct NavMesh.CalculatePath
  var task = new PathTask();
- _queue.Enqueue(q);
+ var path = new UnityEngine.AI.NavMeshPath();
+ int mask = q.AreaMask == -1 ? UnityEngine.AI.NavMesh.AllAreas : q.AreaMask;
+ UnityEngine.AI.NavMesh.CalculatePath(q.Start, q.Goal, mask, path);
+ task.Corners = path.corners;
+ task.IsCompleted = true;
+ task.Succeeded = path.status == UnityEngine.AI.NavMeshPathStatus.PathComplete;
  return task;
+ }
+ var res = planner.RequestPath(q);
+ return res;
  }
 
  void Update()
  {
- int budget = maxPlansPerFrame;
- while (budget-- >0 && _queue.Count >0)
- {
- var q = _queue.Dequeue();
- var planner = _selector.Choose(q, _worldState);
- var task = planner.RequestPath(q);
- // For now we just discard; agents will poll planner or use NavMeshAgent directly
- }
-
+ // keep planners updated for incremental planners
  float dt = Time.deltaTime;
  foreach (var p in _allPlanners)
  p.Update(dt);
