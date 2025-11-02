@@ -278,4 +278,13 @@ public class AnimFacade : MonoBehaviour
     // --- Specials gating (optional, call from clips during non-cancelable windows) ---
     public void AllowSpecials()   { canSpecial = true; }
     public void ForbidSpecials()  { canSpecial = false; }
+
+    // --- Input buffers (callable by gameplay even while inputBusy) ---
+    public void BufferLight() { anim.SetBool(BufferedXH, true); }
+    public void BufferHeavy() { anim.SetBool(BufferedYH, true); }
+    public void ClearBufferedInputs()
+    {
+        anim.SetBool(BufferedXH, false);
+        anim.SetBool(BufferedYH, false);
+    }
 }

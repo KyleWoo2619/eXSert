@@ -33,7 +33,24 @@ public class EnhancedPlayerAttackManager : MonoBehaviour
     [Header("Audio")]
     [SerializeField] private AudioSource attackAudioSource;
 
+    [Header("Hitbox")]
+    [SerializeField, Tooltip("Default active duration for the hitbox after wind-up (seconds)")]
+    private float defaultActiveDuration = 0.12f;
+    private GameObject activeHitbox;
+
+    // Simple one-slot input buffer so players can queue the next attack during lag
+    private enum QueuedInput { None, Light, Heavy }
+    [Header("Input Buffering")]
+    [SerializeField, Tooltip("How long a queued input remains valid (seconds)")]
+    private float inputBufferSeconds = 0.1f;
+    private QueuedInput queuedInput = QueuedInput.None;
+    private float queuedTimer = 0f;
+
     private TierComboManager.AttackStance currentStance = TierComboManager.AttackStance.Single;
+
+    [Header("Execution Mode")]
+    [SerializeField, Tooltip("If true, attacks are driven by Animator states (via AttackStateDriver). If false, code spawns hitboxes using start/end lag.")]
+    private bool useStateDrivenAttacks = true;
 
     public static event Action onAttack;
 
@@ -92,17 +109,52 @@ public class EnhancedPlayerAttackManager : MonoBehaviour
 
     private void Update()
     {
-        // Check for attack inputs
-        if (_lightAttackAction.action.triggered && !InputReader.inputBusy)
-            OnLightAttack();
+        // Check for attack inputs with buffering support
+        if (_lightAttackAction.action.triggered)
+            HandleLightInput();
 
-        if (_heavyAttackAction.action.triggered && !InputReader.inputBusy)
-            OnHeavyAttack();
+        if (_heavyAttackAction.action.triggered)
+            HandleHeavyInput();
+
+        // Buffer timer countdown
+        if (queuedTimer > 0f)
+        {
+            queuedTimer -= Time.deltaTime;
+            if (queuedTimer <= 0f)
+            {
+                queuedInput = QueuedInput.None;
+                animFacade?.ClearBufferedInputs();
+            }
+        }
 
         // Update current stance from CombatManager
         currentStance = CombatManager.singleTargetMode 
             ? TierComboManager.AttackStance.Single 
             : TierComboManager.AttackStance.AOE;
+    }
+
+    private void HandleLightInput()
+    {
+        if (InputReader.inputBusy)
+        {
+            queuedInput = QueuedInput.Light;
+            queuedTimer = inputBufferSeconds;
+            animFacade?.BufferLight();
+            return;
+        }
+        OnLightAttack();
+    }
+
+    private void HandleHeavyInput()
+    {
+        if (InputReader.inputBusy)
+        {
+            queuedInput = QueuedInput.Heavy;
+            queuedTimer = inputBufferSeconds;
+            animFacade?.BufferHeavy();
+            return;
+        }
+        OnHeavyAttack();
     }
 
     public void OnLightAttack()
@@ -196,8 +248,12 @@ public class EnhancedPlayerAttackManager : MonoBehaviour
                 attackAudioSource.Play();
             }
 
-            // Start attack coroutine with timing
-            StartCoroutine(PerformAttack(attackData));
+            // In state-driven mode, AttackStateDriver will spawn hitboxes.
+            if (!useStateDrivenAttacks)
+            {
+                // Start attack coroutine with timing
+                StartCoroutine(PerformAttack(attackData));
+            }
         }
         else
         {
@@ -211,7 +267,49 @@ public class EnhancedPlayerAttackManager : MonoBehaviour
         if (animFacade != null)
             animFacade.MarkInCombat();
 
-        Debug.Log($"Executed Attack: {attackId}");
+        Debug.Log($"Executed Attack (mode={(useStateDrivenAttacks ? "State" : "Code")}): {attackId}");
+    }
+
+    // ========================= STATE-DRIVEN (Animator) SUPPORT =========================
+    // Allows StateMachineBehaviours to request a one-shot hitbox for a given attackId,
+    // independent of the input-driven PerformAttack coroutine.
+    public void SpawnOneShotHitbox(string attackId, float activeDuration)
+    {
+        var attackData = attackDatabase?.GetAttack(attackId);
+        if (attackData == null)
+        {
+            Debug.LogWarning($"SpawnOneShotHitbox: Unknown attackId '{attackId}'");
+            return;
+        }
+
+        StartCoroutine(SpawnHitboxWindow(attackData, activeDuration));
+    }
+
+    private IEnumerator SpawnHitboxWindow(PlayerAttack attack, float activeDuration)
+    {
+        // Safety: destroy any lingering hitbox
+        if (activeHitbox != null)
+        {
+            Destroy(activeHitbox);
+            activeHitbox = null;
+        }
+
+        // Spawn
+        activeHitbox = attack.createHitBox(transform.position, transform.forward);
+        if (activeHitbox != null)
+        {
+            activeHitbox.transform.SetParent(transform, worldPositionStays: true);
+            Debug.Log($"[StateDriven] Hitbox Spawned -> {attack.attackName}");
+        }
+
+        yield return new WaitForSeconds(activeDuration);
+
+        if (activeHitbox != null)
+        {
+            Destroy(activeHitbox);
+            activeHitbox = null;
+            Debug.Log($"[StateDriven] Hitbox Destroyed <- {attack.attackName}");
+        }
     }
 
     private IEnumerator PerformAttack(PlayerAttack attack)
@@ -221,13 +319,49 @@ public class EnhancedPlayerAttackManager : MonoBehaviour
         // Start lag (wind-up)
         yield return new WaitForSeconds(attack.startLag);
 
-        // Active frames (hitbox would be enabled here)
-        Debug.Log($"Attack Active: {attack.attackName} | Damage: {attack.damage}");
+        // Active frames: spawn a transient hitbox using ScriptableObject data
+        if (activeHitbox != null)
+        {
+            Destroy(activeHitbox);
+            activeHitbox = null;
+        }
+
+        // Create and parent so it follows the player if they move during the window
+        activeHitbox = attack.createHitBox(transform.position, transform.forward);
+        if (activeHitbox != null)
+        {
+            activeHitbox.transform.SetParent(transform, worldPositionStays: true);
+            Debug.Log($"Hitbox Spawned -> {attack.attackName} | Damage: {attack.damage} | Size: {activeHitbox.GetComponent<BoxCollider>()?.size}");
+        }
+
+        // Keep the hitbox active for the configured active window
+        yield return new WaitForSeconds(defaultActiveDuration);
+
+        if (activeHitbox != null)
+        {
+            Destroy(activeHitbox);
+            activeHitbox = null;
+            Debug.Log($"Hitbox Destroyed <- {attack.attackName}");
+        }
 
         // End lag (recovery)
         yield return new WaitForSeconds(attack.endLag);
         
         InputReader.inputBusy = false;
+
+        // If a valid input was queued during this attack, consume it now to auto-chain
+        if (queuedInput != QueuedInput.None && queuedTimer > 0f)
+        {
+            var next = queuedInput;
+            // clear queue before invoking to avoid accidental re-entry
+            queuedInput = QueuedInput.None;
+            animFacade?.ClearBufferedInputs();
+
+            if (next == QueuedInput.Light)
+                OnLightAttack();
+            else if (next == QueuedInput.Heavy)
+                OnHeavyAttack();
+        }
     }
 
     /// <summary>
