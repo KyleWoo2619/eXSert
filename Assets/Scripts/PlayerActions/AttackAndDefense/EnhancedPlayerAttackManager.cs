@@ -25,6 +25,8 @@ public class EnhancedPlayerAttackManager : MonoBehaviour
     private AerialComboManager aerialComboManager;
     [SerializeField, Tooltip("Assign manually if AnimFacade is on different GameObject")] 
     private AnimFacade animFacade;
+    [SerializeField, Tooltip("Animator to play attack states directly when using state-driven mode (no transitions)")]
+    private Animator animator;
     [SerializeField] private CharacterController characterController;
 
     [Header("Attack Data")]
@@ -84,6 +86,14 @@ public class EnhancedPlayerAttackManager : MonoBehaviour
         
         if (characterController == null)
             characterController = GetComponent<CharacterController>();
+        if (animator == null)
+        {
+            animator = GetComponent<Animator>();
+            if (animator == null && animFacade != null)
+                animator = animFacade.GetComponent<Animator>();
+            if (animator == null)
+                animator = GetComponentInChildren<Animator>();
+        }
 
         if (comboManager == null)
             Debug.LogError("EnhancedPlayerAttackManager: TierComboManager not found! Assign manually in Inspector.");
@@ -96,6 +106,8 @@ public class EnhancedPlayerAttackManager : MonoBehaviour
         
         if (characterController == null)
             Debug.LogError("EnhancedPlayerAttackManager: CharacterController not found!");
+        if (animator == null)
+            Debug.LogError("EnhancedPlayerAttackManager: Animator not found! Assign manually in Inspector.");
     }
 
     private void Start()
@@ -248,8 +260,17 @@ public class EnhancedPlayerAttackManager : MonoBehaviour
                 attackAudioSource.Play();
             }
 
-            // In state-driven mode, AttackStateDriver will spawn hitboxes.
-            if (!useStateDrivenAttacks)
+            // Play animation immediately if using state-driven controller (no transitions)
+            if (useStateDrivenAttacks)
+            {
+                if (animator != null)
+                {
+                    int stateHash = Animator.StringToHash(attackId);
+                    // crossfade on base layer with a small blend for responsiveness
+                    animator.CrossFade(stateHash, 0.05f, 0);
+                }
+            }
+            else
             {
                 // Start attack coroutine with timing
                 StartCoroutine(PerformAttack(attackData));
@@ -315,6 +336,8 @@ public class EnhancedPlayerAttackManager : MonoBehaviour
     private IEnumerator PerformAttack(PlayerAttack attack)
     {
         InputReader.inputBusy = true;
+        // Freeze locomotion-driven transitions during the full attack window
+        animFacade?.LockMovementOn();
 
         // Start lag (wind-up)
         yield return new WaitForSeconds(attack.startLag);
@@ -344,10 +367,11 @@ public class EnhancedPlayerAttackManager : MonoBehaviour
             Debug.Log($"Hitbox Destroyed <- {attack.attackName}");
         }
 
-        // End lag (recovery)
-        yield return new WaitForSeconds(attack.endLag);
+    // End lag (recovery)
+    yield return new WaitForSeconds(attack.endLag);
         
-        InputReader.inputBusy = false;
+    InputReader.inputBusy = false;
+    animFacade?.LockMovementOff();
 
         // If a valid input was queued during this attack, consume it now to auto-chain
         if (queuedInput != QueuedInput.None && queuedTimer > 0f)

@@ -33,6 +33,8 @@ public class AnimFacade : MonoBehaviour
 
     [Header("Cancel & Specials Gates")]
     [SerializeField] bool canSpecial = true; // master gate (you can drive from gameplay too)
+    [SerializeField, Tooltip("When movement is locked by attack events, freeze animator Speed to prevent locomotion transitions interrupting attacks")]
+    bool freezeLocomotionWhenLocked = true;
 
     [Header("Debug")]
     public int comboStageDebug;
@@ -129,9 +131,17 @@ public class AnimFacade : MonoBehaviour
     /// <summary>Feeds locomotion to animator. Fires StartMove when crossing the threshold.</summary>
     public void FeedMovement(float speed, bool isGrounded, float verticalSpeed)
     {
-        anim.SetFloat(SpeedH, speed);
+        // Prevent locomotion transitions from stealing control during attacks when movement is locked
+        float animSpeed = (freezeLocomotionWhenLocked && movementLocked) ? 0f : speed;
+        anim.SetFloat(SpeedH, animSpeed);
         anim.SetBool(IsGroundedH, isGrounded);
         anim.SetFloat(VertSpeedH, verticalSpeed);
+
+        // Debug if Speed is being forced to zero
+        if (movementLocked && speed > 0.1f)
+        {
+            Debug.Log($"[AnimFacade] FeedMovement: Actual speed={speed:F2}, forced to 0 (locked)");
+        }
 
         // StartMove trigger on "begin moving"
         if (lastSpeed <= startMoveThreshold && speed > startMoveThreshold)
@@ -247,16 +257,25 @@ public class AnimFacade : MonoBehaviour
     {
         comboStageDebug = stage;
         anim.SetInteger(ComboStageH, stage);
+        // Clear buffered inputs when combo stage advances (attack is actually starting)
+        ClearBufferedInputs();
     }
 
     // --- Chain window / cancelability ---
-    public void OpenChainWindow()   { anim.SetBool(CanChainH, true); }
+    public void OpenChainWindow()
+    {
+        anim.SetBool(CanChainH, true);
+        // Clear any stale buffers when opening a new chain window
+        ClearBufferedInputs();
+    }
     public void EnableCancel()      { anim.SetBool(CanChainH, true); }  // if you used Cancelable instead, swap param name
     public void CloseChainWindow()
     {
         anim.SetBool(CanChainH, false);
         anim.SetBool(BufferedXH, false);
         anim.SetBool(BufferedYH, false);
+        // Unlock movement when chain window closes (attack recovery complete)
+        LockMovementOff();
     }
     public void DisableCancel()     { anim.SetBool(CanChainH, false); }
 
@@ -272,8 +291,17 @@ public class AnimFacade : MonoBehaviour
     }
 
     // --- Movement lock (called by openers/dash start, released in rewind or near end) ---
-    public void LockMovementOn()  { movementLocked = true; }
-    public void LockMovementOff() { movementLocked = false; }
+    public void LockMovementOn()
+    {
+        movementLocked = true;
+        Debug.Log("[AnimFacade] Movement LOCKED");
+    }
+    
+    public void LockMovementOff()
+    {
+        movementLocked = false;
+        Debug.Log("[AnimFacade] Movement UNLOCKED");
+    }
 
     // --- Specials gating (optional, call from clips during non-cancelable windows) ---
     public void AllowSpecials()   { canSpecial = true; }

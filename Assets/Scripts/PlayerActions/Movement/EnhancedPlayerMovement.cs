@@ -109,11 +109,9 @@ public class EnhancedPlayerMovement : MonoBehaviour
 
         // Auto-find AnimFacade if not assigned
         if (animFacade == null)
-        {
             animFacade = GetComponent<AnimFacade>();
-            if (animFacade == null)
-                Debug.LogError("EnhancedPlayerMovement: AnimFacade not found! Animations may not work properly.");
-        }
+        if (animFacade == null)
+            Debug.LogError("EnhancedPlayerMovement: No animation facade found! (AnimFacade or AnimatorCoderFacade)");
 
         // Auto-find AerialComboManager if not assigned
         if (aerialComboManager == null)
@@ -132,13 +130,13 @@ public class EnhancedPlayerMovement : MonoBehaviour
 
     private void OnEnable()
     {
-        // Subscribe to enhanced attack manager event
+        // Subscribe to attack event from the enhanced manager (used for aerial hop)
         EnhancedPlayerAttackManager.onAttack += AerialAttackHop;
     }
 
     private void OnDisable()
     {
-        // Unsubscribe from enhanced attack manager event
+        // Unsubscribe
         EnhancedPlayerAttackManager.onAttack -= AerialAttackHop;
     }
 
@@ -247,28 +245,16 @@ public class EnhancedPlayerMovement : MonoBehaviour
             canDoubleJump = false;
             StartCoroutine(CanDoubleJump());
 
-            // Use AnimFacade instead of direct animator access
-            if (animFacade != null)
-            {
-                animFacade.RequestJump();
-            }
-            else if (animator != null)
-            {
-                // Fallback to direct animator (not recommended)
-                animator.SetBool("jumpTrigger", true);
-                animator.SetBool("isGrounded", false);
-            }
+            // Trigger jump via whichever animation system is present
+            if (animFacade != null) animFacade.RequestJump();
+            else if (animator != null) { animator.SetBool("jumpTrigger", true); animator.SetBool("isGrounded", false); }
         }
         else if (canDoubleJump)
         {
             Debug.Log("Double Jumped");
             currentMovement.y += doubleJumpForce;
 
-            // Use AnimFacade for double jump too
-            if (animFacade != null)
-            {
-                animFacade.RequestJump();
-            }
+            if (animFacade != null) animFacade.RequestJump();
         }
     }
 
@@ -299,16 +285,9 @@ public class EnhancedPlayerMovement : MonoBehaviour
                 dashDirection = transform.forward;
             }
 
-            // Use AnimFacade instead of direct animator access
-            if (animFacade != null)
-            {
-                animFacade.RequestDash();
-            }
-            else if (animator != null)
-            {
-                // Fallback to direct animator (not recommended)
-                animator.SetBool("dashTrigger", true);
-            }
+            // Drive dash state via animation system
+            if (animFacade != null) animFacade.RequestDash();
+            else if (animator != null) animator.SetBool("dashTrigger", true);
 
             StartCoroutine(DashCoroutine(dashDirection));
         }
