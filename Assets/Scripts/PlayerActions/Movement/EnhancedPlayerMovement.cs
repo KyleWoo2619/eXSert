@@ -236,25 +236,46 @@ public class EnhancedPlayerMovement : MonoBehaviour
 
     private void OnJump()
     {
-        // checks to see if the player can jump or double jump
+        // Let AnimFacade handle all jump logic (air jump counter, triggers, etc.)
+        // This just applies the physics force based on grounded state
+        
         if (characterController.isGrounded)
         {
             Debug.Log("Grounded Jumped");
             currentMovement.y = jumpForce;
 
-            canDoubleJump = false;
-            StartCoroutine(CanDoubleJump());
-
-            // Trigger jump via whichever animation system is present
+            // Trigger jump via AnimFacade (handles ground jump trigger)
             if (animFacade != null) animFacade.RequestJump();
             else if (animator != null) { animator.SetBool("jumpTrigger", true); animator.SetBool("isGrounded", false); }
         }
-        else if (canDoubleJump)
+        else
         {
-            Debug.Log("Double Jumped");
-            currentMovement.y += doubleJumpForce;
-
-            if (animFacade != null) animFacade.RequestJump();
+            // Air jump - let AnimFacade check if allowed (it has the air jump counter)
+            if (animFacade != null)
+            {
+                // Check if air jump is available via AnimFacade
+                // AnimFacade will handle the trigger and counter internally
+                bool hadAirJumps = animFacade.HasAirJumps();
+                
+                animFacade.RequestJump(); // This decrements counter if available
+                
+                // Only apply vertical force if air jump was actually allowed
+                if (hadAirJumps)
+                {
+                    Debug.Log("Double Jumped - physics applied");
+                    currentMovement.y = doubleJumpForce; // Replace vertical velocity, don't add
+                }
+                else
+                {
+                    Debug.Log("Double Jump blocked - no air jumps left");
+                }
+            }
+            else if (animator != null && canDoubleJump)
+            {
+                // Fallback for direct animator (legacy)
+                Debug.Log("Double Jumped");
+                currentMovement.y += doubleJumpForce;
+            }
         }
     }
 
@@ -263,8 +284,6 @@ public class EnhancedPlayerMovement : MonoBehaviour
        if (canDash && !InputReader.inputBusy)
         {
             canDash = false;
-            // Don't set inputBusy here - let the dash coroutine handle movement directly
-            // InputReader.inputBusy = true; // REMOVED - this blocks normal movement
 
             // Notify aerial combo manager if in air
             if (!isGrounded && aerialComboManager != null)
@@ -286,16 +305,17 @@ public class EnhancedPlayerMovement : MonoBehaviour
                 dashDirection = transform.forward;
             }
 
-            // Drive dash state via animation system
-            if (animFacade != null)
+            // INSTANT: Play dash animation directly, bypassing transitions
+            if (animator != null)
             {
-                animFacade.RequestDash();
-                // Lock movement so attacks can't interrupt dash
-                animFacade.LockMovementOn();
+                // CrossFade with 0.0 blend = instant switch to Dash_Forward state
+                animator.CrossFade("Dash_Forward", 0.0f, 0);
+                Debug.Log("[Dash] Playing Dash_Forward animation directly (instant)");
             }
-            else if (animator != null)
+            else if (animFacade != null)
             {
-                animator.SetBool("dashTrigger", true);
+                // Fallback: use AnimFacade if no direct animator reference
+                animFacade.RequestDash();
             }
 
             StartCoroutine(DashCoroutine(dashDirection));
@@ -320,6 +340,7 @@ public class EnhancedPlayerMovement : MonoBehaviour
     {
         float starttime = Time.time;
 
+        // Wait one frame for animator to register the Dash trigger
         yield return null;
 
         // AnimFacade handles dash trigger, no need to reset manually
@@ -333,20 +354,15 @@ public class EnhancedPlayerMovement : MonoBehaviour
 
         while (Time.time < starttime + dashTime)
         {
-            // Move using CharacterController directly (bypasses normal movement lock)
+            // Move using CharacterController directly (bypasses normal movement)
             characterController.Move(direction * dashSpeed * Time.deltaTime);
 
             yield return null;
         }
 
-        Debug.Log("[Dash] Dash complete, unlocking movement");
+        Debug.Log("[Dash] Dash complete");
 
-        // Unlock movement at the end of dash
-        if (animFacade != null)
-        {
-            animFacade.LockMovementOff();
-        }
-
+        // Cooldown before allowing next dash
         yield return new WaitForSeconds(dashCoolDown);
         canDash = true;
     }

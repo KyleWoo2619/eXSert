@@ -57,13 +57,16 @@ public class AnimFacade : MonoBehaviour
     static readonly int ForceIdleH    = Animator.StringToHash("ForceIdle");
 
     static readonly int JumpTrigH     = Animator.StringToHash("Jump");
+    static readonly int DJumpTrigH    = Animator.StringToHash("DJump");
     static readonly int DashTrigH     = Animator.StringToHash("Dash");
     static readonly int CanDashH      = Animator.StringToHash("CanDash");
+    static readonly int AirJumpsH     = Animator.StringToHash("AirJumps");
 
     // runtime
     bool movementLocked;
     float lastSpeed;
     bool grounded;
+    bool wasInAir; // Track if we were airborne (for automatic Jump_Land)
 
     void Reset()
     {
@@ -81,6 +84,8 @@ public class AnimFacade : MonoBehaviour
             Debug.LogWarning($"[AnimFacade] Multiple Animators found under {name}: {anims.Length}. Ensure only one controls the Avatar to avoid state fights.");
         }
         airJumps = maxAirJumps;
+        // Sync air jumps to Animator parameter at start
+        anim.SetInteger(AirJumpsH, airJumps);
         anim.SetBool(CanDashH, dashReady);
         
         // Initialize stance to 0 (Single Target - basic stance)
@@ -147,8 +152,32 @@ public class AnimFacade : MonoBehaviour
         if (lastSpeed <= startMoveThreshold && speed > startMoveThreshold)
             anim.SetTrigger(StartMoveH);
 
-        // Landing detection for air-jump reset & jump buffer
-        if (!grounded && isGrounded) OnLanded();
+        // === AUTOMATIC JUMP ANIMATION HANDLING (Code-Driven) ===
+        
+        // Player just became airborne (jump or fall off ledge) → play Jump_AirLoop
+        if (grounded && !isGrounded)
+        {
+            wasInAir = true;
+            // Only auto-play AirLoop if we're NOT already in a jump state
+            var currentState = anim.GetCurrentAnimatorStateInfo(0);
+            bool inJumpState = currentState.IsName("Jump_Start") || currentState.IsName("AirJump_Start") || currentState.IsName("Jump_AirLoop");
+            
+            if (!inJumpState)
+            {
+                // Player fell off ledge (didn't jump) - play Jump_AirLoop directly
+                anim.CrossFade("Jump_AirLoop", 0.1f, 0);
+                Debug.Log("[AnimFacade] Became airborne (fall) - playing Jump_AirLoop");
+            }
+        }
+        
+        // Player just landed → play Jump_Land
+        if (!grounded && isGrounded && wasInAir)
+        {
+            wasInAir = false;
+            anim.CrossFade("Jump_Land", 0.05f, 0);
+            Debug.Log("[AnimFacade] Landed - playing Jump_Land");
+            OnLanded(); // Reset air jumps, etc.
+        }
 
         lastSpeed = speed;
         grounded  = isGrounded;
@@ -187,8 +216,12 @@ public class AnimFacade : MonoBehaviour
 
         if (grounded)
         {
-            anim.ResetTrigger(JumpTrigH);
-            anim.SetTrigger(JumpTrigH); // AnyState -> Jump_Start (ground rule)
+            // Ground jump - play Jump_Start directly (instant, no transitions)
+            anim.CrossFade("Jump_Start", 0.0f, 0);
+            Debug.Log("[AnimFacade] Ground jump - playing Jump_Start directly");
+            
+            // Auto-transition to Jump_AirLoop after Jump_Start clip finishes
+            StartCoroutine(TransitionToAirLoopAfterClip("Jump_Start"));
         }
         else
         {
@@ -196,24 +229,58 @@ public class AnimFacade : MonoBehaviour
             if (airJumps > 0)
             {
                 airJumps--;
-                anim.ResetTrigger(JumpTrigH);
-                anim.SetTrigger(JumpTrigH); // AnyState -> AirJump_Start (air rule)
+                // Sync the Animator parameter
+                anim.SetInteger(AirJumpsH, airJumps);
+                // Play AirJump_Start directly (instant, no transitions)
+                anim.CrossFade("AirJump_Start", 0.0f, 0);
+                Debug.Log($"[AnimFacade] Air jump - playing AirJump_Start directly, remaining: {airJumps}");
+                
+                // Auto-transition to Jump_AirLoop after AirJump_Start clip finishes
+                StartCoroutine(TransitionToAirLoopAfterClip("AirJump_Start"));
             }
             else
             {
                 // optional pre-landing buffer
                 jumpBuffered = true;
                 jumpBufferTimer = preLandingJumpBuffer;
+                Debug.Log("[AnimFacade] No air jumps left, buffering jump for landing");
             }
         }
     }
 
+    IEnumerator TransitionToAirLoopAfterClip(string clipName)
+    {
+        // Wait for the jump start clip to finish
+        yield return null; // Wait one frame for state to register
+        
+        var stateInfo = anim.GetCurrentAnimatorStateInfo(0);
+        while (stateInfo.IsName(clipName) && stateInfo.normalizedTime < 0.95f)
+        {
+            yield return null;
+            stateInfo = anim.GetCurrentAnimatorStateInfo(0);
+        }
+        
+        // Transition to Jump_AirLoop
+        anim.CrossFade("Jump_AirLoop", 0.1f, 0);
+        Debug.Log($"[AnimFacade] {clipName} finished - transitioning to Jump_AirLoop");
+    }
+
     public void RequestDash()
     {
-        if (!canSpecial || !dashReady) return;
+        if (!canSpecial) return;
+        
+        // CRITICAL: Set both Dash trigger AND CanDash bool immediately
+        // This ensures AnyState transition fires instantly without waiting
         anim.SetBool(CanDashH, true);
         anim.SetTrigger(DashTrigH);
-        StartCoroutine(DashCooldown());
+        
+        Debug.Log("[AnimFacade] Dash requested - setting Dash trigger and CanDash=true");
+        
+        // Start cooldown (CanDash will be false during cooldown to prevent spam)
+        if (dashReady)
+        {
+            StartCoroutine(DashCooldown());
+        }
     }
 
     IEnumerator DashCooldown()
@@ -233,6 +300,9 @@ public class AnimFacade : MonoBehaviour
     public void OnLanded()
     {
         airJumps = maxAirJumps;
+        // Sync air jumps to Animator when reset on landing
+        anim.SetInteger(AirJumpsH, airJumps);
+        Debug.Log($"[AnimFacade] Landed - air jumps reset to {airJumps}");
 
         if (jumpBuffered)
         {
@@ -240,6 +310,9 @@ public class AnimFacade : MonoBehaviour
             RequestJump(); // auto-consume buffered jump
         }
     }
+
+    /// <summary>Check if air jumps are available (for external systems).</summary>
+    public bool HasAirJumps() => airJumps > 0;
 
     /// <summary>Refreshes the InCombat bool and timer.</summary>
     public void MarkInCombat()
