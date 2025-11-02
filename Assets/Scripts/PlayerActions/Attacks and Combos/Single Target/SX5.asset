@@ -10,14 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 157092132a9d15b44b552ec4836c697a, type: 3}
-  m_Name: Light AOE
+  m_Name: SX5
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAttack
-  _attackName: 
+  _attackId: SX5
+  _attackName: SX5
+  _attackType: 0
+  _attackWeight: 0
   _damage: 5
   _launch: 0
   _knockback: 3
   _knockbackAngle: 0
-  _attackType: 1
   _customRange: 0
   _range: 1.5
   _customWidth: 0
@@ -26,3 +28,5 @@ MonoBehaviour:
   _customAttackDistanceFromPlayer: 0.75
   _startLag: 0.2
   _endLag: 0.2
+  _attackSFX: {fileID: 0}
+  _hitSFX: {fileID: 0}

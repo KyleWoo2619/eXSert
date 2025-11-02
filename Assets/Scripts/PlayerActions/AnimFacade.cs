@@ -72,8 +72,17 @@ public class AnimFacade : MonoBehaviour
     void Awake()
     {
         if (!anim) anim = GetComponent<Animator>();
+        // Sanity check: warn if multiple Animators exist on the rig
+        var anims = GetComponentsInChildren<Animator>(true);
+        if (anims != null && anims.Length > 1)
+        {
+            Debug.LogWarning($"[AnimFacade] Multiple Animators found under {name}: {anims.Length}. Ensure only one controls the Avatar to avoid state fights.");
+        }
         airJumps = maxAirJumps;
         anim.SetBool(CanDashH, dashReady);
+        
+        // Initialize stance to 0 (Single Target - basic stance)
+        anim.SetInteger(StanceH, 0);
     }
 
     void Update()
@@ -101,6 +110,15 @@ public class AnimFacade : MonoBehaviour
         {
             // Prevent residual motion; your mover may have its own way to zero velocity.
             // Here we only ensure no controller.Move is performed externally.
+        }
+
+        // --- Clear consumed triggers to prevent them from firing repeatedly ---
+        // This prevents animation restart bugs caused by triggers that aren't consumed
+        if (Time.frameCount % 10 == 0) // Every 10 frames, clear old triggers
+        {
+            // Only reset triggers that should be one-shot events
+            anim.ResetTrigger(StartMoveH);
+            anim.ResetTrigger(ForceIdleH);
         }
     }
 
