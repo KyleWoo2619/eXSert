@@ -63,14 +63,30 @@ public class EnhancedPlayerMovement : MonoBehaviour
     [SerializeField] private InputActionReference _dashAction;
 
     [Header("Player Movement Settings")]
-    [Tooltip("Speed of player"), SerializeField] internal float speed;
-    [SerializeField] private float maxNormalSpeed = 5f;
+    [Tooltip("DEPRECATED: Use walk/run speeds instead. This value is no longer used.")]
+    [SerializeField] internal float speed; // Kept for backwards compatibility, not used
+    [Tooltip("Walk speed (locked value for animation matching)")]
+    [SerializeField] private float walkSpeed = 2.5f;
+    [Tooltip("Run speed (locked value for animation matching)")]
+    [SerializeField] private float runSpeed = 5.0f;
+    [Tooltip("Input threshold to switch from walk to run (0-1)")]
+    [SerializeField, Range(0.3f, 0.8f)] private float walkToRunThreshold = 0.5f;
+    [Tooltip("Maximum speed when guarding")]
     [SerializeField] private float maxguardSpeed = 2.5f;
     [SerializeField, Range(0f, 20f)] private float friction = 3f;
     [SerializeField] private Transform cameraTransform;
     [SerializeField] private bool shouldFaceMoveDirection = true;
+    
+    [Header("Speed Transitions")]
+    [Tooltip("How fast speed snaps between walk/run (higher = snappier)")]
+    [SerializeField, Range(5f, 30f)] private float speedTransitionSpeed = 15f;
+    [Tooltip("How fast animation blend changes (0.1 walk to 1.0 run). Lower = smoother. 0.05-0.1 recommended.")]
+    [SerializeField, Range(0.01f, 0.5f)] private float animationBlendSpeed = 0.1f;
 
     internal Vector3 currentMovement = Vector3.zero;
+    private float currentSpeed = 0f; // Actual smoothed speed value used for movement
+    private bool isRunning = false; // Track if currently in run mode
+    private float currentAnimationSpeed = 0f; // Smoothed animation blend value (0.1 to 1.0)
 
     [Header("Player Jump Settings")]
     [SerializeField] private float gravity = -9.81f;
@@ -95,7 +111,7 @@ public class EnhancedPlayerMovement : MonoBehaviour
     [Header("Camera Settings")]
     [SerializeField] bool invertYAxis = false;
 
-    private float maxRunningSpeed => CombatManager.isGuarding ? maxguardSpeed : maxNormalSpeed;
+    private float maxRunningSpeed => CombatManager.isGuarding ? maxguardSpeed : runSpeed;
 
     private bool canDash = true;
     private bool wasGroundedLastFrame = false;
@@ -188,27 +204,36 @@ public class EnhancedPlayerMovement : MonoBehaviour
             Vector3 moveDirection = forward * inputMove.y + right * inputMove.x;
             
             // Calculate input magnitude for dynamic speed (0.0 to 1.0)
-            // This allows analog stick to control walk/run speed
             float inputMagnitude = Mathf.Clamp01(inputMove.magnitude);
-            
-            // Don't normalize if we want to preserve analog input magnitude
-            // If you want full speed always, uncomment the line below:
-            // moveDirection.Normalize();
             
             // If not normalizing, need to clamp moveDirection magnitude
             if (moveDirection.magnitude > 1f)
                 moveDirection = moveDirection.normalized;
 
-            // Dynamic speed based on input magnitude
-            // Allows walking (slight tilt) vs running (full tilt)
-            float dynamicSpeed = speed * inputMagnitude;
+            // TWO-SPEED SYSTEM: Walk OR Run (no blend)
+            // Threshold determines which speed to use
+            float maxSpeed = CombatManager.isGuarding ? maxguardSpeed : runSpeed;
             
-            // Apply guard speed modifier if guarding
-            float maxSpeed = CombatManager.isGuarding ? maxguardSpeed : maxNormalSpeed;
-            dynamicSpeed = Mathf.Min(dynamicSpeed, maxSpeed);
+            // Determine target speed based on input threshold
+            float targetSpeed;
+            if (inputMagnitude >= walkToRunThreshold)
+            {
+                // Run mode
+                targetSpeed = maxSpeed;
+                isRunning = true;
+            }
+            else
+            {
+                // Walk mode
+                targetSpeed = walkSpeed;
+                isRunning = false;
+            }
             
-            // Move horizontally with dynamic speed
-            Vector3 horizontalMovement = moveDirection * dynamicSpeed;
+            // Quickly snap to target speed (locked speeds for animation matching)
+            currentSpeed = Mathf.Lerp(currentSpeed, targetSpeed, speedTransitionSpeed * Time.deltaTime);
+            
+            // Move horizontally with locked speed
+            Vector3 horizontalMovement = moveDirection * currentSpeed;
 
             if (horizontalMovement.magnitude > 0.001f)
             {
@@ -228,6 +253,10 @@ public class EnhancedPlayerMovement : MonoBehaviour
         // no player input detected
         else
         {
+            // Quickly decelerate to stop
+            currentSpeed = Mathf.Lerp(currentSpeed, 0f, speedTransitionSpeed * Time.deltaTime);
+            isRunning = false;
+            
             // Apply friction when no input is detected
             currentMovement.x = Mathf.Lerp(currentMovement.x, 0, friction * Time.deltaTime);
             currentMovement.z = Mathf.Lerp(currentMovement.z, 0, friction * Time.deltaTime);
@@ -414,17 +443,44 @@ public class EnhancedPlayerMovement : MonoBehaviour
         {
             // Calculate current speed (horizontal magnitude)
             Vector3 horizontalMovement = new Vector3(currentMovement.x, 0, currentMovement.z);
-            float currentSpeed = horizontalMovement.magnitude;
+            float currentSpeedMagnitude = horizontalMovement.magnitude;
+
+            // TWO-SPEED SYSTEM: Calculate target animation speed
+            // 0.1 = walk (triggers locomotion), 1.0 = run
+            // Must be > 0.01 to trigger locomotion in AnimFacade
+            float targetAnimationSpeed;
+            
+            if (currentSpeedMagnitude > 0.1f) // Moving
+            {
+                if (isRunning)
+                {
+                    targetAnimationSpeed = 1.0f; // Run animation (threshold 1.0)
+                }
+                else
+                {
+                    targetAnimationSpeed = 0.1f; // Walk animation (threshold 0.0, but > 0.01 to trigger locomotion)
+                }
+            }
+            else // Stopped or nearly stopped
+            {
+                targetAnimationSpeed = 0f; // Below threshold, stops locomotion
+            }
+
+            // Smoothly lerp animation speed for gradual transition (0.1 to 1.0 over time)
+            // Using time-based lerp for consistent transition regardless of framerate
+            float lerpSpeed = 1f / animationBlendSpeed; // Convert time to lerp speed
+            currentAnimationSpeed = Mathf.Lerp(currentAnimationSpeed, targetAnimationSpeed, lerpSpeed * Time.deltaTime);
 
             // Debug logging to verify animation values
             if (showAnimationDebug)
             {
-                Debug.Log($"[AnimFacade] Speed={currentSpeed:F2}, Grounded={isGrounded}, VertSpeed={currentMovement.y:F2}, InputBusy={InputReader.inputBusy}");
+                float inputMag = InputReader.MoveInput.magnitude;
+                Debug.Log($"[AnimFacade] Input={inputMag:F2}, Speed={currentSpeedMagnitude:F2}, AnimSpeed={currentAnimationSpeed:F2} (Target={targetAnimationSpeed:F2}) ({(isRunning ? "RUN" : "WALK")}), Grounded={isGrounded}");
             }
 
-            // Feed all movement data to AnimFacade
-            // AnimFacade handles: moving, isGrounded, verticalSpeed, etc.
-            animFacade.FeedMovement(currentSpeed, isGrounded, currentMovement.y);
+            // Feed smoothed animation speed to AnimFacade for gradual blend tree transition
+            // Smoothly transitions between 0.1 (walk) and 1.0 (run) over animationBlendSpeed seconds
+            animFacade.FeedMovement(currentAnimationSpeed, isGrounded, currentMovement.y);
         }
         else
         {

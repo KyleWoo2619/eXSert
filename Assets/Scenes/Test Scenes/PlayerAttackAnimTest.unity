@@ -1126,7 +1126,7 @@ GameObject:
   - component: {fileID: 421066397}
   - component: {fileID: 421066396}
   m_Layer: 0
-  m_Name: CombatManagers
+  m_Name: CombatManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1161,6 +1161,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Guard
   _guardActionReference: {fileID: -4486452803221664991, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
+  animFacade: {fileID: 1162079052}
+  useCameraManager: 1
 --- !u!114 &421066397
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1224,11 +1226,11 @@ Transform:
   m_GameObject: {fileID: 421066394}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: -1.0400002, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 926191467}
+  m_Father: {fileID: 902441746}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &435880836
 GameObject:
@@ -4439,12 +4441,16 @@ MonoBehaviour:
   animator: {fileID: 1162079048}
   _jumpAction: {fileID: 8978839087202845958, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
   _dashAction: {fileID: 3357771442123090606, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
-  speed: 5
-  maxNormalSpeed: 5
+  speed: 6
+  walkSpeed: 3
+  runSpeed: 6
+  walkToRunThreshold: 0.5
   maxguardSpeed: 2.5
   friction: 3
   cameraTransform: {fileID: 1891861418}
   shouldFaceMoveDirection: 1
+  speedTransitionSpeed: 15
+  animationBlendSpeed: 0.1
   gravity: -9.81
   jumpForce: 5
   doubleJumpForce: 4.96
@@ -4531,42 +4537,10 @@ Transform:
   m_Children:
   - {fileID: 578321149}
   - {fileID: 1162079050}
-  - {fileID: 926191467}
+  - {fileID: 421066400}
   - {fileID: 1175365621}
   - {fileID: 1544428424}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &926191466
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 926191467}
-  m_Layer: 0
-  m_Name: -Scripts&Managers-
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &926191467
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 926191466}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -1.0400002, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 421066400}
-  m_Father: {fileID: 902441746}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &960342357
 PrefabInstance:
@@ -20597,7 +20571,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AnimFacade
   anim: {fileID: 1162079048}
   characterController: {fileID: 902441745}
-  startMoveThreshold: 0.08
+  startMoveThreshold: 0.05
   stopThreshold: 0.01
   inCombatHoldSeconds: 6
   dashCooldown: 0.6
@@ -20971,6 +20945,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1175365621}
+  - component: {fileID: 1175365622}
   m_Layer: 0
   m_Name: -Cameras-
   m_TagString: Untagged
@@ -20996,6 +20971,26 @@ Transform:
   - {fileID: 1040260956}
   m_Father: {fileID: 902441746}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1175365622
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1175365620}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0707c99caff1dba48bc025f33ef9d334, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CameraManager
+  gameplayCamera: {fileID: 1891861424}
+  guardCamera: {fileID: 1458334524}
+  ultimateCamera: {fileID: 0}
+  cutsceneCamera: {fileID: 0}
+  specialCamera: {fileID: 0}
+  preserveOrbitOnSwitch: 1
+  activePriority: 20
+  inactivePriority: 0
 --- !u!1 &1185683529
 GameObject:
   m_ObjectHideFlags: 0
@@ -22613,6 +22608,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Guard
   _guardActionReference: {fileID: -4486452803221664991, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
+  animFacade: {fileID: 0}
+  useCameraManager: 1
 --- !u!114 &1854454207
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -23198,11 +23195,15 @@ MonoBehaviour:
   _jumpAction: {fileID: 8978839087202845958, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
   _dashAction: {fileID: 3357771442123090606, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
   speed: 5
-  maxNormalSpeed: 5
+  walkSpeed: 2.5
+  runSpeed: 5
+  walkToRunThreshold: 0.5
   maxguardSpeed: 2.5
   friction: 3
   cameraTransform: {fileID: 792098788}
   shouldFaceMoveDirection: 1
+  speedTransitionSpeed: 15
+  animationBlendSpeed: 0.1
   gravity: -9.81
   jumpForce: 10
   doubleJumpForce: 10

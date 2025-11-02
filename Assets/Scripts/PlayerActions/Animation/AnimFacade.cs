@@ -62,11 +62,23 @@ public class AnimFacade : MonoBehaviour
     static readonly int CanDashH      = Animator.StringToHash("CanDash");
     static readonly int AirJumpsH     = Animator.StringToHash("AirJumps");
 
+    // Guard system hashes
+    static readonly int GuardingH     = Animator.StringToHash("Guarding");
+    static readonly int ParryH        = Animator.StringToHash("Parry");
+    static readonly int ParrySuccessH = Animator.StringToHash("ParrySuccess");
+
+    // State hashes for code-driven playback
+    static readonly int LocomotionStateH = Animator.StringToHash("BT_Locomotion_Normal");
+    static readonly int IdleStateH       = Animator.StringToHash("ST_Idle_WC"); // Or "AOE_Idle_WC" depending on stance
+
     // runtime
     bool movementLocked;
     float lastSpeed;
     bool grounded;
     bool wasInAir; // Track if we were airborne (for automatic Jump_Land)
+    bool isInLocomotion; // Track if we manually started locomotion
+    int prevStance = 0; // Store stance before entering guard
+    bool parryWindowOpen = false; // Track if parry i-frames are active
 
     void Reset()
     {
@@ -152,6 +164,49 @@ public class AnimFacade : MonoBehaviour
         if (lastSpeed <= startMoveThreshold && speed > startMoveThreshold)
             anim.SetTrigger(StartMoveH);
 
+        // === CODE-DRIVEN LOCOMOTION (Skip Walk_Windup) ===
+        var currentState = anim.GetCurrentAnimatorStateInfo(0);
+        
+        // Start locomotion when: grounded + speed > 0.01 + not locked
+        bool shouldBeInLocomotion = isGrounded && speed > 0.01f && !movementLocked;
+        
+        // Check what state we're currently in
+        bool inJumpState = currentState.IsName("Jump_Start") || currentState.IsName("AirJump_Start") 
+                        || currentState.IsName("Jump_AirLoop") || currentState.IsName("Jump_Land");
+        bool inDashState = currentState.IsName("Dash_Forward");
+        bool inAttackState = currentState.IsName("SX1") || currentState.IsName("SX2") || currentState.IsName("SX3") || currentState.IsName("SX4")
+                          || currentState.IsName("AX1") || currentState.IsName("AX2") || currentState.IsName("AX3") || currentState.IsName("AX4")
+                          || currentState.IsName("SY1") || currentState.IsName("SY2") || currentState.IsName("SY3") || currentState.IsName("SY4")
+                          || currentState.IsName("AY1") || currentState.IsName("AY2") || currentState.IsName("AY3") || currentState.IsName("AY4");
+        bool inIdleState = currentState.IsName("ST_Idle_WC") || currentState.IsName("AOE_Idle_WC") 
+                        || currentState.IsName("ST_Idle_Combat") || currentState.IsName("AOE_Idle_Combat");
+        
+        // SNAP into locomotion when moving (interrupt idle/land, but respect jumps/dash/attacks)
+        if (shouldBeInLocomotion && !isInLocomotion)
+        {
+            // Cancel idle and landing animations immediately when moving
+            if (inIdleState || currentState.IsName("Jump_Land"))
+            {
+                anim.CrossFade("BT_Locomotion_Normal", 0.05f, 0); // Very fast transition (snap)
+                isInLocomotion = true;
+                Debug.Log("[AnimFacade] SNAP to locomotion - interrupting idle/landing");
+            }
+            // Start locomotion after jump/dash/attack finishes naturally
+            else if (!inJumpState && !inDashState && !inAttackState)
+            {
+                anim.CrossFade("BT_Locomotion_Normal", 0.15f, 0);
+                isInLocomotion = true;
+                Debug.Log("[AnimFacade] Started locomotion (code-driven) - playing BT_Locomotion_Normal");
+            }
+        }
+        // Stop locomotion when player stops moving or enters other priority states
+        else if (isInLocomotion && (!shouldBeInLocomotion || inJumpState || inDashState || inAttackState))
+        {
+            isInLocomotion = false;
+            // Let animator naturally transition to idle when Speed drops to 0
+            Debug.Log("[AnimFacade] Stopped locomotion (returning to idle/other state)");
+        }
+
         // === AUTOMATIC JUMP ANIMATION HANDLING (Code-Driven) ===
         
         // Player just became airborne (jump or fall off ledge) → play Jump_AirLoop
@@ -159,10 +214,10 @@ public class AnimFacade : MonoBehaviour
         {
             wasInAir = true;
             // Only auto-play AirLoop if we're NOT already in a jump state
-            var currentState = anim.GetCurrentAnimatorStateInfo(0);
-            bool inJumpState = currentState.IsName("Jump_Start") || currentState.IsName("AirJump_Start") || currentState.IsName("Jump_AirLoop");
+            bool inAnyJumpState = currentState.IsName("Jump_Start") || currentState.IsName("AirJump_Start") 
+                               || currentState.IsName("Jump_AirLoop") || currentState.IsName("Jump_Land");
             
-            if (!inJumpState)
+            if (!inAnyJumpState)
             {
                 // Player fell off ledge (didn't jump) - play Jump_AirLoop directly
                 anim.CrossFade("Jump_AirLoop", 0.1f, 0);
@@ -170,13 +225,18 @@ public class AnimFacade : MonoBehaviour
             }
         }
         
-        // Player just landed → play Jump_Land
+        // Player just landed → play Jump_Land (but only if we're airborne and NOT already landing)
         if (!grounded && isGrounded && wasInAir)
         {
-            wasInAir = false;
-            anim.CrossFade("Jump_Land", 0.05f, 0);
-            Debug.Log("[AnimFacade] Landed - playing Jump_Land");
-            OnLanded(); // Reset air jumps, etc.
+            // Only play Jump_Land if not already in it (prevents loop)
+            bool alreadyLanding = currentState.IsName("Jump_Land");
+            if (!alreadyLanding)
+            {
+                wasInAir = false;
+                anim.CrossFade("Jump_Land", 0.05f, 0);
+                Debug.Log("[AnimFacade] Landed - playing Jump_Land");
+                OnLanded(); // Reset air jumps, etc.
+            }
         }
 
         lastSpeed = speed;
@@ -290,6 +350,116 @@ public class AnimFacade : MonoBehaviour
         yield return new WaitForSeconds(dashCooldown);
         dashReady = true;
         anim.SetBool(CanDashH, true);
+    }
+
+    // =========================================================================
+    //  GUARD SYSTEM
+    // =========================================================================
+
+    /// <summary>Called when guard button is pressed (hold). Enters Guard state.</summary>
+    public void StartGuard()
+    {
+        // Remember current stance so we can return to it
+        prevStance = anim.GetInteger(StanceH);
+        
+        // Debug: Check current animator state on layer 0 (Base Layer)
+        AnimatorStateInfo currentState = anim.GetCurrentAnimatorStateInfo(0);
+        string stateName = "";
+        foreach (AnimatorClipInfo clipInfo in anim.GetCurrentAnimatorClipInfo(0))
+        {
+            stateName = clipInfo.clip.name;
+            break;
+        }
+        
+        Debug.Log($"[AnimFacade] StartGuard called - Current clip: '{stateName}', State hash: {currentState.shortNameHash}, InCombat: {anim.GetBool(InCombatH)}, Stance: {prevStance}");
+        
+        // Freeze locomotion while guard is up (player can't move while guarding)
+        LockMovementOn();
+        
+        // Set Guarding bool (for Guard_Idle loop and exit condition)
+        anim.SetBool(GuardingH, true);
+        
+        // Trigger Parry (for Any State → Guard_Up transition with parry window)
+        anim.SetTrigger(ParryH);
+        
+        // Debug: Verify parameters were set
+        bool guardingValue = anim.GetBool(GuardingH);
+        Debug.Log($"[AnimFacade] Guard started - Guarding={guardingValue}, Parry trigger set, locked movement");
+    }
+
+    /// <summary>Called when guard button is released. Exits Guard state.</summary>
+    public void StopGuard()
+    {
+        // Leave Guard sub-state machine
+        anim.SetBool(GuardingH, false);
+        
+        // Restore stance we came from (ST or AOE)
+        anim.SetInteger(StanceH, prevStance);
+        
+        // Force transition to idle of the correct stance
+        // This ensures smooth return regardless of where we came from
+        string targetIdle = prevStance == 0 ? "ST_Idle_WC" : "AOE_Idle_WC";
+        anim.CrossFade(targetIdle, 0.15f, 0);
+        
+        // Unlock movement
+        LockMovementOff();
+        
+        // Close parry window if it was left open
+        if (parryWindowOpen)
+        {
+            CloseParryWindow();
+        }
+        
+        Debug.Log($"[AnimFacade] Guard stopped - restored stance {prevStance}, transitioning to {targetIdle}, unlocked movement");
+    }
+
+    /// <summary>Called by gameplay when a perfect parry happens. Triggers special exit.</summary>
+    public void OnParrySuccess()
+    {
+        // Close parry window (brief invincibility ends)
+        CloseParryWindow();
+        
+        // Trigger special parry success transition (Guard → Combat)
+        anim.SetTrigger(ParrySuccessH);
+        
+        // Exit guard state
+        anim.SetBool(GuardingH, false);
+        
+        // Restore stance
+        anim.SetInteger(StanceH, prevStance);
+        
+        // Mark in-combat to keep aggressive camera/FX (THIS triggers combat mode)
+        MarkInCombat();
+        
+        // Force transition to idle (with combat active now)
+        string targetIdle = prevStance == 0 ? "ST_Idle_WC" : "AOE_Idle_WC";
+        anim.CrossFade(targetIdle, 0.1f, 0);
+        
+        // Unlock movement
+        LockMovementOff();
+        
+        Debug.Log($"[AnimFacade] Parry success! Restored stance {prevStance}, marked InCombat, transitioning to {targetIdle}");
+    }
+
+    // =========================================================================
+    //  ANIMATION EVENTS (Guard System)
+    // =========================================================================
+
+    /// <summary>Animation Event: Place on Guard_Up clip where parry window starts.</summary>
+    public void OpenParryWindow()
+    {
+        parryWindowOpen = true;
+        // If you have a combat manager, toggle i-frames here:
+        // CombatManager.SetInvincible(true);
+        Debug.Log("[AnimFacade] Parry window OPENED - i-frames active");
+    }
+
+    /// <summary>Animation Event: Place on Guard_Up clip where parry window ends.</summary>
+    public void CloseParryWindow()
+    {
+        parryWindowOpen = false;
+        // CombatManager.SetInvincible(false);
+        Debug.Log("[AnimFacade] Parry window CLOSED - i-frames inactive");
     }
 
     // =========================================================================
