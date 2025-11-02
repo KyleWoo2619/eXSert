@@ -74,8 +74,8 @@ public class EnhancedPlayerMovement : MonoBehaviour
 
     [Header("Player Jump Settings")]
     [SerializeField] private float gravity = -9.81f;
-    [Tooltip("How high the player will jump")][SerializeField][Range(10, 50)] private float jumpForce;
-    [SerializeField, Range(10, 50)] private float doubleJumpForce;
+    [Tooltip("How high the player will jump")][SerializeField][Range(1, 10)] private float jumpForce;
+    [SerializeField, Range(1, 10)] private float doubleJumpForce;
     [SerializeField, Range(0, 15)] private float airAttackHopForce = 5;
 
     [SerializeField, Range(1, 50)] private float terminalVelocity = 20;
@@ -263,7 +263,8 @@ public class EnhancedPlayerMovement : MonoBehaviour
        if (canDash && !InputReader.inputBusy)
         {
             canDash = false;
-            InputReader.inputBusy = true;
+            // Don't set inputBusy here - let the dash coroutine handle movement directly
+            // InputReader.inputBusy = true; // REMOVED - this blocks normal movement
 
             // Notify aerial combo manager if in air
             if (!isGrounded && aerialComboManager != null)
@@ -286,8 +287,16 @@ public class EnhancedPlayerMovement : MonoBehaviour
             }
 
             // Drive dash state via animation system
-            if (animFacade != null) animFacade.RequestDash();
-            else if (animator != null) animator.SetBool("dashTrigger", true);
+            if (animFacade != null)
+            {
+                animFacade.RequestDash();
+                // Lock movement so attacks can't interrupt dash
+                animFacade.LockMovementOn();
+            }
+            else if (animator != null)
+            {
+                animator.SetBool("dashTrigger", true);
+            }
 
             StartCoroutine(DashCoroutine(dashDirection));
         }
@@ -320,14 +329,23 @@ public class EnhancedPlayerMovement : MonoBehaviour
             animator.SetBool("dashTrigger", false);
         }
 
+        Debug.Log($"[Dash] Starting dash in direction: {direction}, duration: {dashTime}s, speed: {dashSpeed}");
+
         while (Time.time < starttime + dashTime)
         {
+            // Move using CharacterController directly (bypasses normal movement lock)
             characterController.Move(direction * dashSpeed * Time.deltaTime);
 
             yield return null;
         }
 
-        InputReader.inputBusy = false;
+        Debug.Log("[Dash] Dash complete, unlocking movement");
+
+        // Unlock movement at the end of dash
+        if (animFacade != null)
+        {
+            animFacade.LockMovementOff();
+        }
 
         yield return new WaitForSeconds(dashCoolDown);
         canDash = true;
