@@ -57,9 +57,12 @@ public class InputReader : Singleton<InputReader>
 
     override protected void Awake()
     {
+        base.Awake(); // Call singleton Awake first
+
         if (_playerInput == null)
         {
             Debug.LogError("Player Input component not found. Input won't work.");
+            return; // Exit early if no PlayerInput
         }
         else
             playerInput = _playerInput;
@@ -68,24 +71,56 @@ public class InputReader : Singleton<InputReader>
         if (_playerControls == null)
         {
             Debug.LogError("Player Controls Input Action component not found. Input won't work.");
+            return; // Exit early if no controls
         }
         else
             playerControls = _playerControls;
 
+        // Make sure PlayerInput is enabled before accessing actions
+        if (!playerInput.enabled)
+        {
+            Debug.LogWarning("PlayerInput is not enabled. Enabling now...");
+            playerInput.enabled = true;
+        }
 
-        base.Awake();
+        // Switch to Gameplay action map only (disable UI to prevent errors)
+        try
+        {
+            playerInput.SwitchCurrentActionMap("Gameplay");
+            Debug.Log("Switched to Gameplay action map");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"Could not switch to Gameplay action map: {e.Message}");
+        }
 
         // Assigns the input action variables to the action in the action map
-        moveAction = playerInput.actions["Move"];
-        jumpAction = playerInput.actions["Jump"];
-        lookAction = playerInput.actions["Look"];
-        changeStanceAction = playerInput.actions["ChangeStance"];
-        guardAction = playerInput.actions["Guard"];
-        lightAttackAction = playerInput.actions["LightAttack"];
-        heavyAttackAction = playerInput.actions["HeavyAttack"];
-        dashAction = playerInput.actions["Dash"];
-        navigationMenuAction = playerInput.actions["NavigationMenu"];
-        
+        try
+        {
+            moveAction = playerInput.actions["Move"];
+            jumpAction = playerInput.actions["Jump"];
+            lookAction = playerInput.actions["Look"];
+            changeStanceAction = playerInput.actions["ChangeStance"];
+            guardAction = playerInput.actions["Guard"];
+            lightAttackAction = playerInput.actions["LightAttack"];
+            heavyAttackAction = playerInput.actions["HeavyAttack"];
+            dashAction = playerInput.actions["Dash"];
+            
+            // Try to get NavigationMenu, but don't fail if it doesn't exist
+            try
+            {
+                navigationMenuAction = playerInput.actions["NavigationMenu"];
+            }
+            catch
+            {
+                Debug.LogWarning("NavigationMenu action not found - continuing without it");
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Failed to assign input actions: {e.Message}");
+            return;
+        }
 
         //RegisterInputAction();
             
@@ -95,35 +130,43 @@ public class InputReader : Singleton<InputReader>
 
     private void Update()
     {
-        MoveInput = moveAction.ReadValue<Vector2>();
-        LookInput = lookAction.ReadValue<Vector2>();
+        // Null checks to prevent Input System errors before initialization
+        if (moveAction != null && moveAction.enabled)
+            MoveInput = moveAction.ReadValue<Vector2>();
+        else
+            MoveInput = Vector2.zero;
+            
+        if (lookAction != null && lookAction.enabled)
+            LookInput = lookAction.ReadValue<Vector2>();
+        else
+            LookInput = Vector2.zero;
     }
 
 
     //Turns the actions on
     private void OnEnable()
     {
-        moveAction.Enable();
-        jumpAction.Enable();
-        lookAction.Enable();
-        changeStanceAction.Enable();
-        guardAction.Enable();
-        lightAttackAction.Enable();
-        heavyAttackAction.Enable();
-        dashAction.Enable();
-        navigationMenuAction.Enable();
+        if (moveAction != null) moveAction.Enable();
+        if (jumpAction != null) jumpAction.Enable();
+        if (lookAction != null) lookAction.Enable();
+        if (changeStanceAction != null) changeStanceAction.Enable();
+        if (guardAction != null) guardAction.Enable();
+        if (lightAttackAction != null) lightAttackAction.Enable();
+        if (heavyAttackAction != null) heavyAttackAction.Enable();
+        if (dashAction != null) dashAction.Enable();
+        if (navigationMenuAction != null) navigationMenuAction.Enable();
     }
 
     private void OnDisable()
     {
-        moveAction.Disable();
-        jumpAction.Disable();
-        lookAction.Disable();
-        changeStanceAction.Disable();
-        guardAction.Disable();
-        lightAttackAction.Disable();
-        heavyAttackAction.Disable();
-        dashAction.Disable();
-        navigationMenuAction.Disable();
+        if (moveAction != null) moveAction.Disable();
+        if (jumpAction != null) jumpAction.Disable();
+        if (lookAction != null) lookAction.Disable();
+        if (changeStanceAction != null) changeStanceAction.Disable();
+        if (guardAction != null) guardAction.Disable();
+        if (lightAttackAction != null) lightAttackAction.Disable();
+        if (heavyAttackAction != null) heavyAttackAction.Disable();
+        if (dashAction != null) dashAction.Disable();
+        if (navigationMenuAction != null) navigationMenuAction.Disable();
     }
 }

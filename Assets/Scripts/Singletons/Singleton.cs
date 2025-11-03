@@ -52,8 +52,10 @@ namespace Singletons {
             }
             else if (_instance != this)
             {
-                Debug.LogWarning($"Another instance of singleton {typeof(T)} already exists. Destroying this instance.");
-                Destroy(gameObject);
+                Debug.LogWarning($"Another instance of singleton {typeof(T)} already exists. Destroying this component only.");
+                // Only destroy the component, not the entire GameObject
+                // This prevents destroying Player when InputReader is a duplicate
+                Destroy(this);
             }
         }
     }

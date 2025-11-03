@@ -40,12 +40,27 @@ public class CombatManager : Singleton<CombatManager>, IHealthSystem
     override protected void Awake()
     {
         base.Awake();
+        
+        // Initialize to single target mode (stance 0)
+        singleTargetMode = true;
     }
+
+    private static AnimFacade cachedAnimFacade; // Cache to avoid repeated FindAnyObjectByType calls
 
     public static void ChangeStance()
     {
         singleTargetMode = !singleTargetMode;
         Debug.Log("Stance changed. Current Stance: " + currentStance);
+
+        // Update AnimFacade if it exists (use cached reference)
+        if (cachedAnimFacade == null)
+            cachedAnimFacade = FindAnyObjectByType<AnimFacade>();
+            
+        if (cachedAnimFacade != null)
+        {
+            // 0 = Single Target, 1 = AOE
+            cachedAnimFacade.SetStance(singleTargetMode ? 0 : 1);
+        }
 
         OnStanceChanged?.Invoke();
     }
@@ -54,6 +69,15 @@ public class CombatManager : Singleton<CombatManager>, IHealthSystem
     {
         isGuarding = true;
         Debug.Log("Player is now guarding. Parry window open");
+
+        // Update AnimFacade to guard stance (2)
+        if (cachedAnimFacade == null)
+            cachedAnimFacade = FindAnyObjectByType<AnimFacade>();
+            
+        if (cachedAnimFacade != null)
+        {
+            cachedAnimFacade.SetStance(2); // 2 = Guard
+        }
 
         // Start parry window
         isParrying = true;
@@ -64,6 +88,15 @@ public class CombatManager : Singleton<CombatManager>, IHealthSystem
     {
         isGuarding = false;
         Debug.Log("Player has stopped guarding.");
+
+        // Restore previous stance
+        if (cachedAnimFacade == null)
+            cachedAnimFacade = FindAnyObjectByType<AnimFacade>();
+            
+        if (cachedAnimFacade != null)
+        {
+            cachedAnimFacade.SetStance(singleTargetMode ? 0 : 1); // Back to Single/AOE
+        }
 
         // Stop parry window if still active
         if (isParrying)
