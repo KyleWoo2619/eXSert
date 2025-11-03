@@ -21,6 +21,8 @@ public class SaveSlotsMenu : Menu
 
     private bool isLoadingGame = false;
 
+    internal string currentProfileID;
+
     private void Awake()
     {
         saveSlots = this.GetComponentsInChildren<SaveSlots>();
