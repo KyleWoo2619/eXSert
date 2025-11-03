@@ -30,6 +30,10 @@ public class PlayerAttack : ScriptableObject
     // ---------------------------------------------------------------------------------------------
 
     [Header("General Properties")]
+    [SerializeField, Tooltip("Attack ID for combo system (e.g., SX1, AX2, AerialX1, AerialY1)")]
+    private string _attackId = "";
+    public string attackId { get => _attackId != "" ? _attackId : this.name; }
+
     [SerializeField, Tooltip("Name of the attack shown in UI and logs")]
     private string _attackName;
 

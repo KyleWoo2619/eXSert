@@ -6,6 +6,7 @@ Separates health logic from individual enemy scripts so it can be reused across 
 using UnityEngine;
 using UnityEngine.Events;
 using Behaviors;
+using Stateless;
 
 public class EnemyHealthManager : MonoBehaviour, IHealthSystem
 {
@@ -36,6 +37,30 @@ public class EnemyHealthManager : MonoBehaviour, IHealthSystem
         
         // Get reference to the enemy script on this GameObject
         enemyScript = GetComponent<BaseEnemy<EnemyState, EnemyTrigger>>();
+        
+        // If the enemy has a state machine, listen for transitions so we can react to the
+        // Death state when it is entered by the AI (for example external triggers like AlarmCarrier)
+        if (enemyScript != null && enemyScript.enemyAI != null)
+        {
+            try
+            {
+                enemyScript.enemyAI.OnTransitioned(t => {
+                    // When the state machine transitions to Death, invoke the death flow here.
+                    if (t.Destination.Equals(EnemyState.Death))
+                    {
+                        // Ensure we only run death logic once
+                        if (!isDead)
+                        {
+                            HandleStateMachineDeath();
+                        }
+                    }
+                });
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"EnemyHealthManager: Failed to subscribe to enemy state transitions: {ex}");
+            }
+        }
     }
 
     void Start()
@@ -72,27 +97,62 @@ public class EnemyHealthManager : MonoBehaviour, IHealthSystem
         
         if (currentHealth <= 0f)
         {
-            Die();
+            // Prefer to let the enemy's state machine drive the Death state. Fire the Die trigger
+            // so the AI can transition and the OnTransitioned handler above will run the death flow.
+            if (enemyScript != null)
+            {
+                bool fired = enemyScript.TryFireTriggerByName("Die");
+                if (!fired)
+                {
+                    // If we couldn't fire the trigger, fall back to immediate death handling
+                    HandleStateMachineDeath();
+                }
+            }
+            else
+            {
+                HandleStateMachineDeath();
+            }
         }
     }
 
     private void Die()
     {
+        // Kept for backward-compat immediate death calls. Use HandleStateMachineDeath for
+        // state-machine-driven deaths.
         if (isDead) return;
-        
+        HandleStateMachineDeath();
+    }
+
+    // Centralized death handling called either when the health reaches zero and the AI
+    // could not transition, or when the state machine transitions into the Death state.
+    private void HandleStateMachineDeath()
+    {
+        if (isDead) return;
         isDead = true;
-        Debug.Log($"{gameObject.name} has died!");
-        
-        // Trigger death event
+
+        Debug.Log($"{gameObject.name} entering death flow (handled by EnemyHealthManager)");
+
+        // Trigger death event for any listeners (VFX, SFX, UI)
         onDeath?.Invoke();
-        
-        // If there's an enemy script, trigger its death state
-        if (enemyScript != null)
+
+        // If there's an enemy script, notify it that death was requested (this will call
+        // TriggerEnemyDeath which is safe because we guard with isDead above)
+        // We avoid calling TriggerEnemyDeath here to prevent infinite loops in cases where
+        // the state machine already invoked this handler. Only call if enemy hasn't
+        // already transitioned to Death (defensive).
+        try
         {
-            enemyScript.TriggerEnemyDeath();
+            if (enemyScript != null)
+            {
+                // If the AI isn't already in Death, request the Die trigger so other subsystems
+                // can react via the state machine. If it's already in Death, this will be ignored
+                // by the state machine's configuration.
+                enemyScript.TryFireTriggerByName("Die");
+            }
         }
-        
-        // Handle destruction
+        catch { /* swallow exceptions to keep death flow robust */ }
+
+        // Destroy the GameObject after a delay if configured
         if (destroyOnDeath)
         {
             Destroy(gameObject, destroyDelay);

@@ -4,12 +4,7 @@ using Behaviors;
 
 public class BoxerEnemy : BaseEnemy<EnemyState, EnemyTrigger>
 {
-    private IEnemyStateBehavior idleBehavior;
-    private IEnemyStateBehavior relocateBehavior;
-    private IEnemyStateBehavior chaseBehavior;
-    private IEnemyStateBehavior attackBehavior;
-    private IEnemyStateBehavior recoverBehavior;
-    private IEnemyStateBehavior deathBehavior;
+    private IEnemyStateBehavior<EnemyState, EnemyTrigger> idleBehavior, relocateBehavior, chaseBehavior, attackBehavior, recoverBehavior, deathBehavior;
 
     [Header("Animation")]
     [SerializeField] private Animator animator;
@@ -39,12 +34,12 @@ public class BoxerEnemy : BaseEnemy<EnemyState, EnemyTrigger>
         if (animator == null)
             Debug.LogError($"{gameObject.name}: No Animator component found!");
 
-        idleBehavior = new IdleBehavior();
-        relocateBehavior = new RelocateBehavior();
-        recoverBehavior = new RecoverBehavior();
-        chaseBehavior = new ChaseBehavior();
-        attackBehavior = new AttackBehavior();
-        deathBehavior = new DeathBehavior();
+        idleBehavior = new IdleBehavior<EnemyState, EnemyTrigger>();
+        relocateBehavior = new RelocateBehavior<EnemyState, EnemyTrigger>();
+        recoverBehavior = new RecoverBehavior<EnemyState, EnemyTrigger>();
+        chaseBehavior = new ChaseBehavior<EnemyState, EnemyTrigger>();
+        attackBehavior = new AttackBehavior<EnemyState, EnemyTrigger>();
+        deathBehavior = new DeathBehavior<EnemyState, EnemyTrigger>();
 
         Debug.Log($"{gameObject.name} Awake called");
 
