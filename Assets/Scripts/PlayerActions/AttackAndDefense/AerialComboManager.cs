@@ -29,10 +29,14 @@ public class AerialComboManager : MonoBehaviour
     // Aerial combo state
     private int aerialFastCount = 0;  // 0, 1, or 2
     private bool hasUsedAirDash = false;
+    private bool hasUsedAerialHeavy = false;  // NEW: limit heavy to once per airtime
     private bool isInAerialCombo = false;
     private float lastAerialAttackTime = -999f;
 
     private const int MAX_AERIAL_FAST_ATTACKS = 2;
+
+    // Public property for external checks
+    public bool HasUsedAerialHeavy => hasUsedAerialHeavy;
 
     void Awake()
     {
@@ -102,7 +106,7 @@ public class AerialComboManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Request aerial heavy (plunge) attack. Always allowed in air.
+    /// Request aerial heavy (plunge) attack. Only allowed once per airtime.
     /// </summary>
     public string RequestAerialHeavyAttack()
     {
@@ -113,15 +117,30 @@ public class AerialComboManager : MonoBehaviour
             return null;
         }
 
+        if (hasUsedAerialHeavy)
+        {
+            if (debugMode)
+                Debug.LogWarning("Aerial heavy already used this airtime");
+            return null;
+        }
+
+        hasUsedAerialHeavy = true;
         lastAerialAttackTime = Time.time;
         isInAerialCombo = true;
 
-        // Call AnimFacade for animation
+        // Trigger plunge movement (freeze + fast drop)
+        EnhancedPlayerMovement playerMovement = GetComponent<EnhancedPlayerMovement>();
+        if (playerMovement != null)
+        {
+            playerMovement.StartPlunge();
+        }
+
+        // Call AnimFacade for animation AFTER validation
         if (animFacade != null)
             animFacade.PressHeavy();
 
         if (debugMode)
-            Debug.Log("Aerial Heavy Attack: AerialY1 (Plunge)");
+            Debug.Log("Aerial Heavy Attack: AerialY1 (Plunge) - plunge movement triggered");
 
         // Heavy attack forces plunge, will reset on landing
         return "AerialY1";
@@ -178,6 +197,7 @@ public class AerialComboManager : MonoBehaviour
     {
         aerialFastCount = 0;
         hasUsedAirDash = false;
+        hasUsedAerialHeavy = false;  // Reset heavy flag for next airtime
         isInAerialCombo = false;
 
         if (debugMode)

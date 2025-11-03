@@ -205,21 +205,21 @@ public class EnhancedPlayerAttackManager : MonoBehaviour
 
         Debug.Log("Heavy Attack Input Detected");
 
-        // Drive animator trigger immediately so graph can react/buffer
-        animFacade?.PressHeavy();
-
         string attackId = null;
 
         // Route to appropriate combo system based on grounded state
         if (IsGrounded())
         {
-            // Ground combo - use tier system
+            // Ground combo - trigger animator immediately
+            animFacade?.PressHeavy();
+            
+            // Use tier system
             if (comboManager != null)
                 attackId = comboManager.RequestHeavyAttack(currentStance);
         }
         else
         {
-            // Aerial combo - plunge attack
+            // Aerial combo - RequestAerialHeavyAttack() triggers animator AFTER validation
             if (aerialComboManager != null)
                 attackId = aerialComboManager.RequestAerialHeavyAttack();
         }

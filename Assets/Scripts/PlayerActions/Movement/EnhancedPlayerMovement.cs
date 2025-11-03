@@ -108,6 +108,16 @@ public class EnhancedPlayerMovement : MonoBehaviour
     [SerializeField] private float dashTime;
     [SerializeField] private float dashCoolDown;
 
+    [Header("Plunge Attack Settings")]
+    [Tooltip("Brief pause/hover before plunging (for dramatic effect)")]
+    [SerializeField, Range(0f, 0.3f)] private float plungeHoverTime = 0.08f;
+    [Tooltip("Strong downward velocity applied after hover")]
+    [SerializeField, Range(10f, 50f)] private float plungeDownSpeed = 26f;
+    [Tooltip("Horizontal movement damping during plunge (0=stop, 1=full control)")]
+    [SerializeField, Range(0f, 1f)] private float plungeHorizontalDampen = 0.35f;
+    [Tooltip("Minimal input lock window during plunge start")]
+    [SerializeField, Range(0f, 0.5f)] private float plungeLockSeconds = 0.20f;
+
     [Header("Camera Settings")]
     [SerializeField] bool invertYAxis = false;
 
@@ -115,6 +125,13 @@ public class EnhancedPlayerMovement : MonoBehaviour
 
     private bool canDash = true;
     private bool wasGroundedLastFrame = false;
+    
+    // Plunge attack state
+    private bool isPlunging = false;
+    private float plungeTimer = 0f;
+    private float plungeInputUnlockTimer = 0f;
+
+    public bool IsPlunging => isPlunging;
 
     private Vector3 forward => new Vector3(cameraTransform.forward.x, 0f, cameraTransform.forward.z);
     private Vector3 right => new Vector3(cameraTransform.right.x, 0f, cameraTransform.right.z);
@@ -400,13 +417,81 @@ public class EnhancedPlayerMovement : MonoBehaviour
     {
         if (characterController.isGrounded) return;
 
+        // Don't apply hop if plunging (plunge attack should drop, not hop)
+        if (isPlunging)
+        {
+            Debug.Log("[EnhancedPlayerMovement] Plunge active - skipping aerial hop");
+            return;
+        }
+
+        // Normal aerial attack hop (X button attacks)
         currentMovement.y = airAttackHopForce;
+        Debug.Log($"[EnhancedPlayerMovement] Aerial hop applied: {airAttackHopForce}");
+    }
+
+    /// <summary>
+    /// Initiates plunge attack - brief hover, then strong downward drop
+    /// </summary>
+    public void StartPlunge()
+    {
+        if (isPlunging) return; // Already plunging
+
+        isPlunging = true;
+        plungeTimer = plungeHoverTime;
+        plungeInputUnlockTimer = plungeLockSeconds;
+        
+        // Kill upward velocity and damp horizontal movement
+        currentMovement.y = Mathf.Min(0f, currentMovement.y);
+        currentMovement.x *= plungeHorizontalDampen;
+        currentMovement.z *= plungeHorizontalDampen;
+        
+        Debug.Log($"[EnhancedPlayerMovement] Plunge initiated - hover for {plungeHoverTime}s");
+    }
+
+    /// <summary>
+    /// Stops plunge attack (called on landing)
+    /// </summary>
+    private void StopPlunge()
+    {
+        if (!isPlunging) return;
+
+        isPlunging = false;
+        plungeTimer = 0f;
+        plungeInputUnlockTimer = 0f;
+        currentMovement.y = 0f;
+        
+        Debug.Log("[EnhancedPlayerMovement] Plunge ended - landed");
     }
 
     private void ApplyMovement()
     {
-        // apply gravity (add gravity, not subtract, since gravity is already negative)
-        currentMovement.y += gravity * Time.deltaTime;
+        // Handle plunge attack physics
+        if (isPlunging)
+        {
+            // Update plunge timer
+            if (plungeTimer > 0f)
+            {
+                // Hover phase - freeze vertical movement
+                plungeTimer -= Time.deltaTime;
+                currentMovement.y = 0f;
+            }
+            else
+            {
+                // Drop phase - apply strong downward force
+                currentMovement.y = -plungeDownSpeed;
+            }
+
+            // Count down input lock
+            if (plungeInputUnlockTimer > 0f)
+                plungeInputUnlockTimer -= Time.deltaTime;
+        }
+        else
+        {
+            // Normal gravity
+            currentMovement.y += gravity * Time.deltaTime;
+        }
+
+        // Clamp to terminal velocity
         currentMovement.y = Mathf.Clamp(currentMovement.y, -terminalVelocity, terminalVelocity);
 
         // apply max running speed
@@ -424,6 +509,16 @@ public class EnhancedPlayerMovement : MonoBehaviour
         // reset vertical movement when grounded
         if (characterController.isGrounded && currentMovement.y < 0)
         {
+            // Stop plunge on landing and notify aerial system
+            if (isPlunging)
+            {
+                StopPlunge();
+                
+                // Reset aerial combo for next airtime
+                if (aerialComboManager != null)
+                    aerialComboManager.OnLanded();
+            }
+
             // Use very small negative value to keep player attached to ground
             // Prevents animator from thinking player is "falling" (-1f was too much)
             currentMovement.y = -0.1f;
