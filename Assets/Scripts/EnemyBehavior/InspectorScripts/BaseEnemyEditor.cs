@@ -32,6 +32,19 @@ public class BaseEnemyEditor : Editor
                 Debug.LogWarning($"{baseEnemy.name}: SetHealth(float) method not found.");
             }
         }
+        // Test Enemy Take Damage button
+        if (GUILayout.Button("Test Enemy Taking Damage"))
+        {
+            var method = baseEnemy.GetType().GetMethod("LoseHP");
+            if (method != null)
+            {
+                method.Invoke(baseEnemy, new object[] { 10f });
+            }
+            else
+            {
+                Debug.LogWarning($"{baseEnemy.name}: LoseHP(float) method not found.");
+            }
+        }
     }
 }
 #endif

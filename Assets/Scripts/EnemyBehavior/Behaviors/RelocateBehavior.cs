@@ -4,15 +4,17 @@ using UnityEngine.AI;
 
 namespace Behaviors
 {
-    public class RelocateBehavior : IEnemyStateBehavior
+    public class RelocateBehavior<TState, TTrigger> : IEnemyStateBehavior<TState, TTrigger>
+        where TState : struct, System.Enum
+        where TTrigger : struct, System.Enum
     {
         private Coroutine zoneArrivalCoroutine;
-        private BaseEnemy<EnemyState, EnemyTrigger> enemy;
+        private BaseEnemy<TState, TTrigger> enemy;
 
-        public void OnEnter(BaseEnemy<EnemyState, EnemyTrigger> enemy)
+        public virtual void OnEnter(BaseEnemy<TState, TTrigger> enemy)
         {
             this.enemy = enemy;
-            enemy.SetEnemyColor(enemy.patrolColor);
+            // Removed SetEnemyColor - using animations instead
             Zone[] otherZones = GetOtherZones();
             if (otherZones.Length == 0)
             {
@@ -35,7 +37,7 @@ namespace Behaviors
                 zoneArrivalCoroutine = enemy.StartCoroutine(WaitForArrivalAndUpdateZone());
             }
         }
-        public void OnExit(BaseEnemy<EnemyState, EnemyTrigger> enemy)
+        public virtual void OnExit(BaseEnemy<TState, TTrigger> enemy)
         {
             if (zoneArrivalCoroutine != null)
             {
@@ -43,6 +45,7 @@ namespace Behaviors
                 zoneArrivalCoroutine = null;
             }
         }
+        public virtual void Tick(BaseEnemy<TState, TTrigger> enemy) { }
         private Zone[] GetOtherZones()
         {
             Zone[] allZones = Object.FindObjectsByType<Zone>(FindObjectsSortMode.None);

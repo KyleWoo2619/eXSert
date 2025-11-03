@@ -3,12 +3,14 @@ using System.Collections;
 
 namespace Behaviors
 {
-    public class DeathBehavior : IEnemyStateBehavior
+    public class DeathBehavior<TState, TTrigger> : IEnemyStateBehavior<TState, TTrigger>
+        where TState : struct, System.Enum
+        where TTrigger : struct, System.Enum
     {
         private Coroutine deathSequenceCoroutine;
-        private BaseEnemy<EnemyState, EnemyTrigger> enemy;
+        private BaseEnemy<TState, TTrigger> enemy;
 
-        public void OnEnter(BaseEnemy<EnemyState, EnemyTrigger> enemy)
+        public virtual void OnEnter(BaseEnemy<TState, TTrigger> enemy)
         {
             this.enemy = enemy;
 
@@ -25,7 +27,7 @@ namespace Behaviors
             deathSequenceCoroutine = enemy.StartCoroutine(DeathSequence());
         }
 
-        public void OnExit(BaseEnemy<EnemyState, EnemyTrigger> enemy)
+        public virtual void OnExit(BaseEnemy<TState, TTrigger> enemy)
         {
             if (deathSequenceCoroutine != null)
             {
@@ -51,6 +53,13 @@ namespace Behaviors
                 Object.Destroy(enemy.healthBarInstance.gameObject);
                 enemy.healthBarInstance = null;
             }
+
+            // Only remove from pocket if this is a crawler
+            if (enemy is BaseCrawlerEnemy crawler && crawler.Pocket != null)
+            {
+                crawler.Pocket.activeEnemies.Remove(crawler);
+            }
+
             Object.Destroy(enemy.gameObject);
         }
 
@@ -58,6 +67,10 @@ namespace Behaviors
         {
             // Placeholder for SFX logic
             Debug.Log($"{enemy.gameObject.name} death SFX played.");
+        }
+        public void Tick(BaseEnemy<TState, TTrigger> enemy)
+        {
+            // No per-frame logic needed for death
         }
     }
 }
