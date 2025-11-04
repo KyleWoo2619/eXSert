@@ -19,6 +19,8 @@ public class SaveSlotsMenu : Menu
 
     private SaveSlots[] saveSlots;
 
+    [SerializeField] internal SaveSlots currentSaveSlotSelected = null;
+
     private bool isLoadingGame = false;
 
     private void Awake()
@@ -27,11 +29,12 @@ public class SaveSlotsMenu : Menu
     }
 
     //When a save slot is clicked, it gathers the profile Id and loads the proper data
-    public void OnSaveSlotClicked(SaveSlots slot)
+    public void OnSaveSlotClicked()
     {
+
         DisableMenuButtons();
 
-        DataPersistenceManager.instance.ChangeSelectedProfileId(slot.GetProfileId());
+        DataPersistenceManager.instance.ChangeSelectedProfileId(currentSaveSlotSelected.GetProfileId());
 
         if (!isLoadingGame)
         { 
@@ -40,7 +43,7 @@ public class SaveSlotsMenu : Menu
 
         DataPersistenceManager.instance.SaveGame();
 
-        SceneManager.LoadSceneAsync("SampleScene");
+        SceneManager.LoadSceneAsync("FP_Elevator");
     }
 
     //When the back button is click it activates the main menu again
@@ -70,13 +73,13 @@ public class SaveSlotsMenu : Menu
             if (profileData == null && isLoadingGame)
             {
                 saveSlot.SetInteractable(false);
-            } 
+            }
             else
             {
                 saveSlot.SetInteractable(true);
             }
         }
- 
+
     }
 
     //Makes it so when clicking buttons other buttons are noninteractable so no errors occur
