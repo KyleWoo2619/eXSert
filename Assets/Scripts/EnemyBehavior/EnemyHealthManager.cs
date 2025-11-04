@@ -87,7 +87,7 @@ public class EnemyHealthManager : MonoBehaviour, IHealthSystem
         onTakeDamage?.Invoke();
         onHealthChanged?.Invoke(currentHealth / maxHealth);
         
-        Debug.Log($"{gameObject.name} took {damage} damage. Current HP: {currentHealth}/{maxHealth}");
+        Debug.Log($"❤️ {gameObject.name} took {damage} damage. Current HP: {currentHealth}/{maxHealth}");
         
         // Check if we need to trigger health thresholds for the enemy AI
         if (enemyScript != null)
@@ -130,10 +130,20 @@ public class EnemyHealthManager : MonoBehaviour, IHealthSystem
         if (isDead) return;
         isDead = true;
 
-        Debug.Log($"{gameObject.name} entering death flow (handled by EnemyHealthManager)");
+        Debug.Log($"💀 {gameObject.name} entering death flow (handled by EnemyHealthManager)");
+        Debug.Log($"💀 onDeath has {(onDeath != null ? onDeath.GetPersistentEventCount() : 0)} listeners");
 
         // Trigger death event for any listeners (VFX, SFX, UI)
-        onDeath?.Invoke();
+        if (onDeath != null)
+        {
+            Debug.Log($"💀 Invoking onDeath event now!");
+            onDeath.Invoke();
+            Debug.Log($"💀 onDeath event invoked successfully");
+        }
+        else
+        {
+            Debug.LogWarning($"💀 onDeath event is NULL - no listeners will be called!");
+        }
 
         // If there's an enemy script, notify it that death was requested (this will call
         // TriggerEnemyDeath which is safe because we guard with isDead above)

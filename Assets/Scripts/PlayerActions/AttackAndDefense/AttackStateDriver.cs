@@ -26,15 +26,33 @@ public class AttackStateDriver : StateMachineBehaviour
     {
         spawned = false;
         chainOpened = false;
+        
+        // Always try to get the manager reference (important for DontDestroyOnLoad objects)
         if (!mgr)
         {
+            // Try on same GameObject first
             mgr = animator.GetComponent<EnhancedPlayerAttackManager>();
+            
+            // Try on parent
             if (!mgr) mgr = animator.GetComponentInParent<EnhancedPlayerAttackManager>();
+            
+            // Try on children
+            if (!mgr) mgr = animator.GetComponentInChildren<EnhancedPlayerAttackManager>();
+            
+            // Last resort: Find in scene (works even with DontDestroyOnLoad)
+            if (!mgr) mgr = GameObject.FindAnyObjectByType<EnhancedPlayerAttackManager>();
+            
+            if (!mgr)
+            {
+                Debug.LogError($"[AttackStateDriver] Could not find EnhancedPlayerAttackManager anywhere! Make sure it exists on the player.");
+            }
         }
+        
         if (!anim)
         {
             anim = animator.GetComponent<AnimFacade>();
             if (!anim) anim = animator.GetComponentInParent<AnimFacade>();
+            if (!anim) anim = animator.GetComponentInChildren<AnimFacade>();
         }
 
         // Lock input while the state plays
@@ -53,8 +71,19 @@ public class AttackStateDriver : StateMachineBehaviour
             if (currentSec >= activeStart)
             {
                 spawned = true;
-                if (mgr != null && !string.IsNullOrEmpty(attackId))
+                Debug.Log($"[AttackStateDriver] Trying to spawn hitbox for '{attackId}' at time {currentSec}s");
+                
+                if (mgr == null)
                 {
+                    Debug.LogError($"[AttackStateDriver] EnhancedPlayerAttackManager is NULL! Cannot spawn hitbox for '{attackId}'");
+                }
+                else if (string.IsNullOrEmpty(attackId))
+                {
+                    Debug.LogError($"[AttackStateDriver] attackId is empty! Set it in the Animator state behaviour.");
+                }
+                else
+                {
+                    Debug.Log($"[AttackStateDriver] Calling SpawnOneShotHitbox for '{attackId}' with duration {activeDuration}s");
                     mgr.SpawnOneShotHitbox(attackId, activeDuration);
                 }
             }

@@ -1,5 +1,21 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-8977021071448270394
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf23346f2644622498f984ca13c2bbb0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttackStateDriver
+  attackId: SX2
+  activeStart: 0.15
+  activeDuration: 0.12
+  chainOpenAt: 0.7
 --- !u!1101 &-8974566393178702808
 AnimatorStateTransition:
   m_ObjectHideFlags: 1
@@ -75,6 +91,22 @@ AnimatorStateTransition:
   m_InterruptionSource: 0
   m_OrderedInterruption: 1
   m_CanTransitionToSelf: 1
+--- !u!114 &-8660625188733021365
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf23346f2644622498f984ca13c2bbb0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttackStateDriver
+  attackId: AY3
+  activeStart: 0.15
+  activeDuration: 0.12
+  chainOpenAt: 0.7
 --- !u!1101 &-8497530606311317130
 AnimatorStateTransition:
   m_ObjectHideFlags: 1
@@ -262,7 +294,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: SX5
-  m_Speed: 1
+  m_Speed: 1.5
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: 2436960514169370734}
@@ -270,7 +302,8 @@ AnimatorState:
   - {fileID: -2173484151097695020}
   - {fileID: -5471180423859887376}
   - {fileID: 5721060381058879178}
-  m_StateMachineBehaviours: []
+  m_StateMachineBehaviours:
+  - {fileID: 1821511469890959186}
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
   m_WriteDefaultValues: 0
@@ -477,7 +510,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: AY3
-  m_Speed: 1
+  m_Speed: 1.5
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: -2841271496827206035}
@@ -485,7 +518,8 @@ AnimatorState:
   - {fileID: 1861686555390626237}
   - {fileID: 995571191215199386}
   - {fileID: -4691137772037870859}
-  m_StateMachineBehaviours: []
+  m_StateMachineBehaviours:
+  - {fileID: -8660625188733021365}
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
   m_WriteDefaultValues: 0
@@ -646,7 +680,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: SX1
-  m_Speed: 1
+  m_Speed: 2
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: 1445890900352995001}
@@ -654,7 +688,8 @@ AnimatorState:
   - {fileID: -571101824847681880}
   - {fileID: -2516632155072387985}
   - {fileID: -593391767137371742}
-  m_StateMachineBehaviours: []
+  m_StateMachineBehaviours:
+  - {fileID: 8149131902072027906}
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
   m_WriteDefaultValues: 0
@@ -1003,7 +1038,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: AX3
-  m_Speed: 1
+  m_Speed: 2
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: 5274098074941193280}
@@ -1011,7 +1046,8 @@ AnimatorState:
   - {fileID: -6533430036492834759}
   - {fileID: -2690032399618712478}
   - {fileID: 2964095283343207177}
-  m_StateMachineBehaviours: []
+  m_StateMachineBehaviours:
+  - {fileID: 8738678313116483833}
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
   m_WriteDefaultValues: 0
@@ -1087,7 +1123,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: AX2
-  m_Speed: 1
+  m_Speed: 2
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: -2669818695299909324}
@@ -1095,7 +1131,8 @@ AnimatorState:
   - {fileID: -1391729376020870137}
   - {fileID: 3998067019836461947}
   - {fileID: 4818948285847989095}
-  m_StateMachineBehaviours: []
+  m_StateMachineBehaviours:
+  - {fileID: -2954699148299205452}
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
   m_WriteDefaultValues: 0
@@ -1202,7 +1239,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: SX2
-  m_Speed: 1
+  m_Speed: 2
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: -7103821701378573874}
@@ -1210,7 +1247,8 @@ AnimatorState:
   - {fileID: 7101368433092790967}
   - {fileID: 2714830682821171769}
   - {fileID: -4291642059693893320}
-  m_StateMachineBehaviours: []
+  m_StateMachineBehaviours:
+  - {fileID: -8977021071448270394}
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
   m_WriteDefaultValues: 0
@@ -1587,7 +1625,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: SY1
-  m_Speed: 1
+  m_Speed: 2
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: 9031432240637954606}
@@ -1595,7 +1633,8 @@ AnimatorState:
   - {fileID: -363755839276599562}
   - {fileID: -8974566393178702808}
   - {fileID: -4896322400537516252}
-  m_StateMachineBehaviours: []
+  m_StateMachineBehaviours:
+  - {fileID: -734591401249722476}
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
   m_WriteDefaultValues: 0
@@ -1610,6 +1649,22 @@ AnimatorState:
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
+--- !u!114 &-2954699148299205452
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf23346f2644622498f984ca13c2bbb0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttackStateDriver
+  attackId: AX2
+  activeStart: 0.15
+  activeDuration: 0.12
+  chainOpenAt: 0.7
 --- !u!1102 &-2903749410429007382
 AnimatorState:
   serializedVersion: 6
@@ -1953,7 +2008,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: SX4
-  m_Speed: 1
+  m_Speed: 2
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: -1947267671291116270}
@@ -1961,7 +2016,8 @@ AnimatorState:
   - {fileID: -3022059270979695091}
   - {fileID: 162935568571371206}
   - {fileID: -6848026338249715871}
-  m_StateMachineBehaviours: []
+  m_StateMachineBehaviours:
+  - {fileID: -738277103493347485}
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
   m_WriteDefaultValues: 0
@@ -1984,7 +2040,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: AX1
-  m_Speed: 1
+  m_Speed: 2
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: 6319319833168121859}
@@ -1992,7 +2048,8 @@ AnimatorState:
   - {fileID: 7637645357838675002}
   - {fileID: 8789766017064949453}
   - {fileID: -5938580166912793841}
-  m_StateMachineBehaviours: []
+  m_StateMachineBehaviours:
+  - {fileID: 1079142154542011650}
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
   m_WriteDefaultValues: 0
@@ -2339,7 +2396,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: SY3
-  m_Speed: 1
+  m_Speed: 1.5
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: 8152175736948335990}
@@ -2347,7 +2404,8 @@ AnimatorState:
   - {fileID: 4706906050754723864}
   - {fileID: -1511705761180852087}
   - {fileID: -4750294014971607217}
-  m_StateMachineBehaviours: []
+  m_StateMachineBehaviours:
+  - {fileID: 1696618547848531962}
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
   m_WriteDefaultValues: 0
@@ -2482,7 +2540,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: SX3
-  m_Speed: 1
+  m_Speed: 2
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: -251378818100318680}
@@ -2490,7 +2548,8 @@ AnimatorState:
   - {fileID: 8363784033791124677}
   - {fileID: -246631058455735947}
   - {fileID: -7423498116787666599}
-  m_StateMachineBehaviours: []
+  m_StateMachineBehaviours:
+  - {fileID: 4551158340228384973}
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
   m_WriteDefaultValues: 0
@@ -2558,11 +2617,11 @@ AnimatorStateMachine:
   m_EntryTransitions:
   - {fileID: -4255180250139769617}
   m_StateMachineTransitions:
-  - first: {fileID: -1838903164121672884}
-    second: []
   - first: {fileID: 4837083613860597780}
     second:
     - {fileID: 8847931519901415699}
+  - first: {fileID: -1838903164121672884}
+    second: []
   m_StateMachineBehaviours: []
   m_AnyStatePosition: {x: 650, y: -10, z: 0}
   m_EntryPosition: {x: 380, y: -10, z: 0}
@@ -2594,7 +2653,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: AY2
-  m_Speed: 1
+  m_Speed: 2
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: 3298611103388424548}
@@ -2602,7 +2661,8 @@ AnimatorState:
   - {fileID: 2548796208377042791}
   - {fileID: 2021413494334456098}
   - {fileID: -27393433411352887}
-  m_StateMachineBehaviours: []
+  m_StateMachineBehaviours:
+  - {fileID: 5679678562935206246}
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
   m_WriteDefaultValues: 0
@@ -2617,6 +2677,22 @@ AnimatorState:
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
+--- !u!114 &-1173638326104064893
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf23346f2644622498f984ca13c2bbb0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttackStateDriver
+  attackId: AX4
+  activeStart: 0.15
+  activeDuration: 0.12
+  chainOpenAt: 0.7
 --- !u!1101 &-1107154707632445748
 AnimatorStateTransition:
   m_ObjectHideFlags: 1
@@ -2729,6 +2805,38 @@ AnimatorStateTransition:
   m_InterruptionSource: 0
   m_OrderedInterruption: 1
   m_CanTransitionToSelf: 1
+--- !u!114 &-738277103493347485
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf23346f2644622498f984ca13c2bbb0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttackStateDriver
+  attackId: SX4
+  activeStart: 0.15
+  activeDuration: 0.12
+  chainOpenAt: 0.7
+--- !u!114 &-734591401249722476
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf23346f2644622498f984ca13c2bbb0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttackStateDriver
+  attackId: SY1
+  activeStart: 0.15
+  activeDuration: 0.12
+  chainOpenAt: 0.7
 --- !u!1101 &-593391767137371742
 AnimatorStateTransition:
   m_ObjectHideFlags: 1
@@ -3057,6 +3165,22 @@ AnimatorController:
     m_IKPass: 0
     m_SyncedLayerAffectsTiming: 0
     m_Controller: {fileID: 9100000}
+--- !u!114 &2953880202843519
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf23346f2644622498f984ca13c2bbb0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttackStateDriver
+  attackId: SY2
+  activeStart: 0.15
+  activeDuration: 0.12
+  chainOpenAt: 0.7
 --- !u!1101 &15144765996817129
 AnimatorStateTransition:
   m_ObjectHideFlags: 1
@@ -3305,6 +3429,22 @@ AnimatorStateTransition:
   m_InterruptionSource: 0
   m_OrderedInterruption: 1
   m_CanTransitionToSelf: 1
+--- !u!114 &1079142154542011650
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf23346f2644622498f984ca13c2bbb0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttackStateDriver
+  attackId: AX1
+  activeStart: 0.15
+  activeDuration: 0.12
+  chainOpenAt: 0.7
 --- !u!1101 &1122331861699577800
 AnimatorStateTransition:
   m_ObjectHideFlags: 1
@@ -3428,6 +3568,22 @@ AnimatorStateTransition:
   m_InterruptionSource: 0
   m_OrderedInterruption: 1
   m_CanTransitionToSelf: 1
+--- !u!114 &1696618547848531962
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf23346f2644622498f984ca13c2bbb0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttackStateDriver
+  attackId: SY3
+  activeStart: 0.15
+  activeDuration: 0.12
+  chainOpenAt: 0.7
 --- !u!1101 &1715943896340301922
 AnimatorStateTransition:
   m_ObjectHideFlags: 1
@@ -3456,6 +3612,22 @@ AnimatorStateTransition:
   m_InterruptionSource: 2
   m_OrderedInterruption: 1
   m_CanTransitionToSelf: 1
+--- !u!114 &1821511469890959186
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf23346f2644622498f984ca13c2bbb0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttackStateDriver
+  attackId: SX5
+  activeStart: 0.15
+  activeDuration: 0.12
+  chainOpenAt: 0.7
 --- !u!1101 &1842390992713705215
 AnimatorStateTransition:
   m_ObjectHideFlags: 1
@@ -3654,7 +3826,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: SY2
-  m_Speed: 1
+  m_Speed: 2
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: -1312626817456623491}
@@ -3662,7 +3834,8 @@ AnimatorState:
   - {fileID: 8505997307130636679}
   - {fileID: -8497530606311317130}
   - {fileID: 9206563661698210337}
-  m_StateMachineBehaviours: []
+  m_StateMachineBehaviours:
+  - {fileID: 2953880202843519}
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
   m_WriteDefaultValues: 0
@@ -4304,6 +4477,22 @@ AnimatorState:
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
+--- !u!114 &4551158340228384973
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf23346f2644622498f984ca13c2bbb0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttackStateDriver
+  attackId: SX3
+  activeStart: 0.15
+  activeDuration: 0.12
+  chainOpenAt: 0.7
 --- !u!1101 &4626060323823695776
 AnimatorStateTransition:
   m_ObjectHideFlags: 1
@@ -4635,6 +4824,22 @@ AnimatorStateTransition:
   m_InterruptionSource: 0
   m_OrderedInterruption: 1
   m_CanTransitionToSelf: 1
+--- !u!114 &5679678562935206246
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf23346f2644622498f984ca13c2bbb0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttackStateDriver
+  attackId: AY2
+  activeStart: 0.15
+  activeDuration: 0.12
+  chainOpenAt: 0.7
 --- !u!1101 &5721060381058879178
 AnimatorStateTransition:
   m_ObjectHideFlags: 1
@@ -4794,6 +4999,22 @@ AnimatorStateTransition:
   m_InterruptionSource: 2
   m_OrderedInterruption: 1
   m_CanTransitionToSelf: 1
+--- !u!114 &6456485463909154296
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf23346f2644622498f984ca13c2bbb0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttackStateDriver
+  attackId: AY1
+  activeStart: 0.15
+  activeDuration: 0.12
+  chainOpenAt: 0.7
 --- !u!1101 &6541806038093856512
 AnimatorStateTransition:
   m_ObjectHideFlags: 1
@@ -4956,7 +5177,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: AY1
-  m_Speed: 1
+  m_Speed: 2
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: -2704748631475880279}
@@ -4964,7 +5185,8 @@ AnimatorState:
   - {fileID: -1393009308275227442}
   - {fileID: -6059330749672950288}
   - {fileID: -7556460017167758859}
-  m_StateMachineBehaviours: []
+  m_StateMachineBehaviours:
+  - {fileID: 6456485463909154296}
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
   m_WriteDefaultValues: 0
@@ -5168,7 +5390,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: AX4
-  m_Speed: 1
+  m_Speed: 1.5
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: 1660126457831638416}
@@ -5176,7 +5398,8 @@ AnimatorState:
   - {fileID: -1711342794695971935}
   - {fileID: -2564257017514737170}
   - {fileID: -1030518949790289051}
-  m_StateMachineBehaviours: []
+  m_StateMachineBehaviours:
+  - {fileID: -1173638326104064893}
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
   m_WriteDefaultValues: 0
@@ -5191,6 +5414,22 @@ AnimatorState:
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
+--- !u!114 &8149131902072027906
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf23346f2644622498f984ca13c2bbb0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttackStateDriver
+  attackId: SX1
+  activeStart: 0.15
+  activeDuration: 0.12
+  chainOpenAt: 0.7
 --- !u!1101 &8152175736948335990
 AnimatorStateTransition:
   m_ObjectHideFlags: 1
@@ -5401,6 +5640,22 @@ AnimatorStateTransition:
   m_InterruptionSource: 0
   m_OrderedInterruption: 1
   m_CanTransitionToSelf: 1
+--- !u!114 &8738678313116483833
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf23346f2644622498f984ca13c2bbb0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttackStateDriver
+  attackId: AX3
+  activeStart: 0.15
+  activeDuration: 0.12
+  chainOpenAt: 0.7
 --- !u!1101 &8747662315058013379
 AnimatorStateTransition:
   m_ObjectHideFlags: 1

@@ -11,6 +11,7 @@ public class PauseManager : Singletons.Singleton<PauseManager>
     [SerializeField] private InputActionReference _pauseActionReference;
     [SerializeField] private InputActionReference _navigationMenuActionReference;
     [SerializeField] private InputActionReference _swapMenuActionReference;
+    [SerializeField] private InputActionReference _backActionReference; // UI/Back button
 
     public static bool IsPaused { get; private set; } = false;
     
@@ -42,6 +43,12 @@ public class PauseManager : Singletons.Singleton<PauseManager>
             Debug.LogWarning($"Swap Menu Input Action Reference is not set in the inspector. UI swapping won't work properly");
         else
             _swapMenuActionReference.action.performed += OnSwapMenu;
+
+        // Back action (UI/Back button)
+        if (_backActionReference == null || _backActionReference.action == null)
+            Debug.LogWarning($"Back Input Action Reference is not set in the inspector. UI/Back won't work properly");
+        else
+            _backActionReference.action.performed += OnBackButton;
     }
 
     private void OnDisable()
@@ -54,10 +61,15 @@ public class PauseManager : Singletons.Singleton<PauseManager>
 
         if (_swapMenuActionReference != null && _swapMenuActionReference.action != null)
             _swapMenuActionReference.action.performed -= OnSwapMenu;
+
+        if (_backActionReference != null && _backActionReference.action != null)
+            _backActionReference.action.performed -= OnBackButton;
     }
 
     private void OnPause(InputAction.CallbackContext context)
     {
+        Debug.Log($"[PauseManager] OnPause called - Current menu: {currentActiveMenu}, IsPaused: {IsPaused}");
+        
         if (currentActiveMenu == ActiveMenu.None)
         {
             // Open pause menu
@@ -65,7 +77,7 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         }
         else if (currentActiveMenu == ActiveMenu.PauseMenu)
         {
-            // Close pause menu and resume game
+            // Close pause menu and resume game (same button to toggle)
             ResumeGame();
         }
         // If navigation menu is active, pause button is ignored (locked)
@@ -73,6 +85,8 @@ public class PauseManager : Singletons.Singleton<PauseManager>
 
     private void OnNavigationMenu(InputAction.CallbackContext context)
     {
+        Debug.Log($"[PauseManager] OnNavigationMenu called - Current menu: {currentActiveMenu}, IsPaused: {IsPaused}");
+        
         if (currentActiveMenu == ActiveMenu.None)
         {
             // Open navigation menu
@@ -80,10 +94,21 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         }
         else if (currentActiveMenu == ActiveMenu.NavigationMenu)
         {
-            // Close navigation menu and resume game
+            // Close navigation menu and resume game (same button to toggle)
             ResumeGame();
         }
         // If pause menu is active, navigation menu button is ignored (locked)
+    }
+
+    private void OnBackButton(InputAction.CallbackContext context)
+    {
+        Debug.Log($"[PauseManager] OnBackButton called - Current menu: {currentActiveMenu}");
+        
+        // Back button closes whatever menu is currently open
+        if (currentActiveMenu != ActiveMenu.None)
+        {
+            ResumeGame();
+        }
     }
 
     private void OnSwapMenu(InputAction.CallbackContext context)
@@ -116,13 +141,13 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         if (navigationMenuHolder != null)
             navigationMenuHolder.SetActive(false);
 
-        // Enable pause action, disable navigation menu action
-        EnablePauseAction(true);
-        EnableNavigationMenuAction(false);
-
         Debug.Log("Pause Menu Opened");
-        // Switch to UI input
-        InputReader.playerInput.SwitchCurrentActionMap("UI");
+        
+        // Switch to UI input - make sure actions remain subscribed
+        if (InputReader.playerInput != null)
+        {
+            InputReader.playerInput.SwitchCurrentActionMap("UI");
+        }
     }
 
     private void ShowNavigationMenu()
@@ -137,13 +162,13 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         if (pauseMenuHolder != null)
             pauseMenuHolder.SetActive(false);
 
-        // Enable navigation menu action, disable pause action
-        EnableNavigationMenuAction(true);
-        EnablePauseAction(false);
-
         Debug.Log("Navigation Menu Opened");
+        
         // Switch to UI input
-        InputReader.playerInput.SwitchCurrentActionMap("UI");
+        if (InputReader.playerInput != null)
+        {
+            InputReader.playerInput.SwitchCurrentActionMap("UI");
+        }
     }
 
     private void SwapToPauseMenu()
@@ -155,10 +180,6 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         
         if (navigationMenuHolder != null)
             navigationMenuHolder.SetActive(false);
-
-        // Enable pause action, disable navigation menu action
-        EnablePauseAction(true);
-        EnableNavigationMenuAction(false);
 
         Debug.Log("Swapped to Pause Menu");
     }
@@ -172,10 +193,6 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         
         if (pauseMenuHolder != null)
             pauseMenuHolder.SetActive(false);
-
-        // Enable navigation menu action, disable pause action
-        EnableNavigationMenuAction(true);
-        EnablePauseAction(false);
 
         Debug.Log("Swapped to Navigation Menu");
     }
@@ -192,34 +209,12 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         if (navigationMenuHolder != null)
             navigationMenuHolder.SetActive(false);
 
-        // Re-enable both actions
-        EnablePauseAction(true);
-        EnableNavigationMenuAction(true);
-
         Debug.Log("Game Resumed");
+        
         // Switch back to Gameplay input
-        InputReader.playerInput.SwitchCurrentActionMap("Gameplay");
-    }
-
-    private void EnablePauseAction(bool enable)
-    {
-        if (_pauseActionReference != null && _pauseActionReference.action != null)
+        if (InputReader.playerInput != null)
         {
-            if (enable)
-                _pauseActionReference.action.Enable();
-            else
-                _pauseActionReference.action.Disable();
-        }
-    }
-
-    private void EnableNavigationMenuAction(bool enable)
-    {
-        if (_navigationMenuActionReference != null && _navigationMenuActionReference.action != null)
-        {
-            if (enable)
-                _navigationMenuActionReference.action.Enable();
-            else
-                _navigationMenuActionReference.action.Disable();
+            InputReader.playerInput.SwitchCurrentActionMap("Gameplay");
         }
     }
 

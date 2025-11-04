@@ -245,6 +245,8 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
 
         if (other.CompareTag("Player"))
         {
+            Debug.Log($"{gameObject.name} OnTriggerEnter with Player! Collider: {other.name}");
+            
             // Check which collider is currently triggering this event
             // This works because OnTriggerEnter is called for each trigger collider on the GameObject
             // Use Physics.OverlapSphere or OverlapBox if you need to check proximity
@@ -252,13 +254,23 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
             // Check if this is the detection collider
             if (detectionCollider != null && detectionCollider.enabled && detectionCollider.bounds.Contains(other.transform.position))
             {
-                if (TryFireTriggerByName("SeePlayer")) // Doing it this way to not cause many duplicate Debug.Logs
+                Debug.Log($"{gameObject.name} Player is inside detection bounds! Trying to fire SeePlayer trigger...");
+                if (TryFireTriggerByName("SeePlayer"))
                 {
-                    Debug.Log($"{gameObject.name} detected player (detection collider).");
+                    Debug.Log($"{gameObject.name} detected player (detection collider) - State should change to Chase!");
+                }
+                else
+                {
+                    Debug.LogWarning($"{gameObject.name} FAILED to fire SeePlayer trigger! Current state: {enemyAI.State}");
                 }
             }
+            else
+            {
+                Debug.LogWarning($"{gameObject.name} Player entered trigger but NOT in detection bounds. Detection enabled: {detectionCollider?.enabled}, Player pos: {other.transform.position}");
+            }
+            
             // Check if this is the attack collider
-            else if (attackCollider != null && attackCollider.enabled && attackCollider.bounds.Contains(other.transform.position))
+            if (attackCollider != null && attackCollider.enabled && attackCollider.bounds.Contains(other.transform.position))
             {
                 if (TryFireTriggerByName("InAttackRange"))
                 {

@@ -26,6 +26,7 @@ public class EnemiesClearedProgression : MonoBehaviour
     [SerializeField] private bool loadAdditive = true;
 
     private bool _done;
+    private static HashSet<string> _loadedScenes = new HashSet<string>(); // Track scenes we've already loaded
 
     private void Start()
     {
@@ -80,27 +81,66 @@ public class EnemiesClearedProgression : MonoBehaviour
         // Load the next scene additively (or single if you prefer)
         if (!string.IsNullOrEmpty(nextSceneName))
         {
-            if (loadAdditive)
-                SceneManager.LoadSceneAsync(nextSceneName, LoadSceneMode.Additive);
+            // Check if the scene is already loaded OR if we've already requested to load it
+            if (IsSceneLoaded(nextSceneName))
+            {
+                Debug.LogWarning($"[EnemiesClearedProgression] Scene '{nextSceneName}' is already loaded. Skipping load.");
+            }
+            else if (_loadedScenes.Contains(nextSceneName))
+            {
+                Debug.LogWarning($"[EnemiesClearedProgression] Scene '{nextSceneName}' is already being loaded by another progression trigger. Skipping duplicate load.");
+            }
             else
-                SceneManager.LoadScene(nextSceneName, LoadSceneMode.Single);
+            {
+                // Mark this scene as being loaded to prevent other progression triggers from loading it
+                _loadedScenes.Add(nextSceneName);
+                
+                if (loadAdditive)
+                {
+                    Debug.Log($"[EnemiesClearedProgression] Loading scene '{nextSceneName}' additively.");
+                    SceneManager.LoadSceneAsync(nextSceneName, LoadSceneMode.Additive);
+                }
+                else
+                {
+                    Debug.Log($"[EnemiesClearedProgression] Loading scene '{nextSceneName}' as single.");
+                    SceneManager.LoadScene(nextSceneName, LoadSceneMode.Single);
+                }
+            }
         }
 
-        Debug.Log("[EnemiesClearedProgression] All enemies cleared. Gate opened + scene loaded.");
+        Debug.Log("[EnemiesClearedProgression] All enemies cleared. Gate opened.");
+    }
+    
+    // Helper method to check if a scene is already loaded
+    private bool IsSceneLoaded(string sceneName)
+    {
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            Scene scene = SceneManager.GetSceneAt(i);
+            if (scene.name == sceneName && scene.isLoaded)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
 #if UNITY_EDITOR
     private void OnValidate()
     {
-        // Keep list unique (no duplicates)
+        // Keep list unique (no duplicates) - commented out to allow duplicates if needed
+        // if (enemies != null)
+        //     enemies = enemies.Distinct().ToList();
+        
+        // Just remove nulls
         if (enemies != null)
-            enemies = enemies.Distinct().ToList();
+            enemies.RemoveAll(e => e == null);
     }
 
     [UnityEditor.MenuItem("GameObject/eXSert/Add Selected Enemies to Elevator Progression", false, 0)]
     private static void AddSelectedEnemiesToElevator()
     {
-        var elevatorProgression = FindObjectOfType<EnemiesClearedProgression>();
+        var elevatorProgression = FindFirstObjectByType<EnemiesClearedProgression>();
         if (elevatorProgression == null)
         {
             Debug.LogWarning("No EnemiesClearedProgression found in scene!");

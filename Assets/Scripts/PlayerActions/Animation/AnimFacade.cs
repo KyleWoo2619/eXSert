@@ -11,6 +11,10 @@ public class AnimFacade : MonoBehaviour
     [Header("Refs")]
     [SerializeField] Animator anim;
     [SerializeField] CharacterController characterController; // or your own mover (optional)
+    
+    [Header("Movement Sounds")]
+    [SerializeField, Tooltip("ScriptableObject containing footstep, jump, and landing sound arrays")]
+    private PlayerMovementSounds movementSounds;
 
     [Header("Locomotion Feed")]
     [SerializeField, Range(0f, 0.3f)] float startMoveThreshold = 0.08f;  // when to fire StartMove
@@ -280,6 +284,9 @@ public class AnimFacade : MonoBehaviour
             anim.CrossFade("Jump_Start", 0.0f, 0);
             Debug.Log("[AnimFacade] Ground jump - playing Jump_Start directly");
             
+            // Play jump sound (gasp/grunt)
+            PlayJumpSound();
+            
             // Auto-transition to Jump_AirLoop after Jump_Start clip finishes
             StartCoroutine(TransitionToAirLoopAfterClip("Jump_Start"));
         }
@@ -294,6 +301,9 @@ public class AnimFacade : MonoBehaviour
                 // Play AirJump_Start directly (instant, no transitions)
                 anim.CrossFade("AirJump_Start", 0.0f, 0);
                 Debug.Log($"[AnimFacade] Air jump - playing AirJump_Start directly, remaining: {airJumps}");
+                
+                // Play jump sound for air jump too
+                PlayJumpSound();
                 
                 // Auto-transition to Jump_AirLoop after AirJump_Start clip finishes
                 StartCoroutine(TransitionToAirLoopAfterClip("AirJump_Start"));
@@ -335,6 +345,9 @@ public class AnimFacade : MonoBehaviour
         anim.SetTrigger(DashTrigH);
         
         Debug.Log("[AnimFacade] Dash requested - setting Dash trigger and CanDash=true");
+        
+        // Play dash sound
+        PlayDashSound();
         
         // Start cooldown (CanDash will be false during cooldown to prevent spam)
         if (dashReady)
@@ -474,6 +487,9 @@ public class AnimFacade : MonoBehaviour
         anim.SetInteger(AirJumpsH, airJumps);
         Debug.Log($"[AnimFacade] Landed - air jumps reset to {airJumps}");
 
+        // Play landing sound
+        PlayLandingSound();
+
         if (jumpBuffered)
         {
             jumpBuffered = false;
@@ -557,5 +573,57 @@ public class AnimFacade : MonoBehaviour
     {
         anim.SetBool(BufferedXH, false);
         anim.SetBool(BufferedYH, false);
+    }
+
+    // =========================================================================
+    //  ANIMATION EVENT SINKS - MOVEMENT SOUNDS
+    // =========================================================================
+    
+    /// <summary>
+    /// Animation Event: Place on walk/run animation frames where foot contacts ground.
+    /// Plays a random footstep sound from the movement sounds bank.
+    /// </summary>
+    public void PlayFootstepSound()
+    {
+        if (movementSounds != null)
+        {
+            movementSounds.PlayRandomFootstep();
+        }
+    }
+
+    /// <summary>
+    /// Animation Event: Place on jump animation start frame.
+    /// Plays a random jump sound (gasp/grunt) from the movement sounds bank.
+    /// </summary>
+    public void PlayJumpSound()
+    {
+        if (movementSounds != null)
+        {
+            movementSounds.PlayRandomJump();
+        }
+    }
+
+    /// <summary>
+    /// Called when player lands (automatically from OnLanded or animation event).
+    /// Plays a random landing sound from the movement sounds bank.
+    /// </summary>
+    public void PlayLandingSound()
+    {
+        if (movementSounds != null)
+        {
+            movementSounds.PlayRandomLanding();
+        }
+    }
+
+    /// <summary>
+    /// Animation Event: Place on dash animation start frame.
+    /// Plays a random dash sound from the movement sounds bank.
+    /// </summary>
+    public void PlayDashSound()
+    {
+        if (movementSounds != null)
+        {
+            movementSounds.PlayRandomDash();
+        }
     }
 }

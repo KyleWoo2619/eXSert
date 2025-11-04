@@ -15,7 +15,10 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
 {
     public float maxHealth;
     public float health;
-    [SerializeField] private Slider slider;
+    
+    [Header("UI References")]
+    [SerializeField] private Slider slider; // Old slider system (optional)
+    [SerializeField] private HealthBar healthBar; // New fill-based health bar
 
     //Temporary ways to reset the scene the player is currently in for demonstration
     Scene scene;
@@ -30,10 +33,22 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
         scene = SceneManager.GetActiveScene();
         sceneName = scene.name;
         
-        // Initialize slider if not assigned
-        if (!slider)
+        // Initialize health bar
+        if (healthBar != null)
         {
-            Debug.LogWarning($"{gameObject.name}: HealthBarManager slider is not assigned. The PlayerHealthCanvas should handle UI updates instead.");
+            healthBar.SetHealth(health, maxHealth);
+        }
+        
+        // Initialize slider if assigned (backwards compatibility)
+        if (slider != null)
+        {
+            slider.maxValue = maxHealth;
+            slider.value = health;
+        }
+        
+        if (!slider && !healthBar)
+        {
+            Debug.LogWarning($"{gameObject.name}: No health bar UI assigned!");
         }
     }
 
@@ -87,11 +102,17 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
     //sets the healthbar according to which function is done
     public void SetHealth()
     {
+        // Update new HealthBar (fillAmount based)
+        if (healthBar != null)
+        {
+            healthBar.SetHealth(health, maxHealth);
+        }
+        
+        // Update old slider (backwards compatibility)
         if (slider != null)
         {
             slider.value = health;
         }
-        // Note: PlayerHealthCanvas will handle UI updates if this slider is null
     }
 
     //saves and loads data from this script
