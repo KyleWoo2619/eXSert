@@ -16,7 +16,6 @@ public class SaveSlots : MonoBehaviour
     [Header("Content")]
     [SerializeField] private GameObject noDataContent;
     [SerializeField] private GameObject hasDataContent;
-
     [SerializeField] private TextMeshProUGUI healthCountText;
 
     private Button saveSlotButton;
@@ -26,7 +25,6 @@ public class SaveSlots : MonoBehaviour
     private void Awake()
     {
         saveSlotButton = this.GetComponent<Button>();
-        saveSlotsMenu = GetComponent<SaveSlotsMenu>();
     }
 
     //Depending on if the data is null or not, it will show their respective texts
@@ -50,9 +48,9 @@ public class SaveSlots : MonoBehaviour
         return this.profileId;
     }
 
-    public void SetProfileID()
+    public void SetCurrentSaveSlot()
     {
-        saveSlotsMenu.currentProfileID = profileId;
+        saveSlotsMenu.currentSaveSlotSelected = this.gameObject.GetComponent<SaveSlots>();
     }
 
     //Sets interactability of save slots

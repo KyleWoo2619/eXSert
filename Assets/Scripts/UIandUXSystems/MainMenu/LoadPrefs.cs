@@ -108,7 +108,6 @@ public class LoadPrefs : MonoBehaviour
             if (PlayerPrefs.HasKey("masterSens"))
             {
                 float localSens = PlayerPrefs.GetFloat("masterSens");
-                sensTextValue.text = localSens.ToString("0.0");
                 sensSlider.value = localSens;
             }
             else

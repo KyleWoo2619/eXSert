@@ -36,7 +36,7 @@ public class RumbleManager : Singleton<RumbleManager>
     public void RumblePulse(float lowFreq, float highFreq, float duration)
     {
         //checks the current control scheme and if rumble is activated
-        if (currentControlScheme == "Gamepad" && SettingsManager.Instance.rumbleOn)
+        if (currentControlScheme == "Gamepad")
         {
             pad = Gamepad.current;
 
