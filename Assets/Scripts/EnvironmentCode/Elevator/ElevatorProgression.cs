@@ -81,6 +81,14 @@ public class EnemiesClearedProgression : MonoBehaviour
         // Load the next scene additively (or single if you prefer)
         if (!string.IsNullOrEmpty(nextSceneName))
         {
+            // CRITICAL: Prevent loading the currently active scene
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            if (nextSceneName == activeSceneName)
+            {
+                Debug.LogError($"[ElevatorProgression] BLOCKED! Cannot load '{nextSceneName}' - it's the currently active scene! Please set a different scene in the inspector.");
+                return;
+            }
+            
             // Check if the scene is already loaded OR if we've already requested to load it
             if (IsSceneLoaded(nextSceneName))
             {

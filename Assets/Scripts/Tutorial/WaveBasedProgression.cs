@@ -209,6 +209,14 @@ public class WaveBasedProgression : MonoBehaviour
 
         if (!string.IsNullOrEmpty(nextSceneName))
         {
+            // Prevent loading the currently active scene
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            if (nextSceneName == activeSceneName)
+            {
+                Debug.LogWarning($"[WaveBasedProgression] Cannot load '{nextSceneName}' - it's the currently active scene!");
+                yield break;
+            }
+            
             // Check if scene is already loaded
             if (IsSceneLoaded(nextSceneName))
             {

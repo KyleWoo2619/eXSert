@@ -25,6 +25,24 @@ public class FileDataHandler
         this.dataFileName = dataFileName;
     }
 
+    public void DeleteProfile(string profileId)
+    {
+        if (string.IsNullOrEmpty(profileId)) return;
+
+        string fullPath = Path.Combine(dataDirPath, profileId, dataFileName);
+        try
+        {
+            if (File.Exists(fullPath))
+            {
+                File.Delete(fullPath);
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Error occured when trying to delete save file: " + fullPath + "\n" + e);
+        }
+    }
+
     //This function properly loads the saved data
     public GameData Load(string profileId)
     {

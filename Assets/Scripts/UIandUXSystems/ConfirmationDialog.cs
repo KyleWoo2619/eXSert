@@ -43,6 +43,16 @@ public class ConfirmationDialog : MonoBehaviour
     private float dialogOpenTime = 0f;
     private const float INPUT_IGNORE_DURATION = 0.3f; // Ignore input for 0.3 seconds after opening
 
+    [Header("Behavior")]
+    [SerializeField, Tooltip("If ON: A cancels and B confirms (Xbox/PlayStation south=Cancel, east=Confirm). If OFF: A confirms and B cancels.")]
+    private bool aCancels_bConfirms = true;
+
+    [SerializeField, Tooltip("Additional cooldown after closing before background UI is re-enabled (prevents immediate re-trigger on held A/B)")]
+    private float inputIgnoreAfterClose = 0.25f;
+
+    private float lastCloseTime = -999f;
+    private Coroutine reenableRoutine;
+
     private void OnEnable()
     {
         Debug.Log($"[ConfirmationDialog] OnEnable called on {gameObject.name}");
@@ -109,31 +119,46 @@ public class ConfirmationDialog : MonoBehaviour
                     }
                 }
                 
-                // Alternative: Check raw input as last resort
-                if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.JoystickButton0)) // Escape or gamepad A
+                // Alternative: Check devices using the new Input System (works when old Input is disabled)
+                var kb = Keyboard.current;
+                var gp = Gamepad.current;
+
+                bool south = gp != null && gp.buttonSouth.wasPressedThisFrame;
+                bool east  = gp != null && gp.buttonEast.wasPressedThisFrame;
+                bool kbCancel = kb != null && kb.escapeKey.wasPressedThisFrame;
+                bool kbConfirm = kb != null && (kb.enterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame);
+
+                if (aCancels_bConfirms)
                 {
-                    Debug.Log($"[ConfirmationDialog] ⚠️ Raw input detected (Escape/A button) - Closing dialog");
-                    CloseDialog();
-                    return;
-                }
-                
-                if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.JoystickButton1)) // Enter or gamepad B
-                {
-                    Debug.Log($"[ConfirmationDialog] ⚠️ Raw input detected (Enter/B button) - Confirming");
-                    
-                    // Close and execute
-                    if (dialogPanel != null)
-                        dialogPanel.SetActive(false);
-                    isDialogOpen = false;
-                    DisableBackgroundObjects(false);
-                    
-                    if (buttonToSelectOnClose != null && EventSystem.current != null)
+                    // South (A) cancels, East (B) confirms
+                    if (kbCancel || south)
                     {
-                        EventSystem.current.SetSelectedGameObject(buttonToSelectOnClose.gameObject);
+                        Debug.Log("[ConfirmationDialog] Device input (A south / Esc) - Cancel");
+                        CloseDialog();
+                        return;
                     }
-                    
-                    OnConfirm?.Invoke();
-                    return;
+                    if (kbConfirm || east)
+                    {
+                        Debug.Log("[ConfirmationDialog] Device input (B east / Enter/Space) - Confirm");
+                        PerformConfirm();
+                        return;
+                    }
+                }
+                else
+                {
+                    // South (A) confirms, East (B) cancels
+                    if (kbConfirm || south)
+                    {
+                        Debug.Log("[ConfirmationDialog] Device input (A south / Enter/Space) - Confirm");
+                        PerformConfirm();
+                        return;
+                    }
+                    if (kbCancel || east)
+                    {
+                        Debug.Log("[ConfirmationDialog] Device input (B east / Esc) - Cancel");
+                        CloseDialog();
+                        return;
+                    }
                 }
             }
         }
@@ -203,15 +228,10 @@ public class ConfirmationDialog : MonoBehaviour
         {
             dialogPanel.SetActive(false);
             isDialogOpen = false;
-            
-            // Re-enable background interaction
-            DisableBackgroundObjects(false);
-            
-            // Re-select button for controller navigation
-            if (buttonToSelectOnClose != null && EventSystem.current != null)
-            {
-                EventSystem.current.SetSelectedGameObject(buttonToSelectOnClose.gameObject);
-            }
+            lastCloseTime = Time.unscaledTime;
+
+            // Re-enable background interaction after a short, safe delay (and after buttons are released)
+            StartReenableAfterClose();
             
             Debug.Log($"[ConfirmationDialog] Dialog closed: {gameObject.name}");
         }
@@ -298,29 +318,85 @@ public class ConfirmationDialog : MonoBehaviour
         }
 
         Debug.Log("[ConfirmationDialog] ✅ Confirm (B) pressed - Executing action");
-        
+        PerformConfirm();
+    }
+
+    /// <summary>
+    /// Shared confirm flow used by B, Yes button, and device fallback
+    /// </summary>
+    private void PerformConfirm()
+    {
         // Prevent event from propagating to UI buttons
         if (EventSystem.current != null)
         {
             EventSystem.current.SetSelectedGameObject(null);
         }
-        
+
         // Close dialog first
         if (dialogPanel != null)
             dialogPanel.SetActive(false);
         isDialogOpen = false;
-        
-        // Re-enable background interaction
+        lastCloseTime = Time.unscaledTime;
+
+    // Re-enable background interaction after a safe delay
+    StartReenableAfterClose();
+
+        // Execute the confirmed action
+        OnConfirm?.Invoke();
+    }
+
+    /// <summary>
+    /// Starts or restarts the coroutine that re-enables background UI and restores selection
+    /// after a short delay and after input buttons are released.
+    /// </summary>
+    private void StartReenableAfterClose()
+    {
+        if (reenableRoutine != null)
+        {
+            CoroutineRunner.Stop(reenableRoutine);
+        }
+        reenableRoutine = CoroutineRunner.Run(ReenableBackgroundAndSelectionAfterClose());
+    }
+
+    private System.Collections.IEnumerator ReenableBackgroundAndSelectionAfterClose()
+    {
+        // Ensure at least one frame passes with dialog hidden
+        yield return null;
+
+        float start = lastCloseTime;
+        var kb = Keyboard.current;
+        var gp = Gamepad.current;
+
+        // Wait until either duration elapsed OR relevant buttons are released
+        while (Time.unscaledTime - start < inputIgnoreAfterClose)
+        {
+            bool anyPressed = false;
+            if (kb != null)
+            {
+                anyPressed |= kb.escapeKey.isPressed || kb.enterKey.isPressed || kb.spaceKey.isPressed;
+            }
+            if (gp != null)
+            {
+                anyPressed |= gp.buttonSouth.isPressed || gp.buttonEast.isPressed;
+            }
+
+            if (!anyPressed)
+            {
+                // Buttons released: allow early exit
+                break;
+            }
+            yield return null;
+        }
+
+        // Finally, re-enable background controls and restore selection
         DisableBackgroundObjects(false);
-        
-        // Re-select button for controller navigation (optional for confirm, since action usually changes scene/state)
+
         if (buttonToSelectOnClose != null && EventSystem.current != null)
         {
             EventSystem.current.SetSelectedGameObject(buttonToSelectOnClose.gameObject);
         }
-        
-        // Execute the confirmed action
-        OnConfirm?.Invoke();
+
+        reenableRoutine = null;
     }
 
     /// <summary>
@@ -338,23 +414,7 @@ public class ConfirmationDialog : MonoBehaviour
     public void OnYesButtonClicked()
     {
         Debug.Log("[ConfirmationDialog] Yes button clicked");
-        
-        // Close dialog first
-        if (dialogPanel != null)
-            dialogPanel.SetActive(false);
-        isDialogOpen = false;
-        
-        // Re-enable background interaction
-        DisableBackgroundObjects(false);
-        
-        // Re-select button for controller navigation (optional for confirm)
-        if (buttonToSelectOnClose != null && EventSystem.current != null)
-        {
-            EventSystem.current.SetSelectedGameObject(buttonToSelectOnClose.gameObject);
-        }
-        
-        // Execute the confirmed action
-        OnConfirm?.Invoke();
+        PerformConfirm();
     }
 
     // Public getters

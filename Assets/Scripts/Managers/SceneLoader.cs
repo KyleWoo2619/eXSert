@@ -112,9 +112,25 @@ public class SceneLoader : Singleton<SceneLoader>
         // Small delay to ensure cleanup completes
         yield return null;
         
+        // Resolve a valid main menu scene name (handles different project naming)
+        string targetMenu = ResolveMainMenuSceneName();
+        if (string.IsNullOrEmpty(targetMenu))
+        {
+            Debug.LogError("[SceneLoader] Could not resolve a valid Main Menu scene name. Add your menu scene to Build Settings and set 'mainMenuSceneName' on SceneLoader.");
+            isLoadingScene = false;
+            yield break;
+        }
+
+        Log($"Loading main menu scene: {targetMenu}");
         // Load main menu as single scene
-        AsyncOperation loadOperation = SceneManager.LoadSceneAsync(mainMenuSceneName, LoadSceneMode.Single);
-        
+        AsyncOperation loadOperation = SceneManager.LoadSceneAsync(targetMenu, LoadSceneMode.Single);
+        if (loadOperation == null)
+        {
+            Debug.LogError($"[SceneLoader] LoadSceneAsync returned null for '{targetMenu}'. Is it added to Build Settings?");
+            isLoadingScene = false;
+            yield break;
+        }
+
         while (!loadOperation.isDone)
         {
             yield return null;
@@ -212,8 +228,16 @@ public class SceneLoader : Singleton<SceneLoader>
         // Resume time
         Time.timeScale = 1f;
         
-        // Clean up persistent player
+        // Clean up persistent objects (player, HUD, etc.)
         CleanupPersistentPlayer();
+        
+        // Also clean up HUD
+        var hudPersistence = FindAnyObjectByType<HUDPersistence>();
+        if (hudPersistence != null)
+        {
+            Log($"Destroying persistent HUD on restart: {hudPersistence.gameObject.name}");
+            Destroy(hudPersistence.gameObject);
+        }
         
         // Unload all gameplay scenes
         int sceneCount = SceneManager.sceneCount;
@@ -247,21 +271,70 @@ public class SceneLoader : Singleton<SceneLoader>
     {
         Log("Cleaning up all persistent objects...");
         
-        // Find persistent player
-        var persistentPlayer = FindAnyObjectByType<PlayerPersistence>();
-        if (persistentPlayer != null)
+        // 1) Destroy ALL PlayerPersistence instances (in case of duplicates)
+        var players = FindObjectsByType<PlayerPersistence>(FindObjectsSortMode.None);
+        foreach (var p in players)
         {
-            Log($"Destroying persistent player: {persistentPlayer.gameObject.name}");
-            Destroy(persistentPlayer.gameObject);
+            if (p == null) continue;
+            Log($"Destroying persistent player: {p.gameObject.name}");
+            Destroy(p.gameObject);
+        }
+
+        // As a fallback, also destroy anything tagged Player (covers cases without PlayerPersistence)
+        foreach (var go in GameObject.FindGameObjectsWithTag("Player"))
+        {
+            if (go == null) continue;
+            Log($"Destroying object with Player tag: {go.name}");
+            Destroy(go);
         }
         
-        // Find persistent HUD
-        var hudPersistence = FindAnyObjectByType<HUDPersistence>();
-        if (hudPersistence != null)
+        // 2) Destroy ALL HUDPersistence instances (HUD canvases)
+        var huds = FindObjectsByType<HUDPersistence>(FindObjectsSortMode.None);
+        foreach (var hud in huds)
         {
-            Log($"Destroying persistent HUD: {hudPersistence.gameObject.name}");
-            Destroy(hudPersistence.gameObject);
+            if (hud == null) continue;
+            Log($"Destroying persistent HUD: {hud.gameObject.name}");
+            Destroy(hud.gameObject);
         }
+
+        // 3) Inspect the DontDestroyOnLoad scene roots and clean any stray player/HUD roots
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            var scene = SceneManager.GetSceneAt(i);
+            if (scene.name != "DontDestroyOnLoad") continue;
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                if (root == null) continue;
+
+                // Whitelist core singletons we want to keep alive
+                if (root.GetComponent<SceneLoader>() ||
+                    root.GetComponent<DataPersistenceManager>() ||
+                    root.GetComponent<CheckpointSystem>() ||
+                    root.GetComponent<SoundManager>())
+                {
+                    continue;
+                }
+
+                // If a root contains PlayerPersistence or HUDPersistence, remove it
+                // But do NOT remove if it also contains a whitelisted singleton somewhere in children
+                bool containsPlayerOrHud = root.GetComponentInChildren<PlayerPersistence>(true) ||
+                                           root.GetComponentInChildren<HUDPersistence>(true);
+                bool containsCoreSingleton = root.GetComponentInChildren<SceneLoader>(true) ||
+                                              root.GetComponentInChildren<DataPersistenceManager>(true) ||
+                                              root.GetComponentInChildren<CheckpointSystem>(true) ||
+                                              root.GetComponentInChildren<SoundManager>(true);
+
+                if (containsPlayerOrHud && !containsCoreSingleton)
+                {
+                    Log($"Destroying stray persistent root: {root.name}");
+                    Destroy(root);
+                }
+            }
+        }
+        
+        // IMPORTANT: Don't destroy CheckpointSystem - it needs to persist!
+        // The MainMenu scene should NOT have its own CheckpointSystem GameObject.
+        // CheckpointSystem is created in the first gameplay scene and persists throughout.
         
         // Essential singletons stay (DataPersistenceManager, SceneLoader, CheckpointSystem, SoundManager, SettingsManager)
     }
@@ -297,5 +370,30 @@ public class SceneLoader : Singleton<SceneLoader>
         {
             Debug.Log($"[SceneLoader] {message}");
         }
+    }
+
+    /// <summary>
+    /// Returns a loadable main menu scene name. Tries the configured name first, then common fallbacks.
+    /// </summary>
+    private string ResolveMainMenuSceneName()
+    {
+        // 1) Use configured value if it can be loaded
+        if (!string.IsNullOrWhiteSpace(mainMenuSceneName) && Application.CanStreamedLevelBeLoaded(mainMenuSceneName))
+        {
+            return mainMenuSceneName;
+        }
+
+        // 2) Try common project-specific names
+        string[] candidates = new[] { "FP_MainMenu", "MainMenu", "Menu", "Title", "TitleScreen" };
+        foreach (var candidate in candidates)
+        {
+            if (Application.CanStreamedLevelBeLoaded(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        // 3) Nothing found
+        return null;
     }
 }

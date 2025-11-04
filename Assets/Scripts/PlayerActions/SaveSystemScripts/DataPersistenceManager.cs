@@ -95,12 +95,20 @@ public class DataPersistenceManager : Singletons.Singleton<DataPersistenceManage
     //When selecting a new game, new game data is created
     public void NewGame()
     {
-        if(fileName != null)
+        // Delete the existing save for the currently selected profile (clean reset)
+        if (fileDataHandler != null && !string.IsNullOrEmpty(selectedProfileId))
         {
-            File.Delete(Application.persistentDataPath + fileName);
+            fileDataHandler.DeleteProfile(selectedProfileId);
         }
 
+        // Create fresh data with defaults
         this.gameData = new GameData();
+
+        // Immediately persist the new defaults so the next scene load reads them
+        if (!disableDataPersistence)
+        {
+            fileDataHandler.Save(this.gameData, selectedProfileId);
+        }
     }
 
     public void LoadGame()
@@ -155,11 +163,30 @@ public class DataPersistenceManager : Singletons.Singleton<DataPersistenceManage
         fileDataHandler.Save(gameData, selectedProfileId);
     }
 
+    /// <summary>
+    /// Deletes the save file for the given profile id and refreshes menu data.
+    /// </summary>
+    public void DeleteProfile(string profileId)
+    {
+        if (disableDataPersistence) return;
+        if (fileDataHandler == null || string.IsNullOrEmpty(profileId)) return;
+
+        fileDataHandler.DeleteProfile(profileId);
+
+        // If we deleted the currently-selected profile, pick another most-recent one
+        if (selectedProfileId == profileId)
+        {
+            selectedProfileId = fileDataHandler.GetMostRecentUpdatedProfile();
+            gameData = null;
+        }
+    }
+
 
     //Defines a list that will find any instances of game data that needs to be loaded/saved
     private List<IDataPersistenceManager> FindAllDataPersistenceObjects()
     {
-        IEnumerable<IDataPersistenceManager> dataPeristenceObjects = FindObjectsOfType<MonoBehaviour>().OfType<IDataPersistenceManager>();
+        IEnumerable<IDataPersistenceManager> dataPeristenceObjects = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None)
+            .OfType<IDataPersistenceManager>();
 
         return new List<IDataPersistenceManager>(dataPeristenceObjects);
     }

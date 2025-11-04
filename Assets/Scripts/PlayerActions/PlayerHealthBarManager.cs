@@ -82,15 +82,20 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
        
     }
 
-    //On death, if this is assigned to the player it will take them to the "Gameover" screen. If it is on any other object however, they will be destroyed.
+    //On death, if this is assigned to the player it will trigger game over. If it is on any other object however, they will be destroyed.
     public void Death()
     {
         if (this.health <= 0)
         {
-
             if (this.gameObject.tag == "Player")
             {
-                SceneManager.LoadSceneAsync(sceneName);
+                // Don't reload the scene here! This causes infinite loading.
+                // Instead, trigger a game over state or use SceneLoader.RestartFromCheckpoint()
+                // For now, just log it and let the game over screen handle it
+                Debug.Log("[PlayerHealthBarManager] Player died! (Removed auto scene reload to prevent infinite loading)");
+                
+                // TODO: Trigger game over UI or call SceneLoader.Instance.RestartFromCheckpoint() once
+                // Make sure this only happens ONCE, not every frame!
             }
             else
             {
@@ -118,14 +123,32 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
     //saves and loads data from this script
     public void LoadData(GameData data)
     {
-        health = data.health;
-        slider.value = data.health;
+        // Restore health from save
+        maxHealth = data.maxHealth > 0 ? data.maxHealth : maxHealth;
+        health = Mathf.Clamp(data.health, 0, maxHealth);
+
+        // Push to UI safely
+        if (healthBar == null)
+        {
+            // Try to auto-bind if not wired in prefab
+            healthBar = FindAnyObjectByType<HealthBar>();
+        }
+        if (healthBar != null)
+        {
+            healthBar.SetHealth(health, maxHealth);
+        }
+        if (slider != null)
+        {
+            slider.maxValue = maxHealth;
+            slider.value = health;
+        }
     }
 
     public void SaveData(GameData data)
     {
-        data.health = health;
-        data.health = slider.value;
+        // Persist current health (prefer slider if present, else field)
+        data.maxHealth = maxHealth;
+        data.health = slider != null ? slider.value : health;
     }
 
     //If the player collides with a trigger tagged with enemy, it'll gather it's hitbox damage amount and apply it to the player

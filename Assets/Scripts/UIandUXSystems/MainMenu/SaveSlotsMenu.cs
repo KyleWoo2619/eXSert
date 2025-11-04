@@ -37,6 +37,49 @@ public class SaveSlotsMenu : Menu
     {
         DisableMenuButtons();
 
+        // Safety check for SceneLoader
+        if (SceneLoader.Instance == null)
+        {
+            Debug.LogError("[SaveSlotsMenu] SceneLoader not found! Please add SceneLoader GameObject to the Main Menu scene.");
+            return;
+        }
+
+        // Ensure a slot is selected; if not, pick a sensible default
+        if (currentSaveSlotSelected == null)
+        {
+            // Try to auto-select the first valid slot
+            var profiles = DataPersistenceManager.instance.GetAllProfilesGameData();
+            SaveSlots fallback = null;
+            if (isLoadingGame)
+            {
+                // Prefer a slot that actually has data when loading a game
+                foreach (var slot in saveSlots)
+                {
+                    GameData data;
+                    if (profiles.TryGetValue(slot.GetProfileId(), out data) && data != null)
+                    {
+                        fallback = slot;
+                        break;
+                    }
+                }
+            }
+            // If still null, just take the first slot in the UI
+            if (fallback == null && saveSlots != null && saveSlots.Length > 0)
+            {
+                fallback = saveSlots[0];
+            }
+
+            if (fallback != null)
+            {
+                currentSaveSlotSelected = fallback;
+            }
+            else
+            {
+                Debug.LogError("[SaveSlotsMenu] No save slots available to select.");
+                return;
+            }
+        }
+
         DataPersistenceManager.instance.ChangeSelectedProfileId(currentSaveSlotSelected.GetProfileId());
 
         if (!isLoadingGame)
@@ -44,31 +87,62 @@ public class SaveSlotsMenu : Menu
             // NEW GAME - Create fresh save data
             DataPersistenceManager.instance.NewGame();
             
-            // Reset checkpoint to beginning
-            if (CheckpointSystem.Instance != null)
-            {
-                CheckpointSystem.Instance.ResetProgress();
-            }
+            // Don't access CheckpointSystem here - it doesn't exist yet in MainMenu!
+            // GameData will initialize with default values (FP_Elevator, default spawn)
             
             // Load first scene - player will be spawned normally in the scene
             SceneLoader.Instance.LoadInitialGameScene("FP_Elevator");
         }
         else
         {
-            // LOAD GAME - Load existing save data
+            // LOAD GAME - Load existing save data first
             DataPersistenceManager.instance.LoadGame();
             
-            // Get checkpoint from save data
+            // Get checkpoint from the loaded profile's game data
             string savedScene = "FP_Elevator";
             
-            if (CheckpointSystem.Instance != null)
+            // Get the profile data we just loaded
+            Dictionary<string, GameData> profilesGameData = DataPersistenceManager.instance.GetAllProfilesGameData();
+            GameData loadedData = null;
+            
+            if (profilesGameData.TryGetValue(currentSaveSlotSelected.GetProfileId(), out loadedData))
             {
-                savedScene = CheckpointSystem.Instance.GetCurrentSceneName();
+                if (!string.IsNullOrEmpty(loadedData.currentSceneName))
+                {
+                    savedScene = loadedData.currentSceneName;
+                }
             }
             
-            // Load the saved checkpoint scene - player will be in the scene
+            // Load the saved checkpoint scene
             SceneLoader.Instance.LoadInitialGameScene(savedScene);
         }
+    }
+
+    /// <summary>
+    /// Deletes the currently selected save slot's data from disk and refreshes the UI list.
+    /// Wire this to the Delete button's OnClick.
+    /// </summary>
+    public void OnDeleteSaveClicked()
+    {
+        if (currentSaveSlotSelected == null)
+        {
+            Debug.LogWarning("[SaveSlotsMenu] No save slot selected to delete.");
+            return;
+        }
+
+        string profileId = currentSaveSlotSelected.GetProfileId();
+        if (string.IsNullOrEmpty(profileId))
+        {
+            Debug.LogWarning("[SaveSlotsMenu] Selected slot has no profile id.");
+            return;
+        }
+
+        // Delete save file for this slot
+        DataPersistenceManager.instance.DeleteProfile(profileId);
+
+        // Refresh displayed slots
+        currentSaveSlotSelected = null;
+        ActivateMenu(isLoadingGame);
     }
 
     //When the back button is click it activates the main menu again
@@ -105,6 +179,29 @@ public class SaveSlotsMenu : Menu
             }
         }
 
+        // Ensure a default selection exists so Play works even if user doesn't click a slot first
+        if (currentSaveSlotSelected == null)
+        {
+            SaveSlots defaultSlot = null;
+            if (isLoadingGame)
+            {
+                // Prefer the first slot with data when loading
+                foreach (var slot in saveSlots)
+                {
+                    GameData data;
+                    if (profilesGameData.TryGetValue(slot.GetProfileId(), out data) && data != null)
+                    {
+                        defaultSlot = slot;
+                        break;
+                    }
+                }
+            }
+            if (defaultSlot == null && saveSlots != null && saveSlots.Length > 0)
+            {
+                defaultSlot = saveSlots[0];
+            }
+            currentSaveSlotSelected = defaultSlot;
+        }
     }
 
     //Makes it so when clicking buttons other buttons are noninteractable so no errors occur

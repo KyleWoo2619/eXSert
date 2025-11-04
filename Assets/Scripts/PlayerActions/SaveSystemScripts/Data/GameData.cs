@@ -34,7 +34,8 @@ public class GameData
     //Base variable definitions should be here
     public GameData()
     {
-        maxHealth = 10;
+        // Starting stats for a new game
+        maxHealth = 500;
         health = maxHealth;
         playerPos = Vector3.zero;
         

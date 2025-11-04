@@ -27,7 +27,7 @@ public class GameActionHandler : MonoBehaviour
     /// </summary>
     public void RestartFromCheckpoint()
     {
-        Debug.Log("🔄 [GameActionHandler] Restarting from checkpoint...");
+        Debug.Log("[GameActionHandler] Restarting from checkpoint...");
         
         // Resume game first
         if (pauseManager != null)
@@ -55,10 +55,21 @@ public class GameActionHandler : MonoBehaviour
     /// </summary>
     public void ReturnToMainMenu()
     {
-        Debug.Log("🏠 [GameActionHandler] Returning to main menu...");
+        Debug.Log("[GameActionHandler] Returning to main menu...");
         
-        // Resume time (important before loading new scene)
-        Time.timeScale = 1f;
+        // Ensure game is fully resumed and pause UI closed
+        if (pauseManager == null)
+            pauseManager = PauseManager.Instance;
+
+        if (pauseManager != null)
+        {
+            pauseManager.ResumeGame();
+        }
+        else
+        {
+            // Fallback resume
+            Time.timeScale = 1f;
+        }
         
         // Use SceneLoader to properly clean up and load main menu
         if (SceneLoader.Instance != null)
@@ -78,7 +89,7 @@ public class GameActionHandler : MonoBehaviour
     /// </summary>
     public void QuitGame()
     {
-        Debug.Log("❌ [GameActionHandler] Quitting game...");
+        Debug.Log("[GameActionHandler] Quitting game...");
         
         #if UNITY_EDITOR
         // Stop playing in editor
@@ -94,7 +105,7 @@ public class GameActionHandler : MonoBehaviour
     /// </summary>
     public void OnDialogCanceled()
     {
-        Debug.Log("↩️ [GameActionHandler] Dialog canceled");
+        Debug.Log("[GameActionHandler] Dialog canceled");
         // Nothing to do, just logging
     }
 }
