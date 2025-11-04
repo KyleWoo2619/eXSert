@@ -1,3 +1,4 @@
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class DisableAndEnableMenus : MonoBehaviour
@@ -18,9 +19,11 @@ public class DisableAndEnableMenus : MonoBehaviour
             if (subMenuManager.lastActivatedSubMenu != null)
             {
                 subMenuManager.lastActivatedSubMenu.SetActive(false);
+                
             }
 
             subMenuManager.lastActivatedSubMenu = this.thisSubMenu;
+            
             enableThisGameobject.SetActive(true);
             Debug.Log(this.name);
         }
@@ -28,6 +31,13 @@ public class DisableAndEnableMenus : MonoBehaviour
         {
             subMenuManager.currentSettingsMenu = this.thisSettingsMenu;
             enableThisGameobject.SetActive(true);
+
+            if (subMenuManager.lastActivatedSettingsMenu != null)
+            {
+                subMenuManager.lastActivatedSettingsMenu.SetActive(false);
+            }
+
+            subMenuManager.lastActivatedSettingsMenu = this.thisSettingsMenu;
         }
 
         subMenuManager.isOnSettingsMenu = false;
