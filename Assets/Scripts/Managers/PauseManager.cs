@@ -6,6 +6,7 @@ public class PauseManager : Singletons.Singleton<PauseManager>
     [Header("UI GameObjects")]
     [SerializeField] private GameObject pauseMenuHolder;
     [SerializeField] private GameObject navigationMenuHolder;
+    [SerializeField] private GameObject settingsMenuContainer;
 
     [Header("Input Actions")]
     [SerializeField] private InputActionReference _pauseActionReference;
@@ -104,10 +105,58 @@ public class PauseManager : Singletons.Singleton<PauseManager>
     {
         Debug.Log($"[PauseManager] OnBackButton called - Current menu: {currentActiveMenu}");
         
-        // Back button closes whatever menu is currently open
+        // Check if settings menu is open
+        if (settingsMenuContainer != null && settingsMenuContainer.activeSelf)
+        {
+            // Close settings and return to pause menu
+            CloseSettingsMenu();
+            return;
+        }
+        
+        // Back button closes whatever menu is currently open (resumes game)
         if (currentActiveMenu != ActiveMenu.None)
         {
             ResumeGame();
+        }
+    }
+
+    /// <summary>
+    /// Closes the settings menu and returns to the pause menu.
+    /// Call this from your Settings "Back" button as well.
+    /// </summary>
+    public void CloseSettingsMenu()
+    {
+        if (settingsMenuContainer != null)
+        {
+            settingsMenuContainer.SetActive(false);
+            Debug.Log("[PauseManager] Settings menu closed, returning to pause menu");
+        }
+        
+        // Make sure pause menu is visible
+        if (pauseMenuHolder != null)
+        {
+            pauseMenuHolder.SetActive(true);
+        }
+        
+        currentActiveMenu = ActiveMenu.PauseMenu;
+    }
+
+    /// <summary>
+    /// Opens the settings menu from pause menu.
+    /// Call this from your Pause Menu "Settings" button.
+    /// </summary>
+    public void OpenSettingsMenu()
+    {
+        if (settingsMenuContainer != null)
+        {
+            settingsMenuContainer.SetActive(true);
+            Debug.Log("[PauseManager] Settings menu opened");
+        }
+        
+        // Optionally hide pause menu holder when settings is open
+        if (pauseMenuHolder != null)
+        {
+            pauseMenuHolder.SetActive(false);
         }
     }
 
