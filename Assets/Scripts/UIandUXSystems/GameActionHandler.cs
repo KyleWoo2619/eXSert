@@ -29,12 +29,6 @@ public class GameActionHandler : MonoBehaviour
     {
         Debug.Log("[GameActionHandler] Restarting from checkpoint...");
         
-        // Resume game first
-        if (pauseManager != null)
-        {
-            pauseManager.ResumeGame();
-        }
-        
         // Use SceneLoader to restart from checkpoint
         if (SceneLoader.Instance != null)
         {

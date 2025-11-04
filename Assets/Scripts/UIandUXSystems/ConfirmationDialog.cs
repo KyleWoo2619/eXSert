@@ -11,6 +11,10 @@ using UnityEngine.EventSystems;
 /// </summary>
 public class ConfirmationDialog : MonoBehaviour
 {
+    // Global modal tracking so other systems (e.g., PauseManager) can ignore inputs while a dialog is open
+    private static int s_openDialogs = 0;
+    public static bool AnyOpen => s_openDialogs > 0;
+
     [Header("Dialog Panel")]
     [SerializeField, Tooltip("The dialog panel GameObject to show/hide")]
     private GameObject dialogPanel;
@@ -176,6 +180,7 @@ public class ConfirmationDialog : MonoBehaviour
             dialogPanel.SetActive(true);
             isDialogOpen = true;
             dialogOpenTime = Time.unscaledTime; // Use unscaled time to work during pause
+            s_openDialogs = Mathf.Max(0, s_openDialogs) + 1;
             
             Debug.Log($"[ConfirmationDialog] ✅ Dialog opened, isDialogOpen = {isDialogOpen}, ignoring input for {INPUT_IGNORE_DURATION}s");
             
@@ -228,6 +233,7 @@ public class ConfirmationDialog : MonoBehaviour
         {
             dialogPanel.SetActive(false);
             isDialogOpen = false;
+            if (s_openDialogs > 0) s_openDialogs--;
             lastCloseTime = Time.unscaledTime;
 
             // Re-enable background interaction after a short, safe delay (and after buttons are released)
@@ -336,6 +342,7 @@ public class ConfirmationDialog : MonoBehaviour
         if (dialogPanel != null)
             dialogPanel.SetActive(false);
         isDialogOpen = false;
+        if (s_openDialogs > 0) s_openDialogs--;
         lastCloseTime = Time.unscaledTime;
 
     // Re-enable background interaction after a safe delay

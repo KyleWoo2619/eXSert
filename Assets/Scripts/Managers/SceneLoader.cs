@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections;
 using Singletons;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Central scene loading system for additive scene loading with persistent player.
@@ -13,6 +14,10 @@ public class SceneLoader : Singleton<SceneLoader>
 {
     [Header("Scene Names")]
     [SerializeField] private string mainMenuSceneName = "MainMenu";
+    
+    [Header("Prefabs (optional for non-elevator scenes)")]
+    [SerializeField, Tooltip("Player prefab with PlayerPersistence component for non-elevator scenes")] private GameObject playerPrefab;
+    [SerializeField, Tooltip("HUD prefab with HUDPersistence component for non-elevator scenes")] private GameObject hudPrefab;
     
     [Header("Debug")]
     [SerializeField] private bool showDebugLogs = true;
@@ -160,6 +165,15 @@ public class SceneLoader : Singleton<SceneLoader>
         
         Log($"Initial game scene {sceneName} loaded");
         
+        // If this is NOT an elevator scene, ensure persistent Player/HUD are spawned
+        if (!IsElevatorSceneName(sceneName))
+        {
+            EnsurePersistentPlayerAndHUD("default");
+        }
+
+        // Ensure InputReader is bound to the active PlayerInput and using Gameplay map
+        RefreshInputToCurrentPlayer();
+
         // Update checkpoint
         if (CheckpointSystem.Instance != null)
         {
@@ -225,41 +239,96 @@ public class SceneLoader : Singleton<SceneLoader>
     {
         isLoadingScene = true;
         
-        // Resume time
-        Time.timeScale = 1f;
-        
-        // Clean up persistent objects (player, HUD, etc.)
+        // Keep current pause state; we will operate using unscaled time
+        bool wasPaused = Time.timeScale == 0f;
+
+        // Always remove any persistent Player/HUD first to avoid duplicates and stale cameras
         CleanupPersistentPlayer();
-        
-        // Also clean up HUD
-        var hudPersistence = FindAnyObjectByType<HUDPersistence>();
-        if (hudPersistence != null)
+        var existingHud = FindAnyObjectByType<HUDPersistence>();
+        if (existingHud != null)
         {
-            Log($"Destroying persistent HUD on restart: {hudPersistence.gameObject.name}");
-            Destroy(hudPersistence.gameObject);
+            Log($"Destroying persistent HUD before restart: {existingHud.gameObject.name}");
+            Destroy(existingHud.gameObject);
         }
-        
-        // Unload all gameplay scenes
-        int sceneCount = SceneManager.sceneCount;
-        for (int i = sceneCount - 1; i >= 0; i--)
+
+        // Small realtime delay to let destroys process while paused
+        yield return new WaitForEndOfFrame();
+
+        bool isElevator = IsElevatorSceneName(checkpointScene);
+
+        // CRITICAL: Unload the checkpoint scene first if it's already loaded
+        // This ensures a true restart rather than just reactivating the existing scene
+        Scene existingScene = SceneManager.GetSceneByName(checkpointScene);
+        if (existingScene.isLoaded)
         {
-            Scene scene = SceneManager.GetSceneAt(i);
-            if (scene.name != "DontDestroyOnLoad" && scene.isLoaded)
-            {
-                Log($"Unloading scene for restart: {scene.name}");
-                yield return SceneManager.UnloadSceneAsync(scene);
-            }
+            Log($"Unloading existing checkpoint scene before reload: {checkpointScene}");
+            yield return SceneManager.UnloadSceneAsync(existingScene);
+            yield return null; // Let Unity settle
         }
-        
-        // Load checkpoint scene as Single
-        AsyncOperation loadOperation = SceneManager.LoadSceneAsync(checkpointScene, LoadSceneMode.Single);
-        
-        while (!loadOperation.isDone)
+
+        // Now load the checkpoint scene additively while paused
+        Log($"Additively loading checkpoint scene: {checkpointScene}");
+        AsyncOperation loadAdd = SceneManager.LoadSceneAsync(checkpointScene, LoadSceneMode.Additive);
+        while (loadAdd != null && !loadAdd.isDone)
         {
             yield return null;
         }
-        
-        Log($"Restarted at checkpoint: {checkpointScene}");
+
+        // Set the checkpoint scene active
+        var loadedScene = SceneManager.GetSceneByName(checkpointScene);
+        if (loadedScene.IsValid())
+        {
+            SceneManager.SetActiveScene(loadedScene);
+        }
+        else
+        {
+            Debug.LogError($"[SceneLoader] Failed to find loaded scene '{checkpointScene}' after additive load.");
+        }
+
+        // Give Unity one short realtime tick to register the new scene (helps when duplicating by name)
+        yield return new WaitForSecondsRealtime(0.01f);
+
+        // Unload all other scenes except DontDestroyOnLoad and the exact loadedScene
+        int sceneCount = SceneManager.sceneCount;
+        for (int i = sceneCount - 1; i >= 0; i--)
+        {
+            Scene s = SceneManager.GetSceneAt(i);
+            if (s.isLoaded && s.name != "DontDestroyOnLoad" && s.handle != loadedScene.handle)
+            {
+                Log($"Unloading scene after additive swap: {s.name}");
+                yield return SceneManager.UnloadSceneAsync(s);
+            }
+        }
+
+        // One more frame to settle
+        yield return null;
+
+        if (!isElevator)
+        {
+            // Spawn fresh persistent Player/HUD and place at saved spawn for non-elevator scenes
+            string spawnId = CheckpointSystem.Instance != null ? CheckpointSystem.Instance.GetCurrentSpawnPointID() : "default";
+            EnsurePersistentPlayerAndHUD(spawnId);
+        }
+        else
+        {
+            // Elevator scenes own their player; ensure no persistent stragglers exist
+            RemoveAnyPersistentPlayerDuplicates();
+        }
+
+        // Rebind InputReader to the current PlayerInput and switch to Gameplay
+        RefreshInputToCurrentPlayer();
+
+        // Optionally resume gameplay after the swap (unpause)
+        if (PauseManager.Instance != null)
+        {
+            PauseManager.Instance.ResumeGame();
+        }
+        else
+        {
+            Time.timeScale = 1f;
+        }
+
+        Log($"Restarted at checkpoint: {checkpointScene} (Elevator: {isElevator}, PausedWas: {wasPaused})");
         isLoadingScene = false;
     }
 
@@ -355,6 +424,35 @@ public class SceneLoader : Singleton<SceneLoader>
             Destroy(persistentPlayer.gameObject);
         }
         
+        // Also destroy any GameObjects tagged Player that live in DontDestroyOnLoad scene
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            var scene = SceneManager.GetSceneAt(i);
+            if (scene.name != "DontDestroyOnLoad") continue;
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                if (root == null) continue;
+                if (root.CompareTag("Player"))
+                {
+                    Log($"Destroying Player-tagged persistent root: {root.name}");
+                    Destroy(root);
+                }
+                else
+                {
+                    // Also check children
+                    var tagged = root.GetComponentsInChildren<Transform>(true);
+                    foreach (var t in tagged)
+                    {
+                        if (t != null && t.CompareTag("Player"))
+                        {
+                            Log($"Destroying Player-tagged persistent object: {t.gameObject.name}");
+                            Destroy(t.gameObject);
+                        }
+                    }
+                }
+            }
+        }
+        
         // Also destroy persistent HUD
         var hudPersistence = FindAnyObjectByType<HUDPersistence>();
         if (hudPersistence != null)
@@ -395,5 +493,155 @@ public class SceneLoader : Singleton<SceneLoader>
 
         // 3) Nothing found
         return null;
+    }
+
+    /// <summary>
+    /// Determines if a scene name should be treated as an elevator scene (scene supplies its own Player/HUD).
+    /// </summary>
+    private bool IsElevatorSceneName(string sceneName)
+    {
+        if (string.IsNullOrEmpty(sceneName)) return false;
+        string s = sceneName.ToLowerInvariant();
+        if (s.Contains("elevator")) return true;
+        // Project naming conventions provided: DP_, FP_, VS_
+        return s.StartsWith("fp_") || s.StartsWith("dp_") || s.StartsWith("vs_");
+    }
+
+    /// <summary>
+    /// Ensures persistent Player and HUD exist for non-elevator scenes, spawning prefabs if needed.
+    /// </summary>
+    private void EnsurePersistentPlayerAndHUD(string spawnPointId)
+    {
+        // Player
+        var player = FindAnyObjectByType<PlayerPersistence>();
+        if (player == null)
+        {
+            if (playerPrefab != null)
+            {
+                Log("Spawning persistent Player from prefab for non-elevator scene");
+                var go = Instantiate(playerPrefab);
+                // Place at spawn immediately since scene is already loaded
+                var sp = FindSpawnPoint(spawnPointId);
+                if (sp != null)
+                {
+                    go.transform.SetPositionAndRotation(sp.position, sp.rotation);
+                }
+                else
+                {
+                    Log($"Spawn point '{spawnPointId}' not found, using prefab position");
+                }
+                // PlayerPersistence on prefab will mark DontDestroyOnLoad and optionally reposition on scene load
+            }
+            else
+            {
+                Debug.LogWarning("[SceneLoader] Player prefab is not assigned, cannot spawn persistent player for non-elevator scene.");
+            }
+        }
+
+        // HUD
+        var hud = FindAnyObjectByType<HUDPersistence>();
+        if (hud == null)
+        {
+            if (hudPrefab != null)
+            {
+                Log("Spawning persistent HUD from prefab for non-elevator scene");
+                Instantiate(hudPrefab);
+            }
+            else
+            {
+                Debug.LogWarning("[SceneLoader] HUD prefab is not assigned, cannot spawn persistent HUD for non-elevator scene.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Find a spawn point by ID via SpawnPoint component or by tag/name fallback.
+    /// </summary>
+    private Transform FindSpawnPoint(string spawnPointID)
+    {
+        // Prefer SpawnPoint component
+        var points = FindObjectsByType<SpawnPoint>(FindObjectsSortMode.None);
+        foreach (var sp in points)
+        {
+            if (sp != null && sp.spawnPointID == spawnPointID)
+                return sp.transform;
+        }
+
+        // Fallback by tag
+        var tagged = GameObject.FindGameObjectsWithTag("PlayerSpawn");
+        if (tagged != null && tagged.Length > 0)
+        {
+            if (spawnPointID == "default")
+                return tagged[0].transform;
+
+            foreach (var go in tagged)
+            {
+                if (go != null && go.name.IndexOf(spawnPointID, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    return go.transform;
+            }
+
+            return tagged[0].transform; // last resort
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// After loading an elevator scene, ensure no persistent player is lingering in DontDestroyOnLoad.
+    /// If two players exist (one in active scene and one persistent), remove the persistent one.
+    /// </summary>
+    private void RemoveAnyPersistentPlayerDuplicates()
+    {
+        // Count players in active scene
+        var activeScene = SceneManager.GetActiveScene();
+        var scenePlayers = new System.Collections.Generic.List<GameObject>();
+        var persistentPlayers = new System.Collections.Generic.List<GameObject>();
+
+        // Collect by PlayerPersistence and by tag "Player"
+        foreach (var go in GameObject.FindObjectsByType<GameObject>(FindObjectsSortMode.None))
+        {
+            if (go == null) continue;
+            bool isPlayerLike = (go.GetComponent<PlayerPersistence>() != null) || go.CompareTag("Player");
+            if (!isPlayerLike) continue;
+
+            if (go.scene == activeScene)
+                scenePlayers.Add(go);
+            else if (go.scene.name == "DontDestroyOnLoad")
+                persistentPlayers.Add(go);
+        }
+
+        if (scenePlayers.Count > 0 && persistentPlayers.Count > 0)
+        {
+            foreach (var p in persistentPlayers)
+            {
+                Log($"Removing lingering persistent player after elevator load: {p.name}");
+                Destroy(p);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Finds the current scene's PlayerInput and rebinds the global InputReader to it,
+    /// then switches to the Gameplay action map so movement/pause work immediately.
+    /// </summary>
+    private void RefreshInputToCurrentPlayer()
+    {
+        var ir = InputReader.Instance;
+        if (ir == null) { Debug.LogWarning("[SceneLoader] InputReader instance not found to refresh."); return; }
+
+        // Prefer a PlayerInput on the Player-tagged object if available
+        PlayerInput pi = null;
+        var playerTagged = GameObject.FindGameObjectWithTag("Player");
+        if (playerTagged != null) pi = playerTagged.GetComponent<PlayerInput>();
+        if (pi == null) pi = Object.FindFirstObjectByType<PlayerInput>(FindObjectsInactive.Exclude);
+
+        if (pi == null)
+        {
+            Debug.LogWarning("[SceneLoader] No PlayerInput found to bind InputReader after scene load.");
+            return;
+        }
+
+        ir.RebindTo(pi, switchToGameplay: true);
+        if (!pi.enabled) pi.enabled = true;
     }
 }

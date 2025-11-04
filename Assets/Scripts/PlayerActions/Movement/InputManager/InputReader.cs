@@ -168,4 +168,78 @@ public class InputReader : Singleton<InputReader>
         if (dashAction != null) dashAction.Disable();
         if (navigationMenuAction != null) navigationMenuAction.Disable();
     }
+
+    /// <summary>
+    /// Rebind this InputReader to a new PlayerInput instance (e.g., after scene restart or player respawn).
+    /// Safely swaps action references and ensures the correct action map is active.
+    /// </summary>
+    /// <param name="newPlayerInput">The PlayerInput to bind to.</param>
+    /// <param name="switchToGameplay">If true, switch the current action map to "Gameplay".</param>
+    public void RebindTo(PlayerInput newPlayerInput, bool switchToGameplay = true)
+    {
+        if (newPlayerInput == null)
+        {
+            Debug.LogWarning("[InputReader] RebindTo called with null PlayerInput");
+            return;
+        }
+
+        // Disable any old actions to avoid ghost reads
+        if (moveAction != null) moveAction.Disable();
+        if (jumpAction != null) jumpAction.Disable();
+        if (lookAction != null) lookAction.Disable();
+        if (changeStanceAction != null) changeStanceAction.Disable();
+        if (guardAction != null) guardAction.Disable();
+        if (lightAttackAction != null) lightAttackAction.Disable();
+        if (heavyAttackAction != null) heavyAttackAction.Disable();
+        if (dashAction != null) dashAction.Disable();
+        if (navigationMenuAction != null) navigationMenuAction.Disable();
+
+        _playerInput = newPlayerInput;
+        playerInput = newPlayerInput;
+
+        if (!playerInput.enabled)
+            playerInput.enabled = true;
+
+        // Optionally set the correct map first so action lookups succeed
+        if (switchToGameplay)
+        {
+            try { playerInput.SwitchCurrentActionMap("Gameplay"); }
+            catch (System.Exception e) { Debug.LogWarning($"[InputReader] Failed to switch to Gameplay map during rebind: {e.Message}"); }
+        }
+
+        try
+        {
+            moveAction = playerInput.actions["Move"];
+            jumpAction = playerInput.actions["Jump"];
+            lookAction = playerInput.actions["Look"];
+            changeStanceAction = playerInput.actions["ChangeStance"];
+            guardAction = playerInput.actions["Guard"];
+            lightAttackAction = playerInput.actions["LightAttack"];
+            heavyAttackAction = playerInput.actions["HeavyAttack"];
+            dashAction = playerInput.actions["Dash"];
+
+            try { navigationMenuAction = playerInput.actions["NavigationMenu"]; }
+            catch { navigationMenuAction = null; }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[InputReader] Failed to assign actions during rebind: {e.Message}");
+        }
+
+        // Re-enable actions if this component is active
+        if (isActiveAndEnabled)
+        {
+            if (moveAction != null) moveAction.Enable();
+            if (jumpAction != null) jumpAction.Enable();
+            if (lookAction != null) lookAction.Enable();
+            if (changeStanceAction != null) changeStanceAction.Enable();
+            if (guardAction != null) guardAction.Enable();
+            if (lightAttackAction != null) lightAttackAction.Enable();
+            if (heavyAttackAction != null) heavyAttackAction.Enable();
+            if (dashAction != null) dashAction.Enable();
+            if (navigationMenuAction != null) navigationMenuAction.Enable();
+        }
+
+        Debug.Log("[InputReader] Rebound to new PlayerInput and actions re-enabled.");
+    }
 }

@@ -69,6 +69,11 @@ public class PauseManager : Singletons.Singleton<PauseManager>
 
     private void OnPause(InputAction.CallbackContext context)
     {
+        if (ConfirmationDialog.AnyOpen)
+        {
+            Debug.Log("[PauseManager] OnPause ignored - confirmation dialog open");
+            return;
+        }
         Debug.Log($"[PauseManager] OnPause called - Current menu: {currentActiveMenu}, IsPaused: {IsPaused}");
         
         if (currentActiveMenu == ActiveMenu.None)
@@ -86,6 +91,11 @@ public class PauseManager : Singletons.Singleton<PauseManager>
 
     private void OnNavigationMenu(InputAction.CallbackContext context)
     {
+        if (ConfirmationDialog.AnyOpen)
+        {
+            Debug.Log("[PauseManager] OnNavigationMenu ignored - confirmation dialog open");
+            return;
+        }
         Debug.Log($"[PauseManager] OnNavigationMenu called - Current menu: {currentActiveMenu}, IsPaused: {IsPaused}");
         
         if (currentActiveMenu == ActiveMenu.None)
@@ -103,6 +113,11 @@ public class PauseManager : Singletons.Singleton<PauseManager>
 
     private void OnBackButton(InputAction.CallbackContext context)
     {
+        if (ConfirmationDialog.AnyOpen)
+        {
+            Debug.Log("[PauseManager] OnBackButton ignored - confirmation dialog open");
+            return;
+        }
         Debug.Log($"[PauseManager] OnBackButton called - Current menu: {currentActiveMenu}");
         
         // Check if settings menu is open
@@ -162,6 +177,11 @@ public class PauseManager : Singletons.Singleton<PauseManager>
 
     private void OnSwapMenu(InputAction.CallbackContext context)
     {
+        if (ConfirmationDialog.AnyOpen)
+        {
+            Debug.Log("[PauseManager] OnSwapMenu ignored - confirmation dialog open");
+            return;
+        }
         // Only swap if game is paused and a menu is active
         if (!IsPaused || currentActiveMenu == ActiveMenu.None)
             return;
