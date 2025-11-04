@@ -159,7 +159,7 @@ namespace Behaviors
                 float attackRange = (Mathf.Max(enemy.attackBoxSize.x, enemy.attackBoxSize.z) * 0.5f) + enemy.attackBoxDistance;
                 float distance = Vector3.Distance(enemy.transform.position, playerTarget.position);
 
-                Debug.Log($"{enemy.gameObject.name}: Chasing '{playerTarget.name}' at position {playerTarget.position} | My position: {enemy.transform.position} | Distance: {distance:F2}");
+                // Debug.Log($"{enemy.gameObject.name}: Chasing '{playerTarget.name}' at position {playerTarget.position} | My position: {enemy.transform.position} | Distance: {distance:F2}");
 
                 MoveToAttackRange(playerTarget);
 

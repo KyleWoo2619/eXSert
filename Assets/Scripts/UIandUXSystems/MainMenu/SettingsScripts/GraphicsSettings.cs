@@ -6,7 +6,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using UnityEditor.Build;
 
 public class GraphicsSettings : MonoBehaviour
 {

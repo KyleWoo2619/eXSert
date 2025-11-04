@@ -15,7 +15,6 @@ using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Singletons;
-using UnityEditor.ShaderGraph.Serialization;
 
 public class InputReader : Singleton<InputReader>
 {

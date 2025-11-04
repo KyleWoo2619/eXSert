@@ -40,6 +40,8 @@ public class ConfirmationDialog : MonoBehaviour
     public UnityEvent OnCancel;
 
     private bool isDialogOpen = false;
+    private float dialogOpenTime = 0f;
+    private const float INPUT_IGNORE_DURATION = 0.3f; // Ignore input for 0.3 seconds after opening
 
     private void OnEnable()
     {
@@ -91,27 +93,47 @@ public class ConfirmationDialog : MonoBehaviour
         // This catches cases where the event might not fire properly
         if (isDialogOpen)
         {
-            if (selectActionReference != null && selectActionReference.action != null)
+            float timeSinceOpen = Time.unscaledTime - dialogOpenTime;
+            
+            // Only process input after the ignore duration
+            if (timeSinceOpen >= INPUT_IGNORE_DURATION)
             {
-                if (selectActionReference.action.WasPerformedThisFrame())
+                // Manual input check as fallback
+                if (selectActionReference != null && selectActionReference.action != null)
                 {
-                    Debug.Log($"[ConfirmationDialog] ⚠️ Select detected in Update (backup detection) - Closing dialog");
-                    CloseDialog();
+                    if (selectActionReference.action.WasPerformedThisFrame())
+                    {
+                        Debug.Log($"[ConfirmationDialog] ⚠️ Select detected in Update (backup detection) - Closing dialog");
+                        CloseDialog();
+                        return;
+                    }
                 }
                 
-                // Debug: Check if action is being pressed but not firing
-                if (selectActionReference.action.IsPressed())
+                // Alternative: Check raw input as last resort
+                if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.JoystickButton0)) // Escape or gamepad A
                 {
-                    Debug.Log($"[ConfirmationDialog] 🔍 Select action is being pressed (value: {selectActionReference.action.ReadValue<float>()})");
+                    Debug.Log($"[ConfirmationDialog] ⚠️ Raw input detected (Escape/A button) - Closing dialog");
+                    CloseDialog();
+                    return;
                 }
-            }
-            
-            if (confirmActionReference != null && confirmActionReference.action != null)
-            {
-                // Debug: Check if confirm action is being pressed
-                if (confirmActionReference.action.IsPressed())
+                
+                if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.JoystickButton1)) // Enter or gamepad B
                 {
-                    Debug.Log($"[ConfirmationDialog] 🔍 Confirm action is being pressed (value: {confirmActionReference.action.ReadValue<float>()})");
+                    Debug.Log($"[ConfirmationDialog] ⚠️ Raw input detected (Enter/B button) - Confirming");
+                    
+                    // Close and execute
+                    if (dialogPanel != null)
+                        dialogPanel.SetActive(false);
+                    isDialogOpen = false;
+                    DisableBackgroundObjects(false);
+                    
+                    if (buttonToSelectOnClose != null && EventSystem.current != null)
+                    {
+                        EventSystem.current.SetSelectedGameObject(buttonToSelectOnClose.gameObject);
+                    }
+                    
+                    OnConfirm?.Invoke();
+                    return;
                 }
             }
         }
@@ -128,26 +150,47 @@ public class ConfirmationDialog : MonoBehaviour
         {
             dialogPanel.SetActive(true);
             isDialogOpen = true;
+            dialogOpenTime = Time.unscaledTime; // Use unscaled time to work during pause
             
-            Debug.Log($"[ConfirmationDialog] ✅ Dialog opened, isDialogOpen = {isDialogOpen}");
+            Debug.Log($"[ConfirmationDialog] ✅ Dialog opened, isDialogOpen = {isDialogOpen}, ignoring input for {INPUT_IGNORE_DURATION}s");
             
             // Disable background interaction
             DisableBackgroundObjects(true);
             
-            // Select default button for controller navigation
-            if (defaultSelectedButton != null && EventSystem.current != null)
+            // Select default button for controller navigation (with delay for EventSystem)
+            StartCoroutine(SelectDefaultButtonDelayed());
+        }
+        else
+        {
+            Debug.LogError($"[ConfirmationDialog] ❌ Dialog panel not assigned on {gameObject.name}!");
+        }
+    }
+    
+    /// <summary>
+    /// Selects the default button after a short delay to ensure EventSystem is ready
+    /// </summary>
+    private System.Collections.IEnumerator SelectDefaultButtonDelayed()
+    {
+        // Wait one frame for UI to be fully active
+        yield return null;
+        
+        if (defaultSelectedButton != null)
+        {
+            if (EventSystem.current != null)
             {
+                EventSystem.current.SetSelectedGameObject(null); // Clear first
+                yield return null; // Wait another frame
                 EventSystem.current.SetSelectedGameObject(defaultSelectedButton.gameObject);
                 Debug.Log($"[ConfirmationDialog] 🎮 Default button selected: {defaultSelectedButton.name}");
             }
             else
             {
-                Debug.LogWarning($"[ConfirmationDialog] ⚠️ Default selected button is NULL or EventSystem is NULL!");
+                Debug.LogWarning($"[ConfirmationDialog] ⚠️ EventSystem is NULL! Controller navigation won't work.");
             }
         }
         else
         {
-            Debug.LogError($"[ConfirmationDialog] ❌ Dialog panel not assigned on {gameObject.name}!");
+            Debug.LogWarning($"[ConfirmationDialog] ⚠️ Default selected button not assigned!");
         }
     }
 
@@ -214,6 +257,14 @@ public class ConfirmationDialog : MonoBehaviour
             return;
         }
 
+        // Ignore input immediately after opening (button still held from opening dialog)
+        float timeSinceOpen = Time.unscaledTime - dialogOpenTime;
+        if (timeSinceOpen < INPUT_IGNORE_DURATION)
+        {
+            Debug.Log($"[ConfirmationDialog] ⏳ Ignoring Select - too soon after opening ({timeSinceOpen:F2}s < {INPUT_IGNORE_DURATION}s)");
+            return;
+        }
+
         Debug.Log("[ConfirmationDialog] ✅ Select (A) pressed - Canceling dialog");
         
         // Prevent event from propagating to UI buttons
@@ -235,6 +286,14 @@ public class ConfirmationDialog : MonoBehaviour
         if (!isDialogOpen)
         {
             Debug.Log($"[ConfirmationDialog] ⚠️ Dialog not open, ignoring Confirm press");
+            return;
+        }
+
+        // Ignore input immediately after opening (prevents accidental confirm)
+        float timeSinceOpen = Time.unscaledTime - dialogOpenTime;
+        if (timeSinceOpen < INPUT_IGNORE_DURATION)
+        {
+            Debug.Log($"[ConfirmationDialog] ⏳ Ignoring Confirm - too soon after opening ({timeSinceOpen:F2}s < {INPUT_IGNORE_DURATION}s)");
             return;
         }
 

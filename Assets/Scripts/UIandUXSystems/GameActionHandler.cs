@@ -4,13 +4,10 @@ using UnityEngine.SceneManagement;
 /// <summary>
 /// Handles common game actions like restarting, returning to menu, quitting.
 /// Use this with ConfirmationDialog to execute these actions after confirmation.
+/// Updated to work with SceneLoader and CheckpointSystem.
 /// </summary>
 public class GameActionHandler : MonoBehaviour
 {
-    [Header("Scene Names")]
-    [SerializeField, Tooltip("Name of the main menu scene")]
-    private string mainMenuSceneName = "MainMenu";
-
     [Header("References")]
     [SerializeField, Tooltip("Reference to PauseManager (optional)")]
     private PauseManager pauseManager;
@@ -26,7 +23,7 @@ public class GameActionHandler : MonoBehaviour
 
     /// <summary>
     /// Restarts the game from the last checkpoint.
-    /// TODO: Implement checkpoint system.
+    /// Uses CheckpointSystem to reload the proper scene and spawn point.
     /// </summary>
     public void RestartFromCheckpoint()
     {
@@ -38,14 +35,23 @@ public class GameActionHandler : MonoBehaviour
             pauseManager.ResumeGame();
         }
         
-        // TODO: Implement actual checkpoint restart logic
-        // For now, just reload the current scene
-        string currentScene = SceneManager.GetActiveScene().name;
-        SceneManager.LoadScene(currentScene);
+        // Use SceneLoader to restart from checkpoint
+        if (SceneLoader.Instance != null)
+        {
+            SceneLoader.Instance.RestartFromCheckpoint();
+        }
+        else
+        {
+            // Fallback: just reload current scene
+            Debug.LogWarning("[GameActionHandler] SceneLoader not found, using fallback reload");
+            string currentScene = SceneManager.GetActiveScene().name;
+            SceneManager.LoadScene(currentScene);
+        }
     }
 
     /// <summary>
     /// Returns to the main menu.
+    /// Properly cleans up DontDestroyOnLoad objects.
     /// </summary>
     public void ReturnToMainMenu()
     {
@@ -54,14 +60,16 @@ public class GameActionHandler : MonoBehaviour
         // Resume time (important before loading new scene)
         Time.timeScale = 1f;
         
-        // Load main menu
-        if (!string.IsNullOrEmpty(mainMenuSceneName))
+        // Use SceneLoader to properly clean up and load main menu
+        if (SceneLoader.Instance != null)
         {
-            SceneManager.LoadScene(mainMenuSceneName);
+            SceneLoader.Instance.LoadMainMenu();
         }
         else
         {
-            Debug.LogError("[GameActionHandler] Main menu scene name not set!");
+            // Fallback: just load main menu scene
+            Debug.LogWarning("[GameActionHandler] SceneLoader not found, using fallback load");
+            SceneManager.LoadScene("MainMenu");
         }
     }
 

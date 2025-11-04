@@ -1,5 +1,6 @@
 /*
 Written by Brandon Wahl
+Updated to work with SceneLoader and CheckpointSystem
 
 Handles the save slot menu and the actions of the buttons clicked
 
@@ -28,22 +29,46 @@ public class SaveSlotsMenu : Menu
         saveSlots = this.GetComponentsInChildren<SaveSlots>();
     }
 
-    //When a save slot is clicked, it gathers the profile Id and loads the proper data
+    /// <summary>
+    /// When a save slot is clicked, it gathers the profile Id and loads the proper data.
+    /// Uses new SceneLoader system for proper scene management.
+    /// </summary>
     public void OnSaveSlotClicked()
     {
-
         DisableMenuButtons();
 
         DataPersistenceManager.instance.ChangeSelectedProfileId(currentSaveSlotSelected.GetProfileId());
 
         if (!isLoadingGame)
         { 
+            // NEW GAME - Create fresh save data
             DataPersistenceManager.instance.NewGame();
+            
+            // Reset checkpoint to beginning
+            if (CheckpointSystem.Instance != null)
+            {
+                CheckpointSystem.Instance.ResetProgress();
+            }
+            
+            // Load first scene - player will be spawned normally in the scene
+            SceneLoader.Instance.LoadInitialGameScene("FP_Elevator");
         }
-
-        DataPersistenceManager.instance.SaveGame();
-
-        SceneManager.LoadSceneAsync("FP_Elevator");
+        else
+        {
+            // LOAD GAME - Load existing save data
+            DataPersistenceManager.instance.LoadGame();
+            
+            // Get checkpoint from save data
+            string savedScene = "FP_Elevator";
+            
+            if (CheckpointSystem.Instance != null)
+            {
+                savedScene = CheckpointSystem.Instance.GetCurrentSceneName();
+            }
+            
+            // Load the saved checkpoint scene - player will be in the scene
+            SceneLoader.Instance.LoadInitialGameScene(savedScene);
+        }
     }
 
     //When the back button is click it activates the main menu again
