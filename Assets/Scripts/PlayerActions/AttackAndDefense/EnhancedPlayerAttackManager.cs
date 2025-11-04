@@ -12,6 +12,8 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+using Utilities.Combat.Attacks;
+
 public class EnhancedPlayerAttackManager : MonoBehaviour
 {
     [Header("Input")]

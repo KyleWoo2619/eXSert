@@ -3,6 +3,9 @@ Written by Brandon Wahl
 
 Allows the player to switch between states, or stances, which changes attack styles
 
+Editted by Will T
+
+
 */
 
 using System.Collections;
