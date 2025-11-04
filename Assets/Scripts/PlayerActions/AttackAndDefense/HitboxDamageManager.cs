@@ -164,12 +164,32 @@ public class HitboxDamageManager : MonoBehaviour, IAttackSystem
     }
     
 
-
     private void OnDrawGizmos()
     {
         if (!boxCollider) return;
-        Gizmos.color = boxCollider.enabled ? Color.red : Color.gray;
+        
         Gizmos.matrix = Matrix4x4.TRS(transform.position, transform.rotation, transform.lossyScale);
-        Gizmos.DrawWireCube(boxCollider.center, boxCollider.size);
+        
+        // Set color based on whether hitbox is active
+        if (boxCollider.enabled)
+        {
+            // Active hitbox - VERY BRIGHT RED with strong fill
+            Gizmos.color = new Color(1f, 0f, 0f, 0.7f); // Bright red with 70% opacity
+            Gizmos.DrawCube(boxCollider.center, boxCollider.size);
+            
+            // Thick bright outline
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireCube(boxCollider.center, boxCollider.size);
+            
+            // Draw a yellow outline to make it REALLY stand out
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireCube(boxCollider.center, boxCollider.size * 1.02f);
+        }
+        else
+        {
+            // Inactive hitbox - subtle gray
+            Gizmos.color = new Color(0.5f, 0.5f, 0.5f, 0.2f);
+            Gizmos.DrawWireCube(boxCollider.center, boxCollider.size);
+        }
     }
 }

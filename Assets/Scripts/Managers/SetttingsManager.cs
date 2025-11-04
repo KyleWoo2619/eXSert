@@ -12,7 +12,6 @@ public class SettingsManager : Singleton<SettingsManager>
     [SerializeField] internal bool invertY;
     internal float sensitivity;
     [SerializeField] internal bool comboProgression;
-    [SerializeField] internal bool rumbleOn;
     [SerializeField] internal float rumbleStrength;
     protected override void Awake()
     {

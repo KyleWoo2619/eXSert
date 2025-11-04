@@ -320,7 +320,12 @@ public class EnhancedPlayerAttackManager : MonoBehaviour
         if (activeHitbox != null)
         {
             activeHitbox.transform.SetParent(transform, worldPositionStays: true);
-            Debug.Log($"[StateDriven] Hitbox Spawned -> {attack.attackName}");
+            Debug.Log($"[StateDriven] Hitbox Spawned -> {attack.attackName} at position {activeHitbox.transform.position}");
+            Debug.DrawLine(transform.position, activeHitbox.transform.position, Color.cyan, 2f);
+        }
+        else
+        {
+            Debug.LogError($"[StateDriven] FAILED to create hitbox for {attack.attackName}!");
         }
 
         yield return new WaitForSeconds(activeDuration);

@@ -546,6 +546,15 @@ namespace eXsert
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Swap"",
+                    ""type"": ""Button"",
+                    ""id"": ""7b75d88c-4fe1-4579-a8b2-6fcee161eb6e"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -768,6 +777,28 @@ namespace eXsert
                     ""action"": ""Navigation"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""94edd94c-f910-47e4-aa3e-3e2890f374ae"",
+                    ""path"": ""<Gamepad>/rightShoulder"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Swap"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""cc40499b-2170-444b-8082-0f1d9df36d58"",
+                    ""path"": ""<Keyboard>/tab"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Swap"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         },
@@ -885,6 +916,7 @@ namespace eXsert
             m_UI_Back = m_UI.FindAction("Back", throwIfNotFound: true);
             m_UI_Select = m_UI.FindAction("Select", throwIfNotFound: true);
             m_UI_Resume = m_UI.FindAction("Resume", throwIfNotFound: true);
+            m_UI_Swap = m_UI.FindAction("Swap", throwIfNotFound: true);
             // CameraControls
             m_CameraControls = asset.FindActionMap("CameraControls", throwIfNotFound: true);
             m_CameraControls_MouseZoom = m_CameraControls.FindAction("MouseZoom", throwIfNotFound: true);
@@ -1170,6 +1202,7 @@ namespace eXsert
         private readonly InputAction m_UI_Back;
         private readonly InputAction m_UI_Select;
         private readonly InputAction m_UI_Resume;
+        private readonly InputAction m_UI_Swap;
         /// <summary>
         /// Provides access to input actions defined in input action map "UI".
         /// </summary>
@@ -1197,6 +1230,10 @@ namespace eXsert
             /// Provides access to the underlying input action "UI/Resume".
             /// </summary>
             public InputAction @Resume => m_Wrapper.m_UI_Resume;
+            /// <summary>
+            /// Provides access to the underlying input action "UI/Swap".
+            /// </summary>
+            public InputAction @Swap => m_Wrapper.m_UI_Swap;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
@@ -1235,6 +1272,9 @@ namespace eXsert
                 @Resume.started += instance.OnResume;
                 @Resume.performed += instance.OnResume;
                 @Resume.canceled += instance.OnResume;
+                @Swap.started += instance.OnSwap;
+                @Swap.performed += instance.OnSwap;
+                @Swap.canceled += instance.OnSwap;
             }
 
             /// <summary>
@@ -1258,6 +1298,9 @@ namespace eXsert
                 @Resume.started -= instance.OnResume;
                 @Resume.performed -= instance.OnResume;
                 @Resume.canceled -= instance.OnResume;
+                @Swap.started -= instance.OnSwap;
+                @Swap.performed -= instance.OnSwap;
+                @Swap.canceled -= instance.OnSwap;
             }
 
             /// <summary>
@@ -1537,6 +1580,13 @@ namespace eXsert
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnResume(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "Swap" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnSwap(InputAction.CallbackContext context);
         }
         /// <summary>
         /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "CameraControls" which allows adding and removing callbacks.

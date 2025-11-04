@@ -8,89 +8,101 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-public class GeneralSettings : MonoBehaviour, ISettings
+public class GeneralSettings : MonoBehaviour
 {
-    [SerializeField] private TMP_Text sensTextValue = null;
+    [Header("Sensitivity Settings")]
     [SerializeField] private Slider sensSlider = null;
     [SerializeField] private float defaultSens = 1.5f;
-    [SerializeField] private Toggle controllerVibration;
-    [SerializeField] private Toggle invertYToggle;
-    [SerializeField] private TMP_Text vibrationTextValue = null;
+
+    [Header("Vibration Settings")]
     [SerializeField] private Slider vibrationSlider = null;
     [SerializeField] private float defaultVibration = 0.5f;
 
+    [Header("On/Off Text")]
+    [SerializeField] private TMP_Text invertYText = null;
+    [SerializeField] private TMP_Text comboProgressionText = null;
+    private bool isInvertYOn = false;
+    private bool isComboProgressionOn;
     private float vibration;
-    private bool isVibrate;
 
     //All functions below sets values based on player choice
     public void SetSens(float sens)
     {
         SettingsManager.Instance.sensitivity = sens;
-        sensTextValue.text = sens.ToString("0.0");
+        PlayerPrefs.SetFloat("masterSens", SettingsManager.Instance.sensitivity);
     }
 
     public void SetVibration(float vibrate)
     {
         SettingsManager.Instance.rumbleStrength = vibrate;
-        vibrationTextValue.text = vibrate.ToString("0.0");
+        PlayerPrefs.SetFloat("masterVibrateStrength", SettingsManager.Instance.rumbleStrength);
     }
-    public void SetControllerVibrationOn(bool controllerVibrate)
+
+    public void SetComboProgressionDisplay(bool displayOn)
     {
-        isVibrate = controllerVibrate;
+        SettingsManager.Instance.comboProgression = displayOn;
+
+        Debug.Log("Combo Progression: " + !isComboProgressionOn);
+
+        if (displayOn)
+        {
+            isComboProgressionOn = true;
+            comboProgressionText.text = "On";
+        }
+        else
+        {
+            isComboProgressionOn = false;
+            comboProgressionText.text = "Off";
+        }
+
+        if (isComboProgressionOn)
+        {
+            PlayerPrefs.SetInt("masterCombo", 1);
+            SettingsManager.Instance.comboProgression = true;
+        }
+        else
+        {
+            PlayerPrefs.SetInt("masterCombo", 0);
+            SettingsManager.Instance.comboProgression = false;
+        }
     }
 
     public void SetInvertY(bool invertYOn)
     {
         SettingsManager.Instance.invertY = invertYOn;
+        Debug.Log("Invert Y: " + !isInvertYOn);
+
+        if (invertYOn)
+        {
+            isInvertYOn = true;
+            invertYText.text = "On";
+        }
+        else
+        {
+            isInvertYOn = false;
+            invertYText.text = "Off";
+        }
+
+        
     }
 
-    //Applies general settings
-    public void GeneralApply()
+    public void ApplySettings(string settingName)
     {
-
-        PlayerPrefs.SetFloat("masterSens", SettingsManager.Instance.sensitivity);
-
-        if (invertYToggle.isOn)
+        if(settingName == "sens")
         {
-            PlayerPrefs.SetInt("masterInvertY", 1);
-            SettingsManager.Instance.invertY = true;
+            
         }
-        else
-        {
-            PlayerPrefs.SetInt("masterInvertY", 0);
-            SettingsManager.Instance.invertY = false;
-        }
-
-        PlayerPrefs.SetFloat("masterVibrateStrength", SettingsManager.Instance.rumbleStrength);
-
-        if (controllerVibration.isOn)
-        {
-            PlayerPrefs.SetInt("masterVibrationOn", 1);
-            SettingsManager.Instance.rumbleOn = true;
-        }
-        else
-        {
-            PlayerPrefs.SetInt("masterVibrationOn", 0);
-            SettingsManager.Instance.rumbleOn = false;
-        }
-
     }
 
     //Resets the settings
     public void ResetButton()
     {
-        sensTextValue.text = defaultSens.ToString("0.0");
         SettingsManager.Instance.sensitivity = defaultSens;
         sensSlider.value = defaultSens;
 
-        vibrationTextValue.text = defaultVibration.ToString("0.0");
         SettingsManager.Instance.rumbleStrength = defaultVibration;
         vibrationSlider.value = defaultVibration;
-        SettingsManager.Instance.rumbleOn = true;
-
         SettingsManager.Instance.invertY = false;
-
-        GeneralApply();
     }
 
 }

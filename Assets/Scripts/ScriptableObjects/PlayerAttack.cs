@@ -119,6 +119,10 @@ public class PlayerAttack : ScriptableObject
     private float _customAttackDistanceFromPlayer = 0.75f;
     public float distanceFromPlayer { get => _defaultDistanceFromPlayer ? 1f : range / 2f; }
 
+    [SerializeField, Tooltip("Vertical offset for hitbox spawn height (0 = ground level, 1 = chest height, etc.)")]
+    private float _hitboxHeightOffset = 1f;
+    public float hitboxHeightOffset { get => _hitboxHeightOffset; }
+
     // Returns the dimensions of the area of effect attack, or zero vector if not AOE
     public Vector2 areaOfEffectDimensions
     {
@@ -165,8 +169,13 @@ public class PlayerAttack : ScriptableObject
     public GameObject createHitBox(Vector3 playerPosition, Vector3 playerForward)
     {
         GameObject hitbox = new GameObject(attackName + " Hitbox");
-        hitbox.transform.position = playerPosition + (playerForward * distanceFromPlayer);
+        hitbox.tag = "PlayerAttackHitbox"; // Tag for easy identification
+        
+        // Calculate position: forward distance + height offset
+        Vector3 spawnPosition = playerPosition + (playerForward * distanceFromPlayer) + (Vector3.up * hitboxHeightOffset);
+        hitbox.transform.position = spawnPosition;
         hitbox.transform.rotation = Quaternion.LookRotation(playerForward);
+        
         BoxCollider hb = hitbox.AddComponent<BoxCollider>();
         hb.isTrigger = true;
         hb.size = new Vector3(x: width, y: 1f, z: range);
@@ -178,11 +187,11 @@ public class PlayerAttack : ScriptableObject
         damageManager.weaponName = attackName;
         damageManager.damageAmount = damage;
 
-        // personal tip to learn how to use HitBoxDamageManager
-
-
-        // put in a gizmo drawer for visualization
-
+        // Add visual debug component for gizmos
+        var debugVisual = hitbox.AddComponent<AttackHitboxVisualizer>();
+        debugVisual.width = width;
+        debugVisual.range = range;
+        debugVisual.attackName = attackName;
 
         return hitbox;
     }

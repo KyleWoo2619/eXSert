@@ -25,13 +25,22 @@ public class GameData
     public float health;
     public float maxHealth;
     public Vector3 playerPos;
+    
+    // Checkpoint/Progress data
+    public string currentSceneName;
+    public string currentSpawnPointID;
 
 
     //Base variable definitions should be here
     public GameData()
     {
-        maxHealth = 10;
+        // Starting stats for a new game
+        maxHealth = 500;
         health = maxHealth;
         playerPos = Vector3.zero;
+        
+        // Default checkpoint is the first level
+        currentSceneName = "FP_Elevator";
+        currentSpawnPointID = "default";
     }
 }

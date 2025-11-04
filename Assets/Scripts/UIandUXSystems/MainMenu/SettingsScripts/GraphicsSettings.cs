@@ -7,56 +7,126 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-public class GraphicsSettings : MonoBehaviour, ISettings
+public class GraphicsSettings : MonoBehaviour
 {
-    [SerializeField] private TMP_Text brightnessTextValue = null;
+    [Header("Brightness Settings")]
     [SerializeField] private Slider brightnessSlider = null;
     [SerializeField] private float defaultBrightness = 1f;
-    [SerializeField] private TMP_Dropdown qualityDropdown;
-    [SerializeField] private TMP_Dropdown fpsDropdown;
-    [SerializeField] private Toggle fullScreenToggle;
-    [SerializeField] private Toggle cameraShakeToggle;
-    [SerializeField] private Toggle motionBlurToggle;
-    [SerializeField] private int frameRate = 60;
-
-    private int qualityLevel;
-    private int fpsLevel;
-    private bool isMotionBlur;
     private float brightnessLevel;
+
+    [Header("Display Mode Settings")]
+    [SerializeField] private TMP_Text displayModeText;
+    private bool isFullscreen;
+
+    [Header("FPS Mode Settings")]
+    [SerializeField] private int frameRate = 60;
+    [SerializeField] private TMP_Text fpsText;
+    private int fpsLevel;
+
+    [Header("Resolution Mode Settings")]
+    [SerializeField] private TMP_Text resolutionText;
+
+    [Header("Camera Shake Settings")]
+    [SerializeField] private TMP_Text cameraShakeText;
+    private bool isCameraShake;
+
+    [Header("Motion Blur Settings")]
+    [SerializeField] private TMP_Text motionBlurText;
+    private bool isMotionBlur;
+    
 
     //Alls functions below change values based on player choice
     public void SetBrightness(float brightness)
     {
         Screen.brightness = brightness;
-        brightnessTextValue.text = brightness.ToString("0.0");
+    }
 
+    public void SetDisplayMode(string displayMode)
+    {
+        if (displayMode == "fullscreen")
+        {
+            Screen.fullScreenMode = FullScreenMode.FullScreenWindow;
+            displayModeText.text = "Fullscreen";
+            isFullscreen = true;
+        }
+        else if (displayMode == "windowed")
+        {
+            Screen.fullScreenMode = FullScreenMode.Windowed;
+            displayModeText.text = "Windowed";
+            isFullscreen = false;
+        }
+        else
+        {
+            Screen.SetResolution(Screen.currentResolution.width, Screen.currentResolution.height, FullScreenMode.FullScreenWindow);
+            displayModeText.text = "Borderless";
+            isFullscreen = false;
+        }
     }
 
     public void SetMotionBlur(bool motionBlur)
     {
         isMotionBlur = motionBlur;
+
+        if (motionBlur)
+        {
+            motionBlurText.text = "On";
+            Debug.Log("Motion Blur:" + isMotionBlur);
+        }
+        else
+        {
+            motionBlurText.text = "Off";
+            Debug.Log("Motion Blur:" + isMotionBlur);
+        }
     }
 
-    public void SetQuality(int qualityIndex)
+    public void SetResolution(string resolution)
     {
-        qualityLevel = qualityIndex;
+        if (resolution == "1920x1080")
+        {
+            resolutionText.text = "1920x1080";
+            Screen.SetResolution(1920, 1080, isFullscreen);
+        }
+        else
+        {
+            resolutionText.text = "2560x1440";
+            Screen.SetResolution(2560, 1440, isFullscreen);
+        }
+    }
+
+    public void SetCameraShake(bool cameraShake)
+    {
+        isCameraShake = cameraShake;
+
+        if (cameraShake)
+        {
+            cameraShakeText.text = "On";
+            Debug.Log("Motion Blur:" + isCameraShake);
+        }
+        else
+        {
+            cameraShakeText.text = "Off";
+            Debug.Log("Motion Blur:" + isCameraShake);
+        }
     }
 
     public void SetFPS(int framerate)
     {
         QualitySettings.vSyncCount = 0;
 
-        switch (framerate)
+        if (framerate == 60)
         {
-            case 0:
-                Application.targetFrameRate = 30;
-                break;
-            case 1:
-                Application.targetFrameRate = 60;
-                break;
-            case 2:
-                Application.targetFrameRate = -1;
-                break;
+            fpsText.text = "60";
+            Application.targetFrameRate = 60;
+        }
+        else if (framerate == 30)
+        {
+            fpsText.text = "30";
+            Application.targetFrameRate = 30;
+        }
+        else
+        {
+            fpsText.text = "Unlimited";
+            Application.targetFrameRate = -1;
         }
     }
 
@@ -64,9 +134,6 @@ public class GraphicsSettings : MonoBehaviour, ISettings
     public void GraphicsApply()
     {
         PlayerPrefs.SetFloat("masterBrightness", brightnessLevel);
-
-        PlayerPrefs.SetInt("masterQuality", qualityLevel);
-        QualitySettings.SetQualityLevel(qualityLevel);
 
         PlayerPrefs.SetInt("masterFPS", fpsLevel);
         Application.targetFrameRate = fpsLevel;
@@ -79,18 +146,8 @@ public class GraphicsSettings : MonoBehaviour, ISettings
     {
 
         brightnessSlider.value = defaultBrightness;
-        brightnessTextValue.text = defaultBrightness.ToString("0.0");
 
-        fpsDropdown.value = 1;
         Application.targetFrameRate = 30;
-
-        qualityDropdown.value = 1;
-        QualitySettings.SetQualityLevel(1);
-
-        fullScreenToggle.isOn = false;
-        Screen.fullScreen = false;
-
-        motionBlurToggle.isOn = false;
 
         GraphicsApply();
 

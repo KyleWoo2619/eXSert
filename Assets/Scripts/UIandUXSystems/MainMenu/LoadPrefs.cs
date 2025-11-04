@@ -45,49 +45,53 @@ public class LoadPrefs : MonoBehaviour
             {
                 float masterVolume = PlayerPrefs.GetFloat("masterVolume");
 
-                masterVolumeTextValue.text = masterVolume.ToString("0.0");
-                masterVolumeSlider.value = masterVolume;
-                SoundManager.Instance.masterSource.volume = masterVolume;
+                if (masterVolumeTextValue) masterVolumeTextValue.text = masterVolume.ToString("0.0");
+                if (masterVolumeSlider) masterVolumeSlider.value = masterVolume;
+                if (SoundManager.Instance != null && SoundManager.Instance.masterSource)
+                    SoundManager.Instance.masterSource.volume = masterVolume;
 
                 float musicVolume = PlayerPrefs.GetFloat("musicVolume");
 
-                musicVolumeTextValue.text = musicVolume.ToString("0.0");
-                musicVolumeSlider.value = musicVolume;
-                SoundManager.Instance.musicSource.volume = musicVolume;
+                if (musicVolumeTextValue) musicVolumeTextValue.text = musicVolume.ToString("0.0");
+                if (musicVolumeSlider) musicVolumeSlider.value = musicVolume;
+                if (SoundManager.Instance != null && SoundManager.Instance.musicSource)
+                    SoundManager.Instance.musicSource.volume = musicVolume;
 
                 float sfxVolume = PlayerPrefs.GetFloat("sfxVolume");
 
-                sfxVolumeTextValue.text = sfxVolume.ToString("0.0");
-                sfxVolumeSlider.value = sfxVolume;
-                SoundManager.Instance.sfxSource.volume = sfxVolume;
+                if (sfxVolumeTextValue) sfxVolumeTextValue.text = sfxVolume.ToString("0.0");
+                if (sfxVolumeSlider) sfxVolumeSlider.value = sfxVolume;
+                if (SoundManager.Instance != null && SoundManager.Instance.sfxSource)
+                    SoundManager.Instance.sfxSource.volume = sfxVolume;
 
                 float voiceVolume = PlayerPrefs.GetFloat("voiceVolume");
 
-                voiceVolumeTextValue.text = voiceVolume.ToString("0.0");
-                voiceVolumeSlider.value = voiceVolume;
-                SoundManager.Instance.voiceSource.volume = voiceVolume;
+                if (voiceVolumeTextValue) voiceVolumeTextValue.text = voiceVolume.ToString("0.0");
+                if (voiceVolumeSlider) voiceVolumeSlider.value = voiceVolume;
+                if (SoundManager.Instance != null && SoundManager.Instance.voiceSource)
+                    SoundManager.Instance.voiceSource.volume = voiceVolume;
                 
             } 
             else
             {
-                sound.ResetButton();
+                if (sound != null) sound.ResetButton();
             }
 
             if (PlayerPrefs.HasKey("masterQuality"))
             {
                 int localQuality = PlayerPrefs.GetInt("masterQuality");
-                qualityDropdown.value = localQuality;
+                if (qualityDropdown) qualityDropdown.value = localQuality;
                 QualitySettings.SetQualityLevel(localQuality);
             }
             else
             {
-                graphics.ResetButton();
+                if (graphics != null) graphics.ResetButton();
             }
 
             if (PlayerPrefs.HasKey("masterFPS"))
             {
                 int localFPS = PlayerPrefs.GetInt("masterFPS");
-                fpsDropdown.value = localFPS;
+                if (fpsDropdown) fpsDropdown.value = localFPS;
                 Application.targetFrameRate = localFPS;
             }
 
@@ -101,19 +105,18 @@ public class LoadPrefs : MonoBehaviour
             if (PlayerPrefs.HasKey("masterBrightness"))
             {
                 float localBrightness = PlayerPrefs.GetFloat("masterBrightness");
-                brightnessTextValue.text = localBrightness.ToString("0.0");
-                brightnessSlider.value = localBrightness;
+                if (brightnessTextValue) brightnessTextValue.text = localBrightness.ToString("0.0");
+                if (brightnessSlider) brightnessSlider.value = localBrightness;
             }
 
             if (PlayerPrefs.HasKey("masterSens"))
             {
                 float localSens = PlayerPrefs.GetFloat("masterSens");
-                sensTextValue.text = localSens.ToString("0.0");
-                sensSlider.value = localSens;
+                if (sensSlider) sensSlider.value = localSens;
             }
             else
             {
-                general.ResetButton();
+                if (general != null) general.ResetButton();
             }
 
             if (PlayerPrefs.HasKey("masterInvertY"))
@@ -122,11 +125,13 @@ public class LoadPrefs : MonoBehaviour
 
                 if (localInvert == 1)
                 {
-                    SettingsManager.Instance.invertY = true;
+                    if (SettingsManager.Instance != null)
+                        SettingsManager.Instance.invertY = true;
                 }
                 else
                 {
-                    SettingsManager.Instance.invertY = false;
+                    if (SettingsManager.Instance != null)
+                        SettingsManager.Instance.invertY = false;
                 }
             }
         }
