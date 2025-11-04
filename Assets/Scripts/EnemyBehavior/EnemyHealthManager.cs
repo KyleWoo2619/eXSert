@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using Behaviors;
 using Stateless;
+using System.Diagnostics.Tracing;
 
 public class EnemyHealthManager : MonoBehaviour, IHealthSystem
 {
@@ -15,6 +16,7 @@ public class EnemyHealthManager : MonoBehaviour, IHealthSystem
     [SerializeField] private float currentHealth;
     
     [Header("Events")]
+
     [SerializeField] private UnityEvent onDeath;
     [SerializeField] private UnityEvent<float> onHealthChanged; // passes current health percentage (0-1)
     [SerializeField] private UnityEvent onTakeDamage;
@@ -22,7 +24,10 @@ public class EnemyHealthManager : MonoBehaviour, IHealthSystem
     [Header("Death Settings")]
     [SerializeField] private bool destroyOnDeath = true;
     [SerializeField] private float destroyDelay = 2f;
-    
+
+    public delegate void KillCountProgression();
+    public static event KillCountProgression onDeathEvent;
+
     private bool isDead = false;
     private BaseEnemy<EnemyState, EnemyTrigger> enemyScript;
 
@@ -37,6 +42,7 @@ public class EnemyHealthManager : MonoBehaviour, IHealthSystem
         
         // Get reference to the enemy script on this GameObject
         enemyScript = GetComponent<BaseEnemy<EnemyState, EnemyTrigger>>();
+
         
         // If the enemy has a state machine, listen for transitions so we can react to the
         // Death state when it is entered by the AI (for example external triggers like AlarmCarrier)
@@ -87,7 +93,7 @@ public class EnemyHealthManager : MonoBehaviour, IHealthSystem
         onTakeDamage?.Invoke();
         onHealthChanged?.Invoke(currentHealth / maxHealth);
         
-        Debug.Log($"❤️ {gameObject.name} took {damage} damage. Current HP: {currentHealth}/{maxHealth}");
+        Debug.Log($"{gameObject.name} took {damage} damage. Current HP: {currentHealth}/{maxHealth}");
         
         // Check if we need to trigger health thresholds for the enemy AI
         if (enemyScript != null)
@@ -130,20 +136,11 @@ public class EnemyHealthManager : MonoBehaviour, IHealthSystem
         if (isDead) return;
         isDead = true;
 
-        Debug.Log($"💀 {gameObject.name} entering death flow (handled by EnemyHealthManager)");
-        Debug.Log($"💀 onDeath has {(onDeath != null ? onDeath.GetPersistentEventCount() : 0)} listeners");
+        Debug.Log($"{gameObject.name} entering death flow (handled by EnemyHealthManager)");
 
         // Trigger death event for any listeners (VFX, SFX, UI)
-        if (onDeath != null)
-        {
-            Debug.Log($"💀 Invoking onDeath event now!");
-            onDeath.Invoke();
-            Debug.Log($"💀 onDeath event invoked successfully");
-        }
-        else
-        {
-            Debug.LogWarning($"💀 onDeath event is NULL - no listeners will be called!");
-        }
+        onDeathEvent?.Invoke();
+        onDeath?.Invoke();
 
         // If there's an enemy script, notify it that death was requested (this will call
         // TriggerEnemyDeath which is safe because we guard with isDead above)
@@ -189,6 +186,7 @@ public class EnemyHealthManager : MonoBehaviour, IHealthSystem
         
         if (currentHealth <= 0f && !isDead)
         {
+
             Die();
         }
     }
