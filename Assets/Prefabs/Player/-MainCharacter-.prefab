@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 6472697150673596987}
   - component: {fileID: 6857259650679578637}
   - component: {fileID: 8028039179784986661}
+  - component: {fileID: 904202583471114796}
   - component: {fileID: 1311640709865527365}
   - component: {fileID: 2102518882058842048}
   - component: {fileID: 1695551391709959748}
@@ -38,8 +39,8 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8897342698520110998}
-  - {fileID: 3322719214125617500}
   - {fileID: 1825938541647297071}
+  - {fileID: 3322719214125617500}
   - {fileID: 3281925739719376737}
   - {fileID: 4184589992357065721}
   m_Father: {fileID: 0}
@@ -106,7 +107,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1224979812265187715}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 91a0db0524e177f4093a0bc707e29fb0, type: 3}
   m_Name: 
@@ -146,6 +147,42 @@ MonoBehaviour:
   plungeLockSeconds: 0.2
   invertYAxis: 0
   showAnimationDebug: 0
+--- !u!114 &904202583471114796
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1224979812265187715}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c34e62e92a160484aa309c223b8a1e94, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
+  animator: {fileID: 8717991764053412646}
+  _jumpAction: {fileID: 8978839087202845958, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
+  _dashAction: {fileID: 3357771442123090606, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
+  speed: 6
+  maxNormalSpeed: 5
+  guardWalkingSpeed: 2.5
+  friction: 3
+  cameraTransform: {fileID: 0}
+  shouldFaceMoveDirection: 1
+  gravity: -9.81
+  jumpForce: 10
+  doubleJumpForce: 10
+  airAttackHopForce: 5
+  terminalVelocity: 20
+  canDoubleJump: 0
+  boxSize: {x: 0.8, y: 0.1, z: 0.8}
+  maxDistance: 0
+  layerMask:
+    serializedVersion: 2
+    m_Bits: 0
+  dashSpeed: 1
+  dashTime: 0
+  dashCoolDown: 0
+  invertYAxis: 0
 --- !u!114 &1311640709865527365
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -284,7 +321,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8897342698520110998}
   m_Layer: 6
-  m_Name: Cameratarget
+  m_Name: Camera Target
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1605,11 +1642,12 @@ GameObject:
   - component: {fileID: 1825938541647297071}
   - component: {fileID: 3779885326552736917}
   - component: {fileID: 2692669914888571395}
+  - component: {fileID: 2824245587450060782}
   - component: {fileID: 9005950028633721683}
   - component: {fileID: 3918307614257722462}
   - component: {fileID: 8984555077238467240}
   m_Layer: 6
-  m_Name: CombatManager
+  m_Name: Combat Scripts
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1652,7 +1690,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4110720578632064250}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ec8905dcf91c4fb4cac2a5a7931cf540, type: 3}
   m_Name: 
@@ -1669,7 +1707,7 @@ MonoBehaviour:
   defaultActiveDuration: 0.12
   inputBufferSeconds: 0.4
   useStateDrivenAttacks: 1
---- !u!114 &9005950028633721683
+--- !u!114 &2824245587450060782
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1677,6 +1715,21 @@ MonoBehaviour:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4110720578632064250}
   m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d48d640fb1a5e246b982ef588cf168c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerAttackManager
+  _lightAttackAction: {fileID: -628986242458713345, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
+  _heavyAttackAction: {fileID: -6650493235489168247, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
+  animator: {fileID: 8717991764053412646}
+--- !u!114 &9005950028633721683
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4110720578632064250}
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f0ce3af28280ab43b260c877a476d24, type: 3}
   m_Name: 
@@ -1855,7 +1908,7 @@ Transform:
   m_GameObject: {fileID: 5394842071070745128}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0006448617, y: 0.9975245, z: -0.069708794, w: 0.009227895}
-  m_LocalPosition: {x: -0.0071308017, y: 1.9080002, z: 3.6674576}
+  m_LocalPosition: {x: -4.6957397, y: 1.8310001, z: -0.33786154}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2852,7 +2905,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: af5e6284dc4e8fe40a3f5fb130d2874c, type: 3}
       propertyPath: m_Name
-      value: Player3
+      value: Character Model
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: af5e6284dc4e8fe40a3f5fb130d2874c, type: 3}
       propertyPath: m_Layer
