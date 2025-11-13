@@ -9,15 +9,24 @@ using UnityEngine;
 public class SubMenuManager : MonoBehaviour
 {
     //DONT TOUCH THESE VARIABLES! They will auto populate when menus are enabled/disabled
-    [SerializeField] internal GameObject lastActivatedSubMenu = null;
-    [SerializeField] internal GameObject lastActivatedSettingsMenu = null;
-    [SerializeField] internal GameObject currentSettingsMenu = null;
+    [SerializeField] internal GameObject lastActivatedSubMenu;
+    [SerializeField] internal GameObject lastActivatedSettingsMenu;
+    [SerializeField] internal GameObject currentSettingsMenu;
 
     //Assign main menu container to this
     [SerializeField] internal GameObject mainMenu = null;
 
     //Will change if the player is on the settings menu or not
     [SerializeField] internal bool isOnSettingsMenu = false;
+
+
+    void Awake()
+    {
+        lastActivatedSettingsMenu = null;
+        currentSettingsMenu = null;
+        isOnSettingsMenu = false;
+        lastActivatedSubMenu = null;
+    }
 
     //When the settings button is clicked, this function is called
     public void OnSettingsClick()

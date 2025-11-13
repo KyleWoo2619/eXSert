@@ -43,6 +43,7 @@ public class DisableAndEnableMenus : MonoBehaviour
         else if (isASettingsMenu)
         {
             // If the last activated settings menu is not empty, it becomes inactive
+            if (subMenuManager.lastActivatedSettingsMenu != null)
             {
                 subMenuManager.lastActivatedSettingsMenu.SetActive(false);
             }
