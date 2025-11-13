@@ -37,6 +37,7 @@ public class InputReader : Singleton<InputReader>
     private InputAction heavyAttackAction;
     private InputAction dashAction;
     private InputAction navigationMenuAction;
+    private InputAction interactAction;
 
     public static bool inputBusy = false;
 
@@ -104,6 +105,7 @@ public class InputReader : Singleton<InputReader>
             lightAttackAction = playerInput.actions["LightAttack"];
             heavyAttackAction = playerInput.actions["HeavyAttack"];
             dashAction = playerInput.actions["Dash"];
+            interactAction = playerInput.actions["Interact"];
             
             // Try to get NavigationMenu, but don't fail if it doesn't exist
             try
@@ -154,6 +156,7 @@ public class InputReader : Singleton<InputReader>
         if (heavyAttackAction != null) heavyAttackAction.Enable();
         if (dashAction != null) dashAction.Enable();
         if (navigationMenuAction != null) navigationMenuAction.Enable();
+        if (interactAction != null) interactAction.Enable();
     }
 
     private void OnDisable()
@@ -167,6 +170,7 @@ public class InputReader : Singleton<InputReader>
         if (heavyAttackAction != null) heavyAttackAction.Disable();
         if (dashAction != null) dashAction.Disable();
         if (navigationMenuAction != null) navigationMenuAction.Disable();
+        if (interactAction != null) interactAction.Disable();
     }
 
     /// <summary>
@@ -193,6 +197,7 @@ public class InputReader : Singleton<InputReader>
         if (heavyAttackAction != null) heavyAttackAction.Disable();
         if (dashAction != null) dashAction.Disable();
         if (navigationMenuAction != null) navigationMenuAction.Disable();
+        if (interactAction != null) interactAction.Disable();
 
         _playerInput = newPlayerInput;
         playerInput = newPlayerInput;
@@ -217,6 +222,7 @@ public class InputReader : Singleton<InputReader>
             lightAttackAction = playerInput.actions["LightAttack"];
             heavyAttackAction = playerInput.actions["HeavyAttack"];
             dashAction = playerInput.actions["Dash"];
+            interactAction = playerInput.actions["Interact"];
 
             try { navigationMenuAction = playerInput.actions["NavigationMenu"]; }
             catch { navigationMenuAction = null; }
@@ -238,6 +244,7 @@ public class InputReader : Singleton<InputReader>
             if (heavyAttackAction != null) heavyAttackAction.Enable();
             if (dashAction != null) dashAction.Enable();
             if (navigationMenuAction != null) navigationMenuAction.Enable();
+            if (interactAction != null) interactAction.Enable();
         }
 
         Debug.Log("[InputReader] Rebound to new PlayerInput and actions re-enabled.");
