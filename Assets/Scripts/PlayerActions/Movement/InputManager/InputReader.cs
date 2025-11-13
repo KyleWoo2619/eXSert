@@ -21,10 +21,11 @@ public class InputReader : Singleton<InputReader>
     [SerializeField] private InputActionAsset _playerControls;
     [SerializeField] internal PlayerInput _playerInput;
 
+    [SerializeField] internal string activeControlScheme;
+
     private static InputActionAsset playerControls;
     public static PlayerInput playerInput {get; private set; }
     
-
     public bool ableToGuard;
     internal float mouseSens;
 
@@ -141,6 +142,8 @@ public class InputReader : Singleton<InputReader>
             LookInput = lookAction.ReadValue<Vector2>();
         else
             LookInput = Vector2.zero;
+
+        activeControlScheme = playerInput.currentControlScheme;
     }
 
 

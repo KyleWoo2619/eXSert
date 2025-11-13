@@ -23,8 +23,6 @@ public class InteractablePoint : MonoBehaviour
 
     [SerializeField] private Image interactGamePadIcon;
 
-    private string activeControlScheme;
-
     private bool playerIsNear = false;
     private string collectibleId;
 
@@ -32,7 +30,6 @@ public class InteractablePoint : MonoBehaviour
     {
         OnInteractButtonPressed();
 
-       activeControlScheme = InputReader.playerInput.currentControlScheme; 
     }
 
     private void Awake()
@@ -133,7 +130,7 @@ public class InteractablePoint : MonoBehaviour
                 interractableText.gameObject.SetActive(false); // Once the gameobject is off the text stays, so it is turned off here
                 this.gameObject.SetActive(false); // Makes the interactable point disappear after interaction
 
-                if(activeControlScheme != "KeyboardMouse"){
+                if(InputReader.Instance.activeControlScheme != "KeyboardMouse"){
                     interactGamePadIcon.gameObject.SetActive(false); // turns off the gamepad icon
                 }
             }
@@ -149,7 +146,7 @@ public class InteractablePoint : MonoBehaviour
             playerIsNear = true;
             interractableText.gameObject.SetActive(true);
             //Shows different text based on control scheme
-            if(activeControlScheme == "KeyboardMouse"){
+            if(InputReader.Instance.activeControlScheme == "KeyboardMouse"){
                 interractableText.text = $"Press {(_interactAction.action.controls[0].name).ToUpperInvariant()} to interact";
             }
             else
@@ -175,8 +172,8 @@ public class InteractablePoint : MonoBehaviour
         {
             playerIsNear = false;
             interractableText.gameObject.SetActive(false);
-            
-            if(activeControlScheme != "KeyboardMouse"){
+
+            if(InputReader.Instance.activeControlScheme != "KeyboardMouse"){
                     interactGamePadIcon.gameObject.SetActive(false); // turns off the gamepad icon
                 }   
         }
