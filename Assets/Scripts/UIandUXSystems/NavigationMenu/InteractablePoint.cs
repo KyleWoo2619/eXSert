@@ -7,6 +7,7 @@
 using UnityEngine;
 using TMPro;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 [RequireComponent(typeof(BoxCollider))]
 public class InteractablePoint : MonoBehaviour
@@ -20,7 +21,7 @@ public class InteractablePoint : MonoBehaviour
     [SerializeField] private InputActionReference _interactAction;
     [SerializeField] private TextMeshProUGUI interractableText;
 
-    [SerializeField] private Sprite interactGamePadIcon;
+    [SerializeField] private Image interactGamePadIcon;
 
     private string activeControlScheme;
 
@@ -54,6 +55,9 @@ public class InteractablePoint : MonoBehaviour
 
         // Will hide the text on start
         interractableText.gameObject.SetActive(false);
+
+
+        interactGamePadIcon.gameObject.SetActive(false);
 
         
     }
@@ -113,20 +117,24 @@ public class InteractablePoint : MonoBehaviour
                     var logSO = collectibleInfo as NavigationLogSO;
                     logSO.isFound = true;
                     Debug.Log("Log triggered");
-                    interractableText.gameObject.SetActive(false); // Once the gameobject is off the text stays, so it is turned off here
-                    this.gameObject.SetActive(false); // makes it so it can't be triggered again
+
                 }
                 else if (interactType == InteractType.Diary)
                 {
                     var diarySO = collectibleInfo as DiarySO;
                     diarySO.isFound = true;
                     Debug.Log("Diary triggered");
-                    this.gameObject.SetActive(false);
-                    interractableText.gameObject.SetActive(false);
                 }
                 else
                 {
                     Debug.Log("Event triggered");
+                }
+
+                interractableText.gameObject.SetActive(false); // Once the gameobject is off the text stays, so it is turned off here
+                this.gameObject.SetActive(false); // Makes the interactable point disappear after interaction
+
+                if(activeControlScheme != "KeyboardMouse"){
+                    interactGamePadIcon.gameObject.SetActive(false); // turns off the gamepad icon
                 }
             }
         }
@@ -146,7 +154,17 @@ public class InteractablePoint : MonoBehaviour
             }
             else
             {
-                interractableText.text = $"Press <sprite index=0> to interact";
+                string gamePadButtonName = _interactAction.action.controls[0].name;
+                foreach (var iconEntry in SettingsManager.Instance.gamePadIcons)
+                {
+                    if (iconEntry.Key == gamePadButtonName)
+                    {
+                        interactGamePadIcon.sprite = iconEntry.Value;
+                        break;
+                    }
+                }
+                interactGamePadIcon.gameObject.SetActive(true);
+                interractableText.text = $"Press \n\n to interact";
             }
         }
     }
@@ -156,7 +174,11 @@ public class InteractablePoint : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             playerIsNear = false;
-            interractableText.gameObject.SetActive(false);    
+            interractableText.gameObject.SetActive(false);
+            
+            if(activeControlScheme != "KeyboardMouse"){
+                    interactGamePadIcon.gameObject.SetActive(false); // turns off the gamepad icon
+                }   
         }
     }
 }
