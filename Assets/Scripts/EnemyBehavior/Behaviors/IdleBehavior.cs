@@ -25,6 +25,10 @@ namespace Behaviors
         private const float monitorInterval = 0.15f;      // seconds between checks
         private const float fallbackWanderRadius = 6f;    // meters around current pos when no zone exists
 
+        // Random idle pause between targets
+        private float nextPickTime;
+        private readonly Vector2 idlePauseRange = new Vector2(0.5f, 3.0f);
+
         public virtual void OnEnter(BaseEnemy<TState, TTrigger> enemy)
         {
             this.enemy = enemy;
@@ -43,6 +47,7 @@ namespace Behaviors
             enemy.UpdateCurrentZone();
 
             hasIdleTarget = false; // force pick on first tick
+            nextPickTime = Time.time; // allow immediate pick on start
             idleWanderCoroutine = enemy.StartCoroutine(IdleWanderLoop());
         }
 
@@ -97,7 +102,11 @@ namespace Behaviors
             {
                 if (!hasIdleTarget)
                 {
-                    PickNewIdleTarget();
+                    // Wait for a random pause before picking the next target
+                    if (Time.time >= nextPickTime)
+                    {
+                        PickNewIdleTarget();
+                    }
                 }
                 else
                 {
@@ -120,11 +129,14 @@ namespace Behaviors
                     if (arrived)
                     {
                         hasIdleTarget = false;
+                        // schedule next pick after a random pause
+                        nextPickTime = Time.time + Random.Range(idlePauseRange.x, idlePauseRange.y);
                     }
                     else if (Time.time - targetStartTime > maxTravelSeconds)
                     {
-                        // Failsafe: pick a new one
+                        // Failsafe: pick a new one after a small pause
                         hasIdleTarget = false;
+                        nextPickTime = Time.time + Random.Range(idlePauseRange.x, idlePauseRange.y);
                     }
                 }
                 yield return wait;
@@ -151,6 +163,11 @@ namespace Behaviors
                 hasIdleTarget = true;
                 enemy.agent.isStopped = false;
                 enemy.agent.SetDestination(currentIdleTarget);
+            }
+            else
+            {
+                // if sample fails, try again later
+                nextPickTime = Time.time + Random.Range(idlePauseRange.x, idlePauseRange.y);
             }
         }
 
