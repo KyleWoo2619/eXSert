@@ -69,6 +69,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0bfc45aeb1c1284eabd4738827ac1e2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DroneEnemy
+  behaviorProfile: {fileID: 11400000, guid: fbc8a2722617ac748876e3121e2ae4b0, type: 2}
   agent: {fileID: 0}
   currentState: 0
   maxHealth: 100
@@ -100,6 +101,26 @@ MonoBehaviour:
   projectilePrefab: {fileID: 12072098264220021, guid: 3c6aa83579720ef4e935921bc30330ce, type: 3}
   projectileSpeed: 20
   firePoint: {fileID: 9218454187068015609}
+  chaseRange: 30
+  projectilePoolSize: 20
+  navSampleRadius: 2
+  navEdgeFallbackMaxShrink: 5
+  fireEnterBuffer: 1.25
+  fireExitBuffer: 2
+  chaseStuckSeconds: 1.5
+  fireStepAngleDeg: 30
+  fireRepositionIntervalMin: 1
+  fireRepositionIntervalMax: 2
+  fireRepositionJitter: 0.25
+  fireArrivalEpsilon: 0.6
+  fireCrossSwapChance: 0.15
+  muzzleForwardOffset: 0.1
+  aimYOffset: 0.8
+  missChance: 0.15
+  minMissAngleDeg: 0
+  maxMissAngleDeg: 6
+  zoneMoveInterval: 5
+  lastZoneMoveTime: 0
 --- !u!135 &8068321531014577106
 SphereCollider:
   m_ObjectHideFlags: 0

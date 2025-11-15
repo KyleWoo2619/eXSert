@@ -11,11 +11,26 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 public class BossRoombaController : MonoBehaviour
 {
+    [Header("Behavior Profile")]
+    [SerializeField, Tooltip(
+        "ScriptableObject that tunes nav/avoidance/importance and planner hints.\n" +
+        "Assign an asset from Assets > Scripts > EnemyBehavior > Profiles (Create > AI > EnemyBehaviorProfile).\n" +
+        "Values are applied to the boss NavMeshAgent on Start and passed to Crowd/Path systems.")]
     public EnemyBehaviorProfile profile;
+
     private NavMeshAgent agent;
     private Transform player;
     public GameObject alarm; // visual alarm object
+
+    [Header("Spawn Pockets")]
+    [Tooltip("Pockets for drone spawns (flying)")]
+    public Transform[] droneSpawnPoints;
+    [Tooltip("Pockets for crawler spawns (ground)")]
+    public Transform[] crawlerSpawnPoints;
+
+    [Tooltip("Legacy: used if specific arrays are empty")]
     public Transform[] pocketSpawnPoints;
+
     public GameObject dronePrefab;
     public GameObject crawlerPrefab;
     public int dronesPerSpawn =4;
@@ -25,10 +40,12 @@ public class BossRoombaController : MonoBehaviour
     public float dashSpeedMultiplier =3f;
     private bool alarmActive = false;
 
-    // simple local pools
+    // simple local pools (fallback if ScenePoolManager not present)
     private readonly Queue<GameObject> dronePool = new Queue<GameObject>();
     private readonly Queue<GameObject> crawlerPool = new Queue<GameObject>();
     public int initialPoolSize =8;
+
+    private Coroutine followRoutine;
 
     void Awake()
     {
@@ -62,11 +79,22 @@ public class BossRoombaController : MonoBehaviour
         agent.autoBraking = false;
     }
 
-    void Update()
+    // Event-driven follow (avoids Update)
+    public void StartFollowingPlayer(float cadenceSeconds)
     {
-        if (player == null) return;
-        // Simple behavior: approach player
-        if (!alarmActive) agent.SetDestination(player.position);
+        if (followRoutine != null) StopCoroutine(followRoutine);
+        followRoutine = StartCoroutine(FollowLoop(cadenceSeconds));
+    }
+
+    private IEnumerator FollowLoop(float cadence)
+    {
+        var wait = new WaitForSeconds(Mathf.Max(0.02f, cadence));
+        while (true)
+        {
+            if (!alarmActive && player != null)
+                agent.SetDestination(player.position);
+            yield return wait;
+        }
     }
 
     // Example: trigger alarm and spawn adds
@@ -77,36 +105,71 @@ public class BossRoombaController : MonoBehaviour
         StartCoroutine(SpawnAddsCoroutine());
     }
 
+    public void DeactivateAlarm()
+    {
+        alarmActive = false;
+        if (alarm != null) alarm.SetActive(false);
+    }
+
     private IEnumerator SpawnAddsCoroutine()
     {
-        if (pocketSpawnPoints == null) yield break;
-        // spawn drones and crawlers from pockets using pooling ideally; simple instantiate for now
-        foreach (var p in pocketSpawnPoints)
+        // Choose arrays: fall back to pocketSpawnPoints if specific ones not set
+        var drones = (droneSpawnPoints != null && droneSpawnPoints.Length > 0) ? droneSpawnPoints : pocketSpawnPoints;
+        var crawlers = (crawlerSpawnPoints != null && crawlerSpawnPoints.Length > 0) ? crawlerSpawnPoints : pocketSpawnPoints;
+
+        // Drones
+        if (drones != null)
         {
-            if (p == null) continue;
-            for (int i =0; i < dronesPerSpawn; i++)
+            foreach (var p in drones)
             {
-                var g = SpawnFromPool(dronePool, dronePrefab);
-                if (g != null) { g.transform.position = p.position; g.SetActive(true); RegisterSpawned(g); }
+                if (p == null) continue;
+                for (int i = 0; i < dronesPerSpawn; i++)
+                {
+                    var g = Spawn(dronePrefab, p.position);
+                    if (g != null) { g.SetActive(true); RegisterSpawned(g); }
+                }
+                yield return new WaitForSeconds(0.1f);
             }
-            for (int j =0; j < crawlersPerSpawn; j++)
+        }
+
+        // Crawlers
+        if (crawlers != null)
+        {
+            foreach (var p in crawlers)
             {
-                var c = SpawnFromPool(crawlerPool, crawlerPrefab);
-                if (c != null) { c.transform.position = p.position; c.SetActive(true); RegisterSpawned(c); }
+                if (p == null) continue;
+                for (int j = 0; j < crawlersPerSpawn; j++)
+                {
+                    var c = Spawn(crawlerPrefab, p.position);
+                    if (c != null) { c.SetActive(true); RegisterSpawned(c); }
+                }
+                yield return new WaitForSeconds(0.1f);
             }
-            yield return new WaitForSeconds(0.2f); // stagger
         }
     }
 
-    private GameObject SpawnFromPool(Queue<GameObject> pool, GameObject prefab)
+    private GameObject Spawn(GameObject prefab, Vector3 pos)
     {
         if (prefab == null) return null;
-        if (pool.Count >0)
+        // Prefer scene pool manager if available
+        var spm = EnemyBehavior.Crowd.ScenePoolManager.Instance;
+        if (spm != null)
+            return spm.Spawn(prefab, pos, Quaternion.identity);
+
+        // Fallback local pools
+        if (prefab == dronePrefab && dronePool.Count >0)
         {
-            var g = pool.Dequeue();
+            var g = dronePool.Dequeue();
+            g.transform.position = pos;
             return g;
         }
-        var newG = Instantiate(prefab);
+        if (prefab == crawlerPrefab && crawlerPool.Count >0)
+        {
+            var c = crawlerPool.Dequeue();
+            c.transform.position = pos;
+            return c;
+        }
+        var newG = Instantiate(prefab, pos, Quaternion.identity);
         return newG;
     }
 

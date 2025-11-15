@@ -14,6 +14,13 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
  where TState : struct, System.Enum
  where TTrigger : struct, System.Enum
 {
+    [Header("Behavior Profile")]
+    [SerializeField, Tooltip(
+        "ScriptableObject that tunes nav/avoidance/importance and planner hints.\n" +
+        "Assign an asset from Assets > Scripts > EnemyBehavior > Profiles (Create > AI > EnemyBehaviorProfile).\n" +
+        "Values are applied to this enemy's NavMeshAgent on Awake and passed to Crowd/Path systems.")]
+    public EnemyBehaviorProfile behaviorProfile;
+
     [SerializeField, Tooltip("Reference to the NavMeshAgent attached to this enemy. Serialized so agent settings can be tweaked per-enemy in the Inspector.")]
     public NavMeshAgent agent;
     public StateMachine<TState, TTrigger> enemyAI; // StateMachine<StateEnum, TriggerEnum> is from the Stateless library
@@ -62,10 +69,6 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     [SerializeField, Tooltip("Prefab for the enemy's health bar UI.")]
     public GameObject healthBarPrefab;
 
-    [Header("Behavior")]
-    [SerializeField, Tooltip("Behavior profile to tune nav/avoidance/importance settings.")]
-    public EnemyBehaviorProfile behaviorProfile;
-
     // Non-serialized fields
     [HideInInspector]
     public EnemyHealthBar healthBarInstance;
@@ -109,6 +112,10 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
             this.gameObject.AddComponent<NavMeshAgent>();
         }
         agent = this.gameObject.GetComponent<NavMeshAgent>();
+
+        // Apply behavior profile to nav agent if present
+        ApplyBehaviorProfile();
+
         // enemyAI and currentState should be initialized in the derived class
 
         // Detection collider
@@ -139,6 +146,18 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         {
             Debug.LogWarning("BaseEnemy: failed to register CrowdAgent: " + ex.Message);
         }
+    }
+
+    protected void ApplyBehaviorProfile()
+    {
+        if (behaviorProfile == null || agent == null) return;
+        // Speed can be randomized within the provided range
+        agent.speed = Random.Range(behaviorProfile.SpeedRange.x, behaviorProfile.SpeedRange.y);
+        agent.acceleration = behaviorProfile.Acceleration;
+        agent.angularSpeed = behaviorProfile.AngularSpeed;
+        agent.stoppingDistance = behaviorProfile.StoppingDistance;
+        agent.avoidancePriority = behaviorProfile.AvoidancePriority;
+        agent.autoBraking = false;
     }
 
     // Helper to initialize the state machine and inspector state

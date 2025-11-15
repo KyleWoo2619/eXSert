@@ -7,6 +7,11 @@ public class SwarmManager : MonoBehaviour
 {
     public static SwarmManager Instance { get; private set; }
 
+    [Header("Component Help")]
+    [SerializeField, TextArea(3, 6)] private string inspectorHelp =
+        "SwarmManager: coordinates crawler swarms, limits concurrent attackers, and applies separation.\n" +
+        "Crawlers register/unregister via BaseCrawlerEnemy. Use maxAttackers to cap pressure on the player.";
+
     private Queue<BaseCrawlerEnemy> attackQueue = new();
     [SerializeField] private int maxAttackers = 3;
 

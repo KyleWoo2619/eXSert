@@ -7,6 +7,12 @@ using UnityEngine;
 
 public class DroneSwarmManager : MonoBehaviour
 {
+    [Header("Component Help")]
+    [SerializeField, TextArea(3, 6)] private string inspectorHelp =
+        "DroneSwarmManager: spawns clusters of DroneEnemy around given spawn points.\n" +
+        "Assign dronePrefab, clusterSpawnPoints, and tune dronesPerCluster/spawnRadius.\n" +
+        "Integrates with CrowdController and FlowFieldService for movement guidance.";
+
     [Header("Spawning Control")]
     [Tooltip("Disable to prevent this manager from spawning any drone clusters or drones.")]
     [SerializeField] private bool spawningEnabled = true;

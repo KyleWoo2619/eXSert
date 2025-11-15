@@ -3,33 +3,57 @@ using UnityEngine;
 
 namespace EnemyBehavior.Crowd
 {
- public sealed class CrowdController : MonoBehaviour
- {
- public static CrowdController Instance { get; private set; }
+    public sealed class CrowdController : MonoBehaviour
+    {
+        public static CrowdController Instance { get; private set; }
 
- [SerializeField] float highUpdateRate =10f;
- [SerializeField] float midUpdateRate =3.3f;
- [SerializeField] float lowUpdateRate =0.5f;
+        [Header("Component Help")]
+        [SerializeField, TextArea(3, 6)] private string inspectorHelp =
+            "CrowdController: ticks registered CrowdAgents on a cadence based on their importance.\n" +
+            "Each tick, agents may replan, apply steering, and stamp density into the DensityGrid.";
 
- private readonly List<CrowdAgent> _agents = new List<CrowdAgent>(512);
+        [SerializeField] private float highUpdateRate = 10f;
+        [SerializeField] private float midUpdateRate = 3.3f;
+        [SerializeField] private float lowUpdateRate = 0.5f;
 
- void Awake() { Instance = this; }
+        private readonly List<CrowdAgent> _agents = new List<CrowdAgent>(512);
 
- public void Register(CrowdAgent a) { if (!_agents.Contains(a)) _agents.Add(a); }
- public void Unregister(CrowdAgent a) { _agents.Remove(a); }
+        void Awake()
+        {
+            // Simple duplicate guard for additive scenes
+            if (Instance != null && Instance != this)
+            {
+                Debug.LogWarning("CrowdController duplicate detected, destroying this instance (additive scene overlap).");
+                Destroy(gameObject);
+                return;
+            }
+            Instance = this;
+        }
 
- void Update()
- {
- float t = Time.time;
- foreach (var a in _agents)
- {
- if (a.ShouldTick(t))
- {
- if (a.NeedsReplan) a.RequestPath();
- a.ApplySteering();
- a.StampDensity();
- }
- }
- }
- }
+        public void Register(CrowdAgent a)
+        {
+            if (!_agents.Contains(a)) _agents.Add(a);
+        }
+
+        public void Unregister(CrowdAgent a)
+        {
+            _agents.Remove(a);
+        }
+
+        void Update()
+        {
+            float t = Time.time;
+            for (int i = 0; i < _agents.Count; i++)
+            {
+                var a = _agents[i];
+                if (a == null) continue;
+                if (a.ShouldTick(t))
+                {
+                    if (a.NeedsReplan) a.RequestPath();
+                    a.ApplySteering();
+                    a.StampDensity();
+                }
+            }
+        }
+    }
 }
