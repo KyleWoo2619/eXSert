@@ -160,7 +160,6 @@ GameObject:
   m_Component:
   - component: {fileID: 9662442}
   - component: {fileID: 9662441}
-  - component: {fileID: 9662443}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -180,6 +179,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 67fca4114a27c154e9456a13e5175cd8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SwarmManager
+  inspectorHelp: 'SwarmManager: coordinates crawler swarms, limits concurrent attackers,
+    and applies separation.
+
+    Crawlers register/unregister via BaseCrawlerEnemy.
+    Use maxAttackers to cap pressure on the player.'
   maxAttackers: 3
   debugSwarmMembers: []
   minSeparation: 2
@@ -198,20 +202,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &9662443
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9662440}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 264ed62730fd3c74ca07ef3131bf3bee, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Pathfinding.PathRequestManager
-  maxPlansPerFrame: 8
-  maxReplansPerFrame: 4
 --- !u!1 &9930341
 GameObject:
   m_ObjectHideFlags: 0
@@ -323,7 +313,7 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 9930341}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &112931132
+--- !u!1 &27874948
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -331,46 +321,298 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 112931133}
-  - component: {fileID: 112931134}
+  - component: {fileID: 27874954}
+  - component: {fileID: 27874953}
+  - component: {fileID: 27874952}
+  - component: {fileID: 27874951}
+  - component: {fileID: 27874950}
+  - component: {fileID: 27874949}
+  - component: {fileID: 27874956}
+  - component: {fileID: 27874955}
+  - component: {fileID: 27874957}
   m_Layer: 0
-  m_Name: MovingPlatform_1_Pit
-  m_TagString: Untagged
+  m_Name: TestEnemy (9)
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &112931133
+--- !u!114 &27874949
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 27874948}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d3e7a090a8c6a54bb4b5564e14a5c17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TestingEnemy
+  behaviorProfile: {fileID: 11400000, guid: d2e853ab50c464443a710c0b310088df, type: 2}
+  agent: {fileID: 0}
+  currentState: 0
+  maxHealth: 100
+  currentHealth: 100
+  lowHealthThresholdPercent: 0.25
+  handleLowHealth: 1
+  currentZone: {fileID: 0}
+  idleTimerDuration: 15
+  detectionRange: 10
+  showDetectionGizmo: 1
+  damage: 10
+  attackBoxSize: {x: 2, y: 2, z: 2}
+  attackBoxDistance: 1.5
+  attackInterval: 1
+  attackActiveDuration: 0.5
+  showAttackGizmo: 1
+  healthBarPrefab: {fileID: 2629286879049192775, guid: 9345af66964a7d64489a46ae511c793b, type: 3}
+  enableAntiStuck: 1
+  stuckSpeedThreshold: 0.05
+  stuckSeconds: 0.9
+  sidestepDistance: 1
+  backoffDistance: 1.5
+  reliefSampleRadius: 1
+  reliefCooldownSeconds: 1.5
+  healthBarInstance: {fileID: 0}
+  attackCollider: {fileID: 0}
+  isAttackBoxActive: 0
+  hasFiredLowHealth: 0
+  patrolColor: {r: 0, g: 1, b: 0, a: 1}
+  chaseColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  attackColor: {r: 1, g: 0.5, b: 0, a: 1}
+  hitboxActiveColor: {r: 1, g: 0, b: 0, a: 1}
+--- !u!114 &27874950
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 27874948}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7bfacf91bcfb2c941b44bbabddfa928d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHealthBar
+  slider: {fileID: 0}
+  worldOffset: {x: 0, y: 2, z: 0}
+--- !u!136 &27874951
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 27874948}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &27874952
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 27874948}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &27874953
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 27874948}
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &27874954
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 112931132}
+  m_GameObject: {fileID: 27874948}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -19.50437, y: 1.8065499, z: -6.3617163}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.33898, y: 3.15, z: -3.22766}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 925399740}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!208 &112931134
-NavMeshObstacle:
+--- !u!114 &27874955
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 112931132}
+  m_GameObject: {fileID: 27874948}
   m_Enabled: 1
-  serializedVersion: 3
-  m_Shape: 1
-  m_Extents: {x: 5, y: 2, z: 5}
-  m_MoveThreshold: 0.1
-  m_Carve: 0
-  m_CarveOnlyStationary: 1
-  m_Center: {x: 0, y: 0, z: 0}
-  m_TimeToStationary: 0.5
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2940a48915d0ca943b1d70392f786eaf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.CorridorCourtesy
+  inspectorHelp: 'CorridorCourtesy: cooperative yielding in tight corridors.
+
+    Detects
+    head-on agents in narrow spaces. One agent backs up to a pullout point, waits,
+    then resumes.'
+  detectRadius: 2.5
+  frontConeAngle: 45
+  sideProbeLength: 1.25
+  narrowWidthThreshold: 2
+  backoffDistance: 2
+  maxYieldSeconds: 3
+  yieldCooldown: 2
+  priorityWhileYielding: 90
+  radiusScaleWhileYielding: 1.2
+  useBreadcrumbBackoff: 1
+  breadcrumbCapacity: 20
+  breadcrumbMinSpacing: 0.4
+  peerTag: Enemy
+  wallMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!195 &27874956
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 27874948}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 1
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!114 &27874957
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 27874948}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d1d1875b740c4a4d90752c760d19ff2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.PathReservation
+  inspectorHelp: 'PathReservation: stamps a cost corridor ahead along the agent''s
+    current path.
+
+    Other agents'' planners (A*/FlowField) avoid these reserved
+    segments when density multipliers > 0.'
+  lookaheadDistance: 10
+  stampSpacing: 0.5
+  extraRadius: 0.25
+  stampWeight: 2
+  cadence: 0.25
+  minRemainingDistance: 2
+--- !u!1 &101445811
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 101445813}
+  - component: {fileID: 101445812}
+  m_Layer: 0
+  m_Name: Zone2 (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &101445812
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 101445811}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 520c3009c1e153b4f97611b9c7a0a2a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Zone
+  size: {x: 13.9, y: 5, z: 17.4}
+--- !u!4 &101445813
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 101445811}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -16.9, y: 1.88655, z: -26.77}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &188650941
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -483,6 +725,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a9ce2a5e89389e4e8aa8bc10b6a08f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CrawlerPocket
+  inspectorHelp: 'CrawlerPocket: spawns crawlers when the Player enters the trigger
+    zone.
+
+    Configure weighted crawler prefabs, spawnCount, and clustering radius/jitter.
+
+    Calls
+    AmbushReady when most crawlers reach their cluster points.
+
+    Automatically
+    ensures a trigger BoxCollider matches the configured triggerZone.'
   crawlerTypeWeights:
   - prefab: {fileID: 2757122947255948302, guid: e1b11366c95442f489e8e074c928f67c, type: 3}
     weight: 9
@@ -512,6 +764,338 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &319769886
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 319769892}
+  - component: {fileID: 319769891}
+  - component: {fileID: 319769890}
+  - component: {fileID: 319769889}
+  - component: {fileID: 319769888}
+  - component: {fileID: 319769887}
+  - component: {fileID: 319769894}
+  - component: {fileID: 319769893}
+  - component: {fileID: 319769895}
+  m_Layer: 0
+  m_Name: TestEnemy (3)
+  m_TagString: Enemy
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &319769887
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 319769886}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d3e7a090a8c6a54bb4b5564e14a5c17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TestingEnemy
+  behaviorProfile: {fileID: 11400000, guid: d2e853ab50c464443a710c0b310088df, type: 2}
+  agent: {fileID: 0}
+  currentState: 0
+  maxHealth: 100
+  currentHealth: 100
+  lowHealthThresholdPercent: 0.25
+  handleLowHealth: 1
+  currentZone: {fileID: 0}
+  idleTimerDuration: 15
+  detectionRange: 10
+  showDetectionGizmo: 1
+  damage: 10
+  attackBoxSize: {x: 2, y: 2, z: 2}
+  attackBoxDistance: 1.5
+  attackInterval: 1
+  attackActiveDuration: 0.5
+  showAttackGizmo: 1
+  healthBarPrefab: {fileID: 2629286879049192775, guid: 9345af66964a7d64489a46ae511c793b, type: 3}
+  enableAntiStuck: 1
+  stuckSpeedThreshold: 0.05
+  stuckSeconds: 0.9
+  sidestepDistance: 1
+  backoffDistance: 1.5
+  reliefSampleRadius: 1
+  reliefCooldownSeconds: 1.5
+  healthBarInstance: {fileID: 0}
+  attackCollider: {fileID: 0}
+  isAttackBoxActive: 0
+  hasFiredLowHealth: 0
+  patrolColor: {r: 0, g: 1, b: 0, a: 1}
+  chaseColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  attackColor: {r: 1, g: 0.5, b: 0, a: 1}
+  hitboxActiveColor: {r: 1, g: 0, b: 0, a: 1}
+--- !u!114 &319769888
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 319769886}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7bfacf91bcfb2c941b44bbabddfa928d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHealthBar
+  slider: {fileID: 0}
+  worldOffset: {x: 0, y: 2, z: 0}
+--- !u!136 &319769889
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 319769886}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &319769890
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 319769886}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &319769891
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 319769886}
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &319769892
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 319769886}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.33898, y: 3.15, z: -3.22766}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &319769893
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 319769886}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2940a48915d0ca943b1d70392f786eaf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.CorridorCourtesy
+  inspectorHelp: 'CorridorCourtesy: cooperative yielding in tight corridors.
+
+    Detects
+    head-on agents in narrow spaces. One agent backs up to a pullout point, waits,
+    then resumes.'
+  detectRadius: 2.5
+  frontConeAngle: 45
+  sideProbeLength: 1.25
+  narrowWidthThreshold: 2
+  backoffDistance: 2
+  maxYieldSeconds: 3
+  yieldCooldown: 2
+  priorityWhileYielding: 90
+  radiusScaleWhileYielding: 1.2
+  useBreadcrumbBackoff: 1
+  breadcrumbCapacity: 20
+  breadcrumbMinSpacing: 0.4
+  peerTag: Enemy
+  wallMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!195 &319769894
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 319769886}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 1
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!114 &319769895
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 319769886}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d1d1875b740c4a4d90752c760d19ff2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.PathReservation
+  inspectorHelp: 'PathReservation: stamps a cost corridor ahead along the agent''s
+    current path.
+
+    Other agents'' planners (A*/FlowField) avoid these reserved
+    segments when density multipliers > 0.'
+  lookaheadDistance: 10
+  stampSpacing: 0.5
+  extraRadius: 0.25
+  stampWeight: 2
+  cadence: 0.25
+  minRemainingDistance: 2
+--- !u!1001 &382784656
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 417077179018006846, guid: ee03a8ac6ada7704b9a3b6eb33f6fe24, type: 3}
+      propertyPath: m_Name
+      value: EnemySystems
+      objectReference: {fileID: 0}
+    - target: {fileID: 667860555832548667, guid: ee03a8ac6ada7704b9a3b6eb33f6fe24, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -1.75777
+      objectReference: {fileID: 0}
+    - target: {fileID: 667860555832548667, guid: ee03a8ac6ada7704b9a3b6eb33f6fe24, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.88655
+      objectReference: {fileID: 0}
+    - target: {fileID: 667860555832548667, guid: ee03a8ac6ada7704b9a3b6eb33f6fe24, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -6.02145
+      objectReference: {fileID: 0}
+    - target: {fileID: 667860555832548667, guid: ee03a8ac6ada7704b9a3b6eb33f6fe24, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 667860555832548667, guid: ee03a8ac6ada7704b9a3b6eb33f6fe24, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 667860555832548667, guid: ee03a8ac6ada7704b9a3b6eb33f6fe24, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 667860555832548667, guid: ee03a8ac6ada7704b9a3b6eb33f6fe24, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 667860555832548667, guid: ee03a8ac6ada7704b9a3b6eb33f6fe24, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 667860555832548667, guid: ee03a8ac6ada7704b9a3b6eb33f6fe24, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 667860555832548667, guid: ee03a8ac6ada7704b9a3b6eb33f6fe24, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6188146591981236826, guid: ee03a8ac6ada7704b9a3b6eb33f6fe24, type: 3}
+      propertyPath: drawCells
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6188146591981236826, guid: ee03a8ac6ada7704b9a3b6eb33f6fe24, type: 3}
+      propertyPath: worldSize.x
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 6188146591981236826, guid: ee03a8ac6ada7704b9a3b6eb33f6fe24, type: 3}
+      propertyPath: worldSize.y
+      value: 81.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6188146591981236826, guid: ee03a8ac6ada7704b9a3b6eb33f6fe24, type: 3}
+      propertyPath: worldOrigin.x
+      value: -26
+      objectReference: {fileID: 0}
+    - target: {fileID: 6188146591981236826, guid: ee03a8ac6ada7704b9a3b6eb33f6fe24, type: 3}
+      propertyPath: worldOrigin.y
+      value: -38
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: ee03a8ac6ada7704b9a3b6eb33f6fe24, type: 3}
 --- !u!1 &406295787
 GameObject:
   m_ObjectHideFlags: 0
@@ -557,7 +1141,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &422615286
+--- !u!1 &419151066
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -565,77 +1149,111 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 422615287}
-  - component: {fileID: 422615292}
-  - component: {fileID: 422615291}
-  - component: {fileID: 422615290}
-  - component: {fileID: 422615289}
-  - component: {fileID: 422615288}
+  - component: {fileID: 419151072}
+  - component: {fileID: 419151071}
+  - component: {fileID: 419151070}
+  - component: {fileID: 419151069}
+  - component: {fileID: 419151068}
+  - component: {fileID: 419151067}
+  - component: {fileID: 419151074}
+  - component: {fileID: 419151073}
+  - component: {fileID: 419151075}
   m_Layer: 0
-  m_Name: MovingPlatform_2
-  m_TagString: Untagged
+  m_Name: TestEnemy (6)
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &422615287
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 422615286}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -6.577463, y: 1.63655, z: 19.477526}
-  m_LocalScale: {x: 4, y: 0.5, z: 4}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 925399740}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &422615288
+--- !u!114 &419151067
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 422615286}
+  m_GameObject: {fileID: 419151066}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 281ca08afec05084eaffcae40333ddb4, type: 3}
+  m_Script: {fileID: 11500000, guid: 5d3e7a090a8c6a54bb4b5564e14a5c17, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GeneratedMovingPlatform
-  pathPoints:
-  - {fileID: 1832924568}
-  - {fileID: 711969596}
-  speed: 1.267947
-  loop: 1
-  lingerSeconds: 2
-  pitObstacle: {fileID: 719435237}
-  carvePitWhileAway: 1
---- !u!208 &422615289
-NavMeshObstacle:
+  m_EditorClassIdentifier: Assembly-CSharp::TestingEnemy
+  behaviorProfile: {fileID: 11400000, guid: d2e853ab50c464443a710c0b310088df, type: 2}
+  agent: {fileID: 0}
+  currentState: 0
+  maxHealth: 100
+  currentHealth: 100
+  lowHealthThresholdPercent: 0.25
+  handleLowHealth: 1
+  currentZone: {fileID: 0}
+  idleTimerDuration: 15
+  detectionRange: 10
+  showDetectionGizmo: 1
+  damage: 10
+  attackBoxSize: {x: 2, y: 2, z: 2}
+  attackBoxDistance: 1.5
+  attackInterval: 1
+  attackActiveDuration: 0.5
+  showAttackGizmo: 1
+  healthBarPrefab: {fileID: 2629286879049192775, guid: 9345af66964a7d64489a46ae511c793b, type: 3}
+  enableAntiStuck: 1
+  stuckSpeedThreshold: 0.05
+  stuckSeconds: 0.9
+  sidestepDistance: 1
+  backoffDistance: 1.5
+  reliefSampleRadius: 1
+  reliefCooldownSeconds: 1.5
+  healthBarInstance: {fileID: 0}
+  attackCollider: {fileID: 0}
+  isAttackBoxActive: 0
+  hasFiredLowHealth: 0
+  patrolColor: {r: 0, g: 1, b: 0, a: 1}
+  chaseColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  attackColor: {r: 1, g: 0.5, b: 0, a: 1}
+  hitboxActiveColor: {r: 1, g: 0, b: 0, a: 1}
+--- !u!114 &419151068
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 422615286}
+  m_GameObject: {fileID: 419151066}
   m_Enabled: 1
-  serializedVersion: 3
-  m_Shape: 1
-  m_Extents: {x: 2, y: 0.25, z: 2}
-  m_MoveThreshold: 0.1
-  m_Carve: 0
-  m_CarveOnlyStationary: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7bfacf91bcfb2c941b44bbabddfa928d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHealthBar
+  slider: {fileID: 0}
+  worldOffset: {x: 0, y: 2, z: 0}
+--- !u!136 &419151069
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 419151066}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
-  m_TimeToStationary: 0.5
---- !u!23 &422615290
+--- !u!23 &419151070
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 422615286}
+  m_GameObject: {fileID: 419151066}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -654,7 +1272,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 1618497790}
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -663,7 +1281,7 @@ MeshRenderer:
   m_LightProbeVolumeOverride: {fileID: 0}
   m_ScaleInLightmap: 1
   m_ReceiveGI: 1
-  m_PreserveUVs: 1
+  m_PreserveUVs: 0
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
   m_StitchLightmapSeams: 1
@@ -677,35 +1295,107 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &422615291
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 422615286}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!33 &422615292
+--- !u!33 &419151071
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 422615286}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_GameObject: {fileID: 419151066}
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &419151072
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 419151066}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.33898, y: 3.15, z: -3.22766}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &419151073
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 419151066}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2940a48915d0ca943b1d70392f786eaf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.CorridorCourtesy
+  inspectorHelp: 'CorridorCourtesy: cooperative yielding in tight corridors.
+
+    Detects
+    head-on agents in narrow spaces. One agent backs up to a pullout point, waits,
+    then resumes.'
+  detectRadius: 2.5
+  frontConeAngle: 45
+  sideProbeLength: 1.25
+  narrowWidthThreshold: 2
+  backoffDistance: 2
+  maxYieldSeconds: 3
+  yieldCooldown: 2
+  priorityWhileYielding: 90
+  radiusScaleWhileYielding: 1.2
+  useBreadcrumbBackoff: 1
+  breadcrumbCapacity: 20
+  breadcrumbMinSpacing: 0.4
+  peerTag: Enemy
+  wallMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!195 &419151074
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 419151066}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 1
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!114 &419151075
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 419151066}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d1d1875b740c4a4d90752c760d19ff2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.PathReservation
+  inspectorHelp: 'PathReservation: stamps a cost corridor ahead along the agent''s
+    current path.
+
+    Other agents'' planners (A*/FlowField) avoid these reserved
+    segments when density multipliers > 0.'
+  lookaheadDistance: 10
+  stampSpacing: 0.5
+  extraRadius: 0.25
+  stampWeight: 2
+  cadence: 0.25
+  minRemainingDistance: 2
 --- !u!1 &429831506
 GameObject:
   m_ObjectHideFlags: 0
@@ -928,155 +1618,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 466569653}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &466742837
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 466742838}
-  - component: {fileID: 466742843}
-  - component: {fileID: 466742842}
-  - component: {fileID: 466742841}
-  - component: {fileID: 466742840}
-  - component: {fileID: 466742839}
-  m_Layer: 0
-  m_Name: MovingPlatform_1
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &466742838
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 466742837}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -19.50437, y: 1.63655, z: -6.3617163}
-  m_LocalScale: {x: 4, y: 0.5, z: 4}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 925399740}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &466742839
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 466742837}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 281ca08afec05084eaffcae40333ddb4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GeneratedMovingPlatform
-  pathPoints:
-  - {fileID: 559072857}
-  - {fileID: 1305657081}
-  speed: 1.204236
-  loop: 1
-  lingerSeconds: 2
-  pitObstacle: {fileID: 112931134}
-  carvePitWhileAway: 1
---- !u!208 &466742840
-NavMeshObstacle:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 466742837}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Shape: 1
-  m_Extents: {x: 2, y: 0.25, z: 2}
-  m_MoveThreshold: 0.1
-  m_Carve: 0
-  m_CarveOnlyStationary: 1
-  m_Center: {x: 0, y: 0, z: 0}
-  m_TimeToStationary: 0.5
---- !u!23 &466742841
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 466742837}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 1618497790}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 1
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &466742842
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 466742837}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!33 &466742843
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 466742837}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &488934104
 GameObject:
   m_ObjectHideFlags: 0
@@ -1188,37 +1729,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 488934104}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &559072856
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 559072857}
-  m_Layer: 0
-  m_Name: MovingPlatform_1_wp0
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &559072857
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 559072856}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -24.50437, y: 1.63655, z: -6.3617163}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 925399740}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &596899231
 GameObject:
   m_ObjectHideFlags: 0
@@ -1588,6 +2098,51 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 628277779}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &682894036
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 682894038}
+  - component: {fileID: 682894037}
+  m_Layer: 0
+  m_Name: Zone2 (2)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &682894037
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 682894036}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 520c3009c1e153b4f97611b9c7a0a2a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Zone
+  size: {x: 13.9, y: 5, z: 17.4}
+--- !u!4 &682894038
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 682894036}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.48, y: 1.88655, z: -6.79}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &690543375
 GameObject:
   m_ObjectHideFlags: 0
@@ -1733,37 +2288,6 @@ Transform:
   - {fileID: 8382512}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &711969595
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 711969596}
-  m_Layer: 0
-  m_Name: MovingPlatform_2_wp1
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &711969596
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 711969595}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -1.5774632, y: 1.63655, z: 19.477526}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 925399740}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &717165644
 GameObject:
   m_ObjectHideFlags: 0
@@ -1795,102 +2319,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 708712190}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &719435235
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 719435236}
-  - component: {fileID: 719435237}
-  m_Layer: 0
-  m_Name: MovingPlatform_2_Pit
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &719435236
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 719435235}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -6.577463, y: 1.8065499, z: 19.477526}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 925399740}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!208 &719435237
-NavMeshObstacle:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 719435235}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Shape: 1
-  m_Extents: {x: 5, y: 2, z: 5}
-  m_MoveThreshold: 0.1
-  m_Carve: 0
-  m_CarveOnlyStationary: 1
-  m_Center: {x: 0, y: 0, z: 0}
-  m_TimeToStationary: 0.5
---- !u!1 &722871696
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 722871697}
-  - component: {fileID: 722871698}
-  m_Layer: 0
-  m_Name: MovingPlatform_0_Pit
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &722871697
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 722871696}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -9.271542, y: 1.8065499, z: 5.449561}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 925399740}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!208 &722871698
-NavMeshObstacle:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 722871696}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Shape: 1
-  m_Extents: {x: 5, y: 2, z: 5}
-  m_MoveThreshold: 0.1
-  m_Carve: 0
-  m_CarveOnlyStationary: 1
-  m_Center: {x: 0, y: 0, z: 0}
-  m_TimeToStationary: 0.5
 --- !u!1 &734439429
 GameObject:
   m_ObjectHideFlags: 0
@@ -2368,18 +2796,6 @@ Transform:
   - {fileID: 1825543937}
   - {fileID: 864571980}
   - {fileID: 429831507}
-  - {fileID: 1067632258}
-  - {fileID: 722871697}
-  - {fileID: 1962662115}
-  - {fileID: 1135388362}
-  - {fileID: 466742838}
-  - {fileID: 112931133}
-  - {fileID: 559072857}
-  - {fileID: 1305657081}
-  - {fileID: 422615287}
-  - {fileID: 719435236}
-  - {fileID: 1832924568}
-  - {fileID: 711969596}
   - {fileID: 628277780}
   - {fileID: 1563055898}
   - {fileID: 1998554855}
@@ -2416,6 +2832,261 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1998554855}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1022919126
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1022919132}
+  - component: {fileID: 1022919131}
+  - component: {fileID: 1022919130}
+  - component: {fileID: 1022919129}
+  - component: {fileID: 1022919128}
+  - component: {fileID: 1022919127}
+  - component: {fileID: 1022919134}
+  - component: {fileID: 1022919133}
+  - component: {fileID: 1022919135}
+  m_Layer: 0
+  m_Name: TestEnemy (10)
+  m_TagString: Enemy
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1022919127
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1022919126}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d3e7a090a8c6a54bb4b5564e14a5c17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TestingEnemy
+  behaviorProfile: {fileID: 11400000, guid: d2e853ab50c464443a710c0b310088df, type: 2}
+  agent: {fileID: 0}
+  currentState: 0
+  maxHealth: 100
+  currentHealth: 100
+  lowHealthThresholdPercent: 0.25
+  handleLowHealth: 1
+  currentZone: {fileID: 0}
+  idleTimerDuration: 15
+  detectionRange: 10
+  showDetectionGizmo: 1
+  damage: 10
+  attackBoxSize: {x: 2, y: 2, z: 2}
+  attackBoxDistance: 1.5
+  attackInterval: 1
+  attackActiveDuration: 0.5
+  showAttackGizmo: 1
+  healthBarPrefab: {fileID: 2629286879049192775, guid: 9345af66964a7d64489a46ae511c793b, type: 3}
+  enableAntiStuck: 1
+  stuckSpeedThreshold: 0.05
+  stuckSeconds: 0.9
+  sidestepDistance: 1
+  backoffDistance: 1.5
+  reliefSampleRadius: 1
+  reliefCooldownSeconds: 1.5
+  healthBarInstance: {fileID: 0}
+  attackCollider: {fileID: 0}
+  isAttackBoxActive: 0
+  hasFiredLowHealth: 0
+  patrolColor: {r: 0, g: 1, b: 0, a: 1}
+  chaseColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  attackColor: {r: 1, g: 0.5, b: 0, a: 1}
+  hitboxActiveColor: {r: 1, g: 0, b: 0, a: 1}
+--- !u!114 &1022919128
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1022919126}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7bfacf91bcfb2c941b44bbabddfa928d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHealthBar
+  slider: {fileID: 0}
+  worldOffset: {x: 0, y: 2, z: 0}
+--- !u!136 &1022919129
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1022919126}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &1022919130
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1022919126}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &1022919131
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1022919126}
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &1022919132
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1022919126}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.33898, y: 3.15, z: -3.22766}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1022919133
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1022919126}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2940a48915d0ca943b1d70392f786eaf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.CorridorCourtesy
+  inspectorHelp: 'CorridorCourtesy: cooperative yielding in tight corridors.
+
+    Detects
+    head-on agents in narrow spaces. One agent backs up to a pullout point, waits,
+    then resumes.'
+  detectRadius: 2.5
+  frontConeAngle: 45
+  sideProbeLength: 1.25
+  narrowWidthThreshold: 2
+  backoffDistance: 2
+  maxYieldSeconds: 3
+  yieldCooldown: 2
+  priorityWhileYielding: 90
+  radiusScaleWhileYielding: 1.2
+  useBreadcrumbBackoff: 1
+  breadcrumbCapacity: 20
+  breadcrumbMinSpacing: 0.4
+  peerTag: Enemy
+  wallMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!195 &1022919134
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1022919126}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 1
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!114 &1022919135
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1022919126}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d1d1875b740c4a4d90752c760d19ff2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.PathReservation
+  inspectorHelp: 'PathReservation: stamps a cost corridor ahead along the agent''s
+    current path.
+
+    Other agents'' planners (A*/FlowField) avoid these reserved
+    segments when density multipliers > 0.'
+  lookaheadDistance: 10
+  stampSpacing: 0.5
+  extraRadius: 0.25
+  stampWeight: 2
+  cadence: 0.25
+  minRemainingDistance: 2
 --- !u!1 &1040143159
 GameObject:
   m_ObjectHideFlags: 0
@@ -2476,6 +3147,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 306b6b01f45f89c4ca69686ad1e48497, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DroneSwarmManager
+  inspectorHelp: 'DroneSwarmManager: spawns clusters of DroneEnemy around given spawn
+    points.
+
+    Assign dronePrefab, clusterSpawnPoints, and tune dronesPerCluster/spawnRadius.
+
+    Integrates
+    with CrowdController and FlowFieldService for movement guidance.'
   spawningEnabled: 0
   dronePrefab: {fileID: 2011934936876396235, guid: 29cb0f12faa4ec84ebf5afaa93a1598b, type: 3}
   dronesPerCluster: 4
@@ -2499,7 +3177,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1067632257
+--- !u!1 &1049011460
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2507,77 +3185,111 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1067632258}
-  - component: {fileID: 1067632263}
-  - component: {fileID: 1067632262}
-  - component: {fileID: 1067632261}
-  - component: {fileID: 1067632260}
-  - component: {fileID: 1067632259}
+  - component: {fileID: 1049011466}
+  - component: {fileID: 1049011465}
+  - component: {fileID: 1049011464}
+  - component: {fileID: 1049011463}
+  - component: {fileID: 1049011462}
+  - component: {fileID: 1049011461}
+  - component: {fileID: 1049011468}
+  - component: {fileID: 1049011467}
+  - component: {fileID: 1049011469}
   m_Layer: 0
-  m_Name: MovingPlatform_0
-  m_TagString: Untagged
+  m_Name: TestEnemy (8)
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1067632258
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1067632257}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -9.271542, y: 1.63655, z: 5.449561}
-  m_LocalScale: {x: 4, y: 0.5, z: 4}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 925399740}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1067632259
+--- !u!114 &1049011461
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1067632257}
+  m_GameObject: {fileID: 1049011460}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 281ca08afec05084eaffcae40333ddb4, type: 3}
+  m_Script: {fileID: 11500000, guid: 5d3e7a090a8c6a54bb4b5564e14a5c17, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GeneratedMovingPlatform
-  pathPoints:
-  - {fileID: 1962662115}
-  - {fileID: 1135388362}
-  speed: 1.2846521
-  loop: 1
-  lingerSeconds: 2
-  pitObstacle: {fileID: 722871698}
-  carvePitWhileAway: 1
---- !u!208 &1067632260
-NavMeshObstacle:
+  m_EditorClassIdentifier: Assembly-CSharp::TestingEnemy
+  behaviorProfile: {fileID: 11400000, guid: d2e853ab50c464443a710c0b310088df, type: 2}
+  agent: {fileID: 0}
+  currentState: 0
+  maxHealth: 100
+  currentHealth: 100
+  lowHealthThresholdPercent: 0.25
+  handleLowHealth: 1
+  currentZone: {fileID: 0}
+  idleTimerDuration: 15
+  detectionRange: 10
+  showDetectionGizmo: 1
+  damage: 10
+  attackBoxSize: {x: 2, y: 2, z: 2}
+  attackBoxDistance: 1.5
+  attackInterval: 1
+  attackActiveDuration: 0.5
+  showAttackGizmo: 1
+  healthBarPrefab: {fileID: 2629286879049192775, guid: 9345af66964a7d64489a46ae511c793b, type: 3}
+  enableAntiStuck: 1
+  stuckSpeedThreshold: 0.05
+  stuckSeconds: 0.9
+  sidestepDistance: 1
+  backoffDistance: 1.5
+  reliefSampleRadius: 1
+  reliefCooldownSeconds: 1.5
+  healthBarInstance: {fileID: 0}
+  attackCollider: {fileID: 0}
+  isAttackBoxActive: 0
+  hasFiredLowHealth: 0
+  patrolColor: {r: 0, g: 1, b: 0, a: 1}
+  chaseColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  attackColor: {r: 1, g: 0.5, b: 0, a: 1}
+  hitboxActiveColor: {r: 1, g: 0, b: 0, a: 1}
+--- !u!114 &1049011462
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1067632257}
+  m_GameObject: {fileID: 1049011460}
   m_Enabled: 1
-  serializedVersion: 3
-  m_Shape: 1
-  m_Extents: {x: 2, y: 0.25, z: 2}
-  m_MoveThreshold: 0.1
-  m_Carve: 0
-  m_CarveOnlyStationary: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7bfacf91bcfb2c941b44bbabddfa928d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHealthBar
+  slider: {fileID: 0}
+  worldOffset: {x: 0, y: 2, z: 0}
+--- !u!136 &1049011463
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1049011460}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
-  m_TimeToStationary: 0.5
---- !u!23 &1067632261
+--- !u!23 &1049011464
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1067632257}
+  m_GameObject: {fileID: 1049011460}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -2596,7 +3308,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 1618497790}
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -2605,7 +3317,7 @@ MeshRenderer:
   m_LightProbeVolumeOverride: {fileID: 0}
   m_ScaleInLightmap: 1
   m_ReceiveGI: 1
-  m_PreserveUVs: 1
+  m_PreserveUVs: 0
   m_IgnoreNormalsForChartDetection: 0
   m_ImportantGI: 0
   m_StitchLightmapSeams: 1
@@ -2619,66 +3331,107 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &1067632262
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1067632257}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!33 &1067632263
+--- !u!33 &1049011465
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1067632257}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &1135388361
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1135388362}
-  m_Layer: 0
-  m_Name: MovingPlatform_0_wp1
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1135388362
+  m_GameObject: {fileID: 1049011460}
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &1049011466
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1135388361}
+  m_GameObject: {fileID: 1049011460}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -4.2715416, y: 1.63655, z: 5.449561}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.33898, y: 3.15, z: -3.22766}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 925399740}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1049011467
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1049011460}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2940a48915d0ca943b1d70392f786eaf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.CorridorCourtesy
+  inspectorHelp: 'CorridorCourtesy: cooperative yielding in tight corridors.
+
+    Detects
+    head-on agents in narrow spaces. One agent backs up to a pullout point, waits,
+    then resumes.'
+  detectRadius: 2.5
+  frontConeAngle: 45
+  sideProbeLength: 1.25
+  narrowWidthThreshold: 2
+  backoffDistance: 2
+  maxYieldSeconds: 3
+  yieldCooldown: 2
+  priorityWhileYielding: 90
+  radiusScaleWhileYielding: 1.2
+  useBreadcrumbBackoff: 1
+  breadcrumbCapacity: 20
+  breadcrumbMinSpacing: 0.4
+  peerTag: Enemy
+  wallMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!195 &1049011468
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1049011460}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 1
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!114 &1049011469
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1049011460}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d1d1875b740c4a4d90752c760d19ff2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.PathReservation
+  inspectorHelp: 'PathReservation: stamps a cost corridor ahead along the agent''s
+    current path.
+
+    Other agents'' planners (A*/FlowField) avoid these reserved
+    segments when density multipliers > 0.'
+  lookaheadDistance: 10
+  stampSpacing: 0.5
+  extraRadius: 0.25
+  stampWeight: 2
+  cadence: 0.25
+  minRemainingDistance: 2
 --- !u!1 &1136940711
 GameObject:
   m_ObjectHideFlags: 0
@@ -2693,9 +3446,12 @@ GameObject:
   - component: {fileID: 1136940713}
   - component: {fileID: 1136940718}
   - component: {fileID: 1136940717}
+  - component: {fileID: 1136940720}
+  - component: {fileID: 1136940719}
+  - component: {fileID: 1136940721}
   m_Layer: 0
   m_Name: TestEnemy
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -2806,6 +3562,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5d3e7a090a8c6a54bb4b5564e14a5c17, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TestingEnemy
+  behaviorProfile: {fileID: 11400000, guid: d2e853ab50c464443a710c0b310088df, type: 2}
   agent: {fileID: 0}
   currentState: 0
   maxHealth: 100
@@ -2823,7 +3580,13 @@ MonoBehaviour:
   attackActiveDuration: 0.5
   showAttackGizmo: 1
   healthBarPrefab: {fileID: 2629286879049192775, guid: 9345af66964a7d64489a46ae511c793b, type: 3}
-  behaviorProfile: {fileID: 0}
+  enableAntiStuck: 1
+  stuckSpeedThreshold: 0.05
+  stuckSeconds: 0.9
+  sidestepDistance: 1
+  backoffDistance: 2
+  reliefSampleRadius: 1
+  reliefCooldownSeconds: 1.5
   healthBarInstance: {fileID: 0}
   attackCollider: {fileID: 0}
   isAttackBoxActive: 0
@@ -2846,6 +3609,84 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealthBar
   slider: {fileID: 0}
   worldOffset: {x: 0, y: 2, z: 0}
+--- !u!114 &1136940719
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1136940711}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2940a48915d0ca943b1d70392f786eaf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.CorridorCourtesy
+  inspectorHelp: 'CorridorCourtesy: cooperative yielding in tight corridors.
+
+    Detects
+    head-on agents in narrow spaces. One agent backs up to a pullout point, waits,
+    then resumes.'
+  detectRadius: 2.5
+  frontConeAngle: 45
+  sideProbeLength: 1.25
+  narrowWidthThreshold: 2
+  backoffDistance: 2
+  maxYieldSeconds: 3
+  yieldCooldown: 2
+  priorityWhileYielding: 90
+  radiusScaleWhileYielding: 1.2
+  useBreadcrumbBackoff: 1
+  breadcrumbCapacity: 20
+  breadcrumbMinSpacing: 0.4
+  peerTag: Enemy
+  wallMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!195 &1136940720
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1136940711}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 1
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!114 &1136940721
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1136940711}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d1d1875b740c4a4d90752c760d19ff2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.PathReservation
+  inspectorHelp: 'PathReservation: stamps a cost corridor ahead along the agent''s
+    current path.
+
+    Other agents'' planners (A*/FlowField) avoid these reserved
+    segments when density multipliers > 0.'
+  lookaheadDistance: 10
+  stampSpacing: 0.5
+  extraRadius: 0.25
+  stampWeight: 2
+  cadence: 0.25
+  minRemainingDistance: 2
 --- !u!1 &1166336217
 GameObject:
   m_ObjectHideFlags: 0
@@ -3113,37 +3954,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1271840574}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &1305657080
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1305657081}
-  m_Layer: 0
-  m_Name: MovingPlatform_1_wp1
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1305657081
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1305657080}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -14.50437, y: 1.63655, z: -6.3617163}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 925399740}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1319362124
 GameObject:
   m_ObjectHideFlags: 0
@@ -3366,6 +4176,516 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1367355510}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1395508279
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1395508285}
+  - component: {fileID: 1395508284}
+  - component: {fileID: 1395508283}
+  - component: {fileID: 1395508282}
+  - component: {fileID: 1395508281}
+  - component: {fileID: 1395508280}
+  - component: {fileID: 1395508287}
+  - component: {fileID: 1395508286}
+  - component: {fileID: 1395508288}
+  m_Layer: 0
+  m_Name: TestEnemy (5)
+  m_TagString: Enemy
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1395508280
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1395508279}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d3e7a090a8c6a54bb4b5564e14a5c17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TestingEnemy
+  behaviorProfile: {fileID: 11400000, guid: d2e853ab50c464443a710c0b310088df, type: 2}
+  agent: {fileID: 0}
+  currentState: 0
+  maxHealth: 100
+  currentHealth: 100
+  lowHealthThresholdPercent: 0.25
+  handleLowHealth: 1
+  currentZone: {fileID: 0}
+  idleTimerDuration: 15
+  detectionRange: 10
+  showDetectionGizmo: 1
+  damage: 10
+  attackBoxSize: {x: 2, y: 2, z: 2}
+  attackBoxDistance: 1.5
+  attackInterval: 1
+  attackActiveDuration: 0.5
+  showAttackGizmo: 1
+  healthBarPrefab: {fileID: 2629286879049192775, guid: 9345af66964a7d64489a46ae511c793b, type: 3}
+  enableAntiStuck: 1
+  stuckSpeedThreshold: 0.05
+  stuckSeconds: 0.9
+  sidestepDistance: 1
+  backoffDistance: 1.5
+  reliefSampleRadius: 1
+  reliefCooldownSeconds: 1.5
+  healthBarInstance: {fileID: 0}
+  attackCollider: {fileID: 0}
+  isAttackBoxActive: 0
+  hasFiredLowHealth: 0
+  patrolColor: {r: 0, g: 1, b: 0, a: 1}
+  chaseColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  attackColor: {r: 1, g: 0.5, b: 0, a: 1}
+  hitboxActiveColor: {r: 1, g: 0, b: 0, a: 1}
+--- !u!114 &1395508281
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1395508279}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7bfacf91bcfb2c941b44bbabddfa928d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHealthBar
+  slider: {fileID: 0}
+  worldOffset: {x: 0, y: 2, z: 0}
+--- !u!136 &1395508282
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1395508279}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &1395508283
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1395508279}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &1395508284
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1395508279}
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &1395508285
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1395508279}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.33898, y: 3.15, z: -3.22766}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1395508286
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1395508279}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2940a48915d0ca943b1d70392f786eaf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.CorridorCourtesy
+  inspectorHelp: 'CorridorCourtesy: cooperative yielding in tight corridors.
+
+    Detects
+    head-on agents in narrow spaces. One agent backs up to a pullout point, waits,
+    then resumes.'
+  detectRadius: 2.5
+  frontConeAngle: 45
+  sideProbeLength: 1.25
+  narrowWidthThreshold: 2
+  backoffDistance: 2
+  maxYieldSeconds: 3
+  yieldCooldown: 2
+  priorityWhileYielding: 90
+  radiusScaleWhileYielding: 1.2
+  useBreadcrumbBackoff: 1
+  breadcrumbCapacity: 20
+  breadcrumbMinSpacing: 0.4
+  peerTag: Enemy
+  wallMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!195 &1395508287
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1395508279}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 1
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!114 &1395508288
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1395508279}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d1d1875b740c4a4d90752c760d19ff2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.PathReservation
+  inspectorHelp: 'PathReservation: stamps a cost corridor ahead along the agent''s
+    current path.
+
+    Other agents'' planners (A*/FlowField) avoid these reserved
+    segments when density multipliers > 0.'
+  lookaheadDistance: 10
+  stampSpacing: 0.5
+  extraRadius: 0.25
+  stampWeight: 2
+  cadence: 0.25
+  minRemainingDistance: 2
+--- !u!1 &1448554185
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1448554191}
+  - component: {fileID: 1448554190}
+  - component: {fileID: 1448554189}
+  - component: {fileID: 1448554188}
+  - component: {fileID: 1448554187}
+  - component: {fileID: 1448554186}
+  - component: {fileID: 1448554193}
+  - component: {fileID: 1448554192}
+  - component: {fileID: 1448554194}
+  m_Layer: 0
+  m_Name: TestEnemy (2)
+  m_TagString: Enemy
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1448554186
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1448554185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d3e7a090a8c6a54bb4b5564e14a5c17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TestingEnemy
+  behaviorProfile: {fileID: 11400000, guid: d2e853ab50c464443a710c0b310088df, type: 2}
+  agent: {fileID: 0}
+  currentState: 0
+  maxHealth: 100
+  currentHealth: 100
+  lowHealthThresholdPercent: 0.25
+  handleLowHealth: 1
+  currentZone: {fileID: 0}
+  idleTimerDuration: 15
+  detectionRange: 10
+  showDetectionGizmo: 1
+  damage: 10
+  attackBoxSize: {x: 2, y: 2, z: 2}
+  attackBoxDistance: 1.5
+  attackInterval: 1
+  attackActiveDuration: 0.5
+  showAttackGizmo: 1
+  healthBarPrefab: {fileID: 2629286879049192775, guid: 9345af66964a7d64489a46ae511c793b, type: 3}
+  enableAntiStuck: 1
+  stuckSpeedThreshold: 0.05
+  stuckSeconds: 0.9
+  sidestepDistance: 1
+  backoffDistance: 1.5
+  reliefSampleRadius: 1
+  reliefCooldownSeconds: 1.5
+  healthBarInstance: {fileID: 0}
+  attackCollider: {fileID: 0}
+  isAttackBoxActive: 0
+  hasFiredLowHealth: 0
+  patrolColor: {r: 0, g: 1, b: 0, a: 1}
+  chaseColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  attackColor: {r: 1, g: 0.5, b: 0, a: 1}
+  hitboxActiveColor: {r: 1, g: 0, b: 0, a: 1}
+--- !u!114 &1448554187
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1448554185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7bfacf91bcfb2c941b44bbabddfa928d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHealthBar
+  slider: {fileID: 0}
+  worldOffset: {x: 0, y: 2, z: 0}
+--- !u!136 &1448554188
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1448554185}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &1448554189
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1448554185}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &1448554190
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1448554185}
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &1448554191
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1448554185}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.33898, y: 3.15, z: -3.22766}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1448554192
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1448554185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2940a48915d0ca943b1d70392f786eaf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.CorridorCourtesy
+  inspectorHelp: 'CorridorCourtesy: cooperative yielding in tight corridors.
+
+    Detects
+    head-on agents in narrow spaces. One agent backs up to a pullout point, waits,
+    then resumes.'
+  detectRadius: 2.5
+  frontConeAngle: 45
+  sideProbeLength: 1.25
+  narrowWidthThreshold: 2
+  backoffDistance: 2
+  maxYieldSeconds: 3
+  yieldCooldown: 2
+  priorityWhileYielding: 90
+  radiusScaleWhileYielding: 1.2
+  useBreadcrumbBackoff: 1
+  breadcrumbCapacity: 20
+  breadcrumbMinSpacing: 0.4
+  peerTag: Enemy
+  wallMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!195 &1448554193
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1448554185}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 1
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!114 &1448554194
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1448554185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d1d1875b740c4a4d90752c760d19ff2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.PathReservation
+  inspectorHelp: 'PathReservation: stamps a cost corridor ahead along the agent''s
+    current path.
+
+    Other agents'' planners (A*/FlowField) avoid these reserved
+    segments when density multipliers > 0.'
+  lookaheadDistance: 10
+  stampSpacing: 0.5
+  extraRadius: 0.25
+  stampWeight: 2
+  cadence: 0.25
+  minRemainingDistance: 2
 --- !u!1 &1448563212
 GameObject:
   m_ObjectHideFlags: 0
@@ -3508,6 +4828,261 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1563055898}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1476978131
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1476978137}
+  - component: {fileID: 1476978136}
+  - component: {fileID: 1476978135}
+  - component: {fileID: 1476978134}
+  - component: {fileID: 1476978133}
+  - component: {fileID: 1476978132}
+  - component: {fileID: 1476978139}
+  - component: {fileID: 1476978138}
+  - component: {fileID: 1476978140}
+  m_Layer: 0
+  m_Name: TestEnemy (4)
+  m_TagString: Enemy
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1476978132
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1476978131}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d3e7a090a8c6a54bb4b5564e14a5c17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TestingEnemy
+  behaviorProfile: {fileID: 11400000, guid: d2e853ab50c464443a710c0b310088df, type: 2}
+  agent: {fileID: 0}
+  currentState: 0
+  maxHealth: 100
+  currentHealth: 100
+  lowHealthThresholdPercent: 0.25
+  handleLowHealth: 1
+  currentZone: {fileID: 0}
+  idleTimerDuration: 15
+  detectionRange: 10
+  showDetectionGizmo: 1
+  damage: 10
+  attackBoxSize: {x: 2, y: 2, z: 2}
+  attackBoxDistance: 1.5
+  attackInterval: 1
+  attackActiveDuration: 0.5
+  showAttackGizmo: 1
+  healthBarPrefab: {fileID: 2629286879049192775, guid: 9345af66964a7d64489a46ae511c793b, type: 3}
+  enableAntiStuck: 1
+  stuckSpeedThreshold: 0.05
+  stuckSeconds: 0.9
+  sidestepDistance: 1
+  backoffDistance: 1.5
+  reliefSampleRadius: 1
+  reliefCooldownSeconds: 1.5
+  healthBarInstance: {fileID: 0}
+  attackCollider: {fileID: 0}
+  isAttackBoxActive: 0
+  hasFiredLowHealth: 0
+  patrolColor: {r: 0, g: 1, b: 0, a: 1}
+  chaseColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  attackColor: {r: 1, g: 0.5, b: 0, a: 1}
+  hitboxActiveColor: {r: 1, g: 0, b: 0, a: 1}
+--- !u!114 &1476978133
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1476978131}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7bfacf91bcfb2c941b44bbabddfa928d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHealthBar
+  slider: {fileID: 0}
+  worldOffset: {x: 0, y: 2, z: 0}
+--- !u!136 &1476978134
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1476978131}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &1476978135
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1476978131}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &1476978136
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1476978131}
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &1476978137
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1476978131}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.33898, y: 3.15, z: -3.22766}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1476978138
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1476978131}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2940a48915d0ca943b1d70392f786eaf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.CorridorCourtesy
+  inspectorHelp: 'CorridorCourtesy: cooperative yielding in tight corridors.
+
+    Detects
+    head-on agents in narrow spaces. One agent backs up to a pullout point, waits,
+    then resumes.'
+  detectRadius: 2.5
+  frontConeAngle: 45
+  sideProbeLength: 1.25
+  narrowWidthThreshold: 2
+  backoffDistance: 2
+  maxYieldSeconds: 3
+  yieldCooldown: 2
+  priorityWhileYielding: 90
+  radiusScaleWhileYielding: 1.2
+  useBreadcrumbBackoff: 1
+  breadcrumbCapacity: 20
+  breadcrumbMinSpacing: 0.4
+  peerTag: Enemy
+  wallMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!195 &1476978139
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1476978131}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 1
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!114 &1476978140
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1476978131}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d1d1875b740c4a4d90752c760d19ff2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.PathReservation
+  inspectorHelp: 'PathReservation: stamps a cost corridor ahead along the agent''s
+    current path.
+
+    Other agents'' planners (A*/FlowField) avoid these reserved
+    segments when density multipliers > 0.'
+  lookaheadDistance: 10
+  stampSpacing: 0.5
+  extraRadius: 0.25
+  stampWeight: 2
+  cadence: 0.25
+  minRemainingDistance: 2
 --- !u!1 &1563055897
 GameObject:
   m_ObjectHideFlags: 0
@@ -3766,6 +5341,261 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1589917455}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1618306867
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1618306873}
+  - component: {fileID: 1618306872}
+  - component: {fileID: 1618306871}
+  - component: {fileID: 1618306870}
+  - component: {fileID: 1618306869}
+  - component: {fileID: 1618306868}
+  - component: {fileID: 1618306875}
+  - component: {fileID: 1618306874}
+  - component: {fileID: 1618306876}
+  m_Layer: 0
+  m_Name: TestEnemy (7)
+  m_TagString: Enemy
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1618306868
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1618306867}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d3e7a090a8c6a54bb4b5564e14a5c17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TestingEnemy
+  behaviorProfile: {fileID: 11400000, guid: d2e853ab50c464443a710c0b310088df, type: 2}
+  agent: {fileID: 0}
+  currentState: 0
+  maxHealth: 100
+  currentHealth: 100
+  lowHealthThresholdPercent: 0.25
+  handleLowHealth: 1
+  currentZone: {fileID: 0}
+  idleTimerDuration: 15
+  detectionRange: 10
+  showDetectionGizmo: 1
+  damage: 10
+  attackBoxSize: {x: 2, y: 2, z: 2}
+  attackBoxDistance: 1.5
+  attackInterval: 1
+  attackActiveDuration: 0.5
+  showAttackGizmo: 1
+  healthBarPrefab: {fileID: 2629286879049192775, guid: 9345af66964a7d64489a46ae511c793b, type: 3}
+  enableAntiStuck: 1
+  stuckSpeedThreshold: 0.05
+  stuckSeconds: 0.9
+  sidestepDistance: 1
+  backoffDistance: 1.5
+  reliefSampleRadius: 1
+  reliefCooldownSeconds: 1.5
+  healthBarInstance: {fileID: 0}
+  attackCollider: {fileID: 0}
+  isAttackBoxActive: 0
+  hasFiredLowHealth: 0
+  patrolColor: {r: 0, g: 1, b: 0, a: 1}
+  chaseColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  attackColor: {r: 1, g: 0.5, b: 0, a: 1}
+  hitboxActiveColor: {r: 1, g: 0, b: 0, a: 1}
+--- !u!114 &1618306869
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1618306867}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7bfacf91bcfb2c941b44bbabddfa928d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHealthBar
+  slider: {fileID: 0}
+  worldOffset: {x: 0, y: 2, z: 0}
+--- !u!136 &1618306870
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1618306867}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &1618306871
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1618306867}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &1618306872
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1618306867}
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &1618306873
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1618306867}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.33898, y: 3.15, z: -3.22766}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1618306874
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1618306867}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2940a48915d0ca943b1d70392f786eaf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.CorridorCourtesy
+  inspectorHelp: 'CorridorCourtesy: cooperative yielding in tight corridors.
+
+    Detects
+    head-on agents in narrow spaces. One agent backs up to a pullout point, waits,
+    then resumes.'
+  detectRadius: 2.5
+  frontConeAngle: 45
+  sideProbeLength: 1.25
+  narrowWidthThreshold: 2
+  backoffDistance: 2
+  maxYieldSeconds: 3
+  yieldCooldown: 2
+  priorityWhileYielding: 90
+  radiusScaleWhileYielding: 1.2
+  useBreadcrumbBackoff: 1
+  breadcrumbCapacity: 20
+  breadcrumbMinSpacing: 0.4
+  peerTag: Enemy
+  wallMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!195 &1618306875
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1618306867}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 1
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!114 &1618306876
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1618306867}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d1d1875b740c4a4d90752c760d19ff2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.PathReservation
+  inspectorHelp: 'PathReservation: stamps a cost corridor ahead along the agent''s
+    current path.
+
+    Other agents'' planners (A*/FlowField) avoid these reserved
+    segments when density multipliers > 0.'
+  lookaheadDistance: 10
+  stampSpacing: 0.5
+  extraRadius: 0.25
+  stampWeight: 2
+  cadence: 0.25
+  minRemainingDistance: 2
 --- !u!21 &1618497790
 Material:
   serializedVersion: 8
@@ -4278,6 +6108,261 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1729037381}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1801864264
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1801864270}
+  - component: {fileID: 1801864269}
+  - component: {fileID: 1801864268}
+  - component: {fileID: 1801864267}
+  - component: {fileID: 1801864266}
+  - component: {fileID: 1801864265}
+  - component: {fileID: 1801864272}
+  - component: {fileID: 1801864271}
+  - component: {fileID: 1801864273}
+  m_Layer: 0
+  m_Name: TestEnemy (1)
+  m_TagString: Enemy
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1801864265
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1801864264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d3e7a090a8c6a54bb4b5564e14a5c17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TestingEnemy
+  behaviorProfile: {fileID: 11400000, guid: d2e853ab50c464443a710c0b310088df, type: 2}
+  agent: {fileID: 0}
+  currentState: 0
+  maxHealth: 100
+  currentHealth: 100
+  lowHealthThresholdPercent: 0.25
+  handleLowHealth: 1
+  currentZone: {fileID: 0}
+  idleTimerDuration: 15
+  detectionRange: 10
+  showDetectionGizmo: 1
+  damage: 10
+  attackBoxSize: {x: 2, y: 2, z: 2}
+  attackBoxDistance: 1.5
+  attackInterval: 1
+  attackActiveDuration: 0.5
+  showAttackGizmo: 1
+  healthBarPrefab: {fileID: 2629286879049192775, guid: 9345af66964a7d64489a46ae511c793b, type: 3}
+  enableAntiStuck: 1
+  stuckSpeedThreshold: 0.05
+  stuckSeconds: 0.9
+  sidestepDistance: 1
+  backoffDistance: 1.5
+  reliefSampleRadius: 1
+  reliefCooldownSeconds: 1.5
+  healthBarInstance: {fileID: 0}
+  attackCollider: {fileID: 0}
+  isAttackBoxActive: 0
+  hasFiredLowHealth: 0
+  patrolColor: {r: 0, g: 1, b: 0, a: 1}
+  chaseColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  attackColor: {r: 1, g: 0.5, b: 0, a: 1}
+  hitboxActiveColor: {r: 1, g: 0, b: 0, a: 1}
+--- !u!114 &1801864266
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1801864264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7bfacf91bcfb2c941b44bbabddfa928d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHealthBar
+  slider: {fileID: 0}
+  worldOffset: {x: 0, y: 2, z: 0}
+--- !u!136 &1801864267
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1801864264}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &1801864268
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1801864264}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &1801864269
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1801864264}
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &1801864270
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1801864264}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.33898, y: 3.15, z: -3.22766}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1801864271
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1801864264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2940a48915d0ca943b1d70392f786eaf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.CorridorCourtesy
+  inspectorHelp: 'CorridorCourtesy: cooperative yielding in tight corridors.
+
+    Detects
+    head-on agents in narrow spaces. One agent backs up to a pullout point, waits,
+    then resumes.'
+  detectRadius: 2.5
+  frontConeAngle: 45
+  sideProbeLength: 1.25
+  narrowWidthThreshold: 2
+  backoffDistance: 2
+  maxYieldSeconds: 3
+  yieldCooldown: 2
+  priorityWhileYielding: 90
+  radiusScaleWhileYielding: 1.2
+  useBreadcrumbBackoff: 1
+  breadcrumbCapacity: 20
+  breadcrumbMinSpacing: 0.4
+  peerTag: Enemy
+  wallMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!195 &1801864272
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1801864264}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 1
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!114 &1801864273
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1801864264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d1d1875b740c4a4d90752c760d19ff2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.PathReservation
+  inspectorHelp: 'PathReservation: stamps a cost corridor ahead along the agent''s
+    current path.
+
+    Other agents'' planners (A*/FlowField) avoid these reserved
+    segments when density multipliers > 0.'
+  lookaheadDistance: 10
+  stampSpacing: 0.5
+  extraRadius: 0.25
+  stampWeight: 2
+  cadence: 0.25
+  minRemainingDistance: 2
 --- !u!1 &1825543936
 GameObject:
   m_ObjectHideFlags: 0
@@ -4309,37 +6394,6 @@ Transform:
   m_Children:
   - {fileID: 9930342}
   - {fileID: 690543376}
-  m_Father: {fileID: 925399740}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1832924567
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1832924568}
-  m_Layer: 0
-  m_Name: MovingPlatform_2_wp0
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1832924568
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1832924567}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -11.577463, y: 1.63655, z: 19.477526}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
   m_Father: {fileID: 925399740}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1837308116
@@ -4737,37 +6791,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1931150305}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &1962662114
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1962662115}
-  m_Layer: 0
-  m_Name: MovingPlatform_0_wp0
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1962662115
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1962662114}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -14.271542, y: 1.63655, z: 5.449561}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 925399740}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1967712615
 GameObject:
   m_ObjectHideFlags: 0
@@ -5485,8 +7508,21 @@ SceneRoots:
   - {fileID: 5308222343054280879}
   - {fileID: 3353092099152019666}
   - {fileID: 1136940716}
+  - {fileID: 1801864270}
+  - {fileID: 1448554191}
+  - {fileID: 319769892}
+  - {fileID: 1476978137}
+  - {fileID: 1395508285}
+  - {fileID: 419151072}
+  - {fileID: 1618306873}
+  - {fileID: 1049011466}
+  - {fileID: 27874954}
+  - {fileID: 1022919132}
   - {fileID: 188650941}
   - {fileID: 1166336219}
   - {fileID: 406295789}
+  - {fileID: 101445813}
+  - {fileID: 682894038}
   - {fileID: 1928989120}
   - {fileID: 925399740}
+  - {fileID: 382784656}

@@ -16,23 +16,33 @@ namespace Behaviors
         private Coroutine idleWanderCoroutine;
         private BaseEnemy<TState, TTrigger> enemy;
 
+        // Commit-to-destination settings for Idle
+        private Vector3 currentIdleTarget;
+        private bool hasIdleTarget;
+        private float targetStartTime;
+        private const float arriveThreshold = 0.25f;      // meters in addition to agent.stoppingDistance
+        private const float maxTravelSeconds = 8.0f;      // failsafe: choose a new target if not reached by then
+        private const float monitorInterval = 0.15f;      // seconds between checks
+        private const float fallbackWanderRadius = 6f;    // meters around current pos when no zone exists
+
         public virtual void OnEnter(BaseEnemy<TState, TTrigger> enemy)
         {
             this.enemy = enemy;
-            Debug.Log("IdleBehavior.OnEnter called!");
+            //Debug.Log("IdleBehavior.OnEnter called!");
             if (enemy.agent == null)
             {
                 Debug.LogError("NavMeshAgent not initialized!");
                 return;
             }
             enemy.SetEnemyColor(enemy.patrolColor);
-            Debug.Log($"{enemy.gameObject.name} entered Idle state.");
+            //Debug.Log($"{enemy.gameObject.name} entered Idle state.");
             enemy.hasFiredLowHealth = false;
             enemy.CheckHealthThreshold();
 
             ResetIdleTimer();
             enemy.UpdateCurrentZone();
 
+            hasIdleTarget = false; // force pick on first tick
             idleWanderCoroutine = enemy.StartCoroutine(IdleWanderLoop());
         }
 
@@ -48,6 +58,7 @@ namespace Behaviors
                 enemy.StopCoroutine(idleWanderCoroutine);
                 idleWanderCoroutine = null;
             }
+            hasIdleTarget = false;
         }
 
         private void ResetIdleTimer()
@@ -64,38 +75,82 @@ namespace Behaviors
             yield return new WaitForSeconds(enemy.idleTimerDuration);
             if (enemy.enemyAI.State.Equals(EnemyState.Idle))
             {
-                enemy.TryFireTriggerByName("IdleTimerElapsed");
+                // If there are no other zones present, keep idling instead of relocating
+                var zones = Object.FindObjectsByType<Zone>(FindObjectsSortMode.None);
+                if (zones == null || zones.Length <= 1)
+                {
+                    // Continue idling: restart timer and keep wandering
+                    ResetIdleTimer();
+                }
+                else
+                {
+                    enemy.TryFireTriggerByName("IdleTimerElapsed");
+                }
             }
             idleTimerCoroutine = null;
         }
 
         private IEnumerator IdleWanderLoop()
         {
+            var wait = new WaitForSeconds(monitorInterval);
             while (true)
             {
-                float waitTime = Random.Range(2f, 4f);
-                yield return new WaitForSeconds(waitTime);
-                IdleWander();
+                if (!hasIdleTarget)
+                {
+                    PickNewIdleTarget();
+                }
+                else
+                {
+                    // Monitor progress to the current target; commit until reached or timeout
+                    bool arrived = false;
+                    if (enemy.agent != null && enemy.agent.enabled && enemy.agent.isOnNavMesh)
+                    {
+                        if (enemy.agent.hasPath)
+                        {
+                            arrived = enemy.agent.remainingDistance <= (enemy.agent.stoppingDistance + arriveThreshold);
+                        }
+                        else
+                        {
+                            // fallback distance check
+                            float d = Vector3.Distance(enemy.transform.position, currentIdleTarget);
+                            arrived = d <= (enemy.agent.stoppingDistance + arriveThreshold);
+                        }
+                    }
+
+                    if (arrived)
+                    {
+                        hasIdleTarget = false;
+                    }
+                    else if (Time.time - targetStartTime > maxTravelSeconds)
+                    {
+                        // Failsafe: pick a new one
+                        hasIdleTarget = false;
+                    }
+                }
+                yield return wait;
             }
         }
 
-        private void IdleWander()
+        private void PickNewIdleTarget()
         {
-            if (enemy.currentZone == null) {
-                Debug.LogWarning($"{enemy.gameObject.name} has no currentZone assigned!");
-                return;
-            }
-            Vector3 target = enemy.currentZone.GetRandomPointInZone();
-            Debug.Log($"{enemy.gameObject.name} IdleWander target: {target}");
-
-            if (NavMesh.SamplePosition(target, out NavMeshHit hit, 2.0f, NavMesh.AllAreas))
+            Vector3 target;
+            if (enemy.currentZone == null)
             {
-                Debug.Log($"{enemy.gameObject.name} setting destination to {hit.position}");
-                enemy.agent.SetDestination(hit.position);
+                Vector2 circle = Random.insideUnitCircle * fallbackWanderRadius;
+                target = enemy.transform.position + new Vector3(circle.x, 0f, circle.y);
             }
             else
             {
-                Debug.LogWarning($"{enemy.gameObject.name} could not find valid NavMesh position near {target}");
+                target = enemy.currentZone.GetRandomPointInZone();
+            }
+
+            if (NavMesh.SamplePosition(target, out NavMeshHit hit, 2.0f, NavMesh.AllAreas))
+            {
+                currentIdleTarget = hit.position;
+                targetStartTime = Time.time;
+                hasIdleTarget = true;
+                enemy.agent.isStopped = false;
+                enemy.agent.SetDestination(currentIdleTarget);
             }
         }
 

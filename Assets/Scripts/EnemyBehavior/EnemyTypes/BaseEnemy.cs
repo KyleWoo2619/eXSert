@@ -69,6 +69,22 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     [SerializeField, Tooltip("Prefab for the enemy's health bar UI.")]
     public GameObject healthBarPrefab;
 
+    [Header("Anti-Stuck")] 
+    [SerializeField, Tooltip("Enable a lightweight anti-stuck behavior that side-steps or backs off when velocity is near zero for a short time while having a path.")]
+    private bool enableAntiStuck = true;
+    [SerializeField, Tooltip("Speed (m/s) below which the agent is considered stalled.")]
+    private float stuckSpeedThreshold = 0.05f;
+    [SerializeField, Tooltip("Seconds the agent must remain under the speed threshold before relief kicks in.")]
+    private float stuckSeconds = 0.9f;
+    [SerializeField, Tooltip("Meters to step sideways when attempting relief.")]
+    private float sidestepDistance = 1.0f;
+    [SerializeField, Tooltip("Meters to back off when attempting relief if sidestep is not possible.")]
+    private float backoffDistance = 1.5f;
+    [SerializeField, Tooltip("Radius used with NavMesh.SamplePosition when probing relief points.")]
+    private float reliefSampleRadius = 1.0f;
+    [SerializeField, Tooltip("Cooldown after a relief move before checking for another relief (seconds).")]
+    private float reliefCooldownSeconds = 1.5f;
+
     // Non-serialized fields
     [HideInInspector]
     public EnemyHealthBar healthBarInstance;
@@ -102,6 +118,10 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         get => playerTarget;
         set => playerTarget = value;
     }
+
+    // Anti-stuck state
+    private float _stuckTimer;
+    private float _reliefUntil;
 
     // Awake is called when the script instance is being loaded
     protected virtual void Awake()
@@ -156,7 +176,12 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         agent.acceleration = behaviorProfile.Acceleration;
         agent.angularSpeed = behaviorProfile.AngularSpeed;
         agent.stoppingDistance = behaviorProfile.StoppingDistance;
-        agent.avoidancePriority = behaviorProfile.AvoidancePriority;
+        // Jitter priority slightly to break symmetrical face-offs in corridors
+        int basePrio = Mathf.Clamp(behaviorProfile.AvoidancePriority, 0, 99);
+        int jittered = Mathf.Clamp(basePrio + Random.Range(-7, 8), 0, 99);
+        agent.avoidancePriority = jittered;
+        agent.autoRepath = true;
+        agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
         agent.autoBraking = false;
     }
 
@@ -181,9 +206,50 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     // Update is called once per frame
     protected virtual void Update()
     {
-        // Not sure if Update will be needed in the base class
-        // but it is here if we need it later
-        // Trying to not use it as much as possible for performance reasons
+        // Lightweight anti-stuck relief for narrow corridors
+        if (enableAntiStuck && agent != null && agent.enabled && agent.isOnNavMesh)
+        {
+            if (Time.time >= _reliefUntil && agent.hasPath && agent.remainingDistance > agent.stoppingDistance + 0.05f)
+            {
+                float spd = agent.velocity.magnitude;
+                if (spd < stuckSpeedThreshold)
+                {
+                    _stuckTimer += Time.deltaTime;
+                    if (_stuckTimer >= stuckSeconds)
+                    {
+                        TryStuckRelief();
+                        _stuckTimer = 0f;
+                        _reliefUntil = Time.time + reliefCooldownSeconds;
+                    }
+                }
+                else
+                {
+                    _stuckTimer = 0f;
+                }
+            }
+        }
+    }
+
+    private void TryStuckRelief()
+    {
+        if (agent == null) return;
+        Vector3 pos = agent.transform.position;
+        Vector3 dir = agent.desiredVelocity.sqrMagnitude > 0.001f ? agent.desiredVelocity.normalized : agent.transform.forward;
+        Vector3 perp = Vector3.Cross(Vector3.up, dir).normalized;
+
+        Vector3[] probes = new Vector3[3];
+        probes[0] = pos + perp * sidestepDistance; // left
+        probes[1] = pos - perp * sidestepDistance; // right
+        probes[2] = pos - dir * backoffDistance;   // back
+
+        for (int i = 0; i < probes.Length; i++)
+        {
+            if (NavMesh.SamplePosition(probes[i], out NavMeshHit hit, reliefSampleRadius, NavMesh.AllAreas))
+            {
+                agent.SetDestination(hit.position);
+                return;
+            }
+        }
     }
 
     // --- PASSIVE MOVEMENT AND BEHAVIOR METHODS ---
@@ -195,7 +261,7 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
 
     public virtual void UpdateCurrentZone()
     {
-        Debug.Log($"{gameObject.name} Updating current zone.");
+        //Debug.Log($"{gameObject.name} Updating current zone.");
         Zone[] zones = Object.FindObjectsByType<Zone>(FindObjectsSortMode.None);
         foreach (var zone in zones)
         {
