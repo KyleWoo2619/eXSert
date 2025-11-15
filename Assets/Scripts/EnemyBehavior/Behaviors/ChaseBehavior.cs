@@ -4,6 +4,7 @@
 
 using UnityEngine;
 using System.Collections;
+using UnityEngine.AI;
 
 namespace Behaviors
 {
@@ -41,6 +42,7 @@ namespace Behaviors
             if (playerTarget != null && enemy.agent != null && enemy.agent.enabled)
             {
                 enemy.agent.isStopped = false;
+                // First tick toward player; loop will maintain pursuit
                 enemy.agent.SetDestination(playerTarget.position);
             }
 
@@ -116,15 +118,21 @@ namespace Behaviors
             }
         }
 
-        // Original chase logic for non-crawlers
+        // Chase logic for non-crawlers
         private IEnumerator DefaultChasePlayerLoop()
         {
-            while (enemy.enemyAI.State.Equals((TState)(object)CrawlerEnemyState.Chase) && playerTarget != null)
+            // A generous threshold to leave chase if the player is far (fallback when no explicit detection range available here)
+            const float losePlayerDistance = 25f;
+
+            while (enemy.enemyAI.State.ToString().Equals("Chase") && playerTarget != null)
             {
+                if (enemy.agent != null && enemy.agent.enabled)
+                {
+                    MoveToAttackRange(playerTarget);
+                }
+
                 float attackRange = (Mathf.Max(enemy.attackBoxSize.x, enemy.attackBoxSize.z) * 0.5f) + enemy.attackBoxDistance;
                 float distance = Vector3.Distance(enemy.transform.position, playerTarget.position);
-
-                MoveToAttackRange(playerTarget);
 
                 if (distance <= attackRange)
                 {
@@ -132,28 +140,74 @@ namespace Behaviors
                     yield break;
                 }
 
+                if (distance >= losePlayerDistance)
+                {
+                    enemy.TryFireTriggerByName("LosePlayer");
+                    yield break;
+                }
+
                 yield return null;
             }
         }
 
+        // Picks an approach point around the player at the desired reach and avoids obstacle corners
         private void MoveToAttackRange(Transform player)
         {
-            // Get direction from enemy to player
-            Vector3 direction = (player.position - enemy.transform.position).normalized;
+            if (enemy.agent == null) return;
 
-            // Calculate reach: half the box's depth (z) plus the offset distance in front of the enemy
-            // Subtract a small buffer to move a little closer
-            // This is to prevent stopping just before the attack box edge
+            // Desired radial distance from player to stand at before attacking
             float chaseBuffer = 0.2f;
             float reach = (Mathf.Max(enemy.attackBoxSize.x, enemy.attackBoxSize.z) * 0.5f) + enemy.attackBoxDistance - chaseBuffer;
+            reach = Mathf.Max(0.1f, reach);
 
-            // Position the enemy so the player is just inside the front face of the attack box
-            Vector3 targetPosition = player.position - direction * reach;
+            Vector3 toPlayer = player.position - enemy.transform.position; toPlayer.y = 0f;
+            Vector3 baseDir = toPlayer.sqrMagnitude < 0.001f ? enemy.transform.forward : toPlayer.normalized;
 
-            // Keep the target position at the same Y as the enemy (for ground-based movement)
-            targetPosition.y = enemy.transform.position.y;
+            // Try candidates around an arc near the facing direction: 0, ±20, ±40, ±60 degrees
+            float[] angles = new float[] { 0f, 20f, -20f, 40f, -40f, 60f, -60f };
+            Vector3 best = Vector3.zero;
+            bool found = false;
+            for (int i = 0; i < angles.Length; i++)
+            {
+                Vector3 dir = Quaternion.AngleAxis(angles[i], Vector3.up) * baseDir;
+                Vector3 candidate = player.position - dir * reach;
+                candidate.y = enemy.transform.position.y;
 
-            enemy.agent.SetDestination(targetPosition);
+                // Snap to closest navmesh point near candidate
+                if (!NavMesh.SamplePosition(candidate, out var hit, 1.0f, NavMesh.AllAreas))
+                    continue;
+
+                // Prefer straight clear ray on navmesh between current and candidate
+                if (!NavMesh.Raycast(enemy.transform.position, hit.position, out var navHit, NavMesh.AllAreas))
+                {
+                    best = hit.position;
+                    found = true;
+                    break;
+                }
+
+                // Keep first valid sample as fallback
+                if (!found)
+                {
+                    best = hit.position;
+                    found = true;
+                }
+            }
+
+            if (!found)
+            {
+                // Final fallback: head directly to player's sampled position
+                if (NavMesh.SamplePosition(player.position, out var phit, 1.5f, NavMesh.AllAreas))
+                {
+                    best = phit.position;
+                    found = true;
+                }
+            }
+
+            if (found)
+            {
+                enemy.agent.isStopped = false;
+                enemy.agent.SetDestination(best);
+            }
         }
         public void Tick(BaseEnemy<TState, TTrigger> enemy)
         {
