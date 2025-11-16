@@ -32,7 +32,8 @@ Transform:
   m_LocalPosition: {x: -7.17482, y: 1.88655, z: -11.40406}
   m_LocalScale: {x: 1, y: 0.58663, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 2171750560478781089}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &1596842790629306977
@@ -50,7 +51,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2757122947255948302}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -129,10 +130,14 @@ MonoBehaviour:
   attackColor: {r: 1, g: 0.5, b: 0, a: 1}
   hitboxActiveColor: {r: 1, g: 0, b: 0, a: 1}
   alarmDuration: 3
-  spawnInterval: 2
   alarmRange: 10
+  keepNearPocketRadius: 8
+  fleeCheckInterval: 0.1
+  minMoveDistance: 2
+  playerChaseRadius: 20
   baseCrawlerPrefab: {fileID: 6272745358913691132, guid: e1b11366c95442f489e8e074c928f67c, type: 3}
   bombCrawlerPrefab: {fileID: -5112833366937417747, guid: bb6ba725d2594664387c45b4c0a4351d, type: 3}
+  currentDynamicSpawnInterval: 0
 --- !u!136 &2458891657056406455
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -156,3 +161,81 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1001 &1849047457358068042
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6019925084480976658}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 927a21b9f8794f542b15a062a8295055, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.020606998
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 927a21b9f8794f542b15a062a8295055, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.020606998
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 927a21b9f8794f542b15a062a8295055, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.020606998
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 927a21b9f8794f542b15a062a8295055, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.028099
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 927a21b9f8794f542b15a062a8295055, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.844
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 927a21b9f8794f542b15a062a8295055, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.17287
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 927a21b9f8794f542b15a062a8295055, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 927a21b9f8794f542b15a062a8295055, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 927a21b9f8794f542b15a062a8295055, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 927a21b9f8794f542b15a062a8295055, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 927a21b9f8794f542b15a062a8295055, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 927a21b9f8794f542b15a062a8295055, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 927a21b9f8794f542b15a062a8295055, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: 927a21b9f8794f542b15a062a8295055, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 927a21b9f8794f542b15a062a8295055, type: 3}
+      propertyPath: m_Name
+      value: Tick+Alarm
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 927a21b9f8794f542b15a062a8295055, type: 3}
+--- !u!4 &2171750560478781089 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 927a21b9f8794f542b15a062a8295055, type: 3}
+  m_PrefabInstance: {fileID: 1849047457358068042}
+  m_PrefabAsset: {fileID: 0}

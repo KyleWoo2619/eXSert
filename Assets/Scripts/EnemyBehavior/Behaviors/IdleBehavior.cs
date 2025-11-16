@@ -21,7 +21,7 @@ namespace Behaviors
                 Debug.LogError("NavMeshAgent not initialized!");
                 return;
             }
-            enemy.SetEnemyColor(enemy.patrolColor);
+            // Removed SetEnemyColor - using animations instead
             Debug.Log($"{enemy.gameObject.name} entered Idle state.");
             enemy.hasFiredLowHealth = false;
             enemy.CheckHealthThreshold();
@@ -58,11 +58,29 @@ namespace Behaviors
         private IEnumerator IdleTimerCoroutine()
         {
             yield return new WaitForSeconds(enemy.idleTimerDuration);
-            if (enemy.enemyAI.State.Equals(EnemyState.Idle))
+            
+            // Get the "Idle" state for the current enemy type
+            TState idleState = GetIdleState();
+            
+            if (enemy.enemyAI.State.Equals(idleState))
             {
                 enemy.TryFireTriggerByName("IdleTimerElapsed");
             }
             idleTimerCoroutine = null;
+        }
+        
+        // Helper method to get the Idle state for the current enemy type
+        private TState GetIdleState()
+        {
+            // Try to parse "Idle" as the generic TState enum
+            if (System.Enum.TryParse(typeof(TState), "Idle", out object result))
+            {
+                return (TState)result;
+            }
+            
+            // Fallback: return default value (should never happen if enum has "Idle")
+            Debug.LogError($"IdleBehavior: Could not find 'Idle' state in enum {typeof(TState).Name}");
+            return default(TState);
         }
 
         private IEnumerator IdleWanderLoop()

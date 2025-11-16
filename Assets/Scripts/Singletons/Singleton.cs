@@ -29,6 +29,7 @@ namespace Singletons {
                     if (_instance == null)
                     {
                         // If no instance is found, create a new GameObject and attach the singleton component to it
+                        Debug.LogWarning($"No instance of singleton {typeof(T)} found in the scene. Creating a new one.");
                         GameObject singletonObject = new GameObject();
                         _instance = singletonObject.AddComponent<T>();
                         singletonObject.name = typeof(T).ToString() + " (Singleton)";
@@ -42,7 +43,7 @@ namespace Singletons {
         }
 
         // Awake method to enforce the singleton pattern
-        private void Awake()
+        virtual protected void Awake()
         {
             if(_instance == null)
             {
@@ -51,7 +52,10 @@ namespace Singletons {
             }
             else if (_instance != this)
             {
-                Destroy(gameObject);
+                Debug.LogWarning($"Another instance of singleton {typeof(T)} already exists. Destroying this component only.");
+                // Only destroy the component, not the entire GameObject
+                // This prevents destroying Player when InputReader is a duplicate
+                Destroy(this);
             }
         }
     }

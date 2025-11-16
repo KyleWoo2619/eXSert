@@ -14,7 +14,7 @@ namespace Behaviors
         public virtual void OnEnter(BaseEnemy<TState, TTrigger> enemy)
         {
             this.enemy = enemy;
-            enemy.SetEnemyColor(enemy.patrolColor);
+            // Removed SetEnemyColor - using animations instead
             Zone[] otherZones = GetOtherZones();
             if (otherZones.Length == 0)
             {

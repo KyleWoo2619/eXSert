@@ -154,7 +154,7 @@ namespace eXsert
                     ""id"": ""e5ab59cf-2859-49a1-be38-04cab2bfc111"",
                     ""expectedControlType"": """",
                     ""processors"": """",
-                    ""interactions"": """",
+                    ""interactions"": ""Press,Hold"",
                     ""initialStateCheck"": false
                 },
                 {
@@ -170,6 +170,15 @@ namespace eXsert
                     ""name"": ""Pause"",
                     ""type"": ""Button"",
                     ""id"": ""88363508-0501-4f47-b573-26fffb0d8ea2"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""NavigationMenu"",
+                    ""type"": ""Button"",
+                    ""id"": ""64ec575c-123f-498c-af28-6627a40d3ba7"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
@@ -473,6 +482,28 @@ namespace eXsert
                     ""action"": ""Pause"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""8cc89e6c-c2db-4ded-92f3-2704a41b5ca0"",
+                    ""path"": ""<Gamepad>/dpad/down"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""NavigationMenu"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""978b44c4-79e1-41b9-b27b-3e1d178e973a"",
+                    ""path"": ""<Keyboard>/tab"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""NavigationMenu"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         },
@@ -480,6 +511,15 @@ namespace eXsert
             ""name"": ""UI"",
             ""id"": ""caa73b14-2189-4780-addc-58a54de1ff42"",
             ""actions"": [
+                {
+                    ""name"": ""Navigation"",
+                    ""type"": ""Value"",
+                    ""id"": ""cf41a668-a9f5-4835-ace5-c4f985438238"",
+                    ""expectedControlType"": ""Vector2"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                },
                 {
                     ""name"": ""Back"",
                     ""type"": ""Button"",
@@ -499,13 +539,22 @@ namespace eXsert
                     ""initialStateCheck"": false
                 },
                 {
-                    ""name"": ""Navigation"",
-                    ""type"": ""Value"",
-                    ""id"": ""cf41a668-a9f5-4835-ace5-c4f985438238"",
-                    ""expectedControlType"": ""Vector2"",
+                    ""name"": ""Resume"",
+                    ""type"": ""Button"",
+                    ""id"": ""31a49b85-0f0c-4947-9840-421ec4d3d2a7"",
+                    ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
-                    ""initialStateCheck"": true
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Swap"",
+                    ""type"": ""Button"",
+                    ""id"": ""7b75d88c-4fe1-4579-a8b2-6fcee161eb6e"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -583,6 +632,28 @@ namespace eXsert
                     ""processors"": """",
                     ""groups"": "";Keyboard&Mouse"",
                     ""action"": ""Select"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""049b0a11-eeaa-431f-930f-33b407e79ce3"",
+                    ""path"": ""<Keyboard>/escape"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Resume"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""b7cfaf6b-ecd6-4f94-b925-9e64beada836"",
+                    ""path"": ""<Gamepad>/start"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Resume"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -706,6 +777,28 @@ namespace eXsert
                     ""action"": ""Navigation"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""94edd94c-f910-47e4-aa3e-3e2890f374ae"",
+                    ""path"": ""<Gamepad>/rightShoulder"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Swap"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""cc40499b-2170-444b-8082-0f1d9df36d58"",
+                    ""path"": ""<Keyboard>/tab"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Swap"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         },
@@ -784,12 +877,24 @@ namespace eXsert
         {
             ""name"": ""Keyboard&Mouse"",
             ""bindingGroup"": ""Keyboard&Mouse"",
-            ""devices"": []
+            ""devices"": [
+                {
+                    ""devicePath"": ""<Keyboard>"",
+                    ""isOptional"": false,
+                    ""isOR"": false
+                }
+            ]
         },
         {
             ""name"": ""Gamepad"",
             ""bindingGroup"": ""Gamepad"",
-            ""devices"": []
+            ""devices"": [
+                {
+                    ""devicePath"": ""<Gamepad>"",
+                    ""isOptional"": false,
+                    ""isOR"": false
+                }
+            ]
         }
     ]
 }");
@@ -804,11 +909,14 @@ namespace eXsert
             m_Gameplay_HeavyAttack = m_Gameplay.FindAction("HeavyAttack", throwIfNotFound: true);
             m_Gameplay_Dash = m_Gameplay.FindAction("Dash", throwIfNotFound: true);
             m_Gameplay_Pause = m_Gameplay.FindAction("Pause", throwIfNotFound: true);
+            m_Gameplay_NavigationMenu = m_Gameplay.FindAction("NavigationMenu", throwIfNotFound: true);
             // UI
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
+            m_UI_Navigation = m_UI.FindAction("Navigation", throwIfNotFound: true);
             m_UI_Back = m_UI.FindAction("Back", throwIfNotFound: true);
             m_UI_Select = m_UI.FindAction("Select", throwIfNotFound: true);
-            m_UI_Navigation = m_UI.FindAction("Navigation", throwIfNotFound: true);
+            m_UI_Resume = m_UI.FindAction("Resume", throwIfNotFound: true);
+            m_UI_Swap = m_UI.FindAction("Swap", throwIfNotFound: true);
             // CameraControls
             m_CameraControls = asset.FindActionMap("CameraControls", throwIfNotFound: true);
             m_CameraControls_MouseZoom = m_CameraControls.FindAction("MouseZoom", throwIfNotFound: true);
@@ -904,6 +1012,7 @@ namespace eXsert
         private readonly InputAction m_Gameplay_HeavyAttack;
         private readonly InputAction m_Gameplay_Dash;
         private readonly InputAction m_Gameplay_Pause;
+        private readonly InputAction m_Gameplay_NavigationMenu;
         /// <summary>
         /// Provides access to input actions defined in input action map "Gameplay".
         /// </summary>
@@ -951,6 +1060,10 @@ namespace eXsert
             /// Provides access to the underlying input action "Gameplay/Pause".
             /// </summary>
             public InputAction @Pause => m_Wrapper.m_Gameplay_Pause;
+            /// <summary>
+            /// Provides access to the underlying input action "Gameplay/NavigationMenu".
+            /// </summary>
+            public InputAction @NavigationMenu => m_Wrapper.m_Gameplay_NavigationMenu;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
@@ -1004,6 +1117,9 @@ namespace eXsert
                 @Pause.started += instance.OnPause;
                 @Pause.performed += instance.OnPause;
                 @Pause.canceled += instance.OnPause;
+                @NavigationMenu.started += instance.OnNavigationMenu;
+                @NavigationMenu.performed += instance.OnNavigationMenu;
+                @NavigationMenu.canceled += instance.OnNavigationMenu;
             }
 
             /// <summary>
@@ -1042,6 +1158,9 @@ namespace eXsert
                 @Pause.started -= instance.OnPause;
                 @Pause.performed -= instance.OnPause;
                 @Pause.canceled -= instance.OnPause;
+                @NavigationMenu.started -= instance.OnNavigationMenu;
+                @NavigationMenu.performed -= instance.OnNavigationMenu;
+                @NavigationMenu.canceled -= instance.OnNavigationMenu;
             }
 
             /// <summary>
@@ -1079,9 +1198,11 @@ namespace eXsert
         // UI
         private readonly InputActionMap m_UI;
         private List<IUIActions> m_UIActionsCallbackInterfaces = new List<IUIActions>();
+        private readonly InputAction m_UI_Navigation;
         private readonly InputAction m_UI_Back;
         private readonly InputAction m_UI_Select;
-        private readonly InputAction m_UI_Navigation;
+        private readonly InputAction m_UI_Resume;
+        private readonly InputAction m_UI_Swap;
         /// <summary>
         /// Provides access to input actions defined in input action map "UI".
         /// </summary>
@@ -1094,6 +1215,10 @@ namespace eXsert
             /// </summary>
             public UIActions(@PlayerControls wrapper) { m_Wrapper = wrapper; }
             /// <summary>
+            /// Provides access to the underlying input action "UI/Navigation".
+            /// </summary>
+            public InputAction @Navigation => m_Wrapper.m_UI_Navigation;
+            /// <summary>
             /// Provides access to the underlying input action "UI/Back".
             /// </summary>
             public InputAction @Back => m_Wrapper.m_UI_Back;
@@ -1102,9 +1227,13 @@ namespace eXsert
             /// </summary>
             public InputAction @Select => m_Wrapper.m_UI_Select;
             /// <summary>
-            /// Provides access to the underlying input action "UI/Navigation".
+            /// Provides access to the underlying input action "UI/Resume".
             /// </summary>
-            public InputAction @Navigation => m_Wrapper.m_UI_Navigation;
+            public InputAction @Resume => m_Wrapper.m_UI_Resume;
+            /// <summary>
+            /// Provides access to the underlying input action "UI/Swap".
+            /// </summary>
+            public InputAction @Swap => m_Wrapper.m_UI_Swap;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
@@ -1131,15 +1260,21 @@ namespace eXsert
             {
                 if (instance == null || m_Wrapper.m_UIActionsCallbackInterfaces.Contains(instance)) return;
                 m_Wrapper.m_UIActionsCallbackInterfaces.Add(instance);
+                @Navigation.started += instance.OnNavigation;
+                @Navigation.performed += instance.OnNavigation;
+                @Navigation.canceled += instance.OnNavigation;
                 @Back.started += instance.OnBack;
                 @Back.performed += instance.OnBack;
                 @Back.canceled += instance.OnBack;
                 @Select.started += instance.OnSelect;
                 @Select.performed += instance.OnSelect;
                 @Select.canceled += instance.OnSelect;
-                @Navigation.started += instance.OnNavigation;
-                @Navigation.performed += instance.OnNavigation;
-                @Navigation.canceled += instance.OnNavigation;
+                @Resume.started += instance.OnResume;
+                @Resume.performed += instance.OnResume;
+                @Resume.canceled += instance.OnResume;
+                @Swap.started += instance.OnSwap;
+                @Swap.performed += instance.OnSwap;
+                @Swap.canceled += instance.OnSwap;
             }
 
             /// <summary>
@@ -1151,15 +1286,21 @@ namespace eXsert
             /// <seealso cref="UIActions" />
             private void UnregisterCallbacks(IUIActions instance)
             {
+                @Navigation.started -= instance.OnNavigation;
+                @Navigation.performed -= instance.OnNavigation;
+                @Navigation.canceled -= instance.OnNavigation;
                 @Back.started -= instance.OnBack;
                 @Back.performed -= instance.OnBack;
                 @Back.canceled -= instance.OnBack;
                 @Select.started -= instance.OnSelect;
                 @Select.performed -= instance.OnSelect;
                 @Select.canceled -= instance.OnSelect;
-                @Navigation.started -= instance.OnNavigation;
-                @Navigation.performed -= instance.OnNavigation;
-                @Navigation.canceled -= instance.OnNavigation;
+                @Resume.started -= instance.OnResume;
+                @Resume.performed -= instance.OnResume;
+                @Resume.canceled -= instance.OnResume;
+                @Swap.started -= instance.OnSwap;
+                @Swap.performed -= instance.OnSwap;
+                @Swap.canceled -= instance.OnSwap;
             }
 
             /// <summary>
@@ -1396,6 +1537,13 @@ namespace eXsert
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnPause(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "NavigationMenu" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnNavigationMenu(InputAction.CallbackContext context);
         }
         /// <summary>
         /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.
@@ -1404,6 +1552,13 @@ namespace eXsert
         /// <seealso cref="UIActions.RemoveCallbacks(IUIActions)" />
         public interface IUIActions
         {
+            /// <summary>
+            /// Method invoked when associated input action "Navigation" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnNavigation(InputAction.CallbackContext context);
             /// <summary>
             /// Method invoked when associated input action "Back" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
             /// </summary>
@@ -1419,12 +1574,19 @@ namespace eXsert
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnSelect(InputAction.CallbackContext context);
             /// <summary>
-            /// Method invoked when associated input action "Navigation" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// Method invoked when associated input action "Resume" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
             /// </summary>
             /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnNavigation(InputAction.CallbackContext context);
+            void OnResume(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "Swap" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnSwap(InputAction.CallbackContext context);
         }
         /// <summary>
         /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "CameraControls" which allows adding and removing callbacks.
