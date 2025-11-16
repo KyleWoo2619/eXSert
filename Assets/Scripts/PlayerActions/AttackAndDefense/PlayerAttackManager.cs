@@ -7,118 +7,175 @@ It also checks for inactivity between inputs so the combo resets.
 
 */
 
+using System;
 using System.Collections;
-using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
-public class PlayerAttackManager : MonoBehaviour { 
+public class PlayerAttackManager : MonoBehaviour
+{
+    // will's stuff
+    [Header("Input")]
+    [SerializeField] private InputActionReference _lightAttackAction;
+    [SerializeField] private InputActionReference _heavyAttackAction;
 
-    [SerializeField] private int maxComboAmount = 5;
-    [SerializeField] private float amountOfTimeBetweenAttacks = 1.5f;
-    protected float lastAttackPressTime;
+    [Space, Header("Animator")]
+    [SerializeField] Animator animator;
 
-    private InputReader input;
-    private ChangeStance changeStance;
+    PlayerAttack currentAttack;
 
-    [SerializeField] private BoxCollider[] comboHitboxes;
-
-    //The list is used to easily track which number of the combo the player is on
-    private List<BoxCollider> currentComboAmount = new List<BoxCollider>();
+    public static event Action onAttack;
 
     private void Start()
     {
-        input = InputReader.Instance;
-        lastAttackPressTime = Time.time;
-        changeStance = GetComponent<ChangeStance>();
+        if (_lightAttackAction.action == null)
+            Debug.LogError("Light Attack Action is NULL! Assign the Light Attack Action to the Player Input component.");
+
+        if (_heavyAttackAction.action == null)
+            Debug.LogError("Heavy Attack Action is NULL! Assign the Heavy Attack Action to the Player Input component.");
     }
 
     private void Update()
     {
-        InactivityCheck();
+        if (_lightAttackAction.action.triggered && !InputReader.inputBusy)
+            OnLightAttack();
+        //else
+            //animator.ResetTrigger("lightTrigger");
 
-        Attack();
+
+        if (!_lightAttackAction.action.triggered && _heavyAttackAction.action.triggered && !InputReader.inputBusy)
+            OnHeavyAttack();
+        //else
+            //animator.ResetTrigger("heavyTrigger");
 
     }
 
-    private void Attack()
+    public void OnLightAttack()
     {
+        Debug.Log("Light Attack Input Detected");
+
+        if (InputReader.inputBusy) return;
+
+        PerformLightAttack();
+    }
+
+    public void OnHeavyAttack()
+    {
+        Debug.Log("Heavy Attack Input Detected");
+
+        if (InputReader.inputBusy) return;
+
+        PerformHeavyAttack();
+    }
+
+    private void PerformLightAttack()
+    {
+        InitiateAttack(true);
+    }
+
+    private void PerformHeavyAttack()
+    {
+        InitiateAttack(false);
+    }
+
+    private void InitiateAttack(bool lightAttack)
+    {
+        /*
+         *              ,O,
+         *             ,OOO,
+         *       'oooooOOOOOooooo'
+         *         `OOOOOOOOOOO`
+         *           `OOOOOOO`
+         *           OOOO'OOOO
+         *          OOO'   'OOO
+         *         O'         'O
+         *         
+         * CHANGE this to reference the sound from the attack scriptable object later
+         */
+
+        if (animator != null)
+        {
+            animator.SetBool("stance", CombatManager.singleTargetMode);
+            if (lightAttack)
+                animator.SetTrigger("lightTrigger");
+            else
+                animator.SetTrigger("heavyTrigger");
+        }
+
+
         //First determines whether the heavy or light input is detected
-        if (input.LightAttackTrigger)
+        if (lightAttack)
         {
-            lastAttackPressTime = Time.time;
-            input.LightAttackTrigger = false;
-
-            Debug.Log("Combo Amount: " + currentComboAmount.Count);
-
+            if (!PlayerMovement.isGrounded)
+                currentAttack = ComboManager.Attack(AttackType.LightAerial);
+            
             //Then checks which stance the player is in to properly activated a hitbox
-            if (changeStance.currentStance == 0)
-            {
-                currentComboAmount.Add(comboHitboxes[0]);
-                comboHitboxes[0].enabled = true;
-                StartCoroutine(TurnOffHitboxes(comboHitboxes[0]));
-            }
+            else if (CombatManager.singleTargetMode)
+                currentAttack = ComboManager.Attack(AttackType.LightSingle);
             else
-            {
-                currentComboAmount.Add(comboHitboxes[1]);
-                comboHitboxes[1].enabled = true;
-                StartCoroutine(TurnOffHitboxes(comboHitboxes[1]));
-            }
-
+                currentAttack = ComboManager.Attack(AttackType.LightAOE);
         }
-        else if (input.HeavyAttackTrigger)
+
+        else
         {
-            lastAttackPressTime = Time.time;
-            input.HeavyAttackTrigger = false;
+            if (!PlayerMovement.isGrounded)
+                currentAttack = ComboManager.Attack(AttackType.HeavyAerial);
 
-            Debug.Log("Combo Amount: " + currentComboAmount.Count);
-
-            if (changeStance.currentStance == 0)
-            {
-                currentComboAmount.Add(comboHitboxes[2]);
-                comboHitboxes[2].enabled = true;
-                StartCoroutine(TurnOffHitboxes(comboHitboxes[2]));
-            }
+            else if (CombatManager.singleTargetMode)
+                currentAttack = ComboManager.Attack(AttackType.HeavySingle);
             else
-            {
-                currentComboAmount.Add(comboHitboxes[3]);
-                comboHitboxes[3].enabled = true;
-                StartCoroutine(TurnOffHitboxes(comboHitboxes[3]));
-            }
+                currentAttack = ComboManager.Attack(AttackType.HeavyAOE);
         }
 
-        /*If the player goes over the designated combo limit then it is reset back to 0. The "- 1" is added since combos technically starts at 0, but, for QOL, whoever is editing can
-          input whatever limit they like without thinking of the technical details.
-        */
-        if (currentComboAmount.Count > maxComboAmount - 1) 
+        if (currentAttack.attackSFX != null)
         {
-            ResetCombo();
-            Debug.Log("Combo Complete!");
+            currentAttack._sfxSource.clip = currentAttack.attackSFX;
+            currentAttack._sfxSource.Play();
         }
+
+        onAttack?.Invoke();
+
+        //Not sure if there is a detection yet, but this will play on top of the attack sfx if the player hits an enemy
+        /* if(Player hits enemy)
+         {
+             currentAttack._sfxSource.PlayOneShot(currentAttack.hitSFX);
+         }
+         */
+
+        // Calls the coroutine to handle the attack timing and hitbox activation depending on the attack chosen by ComboManager
+        StartCoroutine(PerformAttack(currentAttack));
+
+        Debug.Log("Combo Amount: " + ComboManager.comboCount);
+
+        Debug.Log($"Performed Attack: {currentAttack.attackName}");
+
     }
 
-    //If the player doesn't make an input within the designated amount of time, then it is reset
-    private void InactivityCheck()
+    /*
+     * Coroutine to handle the timing of the attack, including start lag and end lag.
+     * It also manages the enabling and disabling of hitboxes and starts the timer for combo reset.
+     * Disables player input during the attack animation.
+     */
+    public IEnumerator PerformAttack(PlayerAttack attack)
     {
-        if(Time.time - lastAttackPressTime > amountOfTimeBetweenAttacks)
-        {
-            ResetCombo();
-        }
-    }
+        PlayerAttack executedAttack = attack;
+        InputReader.inputBusy = true;
 
-    //Clears the list which essentially clears the combo counter
-    private void ResetCombo()
-    {
-        Debug.Log("Combo Reset");
-        currentComboAmount.Clear();
-    }
+        // Start the attack animation
 
-    //Turns off the hitbox
-    private IEnumerator TurnOffHitboxes(BoxCollider box) 
-    {
-        yield return new WaitForSeconds(.2f);
-        box.enabled = false;
-    
-    }
+        yield return new WaitForSeconds(executedAttack.startLag);
 
+        // Here you would typically enable the hitbox and apply damage to enemies within range
+        Debug.Log($"Executing Attack: {executedAttack.attackName} with Damage: {executedAttack.damage}");
+
+        animator.ResetTrigger("lightTrigger");
+        animator.ResetTrigger("heavyTrigger");
+
+        // End the attack animation
+        yield return new WaitForSeconds(executedAttack.endLag);
+        InputReader.inputBusy = false;
+
+        StartCoroutine(ComboManager.WaitForInputReset());
+        yield return null;
+    }
 }

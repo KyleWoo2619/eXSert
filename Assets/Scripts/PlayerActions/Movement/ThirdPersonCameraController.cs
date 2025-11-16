@@ -1,6 +1,8 @@
 using eXsert;
 using Unity.Cinemachine;
 using UnityEngine;
+using UnityEngine.Animations;
+using UnityEngine.InputSystem;
 
 public class ThirdPersonCameraController : MonoBehaviour
 {
@@ -9,9 +11,10 @@ public class ThirdPersonCameraController : MonoBehaviour
     [SerializeField] private float guardHeightOffset = 0.5f; // Added height offset for shoulder view
     [SerializeField] private float zoomLerpSpeed = 8f;     // Transition speed
     
-    private InputReader input;
     private CinemachineCamera cmCamera;
     private CinemachineOrbitalFollow orbital;
+
+    private CinemachineInputAxisController axisController;
 
     // Store original Three Ring settings to restore them
     private float originalRadius;
@@ -22,12 +25,10 @@ public class ThirdPersonCameraController : MonoBehaviour
     private bool isTransitioning = false;
 
     private void Start()
-    {
-        input = InputReader.Instance;
-        
+    {        
         cmCamera = GetComponent<CinemachineCamera>();
         orbital = cmCamera?.GetComponent<CinemachineOrbitalFollow>();
-
+        axisController = GetComponent<CinemachineInputAxisController>();
         if (orbital == null)
         {
             Debug.LogError("ThirdPersonCameraController: CinemachineOrbitalFollow not found on this Camera.");
@@ -41,16 +42,13 @@ public class ThirdPersonCameraController : MonoBehaviour
 
     private void Update()
     {
-        if (orbital == null || input == null) return;
-
-        // Check if guard state changed
-        bool isCurrentlyGuarding = input.GuardTrigger;
+        if (orbital == null) return;
         
-        if (isCurrentlyGuarding != wasGuarding)
+        if (CombatManager.isGuarding != wasGuarding)
         {
-            wasGuarding = isCurrentlyGuarding;
+            wasGuarding = CombatManager.isGuarding;
             
-            if (isCurrentlyGuarding)
+            if (CombatManager.isGuarding)
             {
                 Debug.Log("Camera: Entering Guard Mode - Over Shoulder View");
                 EnterGuardMode();
@@ -63,10 +61,12 @@ public class ThirdPersonCameraController : MonoBehaviour
         }
 
         // Only update camera position if we're transitioning or in guard mode
-        if (isTransitioning || isCurrentlyGuarding)
+        if (isTransitioning || CombatManager.isGuarding)
         {
             UpdateCameraTransition();
         }
+
+       
     }
 
     private void StoreOriginalSettings()
@@ -154,12 +154,12 @@ public class ThirdPersonCameraController : MonoBehaviour
     // Debug visualization
     private void OnDrawGizmos()
     {
-        if (orbital != null && input != null)
+        if (orbital != null)
         {
             // Blue = Normal Three Ring, Red = Guard Mode, Yellow = Transitioning
             if (isTransitioning)
                 Gizmos.color = Color.yellow;
-            else if (input.GuardTrigger)
+            else if (CombatManager.isGuarding)
                 Gizmos.color = Color.red;
             else
                 Gizmos.color = Color.blue;

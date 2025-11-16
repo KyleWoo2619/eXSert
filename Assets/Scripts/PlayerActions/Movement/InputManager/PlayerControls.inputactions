@@ -66,7 +66,7 @@
                     "id": "e5ab59cf-2859-49a1-be38-04cab2bfc111",
                     "expectedControlType": "",
                     "processors": "",
-                    "interactions": "",
+                    "interactions": "Press,Hold",
                     "initialStateCheck": false
                 },
                 {
@@ -82,6 +82,15 @@
                     "name": "Pause",
                     "type": "Button",
                     "id": "88363508-0501-4f47-b573-26fffb0d8ea2",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "NavigationMenu",
+                    "type": "Button",
+                    "id": "64ec575c-123f-498c-af28-6627a40d3ba7",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -385,6 +394,28 @@
                     "action": "Pause",
                     "isComposite": false,
                     "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "8cc89e6c-c2db-4ded-92f3-2704a41b5ca0",
+                    "path": "<Gamepad>/dpad/down",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "NavigationMenu",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "978b44c4-79e1-41b9-b27b-3e1d178e973a",
+                    "path": "<Keyboard>/tab",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "NavigationMenu",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 }
             ]
         },
@@ -392,6 +423,15 @@
             "name": "UI",
             "id": "caa73b14-2189-4780-addc-58a54de1ff42",
             "actions": [
+                {
+                    "name": "Navigation",
+                    "type": "Value",
+                    "id": "cf41a668-a9f5-4835-ace5-c4f985438238",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
                 {
                     "name": "Back",
                     "type": "Button",
@@ -411,13 +451,22 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Navigation",
-                    "type": "Value",
-                    "id": "cf41a668-a9f5-4835-ace5-c4f985438238",
-                    "expectedControlType": "Vector2",
+                    "name": "Resume",
+                    "type": "Button",
+                    "id": "31a49b85-0f0c-4947-9840-421ec4d3d2a7",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": true
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Swap",
+                    "type": "Button",
+                    "id": "7b75d88c-4fe1-4579-a8b2-6fcee161eb6e",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -495,6 +544,28 @@
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
                     "action": "Select",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "049b0a11-eeaa-431f-930f-33b407e79ce3",
+                    "path": "<Keyboard>/escape",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Resume",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b7cfaf6b-ecd6-4f94-b925-9e64beada836",
+                    "path": "<Gamepad>/start",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Resume",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -618,6 +689,28 @@
                     "action": "Navigation",
                     "isComposite": false,
                     "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "94edd94c-f910-47e4-aa3e-3e2890f374ae",
+                    "path": "<Gamepad>/rightShoulder",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Gamepad",
+                    "action": "Swap",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "cc40499b-2170-444b-8082-0f1d9df36d58",
+                    "path": "<Keyboard>/tab",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "Swap",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 }
             ]
         },
@@ -696,12 +789,24 @@
         {
             "name": "Keyboard&Mouse",
             "bindingGroup": "Keyboard&Mouse",
-            "devices": []
+            "devices": [
+                {
+                    "devicePath": "<Keyboard>",
+                    "isOptional": false,
+                    "isOR": false
+                }
+            ]
         },
         {
             "name": "Gamepad",
             "bindingGroup": "Gamepad",
-            "devices": []
+            "devices": [
+                {
+                    "devicePath": "<Gamepad>",
+                    "isOptional": false,
+                    "isOR": false
+                }
+            ]
         }
     ]
 }

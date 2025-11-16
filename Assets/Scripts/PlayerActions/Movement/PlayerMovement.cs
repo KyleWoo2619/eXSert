@@ -2,20 +2,34 @@
 Written by Brandon Wahl
 
 Handles player movement and saves/loads player position
-
+*
+* edited by Will T
+* 
+* Added dash functionality and modified jump to include double jump
+* Also added animator integration
 */
 
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEditor;
-using System.Collections;
-using System.ComponentModel;
-public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
-{
-    private CharacterController characterController;
-    private InputReader input;
 
-    [Tooltip("Speed of player")][SerializeField] internal float speed;
+public class PlayerMovement : MonoBehaviour
+{
+    private static CharacterController characterController;
+    public static bool isGrounded { get {return characterController.isGrounded; } }
+
+    [Header("Player Animator")]
+    [SerializeField] private Animator animator;
+
+    [Header("Input")]
+    [SerializeField] private InputActionReference _jumpAction;
+    [SerializeField] private InputActionReference _dashAction;
+
+    [Header("Player Movement Settings")]
+    [Tooltip("Speed of player"), SerializeField] internal float speed;
+    [SerializeField] private float maxNormalSpeed = 5f;
+    [SerializeField] private float maxguardSpeed = 2.5f;
+    [SerializeField, Range(0f, 20f)] private float friction = 3f;
     [SerializeField] private Transform cameraTransform;
     [SerializeField] private bool shouldFaceMoveDirection = true;
 
@@ -23,54 +37,51 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
 
     [Header("Player Jump Settings")]
     [SerializeField] private float gravity = -9.81f;
-    [Tooltip("How high the player will jump")][SerializeField][Range(5f, 15)] private float jumpHeight;
-    [SerializeField][Range(1f, 10)] private float doubleJumpHeight;
-    [SerializeField] [Range(15, 50)] private float terminalVelocity = 20;
-    [SerializeField][Range(.1f, 2)] private float fallSpeed;
+    [Tooltip("How high the player will jump")][SerializeField][Range(10, 50)] private float jumpForce;
+    [SerializeField, Range(10, 50)] private float doubleJumpForce;
+    [SerializeField, Range(0, 15)] private float airAttackHopForce = 5;
+
+    [SerializeField, Range(1, 50)] private float terminalVelocity = 20;
     [SerializeField] private bool canDoubleJump;
 
     [Header("GroundCheck Variables")]
     [SerializeField] private Vector3 boxSize = new Vector3(.8f, .1f, .8f);
     [SerializeField] private float maxDistance;
     [Tooltip("Which layer the ground check detects for")] public LayerMask layerMask;
-    private float verticalRotation;
 
     [Header("Dash Settings")]
     [SerializeField] [Range(1, 5)] private float dashSpeed;
     [SerializeField] private float dashTime;
-    private float dashCurrentTime;
     [SerializeField] private float dashCoolDown;
 
     [Header("Camera Settings")]
     [SerializeField] bool invertYAxis = false;
 
+    private float maxRunningSpeed => CombatManager.isGuarding ? maxguardSpeed : maxNormalSpeed;
+
+    private bool canDash = true;
+
+    private Vector3 forward => new Vector3(cameraTransform.forward.x, 0f, cameraTransform.forward.z);
+    private Vector3 right => new Vector3(cameraTransform.right.x, 0f, cameraTransform.right.z);
+
     void Start()
     {
         characterController = GetComponent<CharacterController>();
-        input = InputReader.Instance;
+
+        
+    }
+    private void OnEnable()
+    {
+        PlayerAttackManager.onAttack += AerialAttackHop;
+    }
+
+    private void OnDisable()
+    {
+        PlayerAttackManager.onAttack -= AerialAttackHop;
     }
 
     // Update is called once per frame
-    public void Update()
-    {
-        Move();
-        Jumping();
-        Dash();
-    }
-
-    public void LoadData(GameData data)
-    {
-        this.transform.position = data.playerPos;
-
-    }
-
-    public void SaveData(GameData data)
-    {
-        data.playerPos = this.transform.position;
-    }
-
-
-    private void Move()
+    public void FixedUpdate()
     {
         // Debug checks
         if (cameraTransform == null)
@@ -78,83 +89,126 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
             Debug.LogError("Camera Transform is NULL! Assign your Cinemachine camera to Camera Transform field.");
             return;
         }
-        
+
         if (characterController == null)
         {
             Debug.LogError("Character Controller is NULL!");
             return;
         }
 
-        Vector3 forward = cameraTransform.forward;
-        Vector3 right = cameraTransform.right;
+        if (animator == null)
+        {
+            Debug.LogWarning("Animator is NULL! Player animations will not play.");
+        }
+        
+        Move();
 
-        forward.y = 0;
-        right.y = 0;
+        if (_jumpAction != null && _jumpAction.action != null && _jumpAction.action.triggered)
+            OnJump();
+        else
+            animator.SetBool("jumpTrigger", false);
 
-        forward.Normalize();
-        right.Normalize();
+        if (_dashAction != null && _dashAction.action != null && _dashAction.action.triggered)
+            OnDash();
+        
+        if (isGrounded)
+        {
+            animator.SetBool("isGrounded", true);
+        }
+        else
+        {
+            animator.SetBool("isGrounded", false);
+        }
 
+        ApplyMovement();
+    }
+
+    private void Move()
+    {
         // Use InputReader instead of Input System callbacks
-        Vector2 inputMove = input != null ? input.MoveInput : Vector2.zero;
-        Vector3 moveDirection = forward * inputMove.y + right * inputMove.x;
-        
-        // Debug movement
-        if (inputMove.magnitude > 0.1f)
+        Vector2 inputMove = InputReader.MoveInput;
+
+
+        // player input detected
+        if (inputMove != Vector2.zero && !InputReader.inputBusy)
         {
-            // Debug.Log($"MoveInput: {inputMove}, MoveDirection: {moveDirection}, Speed: {speed}");
-        }
-        
-        // Move horizontally
-        Vector3 horizontalMovement = moveDirection * speed * Time.deltaTime;
-        
-        if (horizontalMovement.magnitude > 0.001f)
-        {
-            // Debug.Log($"Moving with: {horizontalMovement}");
-            characterController.Move(horizontalMovement);
+            if (animator != null)
+                animator.SetBool("moving", true);
+
+            Vector3 moveDirection = forward * inputMove.y + right * inputMove.x;
+            moveDirection.Normalize();
+
+            // Move horizontally, apply speed and guard modifier if guarding
+            Vector3 horizontalMovement = moveDirection * speed;
+
+            if (horizontalMovement.magnitude > 0.001f)
+            {
+                //characterController.Move(horizontalMovement);
+                currentMovement += horizontalMovement;
+            }
+
+            // Rotate player to face movement direction if enabled
+            if (shouldFaceMoveDirection && moveDirection.sqrMagnitude > 0.001f)
+            {
+                Quaternion toRotation = Quaternion.LookRotation(moveDirection, Vector3.up);
+                transform.rotation = Quaternion.Slerp(transform.rotation, toRotation, Time.deltaTime * 10f);
+            }
         }
 
-        // Rotate player to face movement direction if enabled
-        if (shouldFaceMoveDirection && moveDirection.sqrMagnitude > 0.001f)
+        // no player input detected
+        else
         {
-            Quaternion toRotation = Quaternion.LookRotation(moveDirection, Vector3.up);
-            transform.rotation = Quaternion.Slerp(transform.rotation, toRotation, Time.deltaTime * 10f);
+            if (animator != null)
+                animator.SetBool("moving", false);
+
+            // Apply friction when no input is detected
+            currentMovement.x = Mathf.Lerp(currentMovement.x, 0, friction * Time.deltaTime);
+            currentMovement.z = Mathf.Lerp(currentMovement.z, 0, friction * Time.deltaTime);
         }
     }
 
-    private void Jumping()
+    private void OnJump()
     {
-        //Checks if player is grounded
-        if (AmIGrounded())
+        // checks to see if the player can jump or double jump
+        if (characterController.isGrounded)
         {
-            currentMovement.y = 0;
-            canDoubleJump = false;
+            Debug.Log("Grounded Jumped");
+            currentMovement.y = jumpForce;
 
-            //Checks if the action map action is trigger
-            if (input != null && input.JumpTrigger)
+            canDoubleJump = false;
+            StartCoroutine(CanDoubleJump());
+
+            // animator trigger jump
+            if (animator != null)
             {
-                //Increases y pos according to the square root of the jump height multiplied by gravity
-                currentMovement.y += Mathf.Sqrt((jumpHeight * (-gravity)));
-                StartCoroutine(CanDoubleJump());
+                animator.SetBool("jumpTrigger", true);
+                animator.SetBool("isGrounded", false);
             }
         }
-        else if (input != null && input.JumpTrigger && canDoubleJump)
+        else if (canDoubleJump)
         {
-            currentMovement.y += doubleJumpHeight;
-            StartCoroutine(CanDoubleJump());
+            Debug.Log("Double Jumped");
+            currentMovement.y += doubleJumpForce;
         }
-        //If the player is not grounded they will continuously fall until they are grounded
-        else
+    }
+
+    private void OnDash()
+    {
+       if (canDash && !InputReader.inputBusy)
         {
-            if (input != null)
-                input.JumpTrigger = false;
+            canDash = false;
+            InputReader.inputBusy = true;
 
-            currentMovement.y += gravity * Time.deltaTime;
-            currentMovement.y += ((gravity * fallSpeed) * Time.deltaTime);
-            currentMovement.y = Mathf.Clamp(currentMovement.y, -terminalVelocity, float.MaxValue);
+            // Use the current horizontal movement for dash direction
+            Vector3 dashDirection = (forward * InputReader.MoveInput.y) + (right * InputReader.MoveInput.x);
+            dashDirection.Normalize();
+
+            if (dashDirection.magnitude < 0.1f) // If not moving, dash forward
+            {
+                dashDirection = transform.forward;
+            }
+            StartCoroutine(DashCoroutine(dashDirection));
         }
-
-        // Apply vertical movement separately
-        characterController.Move(new Vector3(0, currentMovement.y, 0) * Time.deltaTime);
     }
 
     private IEnumerator CanDoubleJump()
@@ -171,60 +225,60 @@ public class PlayerMovement : MonoBehaviour, IDataPersistenceManager
         }
     }
 
-    public void Dash()
-    {
-        dashCurrentTime -= Time.deltaTime;
-
-        if (dashCurrentTime < -1)
-        {
-            dashCurrentTime = -1;
-        }
-
-        if (input != null && input.DashTrigger && dashCurrentTime <= 0)
-        {
-            // Use the current horizontal movement for dash direction
-            Vector3 dashDirection = new Vector3(currentMovement.x, 0, currentMovement.z).normalized;
-            if (dashDirection.magnitude < 0.1f) // If not moving, dash forward
-            {
-                dashDirection = transform.forward;
-            }
-            StartCoroutine(DashCoroutine(dashDirection * speed));
-            input.DashTrigger = false;
-        }
-    }
     private IEnumerator DashCoroutine(Vector3 direction)
     {
         float starttime = Time.time;
 
+        animator.SetBool("dashTrigger", true);
+
+        yield return null;
+
+        animator.SetBool("dashTrigger", false);
+
+
         while (Time.time < starttime + dashTime)
         {
             characterController.Move(direction * dashSpeed * Time.deltaTime);
-            dashCurrentTime = dashCoolDown;
 
             yield return null;
         }
+
+        InputReader.inputBusy = false;
+
+        yield return new WaitForSeconds(dashCoolDown);
+        canDash = true;
+        
     }
 
-    //Returns true or false if boxcast collides with the layermask
-    public bool AmIGrounded()
+    private void AerialAttackHop()
     {
-        if (Physics.BoxCast(transform.position, boxSize, -transform.up, transform.rotation, maxDistance, layerMask))
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        if (characterController.isGrounded) return;
+
+        currentMovement.y = airAttackHopForce;
     }
-    
-    private void OnDrawGizmos()
+
+    private void ApplyMovement()
     {
-        Gizmos.color = Color.red;
-        Gizmos.DrawCube(transform.position - transform.up * maxDistance, boxSize);
+        // apply gravity
+        currentMovement.y = Mathf.Clamp(currentMovement.y - gravity, -terminalVelocity, terminalVelocity);
+
+        // apply max running speed
+        Vector3 horizontalMovement = new Vector3(currentMovement.x, 0, currentMovement.z);
+        if (horizontalMovement.magnitude > maxRunningSpeed)
+        {
+            horizontalMovement = horizontalMovement.normalized * maxRunningSpeed;
+            currentMovement.x = horizontalMovement.x;
+            currentMovement.z = horizontalMovement.z;
+        }
+
+        // move the character controller
+        characterController.Move(currentMovement * Time.deltaTime);
+
+        // reset vertical movement when grounded
+        if (characterController.isGrounded && currentMovement.y < 0)
+        {
+            currentMovement.y = -1f; // small negative value to keep the player grounded
+            animator.SetBool("isGrounded", true);
+        }
     }
-
-
-    //Draws the boxcast for debugging
-
 }
