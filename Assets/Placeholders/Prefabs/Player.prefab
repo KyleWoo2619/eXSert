@@ -781,14 +781,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c34e62e92a160484aa309c223b8a1e94, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
+  animator: {fileID: 0}
+  _jumpAction: {fileID: 0}
+  _dashAction: {fileID: 0}
   speed: 5.34
+  maxRunningSpeed: 5
+  friction: 3
   cameraTransform: {fileID: 0}
   shouldFaceMoveDirection: 1
   gravity: -9.81
-  jumpHeight: 5.13
-  doubleJumpHeight: 1
+  jumpForce: 10
+  doubleJumpForce: 10
   terminalVelocity: 29.9
-  fallSpeed: 0.81
   canDoubleJump: 0
   boxSize: {x: 0.05, y: 0.05, z: 0.05}
   maxDistance: 0.95
@@ -811,7 +815,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ceb8412354a21c34c81b54ed92779f04, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ChangeStance
-  canChangeStance: 1
+  _changeStanceAction: {fileID: 0}
+  stanceCooldownTime: 1
 --- !u!114 &2484702875421314356
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -824,7 +829,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01a0e82a04cd6b944b5aed9073b7153c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Guard
-  canGuard: 0
+  _guardActionReference: {fileID: 0}
 --- !u!114 &6197852592541762768
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -837,7 +842,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d48d640fb1a5e246b982ef588cf168c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SingleAttackCombos
-  maxComboAmount: 5
+  _lightAttackAction: {fileID: 0}
+  _heavyAttackAction: {fileID: 0}
+  lightSingle: {fileID: 0}
+  lightAOE: {fileID: 0}
+  heavySingle: {fileID: 0}
+  heavyAOE: {fileID: 0}
+  animator: {fileID: 0}
   amountOfTimeBetweenAttacks: 1.5
   comboHitboxes:
   - {fileID: 4852946562052034197}
