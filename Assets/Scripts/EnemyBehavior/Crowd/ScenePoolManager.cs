@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace EnemyBehavior.Crowd
 {
@@ -26,6 +27,7 @@ namespace EnemyBehavior.Crowd
         public List<Pool> Pools = new List<Pool>();
 
         private readonly Dictionary<GameObject, Queue<GameObject>> map = new Dictionary<GameObject, Queue<GameObject>>(16);
+        private Transform inactiveRoot;
 
         void Awake()
         {
@@ -38,6 +40,12 @@ namespace EnemyBehavior.Crowd
             }
             Instance = this;
 
+            // Keep prewarmed instances completely inactive by parenting under an inactive root
+            var rootGO = new GameObject("ScenePoolManager_PoolRoot");
+            rootGO.SetActive(false);
+            rootGO.transform.SetParent(transform, false);
+            inactiveRoot = rootGO.transform;
+
             for (int i = 0; i < Pools.Count; i++)
             {
                 var p = Pools[i];
@@ -46,8 +54,11 @@ namespace EnemyBehavior.Crowd
                 var q = new Queue<GameObject>(p.Prewarm);
                 for (int n = 0; n < p.Prewarm; n++)
                 {
-                    var g = Instantiate(p.Prefab);
-                    g.SetActive(false);
+                    var g = Instantiate(p.Prefab, inactiveRoot);
+                    g.name = p.Prefab.name + "_Pooled";
+                    // Ensure agents do not try to initialize off-mesh while pooled
+                    var agent = g.GetComponent<NavMeshAgent>();
+                    if (agent != null) agent.enabled = false;
                     q.Enqueue(g);
                 }
                 map[p.Prefab] = q;
@@ -56,27 +67,57 @@ namespace EnemyBehavior.Crowd
 
         public GameObject Spawn(GameObject prefab, Vector3 pos, Quaternion rot)
         {
+            if (prefab == null) return null;
             if (!map.TryGetValue(prefab, out var q))
             {
                 q = new Queue<GameObject>(8);
                 map[prefab] = q;
             }
 
-            GameObject g = q.Count > 0 ? q.Dequeue() : Instantiate(prefab);
+            GameObject g = q.Count > 0 ? q.Dequeue() : Instantiate(prefab, inactiveRoot);
+
+            // Re-parent out of the inactive pool hierarchy before activation
+            if (g.transform.parent == inactiveRoot)
+                g.transform.SetParent(null, true);
+
+            // Snap to nearest NavMesh to avoid agent placement errors
+            if (NavMesh.SamplePosition(pos, out var hit, 2f, NavMesh.AllAreas))
+            {
+                pos = hit.position;
+            }
+
             g.transform.SetPositionAndRotation(pos, rot);
+
+            // Enable agent after positioning so it binds to the mesh cleanly
+            var agent = g.GetComponent<NavMeshAgent>();
+            if (agent != null && !agent.enabled)
+            {
+                agent.enabled = true;
+            }
+
             g.SetActive(true);
             return g;
         }
 
         public void Despawn(GameObject prefab, GameObject instance)
         {
+            if (prefab == null || instance == null) return;
             if (!map.TryGetValue(prefab, out var q))
             {
                 q = new Queue<GameObject>(8);
                 map[prefab] = q;
             }
 
+            // Disable agent before deactivating to avoid off-mesh warnings
+            var agent = instance.GetComponent<NavMeshAgent>();
+            if (agent != null && agent.enabled)
+            {
+                agent.ResetPath();
+                agent.enabled = false;
+            }
+
             instance.SetActive(false);
+            instance.transform.SetParent(inactiveRoot, false);
             q.Enqueue(instance);
         }
     }

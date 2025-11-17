@@ -49,7 +49,7 @@ namespace Behaviors
 
                 // Move toward cluster center, apply separation
                 Vector3 target = clusterCenter + (crawler.transform.position - clusterCenter).normalized * ambushRadius;
-                if (crawler.agent != null && crawler.agent.enabled)
+                if (crawler.agent != null && crawler.agent.enabled && crawler.agent.isOnNavMesh)
                     crawler.agent.SetDestination(target);
 
                 crawler.ApplySeparation();

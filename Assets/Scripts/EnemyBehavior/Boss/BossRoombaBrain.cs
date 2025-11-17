@@ -77,7 +77,7 @@ namespace EnemyBehavior.Boss
         };
         public BossAttackDescriptor DashLungeLeft = new BossAttackDescriptor {
             Id = "DashLungeLeft", Parryable = true, Cooldown = 3.0f,
-            RangeMin = 5.0f, RangeMax = 25.0f,
+            RangeMin = 6.0f, RangeMax = 25.0f,
             Windup = 0.25f, Active = 0.4f, Recovery = 0.35f,
             ParryWindowStart = 0.30f, ParryWindowEnd = 0.45f,
             AnimatorTriggerOnWindup = "LungeLeft_Windup", AnimatorTriggerOnActive = "LungeLeft_Active", AnimatorTriggerOnRecovery = "LungeLeft_Recovery",
@@ -85,7 +85,7 @@ namespace EnemyBehavior.Boss
         };
         public BossAttackDescriptor DashLungeRight = new BossAttackDescriptor {
             Id = "DashLungeRight", Parryable = true, Cooldown = 3.0f,
-            RangeMin = 5.0f, RangeMax = 25.0f,
+            RangeMin = 6.0f, RangeMax = 25.0f,
             Windup = 0.25f, Active = 0.4f, Recovery = 0.35f,
             ParryWindowStart = 0.30f, ParryWindowEnd = 0.45f,
             AnimatorTriggerOnWindup = "LungeRight_Windup", AnimatorTriggerOnActive = "LungeRight_Active", AnimatorTriggerOnRecovery = "LungeRight_Recovery",
@@ -93,7 +93,7 @@ namespace EnemyBehavior.Boss
         };
         public BossAttackDescriptor DashLungeNoArms = new BossAttackDescriptor {
             Id = "DashLungeNoArms", Parryable = false, Cooldown = 2.5f,
-            RangeMin = 5.0f, RangeMax = 25.0f,
+            RangeMin = 6.0f, RangeMax = 25.0f,
             Windup = 0.2f, Active = 0.4f, Recovery = 0.35f,
             ParryWindowStart = 0f, ParryWindowEnd = 0f,
             AnimatorTriggerOnWindup = "LungeNoArms_Windup", AnimatorTriggerOnActive = "LungeNoArms_Active", AnimatorTriggerOnRecovery = "LungeNoArms_Recovery",
@@ -108,7 +108,7 @@ namespace EnemyBehavior.Boss
             AnimatorTriggerOnParry = "Poke_Parry", RequiresArms = true
         };
         public BossAttackDescriptor KnockOffSpin = new BossAttackDescriptor {
-            Id = "KnockOffSpin", Parryable = false, Cooldown = 4.0f,
+            Id = "KnockOffSpin", Parryable = false, Cooldown = 12.0f,
             RangeMin = 0.0f, RangeMax = 2.0f,
             Windup = 0.3f, Active = 0.6f, Recovery = 0.6f,
             ParryWindowStart = 0f, ParryWindowEnd = 0f,
@@ -116,8 +116,8 @@ namespace EnemyBehavior.Boss
             AnimatorTriggerOnParry = "Spin_Parry", RequiresArms = true
         };
         public BossAttackDescriptor VacuumSuction = new BossAttackDescriptor {
-            Id = "VacuumSuction", Parryable = false, Cooldown = 8.0f,
-            RangeMin = 0.0f, RangeMax = 999f,
+            Id = "VacuumSuction", Parryable = false, Cooldown = 12.0f,
+            RangeMin = 3.0f, RangeMax = 10.0f,
             Windup = 0.6f, Active = 2.5f, Recovery = 0.8f,
             ParryWindowStart = 0f, ParryWindowEnd = 0f,
             AnimatorTriggerOnWindup = "Vacuum_Windup", AnimatorTriggerOnActive = "Vacuum_Active", AnimatorTriggerOnRecovery = "Vacuum_Recovery",
@@ -141,19 +141,15 @@ namespace EnemyBehavior.Boss
         };
 
         [Header("Arms Deploy/ Retract")]
-        [Tooltip("Animator trigger to deploy arms.")]
         public string ArmsDeployTrigger = "Arms_Deploy";
-        [Tooltip("Animator trigger to retract arms.")]
         public string ArmsRetractTrigger = "Arms_Retract";
-        [Tooltip("Seconds to wait after deploy trigger before starting attack windup (deployment clip length).")]
         public float ArmsDeployDuration = 0.4f;
-        [Tooltip("Seconds for retract animation (informational; not awaited unless needed).")]
         public float ArmsRetractDuration = 0.4f;
-        [Tooltip("Seconds of inactivity (no arm-required attacks) before auto retraction.")]
         public float ArmsAutoRetractCooldown = 3.0f;
 
         [Header("Summons")]
         public float SummonInterval = 10f;
+        [Range(0f,1f)] public float SummonChance = 0.75f;
         public int DronesPerSpawn = 4;
         public int CrawlersPerSpawn = 2;
 
@@ -164,6 +160,9 @@ namespace EnemyBehavior.Boss
 
         [Header("Top Zone/Spin")]
         public bool RequirePlayerOnTopForSpin = true;
+        public float SpinAfterLastPokeDelay = 0.75f;
+        [Tooltip("If the mounted state flickers off, continue treating as mounted for this many seconds.")]
+        public float MountedGraceSeconds = 0.2f;
 
         private BossRoombaController ctrl;
         private NavMeshAgent agent;
@@ -174,13 +173,38 @@ namespace EnemyBehavior.Boss
         private Animator animator;
         private bool playerOnTop;
 
-        // Arm management
         private bool armsDeployed;
         private Coroutine armsRetractRoutine;
 
-        // Current attack tracking for parry responses
         private BossAttackDescriptor currentAttack;
         private Coroutine currentAttackRoutine;
+
+        private readonly Dictionary<string, float> nextReadyTime = new Dictionary<string, float>(16);
+        private readonly Queue<string> lastActions = new Queue<string>(8);
+
+        private int topPokeCount;
+        private int requiredPokesForSpin;
+        private float lastMountedTime;
+        private bool hasEverMounted; // NEW: track first actual mount to suppress startup grace
+
+        private bool IsPlayerMounted()
+        {
+            if (player == null) return false;
+            return player.IsChildOf(transform);
+        }
+
+        private bool IsMountedWithGrace()
+        {
+            bool mounted = IsPlayerMounted() || playerOnTop;
+            if (mounted)
+            {
+                lastMountedTime = Time.time;
+                hasEverMounted = true; // activate grace only after first true mount
+                return true;
+            }
+            if (!hasEverMounted) return false; // do not apply grace before first mount event
+            return (Time.time - lastMountedTime) <= MountedGraceSeconds;
+        }
 
         void Awake()
         {
@@ -188,6 +212,8 @@ namespace EnemyBehavior.Boss
             agent = GetComponent<NavMeshAgent>();
             animator = GetComponentInChildren<Animator>();
             player = GameObject.FindWithTag("Player")?.transform;
+            lastMountedTime = -999f; // ensure no initial grace
+            hasEverMounted = false;
         }
 
         void OnEnable()
@@ -203,6 +229,42 @@ namespace EnemyBehavior.Boss
             if (loop != null) { StopCoroutine(loop); loop = null; }
             if (currentAttackRoutine != null) { StopCoroutine(currentAttackRoutine); currentAttackRoutine = null; }
             if (armsRetractRoutine != null) { StopCoroutine(armsRetractRoutine); armsRetractRoutine = null; }
+        }
+
+        private void PushAction(string s)
+        {
+            if (lastActions.Count == 8) lastActions.Dequeue();
+            lastActions.Enqueue(s);
+            Debug.Log($"[Boss] {s}");
+        }
+
+        public IEnumerable<string> GetRecentActions() => lastActions;
+
+        private bool IsOffCooldown(BossAttackDescriptor a)
+        {
+            float t;
+            return !nextReadyTime.TryGetValue(a.Id, out t) || Time.time >= t;
+        }
+
+        private void MarkCooldown(BossAttackDescriptor a)
+        {
+            nextReadyTime[a.Id] = Time.time + Mathf.Max(0f, a.Cooldown);
+        }
+
+        private BossAttackDescriptor SelectCloseRangeAttack(float dist)
+        {
+            var options = new List<BossAttackDescriptor>(2);
+            if (dist >= BasicSwipe.RangeMin && dist <= BasicSwipe.RangeMax && IsOffCooldown(BasicSwipe)) options.Add(BasicSwipe);
+            if (dist >= ArmSweep.RangeMin && dist <= ArmSweep.RangeMax && IsOffCooldown(ArmSweep)) options.Add(ArmSweep);
+            if (options.Count == 0) return null;
+            if (options.Count == 1) return options[0];
+            return Random.value < 0.5f ? options[0] : options[1];
+        }
+
+        private void ResetTopSequence()
+        {
+            topPokeCount = 0;
+            requiredPokesForSpin = Random.Range(3, 6);
         }
 
         private IEnumerator FormLoop()
@@ -233,8 +295,7 @@ namespace EnemyBehavior.Boss
             {
                 if (player == null) yield break;
 
-                // If player is on top, poke 1-3 times then spin to knock off
-                if (RequirePlayerOnTopForSpin && playerOnTop)
+                if (RequirePlayerOnTopForSpin && IsMountedWithGrace())
                 {
                     yield return ExecuteArmPokeSequenceThenSpin();
                     continue;
@@ -247,35 +308,44 @@ namespace EnemyBehavior.Boss
                     ctrl.dronesPerSpawn = DronesPerSpawn;
                     ctrl.crawlersPerSpawn = CrawlersPerSpawn;
                     ctrl.ActivateAlarm();
+                    if (Random.value <= SummonChance)
+                    {
+                        ctrl.TriggerSpawnWave(DronesPerSpawn, CrawlersPerSpawn);
+                        PushAction($"Summon wave: drones {DronesPerSpawn}, crawlers {CrawlersPerSpawn}");
+                    }
+                    else
+                    {
+                        PushAction("Summon skipped");
+                    }
                 }
 
                 float dist = Vector3.Distance(transform.position, player.position);
 
-                if (dist <= ArmSweep.RangeMax && dist >= ArmSweep.RangeMin)
+                var close = SelectCloseRangeAttack(dist);
+                if (close != null)
                 {
-                    yield return ExecuteAttackChain(ArmSweep);
+                    yield return ExecuteAttackChain(close);
                 }
-                else if (dist <= BasicSwipe.RangeMax)
+                else if (dist <= Mathf.Max(BasicSwipe.RangeMax, ArmSweep.RangeMax))
                 {
-                    yield return ExecuteAttackChain(BasicSwipe);
+                    yield return MoveTowardPlayer(0.25f);
                 }
                 else
                 {
-                    if (Random.value < 0.25f)
+                    if (dist >= DashLungeLeft.RangeMin && Random.value < 0.25f)
                         yield return ExecuteRandomLunge();
                     else
                         yield return MoveTowardPlayer(0.35f);
                 }
 
-                if (Random.value < 0.15f)
+                if (dist >= VacuumSuction.RangeMin && dist <= VacuumSuction.RangeMax && IsOffCooldown(VacuumSuction) && Random.value < 0.08f)
                     yield return ExecuteAttackChain(VacuumSuction);
             }
         }
 
         private IEnumerator CageBullLoop()
         {
-            // If player is on top, poke sequence then spin
-            if (RequirePlayerOnTopForSpin && playerOnTop)
+            if (RequirePlayerOnTopForSpin && IsMountedWithGrace())
             {
                 yield return ExecuteArmPokeSequenceThenSpin();
                 yield break;
@@ -289,54 +359,100 @@ namespace EnemyBehavior.Boss
 
         private IEnumerator ExecuteArmPokeSequenceThenSpin()
         {
-            int pokes = Random.Range(1, 4); // 1-3
-            for (int i = 0; i < pokes; i++)
+            if (topPokeCount == 0)
             {
-                if (!playerOnTop) yield break;
-                yield return ExecuteAttackChain(ArmPoke);
+                // Initialize threshold once when starting a new mounted streak
+                requiredPokesForSpin = requiredPokesForSpin <= 0 ? Random.Range(3, 6) : requiredPokesForSpin;
             }
-            if (playerOnTop)
+
+            bool waitedAfterLastPoke = false;
+
+            while (IsMountedWithGrace())
             {
-                yield return ExecuteKnockOffSpin();
+                if (topPokeCount < requiredPokesForSpin)
+                {
+                    if (IsOffCooldown(ArmPoke))
+                    {
+                        yield return ExecuteAttackChain(ArmPoke);
+                        topPokeCount++;
+                    }
+                    else
+                    {
+                        yield return null;
+                    }
+                }
+                else
+                {
+                    if (!waitedAfterLastPoke)
+                    {
+                        waitedAfterLastPoke = true;
+                        yield return new WaitForSeconds(SpinAfterLastPokeDelay);
+                        if (!IsMountedWithGrace()) { ResetTopSequence(); yield break; }
+                    }
+
+                    if (IsOffCooldown(KnockOffSpin))
+                    {
+                        yield return ExecuteKnockOffSpin();
+                        ResetTopSequence();
+                        yield break;
+                    }
+                    else
+                    {
+                        // Spin on cooldown: keep harassing with pokes but do not increase the threshold requirement
+                        if (IsOffCooldown(ArmPoke))
+                        {
+                            yield return ExecuteAttackChain(ArmPoke);
+                            // do not change topPokeCount here
+                        }
+                        else
+                        {
+                            yield return null;
+                        }
+                    }
+                }
             }
+
+            // Fully dismounted after grace
+            ResetTopSequence();
         }
 
-        // Arm-aware generic execution
+        private bool IsTopExclusive(BossAttackDescriptor a)
+        {
+            return a == ArmPoke || a == KnockOffSpin;
+        }
+
         private IEnumerator ExecuteAttackChain(BossAttackDescriptor a)
         {
             if (player == null) yield break;
+            if (IsMountedWithGrace() && !IsTopExclusive(a)) yield break;
             currentAttack = a;
+            PushAction($"Attack: {a.Id}");
 
-            // Deploy arms if needed
             if (a.RequiresArms && !armsDeployed)
             {
                 DeployArms();
                 yield return new WaitForSeconds(ArmsDeployDuration);
             }
 
-            // Cancel pending retract
             if (armsRetractRoutine != null) { StopCoroutine(armsRetractRoutine); armsRetractRoutine = null; }
 
-            // Windup
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnWindup)) animator.SetTrigger(a.AnimatorTriggerOnWindup);
             yield return new WaitForSeconds(a.Windup);
-            // Active
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnActive)) animator.SetTrigger(a.AnimatorTriggerOnActive);
             yield return new WaitForSeconds(a.Active);
-            // Recovery
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnRecovery)) animator.SetTrigger(a.AnimatorTriggerOnRecovery);
             yield return new WaitForSeconds(a.Recovery);
 
-            ApplyBossDamageIfPlayerPresent(1.0f); // Simplified damage application
+            ApplyBossDamageIfPlayerPresent(1.0f);
 
-            // Schedule arms retract if they are deployed and attack used arms
+            MarkCooldown(a);
+
             if (a.RequiresArms)
                 ScheduleArmsAutoRetract();
         }
 
         private IEnumerator ExecuteRandomLunge()
         {
-            // Choose among left, right, and no-arms variants
             float r = Random.value;
             BossAttackDescriptor lunge;
             if (r < 0.33f) lunge = DashLungeLeft;
@@ -347,7 +463,9 @@ namespace EnemyBehavior.Boss
 
         private IEnumerator ExecuteDashLunge(BossAttackDescriptor a)
         {
+            if (IsMountedWithGrace() && !IsTopExclusive(a)) yield break;
             currentAttack = a;
+            PushAction($"Attack: {a.Id}");
             if (player == null) yield break;
             if (a.RequiresArms && !armsDeployed)
             {
@@ -366,6 +484,8 @@ namespace EnemyBehavior.Boss
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnRecovery)) animator.SetTrigger(a.AnimatorTriggerOnRecovery);
             yield return new WaitForSeconds(a.Recovery);
 
+            MarkCooldown(a);
+
             if (a.RequiresArms)
                 ScheduleArmsAutoRetract();
         }
@@ -373,6 +493,7 @@ namespace EnemyBehavior.Boss
         private IEnumerator ExecuteKnockOffSpin()
         {
             currentAttack = KnockOffSpin;
+            PushAction("Attack: KnockOffSpin");
             if (KnockOffSpin.RequiresArms && !armsDeployed)
             {
                 DeployArms();
@@ -386,6 +507,7 @@ namespace EnemyBehavior.Boss
             yield return new WaitForSeconds(a.Active);
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnRecovery)) animator.SetTrigger(a.AnimatorTriggerOnRecovery);
             yield return new WaitForSeconds(a.Recovery);
+            MarkCooldown(a);
             if (a.RequiresArms)
                 ScheduleArmsAutoRetract();
         }
@@ -407,22 +529,34 @@ namespace EnemyBehavior.Boss
             float t = 0f;
             while (t < ArmsAutoRetractCooldown)
             {
-                // If another arm-required attack starts, this coroutine will be stopped externally
                 t += Time.deltaTime;
                 yield return null;
             }
-            // Retract
             if (armsDeployed)
             {
                 armsDeployed = false;
                 if (animator != null && !string.IsNullOrEmpty(ArmsRetractTrigger)) animator.SetTrigger(ArmsRetractTrigger);
-                // Optionally wait retract duration if needed for sequencing
-                // yield return new WaitForSeconds(ArmsRetractDuration);
             }
             armsRetractRoutine = null;
         }
 
-        public void SetPlayerOnTop(bool value) { playerOnTop = value; }
+        public void SetPlayerOnTop(bool value)
+        {
+            playerOnTop = value;
+            if (value)
+            {
+                lastMountedTime = Time.time;
+                hasEverMounted = true;
+                ctrl.StartTopWander();
+            }
+            else
+            {
+                // only stamp dismount time if we had a real mount
+                if (hasEverMounted) lastMountedTime = Time.time;
+                ctrl.StopTopWander();
+                // Do NOT reset sequence here; wait until grace fully expires
+            }
+        }
 
         private IEnumerator MoveTowardPlayer(float seconds)
         {
@@ -437,16 +571,15 @@ namespace EnemyBehavior.Boss
 
         public void OnParry(string attackId, GameObject parryingPlayer)
         {
-            // If current attack matches and is parryable, play parry reaction, then recovery sequence.
             if (currentAttack != null && currentAttack.Id == attackId && currentAttack.Parryable)
             {
                 if (animator != null && !string.IsNullOrEmpty(currentAttack.AnimatorTriggerOnParry))
                 {
                     animator.SetTrigger(currentAttack.AnimatorTriggerOnParry);
                 }
-                // Stagger effect
                 if (currentAttackRoutine != null) { StopCoroutine(currentAttackRoutine); currentAttackRoutine = null; }
                 StartCoroutine(ParryStagger());
+                PushAction($"Parried: {attackId}");
             }
         }
 
@@ -457,7 +590,6 @@ namespace EnemyBehavior.Boss
             yield return new WaitForSeconds(ParryStaggerSeconds);
             agent.isStopped = false;
             agent.speed = prev;
-            // After parry, schedule arms retract if they were deployed
             if (armsDeployed)
                 ScheduleArmsAutoRetract();
         }

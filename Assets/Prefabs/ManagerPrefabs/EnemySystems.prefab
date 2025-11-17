@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 667860555832548667}
+  - component: {fileID: -39706602123858324}
   m_Layer: 0
   m_Name: EnemySystems
   m_TagString: Untagged
@@ -34,6 +35,26 @@ Transform:
   - {fileID: 3076078098267098261}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &-39706602123858324
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 417077179018006846}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67fca4114a27c154e9456a13e5175cd8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SwarmManager
+  inspectorHelp: 'SwarmManager: coordinates crawler swarms, limits concurrent attackers,
+    and applies separation.
+
+    Crawlers register/unregister via BaseCrawlerEnemy.
+    Use maxAttackers to cap pressure on the player.'
+  maxAttackers: 3
+  debugSwarmMembers: []
+  minSeparation: 2
 --- !u!1 &3009769102212443931
 GameObject:
   m_ObjectHideFlags: 0
@@ -78,10 +99,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 12c27cfaed55a834495bc2ffad5a9590, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Density.DensityGrid
+  inspectorHelp: 'DensityGrid: a 2D XZ grid that accumulates agent presence (via
+    Stamp) and decays over time.
+
+    Planners (A*/FlowField) sample this to avoid
+    high-density areas when density multipliers > 0.
+
+    Configure worldOrigin/worldSize
+    to cover your arena (cyan gizmo), cellSize ~1m, and decay rate.
+
+    Tick Rate
+    (Hz) controls how often decay runs. Larger scenes may prefer lower tick rates.
+
+    Optional:
+    enable per-cell visualization gizmo for debug (cost overlay).'
   worldOrigin: {x: -50, y: -50}
   worldSize: {x: 100, y: 100}
   cellSize: 1
   decayPerSecond: 0.5
+  tickHz: 30
+  drawCells: 0
+  cellMaxAlpha: 0.3
 --- !u!1 &4041530114808529297
 GameObject:
   m_ObjectHideFlags: 0
@@ -126,6 +164,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f61552c2c2246e4d9212010130becd2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Crowd.CrowdController
+  inspectorHelp: 'CrowdController: ticks registered CrowdAgents on a cadence based
+    on their importance.
+
+    Each tick, agents may replan, apply steering, and stamp
+    density into the DensityGrid.'
   highUpdateRate: 10
   midUpdateRate: 3.3
   lowUpdateRate: 0.5
@@ -173,7 +216,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 264ed62730fd3c74ca07ef3131bf3bee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Pathfinding.PathRequestManager
+  inspectorHelp: 'PathRequestManager: chooses a planner (A*/FlowField/Dijkstra) per
+    query and executes it synchronously.
+
+    Use Density multipliers to bias routes
+    away from crowds.
+
+    Stats show planner counts and last timings for quick sanity
+    checks.'
   maxPlansPerFrame: 8
   maxReplansPerFrame: 4
   aStarDensityCostMultiplier: 1
   flowFieldDensityCostMultiplier: 1
+  lastAStarCount: 0
+  lastDijkstraCount: 0
+  lastFlowfieldCount: 0
+  lastQueryMs: 0

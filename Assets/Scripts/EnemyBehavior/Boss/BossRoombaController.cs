@@ -39,7 +39,24 @@ public class BossRoombaController : MonoBehaviour
     public float suctionRadius =5f;
     public float suctionStrength =10f;
     public float dashSpeedMultiplier =3f;
-    private bool alarmActive = false;
+
+    [Header("Locomotion")]
+    [Tooltip("Minimum stopping distance to avoid overlapping the player.")]
+    public float MinStoppingDistance = 2.0f;
+    [Tooltip("Ensure a kinematic Rigidbody for stable collisions and platform carry.")]
+    public bool EnsureKinematicRigidbody = true;
+    [Tooltip("Extra buffer to re-enable movement after stopping; prevents jitter.")]
+    public float ApproachHysteresis = 0.75f;
+    [Tooltip("Max distance to adjust ring target to a nearby NavMesh point.")]
+    public float ApproachSampleMaxDistance = 1.0f;
+
+    [Header("Top-Wander (Player On Top)")]
+    [Tooltip("Speed multiplier during top-wander movement.")]
+    public float TopWanderSpeedMultiplier = 1.1f;
+    [Tooltip("Random target radius range (meters) for top-wander.")]
+    public Vector2 TopWanderRadiusRange = new Vector2(4f, 10f);
+    [Tooltip("Time range (seconds) before repicking a new wander target.")]
+    public Vector2 TopWanderRepathTimeRange = new Vector2(0.7f, 1.4f);
 
     // simple local pools (fallback if ScenePoolManager not present)
     private readonly Queue<GameObject> dronePool = new Queue<GameObject>();
@@ -48,9 +65,25 @@ public class BossRoombaController : MonoBehaviour
 
     private Coroutine followRoutine;
     private Coroutine animParamsRoutine;
+    private Coroutine topWanderRoutine;
+    private float lastFollowCadence = 0.1f;
+
+    // Saved agent settings for top-wander
+    private bool topWanderActive;
+    private float savedSpeed;
+    private bool savedAutoBraking;
+    private float savedStoppingDistance;
 
     void Awake()
     {
+        if (EnsureKinematicRigidbody)
+        {
+            var rb = GetComponent<Rigidbody>();
+            if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
+            rb.isKinematic = true;
+            rb.interpolation = RigidbodyInterpolation.Interpolate;
+        }
+
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponentInChildren<Animator>();
         // prewarm pools
@@ -63,7 +96,6 @@ public class BossRoombaController : MonoBehaviour
 
     void OnEnable()
     {
-        // Drive locomotion parameters at a small cadence instead of every frame
         if (animParamsRoutine != null) StopCoroutine(animParamsRoutine);
         animParamsRoutine = StartCoroutine(AnimParamsLoop(0.05f));
     }
@@ -71,6 +103,8 @@ public class BossRoombaController : MonoBehaviour
     void OnDisable()
     {
         if (animParamsRoutine != null) { StopCoroutine(animParamsRoutine); animParamsRoutine = null; }
+        StopTopWander();
+        StopFollowing();
     }
 
     private IEnumerator AnimParamsLoop(float cadence)
@@ -102,7 +136,7 @@ public class BossRoombaController : MonoBehaviour
         agent.speed = Random.Range(profile.SpeedRange.x, profile.SpeedRange.y);
         agent.acceleration = profile.Acceleration;
         agent.angularSpeed = profile.AngularSpeed;
-        agent.stoppingDistance = profile.StoppingDistance;
+        agent.stoppingDistance = Mathf.Max(profile.StoppingDistance, MinStoppingDistance);
         agent.avoidancePriority = profile.AvoidancePriority;
         agent.autoBraking = false;
     }
@@ -110,8 +144,28 @@ public class BossRoombaController : MonoBehaviour
     // Event-driven follow (avoids Update)
     public void StartFollowingPlayer(float cadenceSeconds)
     {
+        lastFollowCadence = Mathf.Max(0.02f, cadenceSeconds);
         if (followRoutine != null) StopCoroutine(followRoutine);
-        followRoutine = StartCoroutine(FollowLoop(cadenceSeconds));
+        followRoutine = StartCoroutine(FollowLoop(lastFollowCadence));
+    }
+
+    public void StopFollowing()
+    {
+        if (followRoutine != null) { StopCoroutine(followRoutine); followRoutine = null; }
+    }
+
+    private Vector3 ComputeApproachPoint(Vector3 bossPos, Vector3 playerPos)
+    {
+        Vector3 toPlayer = playerPos - bossPos;
+        toPlayer.y = 0f;
+        float dist = toPlayer.magnitude;
+        if (dist < 0.001f)
+            return bossPos;
+        float ring = Mathf.Max(agent.stoppingDistance, MinStoppingDistance);
+        Vector3 candidate = playerPos - toPlayer.normalized * ring;
+        if (NavMesh.SamplePosition(candidate, out var hit, ApproachSampleMaxDistance, NavMesh.AllAreas))
+            return hit.position;
+        return candidate;
     }
 
     private IEnumerator FollowLoop(float cadence)
@@ -119,59 +173,142 @@ public class BossRoombaController : MonoBehaviour
         var wait = new WaitForSeconds(Mathf.Max(0.02f, cadence));
         while (true)
         {
-            if (!alarmActive && player != null)
-                agent.SetDestination(player.position);
+            if (player != null)
+            {
+                Vector3 bossPos = transform.position;
+                Vector3 playerPos = player.position;
+                Vector3 flat = playerPos - bossPos; flat.y = 0f;
+                float dist = flat.magnitude;
+                float stop = Mathf.Max(agent.stoppingDistance, MinStoppingDistance);
+
+                if (dist <= stop)
+                {
+                    if (!agent.isStopped)
+                    {
+                        agent.ResetPath();
+                        agent.isStopped = true;
+                    }
+                }
+                else if (dist > stop + ApproachHysteresis)
+                {
+                    agent.isStopped = false;
+                    Vector3 target = ComputeApproachPoint(bossPos, playerPos);
+                    agent.SetDestination(target);
+                }
+            }
             yield return wait;
         }
     }
 
-    // Example: trigger alarm and spawn adds
+    // Top-wander movement while player is on top
+    public void StartTopWander()
+    {
+        if (topWanderActive) return;
+        topWanderActive = true;
+
+        // Save and apply wander settings
+        savedSpeed = agent.speed;
+        savedAutoBraking = agent.autoBraking;
+        savedStoppingDistance = agent.stoppingDistance;
+
+        agent.autoBraking = false;
+        agent.stoppingDistance = 0f;
+        agent.speed = savedSpeed * TopWanderSpeedMultiplier;
+
+        StopFollowing();
+        if (topWanderRoutine != null) StopCoroutine(topWanderRoutine);
+        topWanderRoutine = StartCoroutine(TopWanderLoop());
+    }
+
+    public void StopTopWander()
+    {
+        if (!topWanderActive) return;
+        topWanderActive = false;
+
+        if (topWanderRoutine != null)
+        {
+            StopCoroutine(topWanderRoutine);
+            topWanderRoutine = null;
+        }
+
+        // Restore saved movement settings
+        agent.speed = savedSpeed;
+        agent.autoBraking = savedAutoBraking;
+        agent.stoppingDistance = savedStoppingDistance;
+
+        // Resume following after wander ends
+        StartFollowingPlayer(lastFollowCadence);
+    }
+
+    private IEnumerator TopWanderLoop()
+    {
+        while (true)
+        {
+            Vector3 origin = transform.position;
+            float radius = Random.Range(TopWanderRadiusRange.x, TopWanderRadiusRange.y);
+            Vector2 dir2D = Random.insideUnitCircle.normalized;
+            Vector3 candidate = origin + new Vector3(dir2D.x, 0f, dir2D.y) * radius;
+            if (NavMesh.SamplePosition(candidate, out var hit, 2.0f, NavMesh.AllAreas))
+                candidate = hit.position;
+
+            agent.isStopped = false;
+            agent.SetDestination(candidate);
+
+            float timeout = Random.Range(TopWanderRepathTimeRange.x, TopWanderRepathTimeRange.y);
+            float t = 0f;
+            while (t < timeout)
+            {
+                t += Time.deltaTime;
+                yield return null;
+            }
+        }
+    }
+
+    // Alarm visual only (no spawning)
     public void ActivateAlarm()
     {
         if (alarm != null) alarm.SetActive(true);
-        alarmActive = true;
-        StartCoroutine(SpawnAddsCoroutine());
     }
 
     public void DeactivateAlarm()
     {
-        alarmActive = false;
         if (alarm != null) alarm.SetActive(false);
     }
 
-    private IEnumerator SpawnAddsCoroutine()
+    // Spawn a total count distributed across available spawn points
+    public void TriggerSpawnWave(int totalDrones, int totalCrawlers)
     {
-        // Choose arrays: fall back to pocketSpawnPoints if specific ones not set
+        StartCoroutine(SpawnAddsCoroutine(totalDrones, totalCrawlers));
+    }
+
+    private IEnumerator SpawnAddsCoroutine(int totalDrones, int totalCrawlers)
+    {
         var drones = (droneSpawnPoints != null && droneSpawnPoints.Length > 0) ? droneSpawnPoints : pocketSpawnPoints;
         var crawlers = (crawlerSpawnPoints != null && crawlerSpawnPoints.Length > 0) ? crawlerSpawnPoints : pocketSpawnPoints;
 
-        // Drones
-        if (drones != null)
+        // Drones: distribute across points
+        if (dronePrefab != null && drones != null && drones.Length > 0 && totalDrones > 0)
         {
-            foreach (var p in drones)
+            for (int i = 0; i < totalDrones; i++)
             {
+                var p = drones[i % drones.Length];
                 if (p == null) continue;
-                for (int i = 0; i < dronesPerSpawn; i++)
-                {
-                    var g = Spawn(dronePrefab, p.position);
-                    if (g != null) { g.SetActive(true); RegisterSpawned(g); }
-                }
-                yield return new WaitForSeconds(0.1f);
+                var g = Spawn(dronePrefab, p.position);
+                if (g != null) { g.SetActive(true); RegisterSpawned(g); }
+                yield return null;
             }
         }
 
-        // Crawlers
-        if (crawlers != null)
+        // Crawlers: distribute across points
+        if (crawlerPrefab != null && crawlers != null && crawlers.Length > 0 && totalCrawlers > 0)
         {
-            foreach (var p in crawlers)
+            for (int j = 0; j < totalCrawlers; j++)
             {
+                var p = crawlers[j % crawlers.Length];
                 if (p == null) continue;
-                for (int j = 0; j < crawlersPerSpawn; j++)
-                {
-                    var c = Spawn(crawlerPrefab, p.position);
-                    if (c != null) { c.SetActive(true); RegisterSpawned(c); }
-                }
-                yield return new WaitForSeconds(0.1f);
+                var c = Spawn(crawlerPrefab, p.position);
+                if (c != null) { c.SetActive(true); RegisterSpawned(c); }
+                yield return null;
             }
         }
     }

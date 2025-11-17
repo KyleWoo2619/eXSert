@@ -16,9 +16,25 @@ namespace EnemyBehavior.Boss
         [SerializeField] private BossRoombaBrain brain;
         [SerializeField, Tooltip("If true, temporarily parent the player under the boss while on top to be carried by movement.")]
         private bool parentPlayerWhileOnTop = true;
+        [SerializeField, Tooltip("How often to test for absence when no OnTriggerStay calls arrive.")]
+        private float monitorHz = 20f;
+        [SerializeField, Tooltip("Grace time before unparent when no OnTriggerStay has been received.")]
+        private float exitGraceSeconds = 0.15f;
+        [SerializeField, Tooltip("Require player to be near the zone's top surface to be considered on top (prevents parenting while just passing through high in the volume).")]
+        private bool requireTopContactForParenting = true;
+        [SerializeField, Tooltip("Max vertical difference (meters) between player feet and zone top to allow parenting.")]
+        private float topContactMaxVerticalDelta = 0.15f;
+        [SerializeField, Tooltip("Extra vertical margin (meters) beyond the trigger where the player is considered off the top zone.")]
+        private float verticalClearMargin = 0.1f;
 
-        private Transform cachedPlayer;
+        private Collider zone;
+        private Transform playerTransform;
+        private Collider playerCollider;
+        private int overlapCount;
         private Transform originalParent;
+        private Coroutine monitorRoutine;
+        private float lastInsideTime;
+        private bool isParented;
 
         private void Reset()
         {
@@ -28,36 +44,174 @@ namespace EnemyBehavior.Boss
 
         private void OnValidate()
         {
-            var col = GetComponent<Collider>();
-            if (col != null) col.isTrigger = true;
+            zone = GetComponent<Collider>();
+            if (zone != null) zone.isTrigger = true;
             if (brain == null) brain = GetComponentInParent<BossRoombaBrain>();
+        }
+
+        private bool IsSamePlayerCollider(Transform t)
+        {
+            return playerTransform != null && (t == playerTransform || t.IsChildOf(playerTransform));
         }
 
         private void OnTriggerEnter(Collider other)
         {
             if (!other.CompareTag("Player")) return;
-            cachedPlayer = other.transform;
             if (brain == null) brain = GetComponentInParent<BossRoombaBrain>();
-            if (brain != null) brain.SetPlayerOnTop(true);
 
-            if (parentPlayerWhileOnTop && cachedPlayer != null)
+            if (playerTransform == null)
             {
-                originalParent = cachedPlayer.parent;
-                cachedPlayer.SetParent(brain != null ? brain.transform : transform.root, true);
+                playerTransform = other.transform;
+                playerCollider = other;
+                overlapCount = 0;
+                lastInsideTime = Time.time;
+                if (monitorRoutine == null) monitorRoutine = StartCoroutine(MonitorPresence());
+            }
+
+            if (IsSamePlayerCollider(other.transform))
+            {
+                overlapCount++;
+                lastInsideTime = Time.time;
+                // Do NOT parent here; we only parent in Stay when eligibility is verified.
+            }
+        }
+
+        private void OnTriggerStay(Collider other)
+        {
+            if (!other.CompareTag("Player")) return;
+            if (!IsSamePlayerCollider(other.transform)) return;
+            lastInsideTime = Time.time;
+
+            if (IsEligibleForParenting())
+            {
+                EnsureParented();
+            }
+            else
+            {
+                EnsureUnparented();
             }
         }
 
         private void OnTriggerExit(Collider other)
         {
-            if (!other.CompareTag("Player")) return;
-            if (brain == null) brain = GetComponentInParent<BossRoombaBrain>();
-            if (brain != null) brain.SetPlayerOnTop(false);
-
-            if (parentPlayerWhileOnTop && cachedPlayer == other.transform)
+            if (!IsSamePlayerCollider(other.transform)) return;
+            overlapCount = Mathf.Max(0, overlapCount - 1);
+            if (overlapCount == 0)
             {
-                cachedPlayer.SetParent(originalParent, true);
-                cachedPlayer = null;
-                originalParent = null;
+                lastInsideTime = Time.time;
+                // Favor unparenting on exit events
+                EnsureUnparented();
+            }
+        }
+
+        private bool IsEligibleForParenting()
+        {
+            if (zone == null || playerCollider == null) return false;
+
+            // Must be intersecting the trigger volume
+            Vector3 dir; float dist;
+            bool penetrating = Physics.ComputePenetration(
+                zone, zone.transform.position, zone.transform.rotation,
+                playerCollider, playerCollider.transform.position, playerCollider.transform.rotation,
+                out dir, out dist);
+            bool boundsIntersect = zone.bounds.Intersects(playerCollider.bounds);
+            if (!(penetrating || boundsIntersect)) return false;
+
+            if (!requireTopContactForParenting) return true;
+
+            // Require player's feet to be near the top surface of the zone
+            float zoneTop = zone.bounds.max.y;
+            float playerFeet = playerCollider.bounds.min.y;
+            float verticalDelta = Mathf.Abs(playerFeet - zoneTop);
+            if (verticalDelta > topContactMaxVerticalDelta) return false;
+
+            return true;
+        }
+
+        private System.Collections.IEnumerator MonitorPresence()
+        {
+            float dt = 1f / Mathf.Max(5f, monitorHz);
+            var wait = new WaitForSeconds(dt);
+            while (playerTransform != null)
+            {
+                bool inside = false;
+                if (zone != null && playerCollider != null)
+                {
+                    Vector3 dir; float dist;
+                    bool penetrating = Physics.ComputePenetration(
+                        zone, zone.transform.position, zone.transform.rotation,
+                        playerCollider, playerCollider.transform.position, playerCollider.transform.rotation,
+                        out dir, out dist);
+                    bool boundsIntersect = zone.bounds.Intersects(playerCollider.bounds);
+
+                    // Vertical fast-clear if clearly above the top surface
+                    float zoneTop = zone.bounds.max.y + verticalClearMargin;
+                    bool verticallyAbove = playerCollider.bounds.min.y > zoneTop;
+
+                    inside = (penetrating || boundsIntersect) && !verticallyAbove;
+                }
+
+                if (inside)
+                {
+                    lastInsideTime = Time.time;
+                    // Enforce parenting eligibility continuously
+                    if (IsEligibleForParenting()) EnsureParented(); else EnsureUnparented();
+                }
+                else if (Time.time - lastInsideTime > exitGraceSeconds)
+                {
+                    EnsureUnparented();
+                    ForceClearRefs();
+                    break;
+                }
+                yield return wait;
+            }
+            monitorRoutine = null;
+        }
+
+        private void EnsureParented()
+        {
+            if (!parentPlayerWhileOnTop || playerTransform == null) return;
+            if (!isParented)
+            {
+                if (brain == null) brain = GetComponentInParent<BossRoombaBrain>();
+                originalParent = playerTransform.parent;
+                playerTransform.SetParent(brain != null ? brain.transform : transform.root, true);
+                isParented = true;
+                if (brain != null) brain.SetPlayerOnTop(true);
+            }
+        }
+
+        private void EnsureUnparented()
+        {
+            if (isParented && playerTransform != null)
+            {
+                playerTransform.SetParent(originalParent, true);
+                isParented = false;
+                if (brain == null) brain = GetComponentInParent<BossRoombaBrain>();
+                if (brain != null) brain.SetPlayerOnTop(false);
+            }
+        }
+
+        private void ForceClear()
+        {
+            EnsureUnparented();
+            ForceClearRefs();
+        }
+
+        private void ForceClearRefs()
+        {
+            playerTransform = null;
+            playerCollider = null;
+            originalParent = null;
+            overlapCount = 0;
+        }
+
+        private void OnDisable()
+        {
+            if (monitorRoutine != null) { StopCoroutine(monitorRoutine); monitorRoutine = null; }
+            if (playerTransform != null)
+            {
+                ForceClear();
             }
         }
     }
