@@ -206,20 +206,33 @@ namespace Behaviors
             if (damageSentThisEnable) return;
             damageSentThisEnable = true;
 
-            // Only apply damage if the collider has the "Player" tag
-            if (playerCollider.CompareTag("Player"))
+            if (!playerCollider.CompareTag("Player")) return;
+
+            // Parry: no damage
+            if (CombatManager.isParrying)
             {
-                playerCollider.TryGetComponent<IHealthSystem>(out var healthSystem);
-                if (healthSystem != null)
-                {
-                    healthSystem.LoseHP(enemy.damage);
-                    Debug.Log($"{enemy.gameObject.name} attacked {playerCollider.gameObject.name} for {enemy.damage} damage.");
-                }
-                else
-                {
-                    Debug.LogWarning($"{playerCollider.gameObject.name} has Player tag but no IHealthSystem component.");
-                }
+                CombatManager.ParrySuccessful();
+                Debug.Log($"{enemy.gameObject.name} attack parried by player.");
+                return;
             }
+
+            playerCollider.TryGetComponent<IHealthSystem>(out var healthSystem);
+            if (healthSystem == null)
+            {
+                Debug.LogWarning($"{playerCollider.gameObject.name} has Player tag but no IHealthSystem component.");
+                return;
+            }
+
+            float dmg = enemy.damage;
+            // Guard: half damage
+            if (CombatManager.isGuarding)
+            {
+                dmg *= 0.5f; // temporary guard mitigation
+                Debug.Log($"{enemy.gameObject.name} attack guarded. Applying reduced damage {dmg}.");
+            }
+
+            healthSystem.LoseHP(dmg);
+            Debug.Log($"{enemy.gameObject.name} attacked {playerCollider.gameObject.name} for {dmg} damage.");
         }
 
         // Reset flag when hitbox is disabled

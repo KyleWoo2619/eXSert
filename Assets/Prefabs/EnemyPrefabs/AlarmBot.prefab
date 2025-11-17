@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 2458891657056406455}
   m_Layer: 0
   m_Name: AlarmBot
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -122,6 +122,13 @@ MonoBehaviour:
   attackActiveDuration: 0.5
   showAttackGizmo: 1
   healthBarPrefab: {fileID: 2629286879049192775, guid: 9345af66964a7d64489a46ae511c793b, type: 3}
+  enableAntiStuck: 1
+  stuckSpeedThreshold: 0.05
+  stuckSeconds: 0.9
+  sidestepDistance: 1
+  backoffDistance: 1.5
+  reliefSampleRadius: 1
+  reliefCooldownSeconds: 1.5
   healthBarInstance: {fileID: 0}
   attackCollider: {fileID: 0}
   isAttackBoxActive: 0

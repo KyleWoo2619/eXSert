@@ -20,6 +20,7 @@ public class BossRoombaController : MonoBehaviour
 
     private NavMeshAgent agent;
     private Transform player;
+    private Animator animator;
     public GameObject alarm; // visual alarm object
 
     [Header("Spawn Pockets")]
@@ -46,15 +47,42 @@ public class BossRoombaController : MonoBehaviour
     public int initialPoolSize =8;
 
     private Coroutine followRoutine;
+    private Coroutine animParamsRoutine;
 
     void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
+        animator = GetComponentInChildren<Animator>();
         // prewarm pools
         for (int i =0; i < initialPoolSize; i++)
         {
             if (dronePrefab != null) { var g = Instantiate(dronePrefab); g.SetActive(false); dronePool.Enqueue(g); }
             if (crawlerPrefab != null) { var c = Instantiate(crawlerPrefab); c.SetActive(false); crawlerPool.Enqueue(c); }
+        }
+    }
+
+    void OnEnable()
+    {
+        // Drive locomotion parameters at a small cadence instead of every frame
+        if (animParamsRoutine != null) StopCoroutine(animParamsRoutine);
+        animParamsRoutine = StartCoroutine(AnimParamsLoop(0.05f));
+    }
+
+    void OnDisable()
+    {
+        if (animParamsRoutine != null) { StopCoroutine(animParamsRoutine); animParamsRoutine = null; }
+    }
+
+    private IEnumerator AnimParamsLoop(float cadence)
+    {
+        var wait = new WaitForSeconds(Mathf.Max(0.02f, cadence));
+        if (animator == null) yield break; // single null check at start
+        while (true)
+        {
+            float spd = (agent != null && agent.enabled) ? agent.velocity.magnitude : 0f;
+            animator.SetFloat("Speed", spd);
+            animator.SetBool("IsMoving", spd > 0.1f);
+            yield return wait;
         }
     }
 
