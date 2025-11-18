@@ -36,8 +36,11 @@ public class InteractablePoint : MonoBehaviour
     
     [ShowIfPuzzle]
     [SerializeField] private AnimationClip interactAnimation; // Only shows when InteractType is Puzzle
+
+    [ShowIfPuzzle]
+    [SerializeField] private GameObject puzzleHandler; // Only shows when InteractType is Puzzle
     private bool playerIsNear = false;
-    private string collectibleId;
+    [SerializeField] private string collectibleId;
 
     private void FixedUpdate()
     {
@@ -127,6 +130,8 @@ public class InteractablePoint : MonoBehaviour
         {
             if(_interactAction != null && _interactAction.action != null && _interactAction.action.triggered)
             {
+                InternalPlayerInventory.Instance.AddCollectible(collectibleId);
+
                 if (interactType == InteractType.Log)
                 {
                     var logSO = collectibleInfo as NavigationLogSO;
@@ -140,8 +145,10 @@ public class InteractablePoint : MonoBehaviour
                     diarySO.isFound = true;
                     Debug.Log("Diary triggered");
                 }
-                else
+                else if (interactType == InteractType.Puzzle)
                 {
+                    var puzzleHandlerComponent = puzzleHandler.GetComponent<PuzzleHandler>();
+                    puzzleHandlerComponent.ActivatePuzzle();
                     Debug.Log("Event triggered");
                 }
 
