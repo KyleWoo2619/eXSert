@@ -17,19 +17,19 @@ using Utilities.Combat.Attacks;
 public class EnhancedPlayerAttackManager : MonoBehaviour
 {
     [Header("Input")]
-    [SerializeField] private InputActionReference _lightAttackAction;
-    [SerializeField] private InputActionReference _heavyAttackAction;
+    [SerializeField, CriticalReference] private InputActionReference _lightAttackAction;
+    [SerializeField, CriticalReference] private InputActionReference _heavyAttackAction;
 
     [Header("References")]
-    [SerializeField, Tooltip("Assign manually if on different GameObject")] 
+    [SerializeField, CriticalReference, Tooltip("Assign manually if on different GameObject")] 
     private TierComboManager comboManager;
     [SerializeField, Tooltip("Assign manually if on different GameObject")] 
     private AerialComboManager aerialComboManager;
-    [SerializeField, Tooltip("Assign manually if AnimFacade is on different GameObject")] 
+    [SerializeField, CriticalReference, Tooltip("Assign manually if AnimFacade is on different GameObject")] 
     private AnimFacade animFacade;
     [SerializeField, Tooltip("Animator to play attack states directly when using state-driven mode (no transitions)")]
     private Animator animator;
-    [SerializeField] private CharacterController characterController;
+    [SerializeField, CriticalReference] private CharacterController characterController;
 
     [Header("Attack Data")]
     [SerializeField] private AttackDatabase attackDatabase;
@@ -56,60 +56,12 @@ public class EnhancedPlayerAttackManager : MonoBehaviour
     [SerializeField, Tooltip("If true, attacks are driven by Animator states (via AttackStateDriver). If false, code spawns hitboxes using start/end lag.")]
     private bool useStateDrivenAttacks = true;
 
-    public static event Action onAttack;
+    // action event for other systems to subscribe to when an attack is executed. Includes the attack that was executed.
+    public static event Action<PlayerAttack> OnAttack;
 
     private void Awake()
     {
-        // Auto-find references if not assigned
-        if (comboManager == null)
-        {
-            comboManager = GetComponent<TierComboManager>();
-            if (comboManager == null)
-                comboManager = GetComponentInChildren<TierComboManager>();
-        }
-        
-        if (aerialComboManager == null)
-        {
-            aerialComboManager = GetComponent<AerialComboManager>();
-            if (aerialComboManager == null)
-                aerialComboManager = GetComponentInChildren<AerialComboManager>();
-        }
-        
-        if (animFacade == null)
-        {
-            animFacade = GetComponent<AnimFacade>();
-            if (animFacade == null)
-            {
-                animFacade = GetComponentInParent<AnimFacade>();
-                if (animFacade == null)
-                    animFacade = GetComponentInChildren<AnimFacade>();
-            }
-        }
-        
-        if (characterController == null)
-            characterController = GetComponent<CharacterController>();
-        if (animator == null)
-        {
-            animator = GetComponent<Animator>();
-            if (animator == null && animFacade != null)
-                animator = animFacade.GetComponent<Animator>();
-            if (animator == null)
-                animator = GetComponentInChildren<Animator>();
-        }
-
-        if (comboManager == null)
-            Debug.LogError("EnhancedPlayerAttackManager: TierComboManager not found! Assign manually in Inspector.");
-        
-        if (aerialComboManager == null)
-            Debug.LogError("EnhancedPlayerAttackManager: AerialComboManager not found! Assign manually in Inspector.");
-        
-        if (animFacade == null)
-            Debug.LogError("EnhancedPlayerAttackManager: AnimFacade not found! Assign manually in Inspector.");
-        
-        if (characterController == null)
-            Debug.LogError("EnhancedPlayerAttackManager: CharacterController not found!");
-        if (animator == null)
-            Debug.LogError("EnhancedPlayerAttackManager: Animator not found! Assign manually in Inspector.");
+        ValidateReferences();
     }
 
     private void Start()
@@ -145,6 +97,60 @@ public class EnhancedPlayerAttackManager : MonoBehaviour
         currentStance = CombatManager.singleTargetMode 
             ? TierComboManager.AttackStance.Single 
             : TierComboManager.AttackStance.AOE;
+    }
+
+    public void ValidateReferences()
+    {
+        // Auto-find references if not assigned
+        if (comboManager == null)
+        {
+            comboManager = GetComponent<TierComboManager>();
+            if (comboManager == null)
+                comboManager = GetComponentInChildren<TierComboManager>();
+        }
+
+        if (aerialComboManager == null)
+        {
+            aerialComboManager = GetComponent<AerialComboManager>();
+            if (aerialComboManager == null)
+                aerialComboManager = GetComponentInChildren<AerialComboManager>();
+        }
+
+        if (animFacade == null)
+        {
+            animFacade = GetComponent<AnimFacade>();
+            if (animFacade == null)
+            {
+                animFacade = GetComponentInParent<AnimFacade>();
+                if (animFacade == null)
+                    animFacade = GetComponentInChildren<AnimFacade>();
+            }
+        }
+
+        if (characterController == null)
+            characterController = GetComponent<CharacterController>();
+        if (animator == null)
+        {
+            animator = GetComponent<Animator>();
+            if (animator == null && animFacade != null)
+                animator = animFacade.GetComponent<Animator>();
+            if (animator == null)
+                animator = GetComponentInChildren<Animator>();
+        }
+
+        if (comboManager == null)
+            Debug.LogError("EnhancedPlayerAttackManager: TierComboManager not found! Assign manually in Inspector.");
+
+        if (aerialComboManager == null)
+            Debug.LogError("EnhancedPlayerAttackManager: AerialComboManager not found! Assign manually in Inspector.");
+
+        if (animFacade == null)
+            Debug.LogError("EnhancedPlayerAttackManager: AnimFacade not found! Assign manually in Inspector.");
+
+        if (characterController == null)
+            Debug.LogError("EnhancedPlayerAttackManager: CharacterController not found!");
+        if (animator == null)
+            Debug.LogError("EnhancedPlayerAttackManager: Animator not found! Assign manually in Inspector.");
     }
 
     private void HandleLightInput()
@@ -284,7 +290,7 @@ public class EnhancedPlayerAttackManager : MonoBehaviour
         }
 
         // Invoke attack event for other systems (e.g., aerial hop)
-        onAttack?.Invoke();
+        OnAttack?.Invoke(attackData);
 
         // Mark in combat (AnimFacade handles this internally via PressLight/Heavy)
         if (animFacade != null)
