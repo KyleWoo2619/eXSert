@@ -8,6 +8,15 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
+// Attribute to show field only for Puzzle type
+public class ShowIfPuzzleAttribute : PropertyAttribute { }
+
+// Attribute to show field only for Log or Diary type
+public class ShowIfLogOrDiaryAttribute : PropertyAttribute { }
 
 [RequireComponent(typeof(BoxCollider))]
 public class InteractablePoint : MonoBehaviour
@@ -16,13 +25,17 @@ public class InteractablePoint : MonoBehaviour
 
     [Header("Interactable Entry")]
     [SerializeField] private InteractType interactType;
-    [SerializeField] private ScriptableObject collectibleInfo; // NavigationLogSO or DiarySO
+
+    [ShowIfLogOrDiary]
+    [SerializeField] private ScriptableObject collectibleInfo; // Only shows when InteractType is Log or Diary
 
     [SerializeField] private InputActionReference _interactAction;
     [SerializeField] private TextMeshProUGUI interractableText;
 
     [SerializeField] private Image interactGamePadIcon;
-
+    
+    [ShowIfPuzzle]
+    [SerializeField] private AnimationClip interactAnimation; // Only shows when InteractType is Puzzle
     private bool playerIsNear = false;
     private string collectibleId;
 
@@ -45,11 +58,16 @@ public class InteractablePoint : MonoBehaviour
             var diarySO = collectibleInfo as DiarySO;
             if (diarySO != null) collectibleId = diarySO.diaryID;
         } 
-        else 
+        else
         {
             collectibleInfo = null;
         }
 
+        if(interactAnimation == null || interactType == InteractType.Puzzle)
+        {
+            Debug.LogWarning("No interaction animation assigned to InteractablePoint at " + this.gameObject.name);
+        }
+        
         // Will hide the text on start
         interractableText.gameObject.SetActive(false);
 
@@ -179,3 +197,69 @@ public class InteractablePoint : MonoBehaviour
         }
     }
 }
+
+// Custom Property Drawers
+
+#if UNITY_EDITOR
+[CustomPropertyDrawer(typeof(ShowIfPuzzleAttribute))]
+public class ShowIfPuzzleDrawer : PropertyDrawer
+{
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+    {
+        var parent = property.serializedObject.targetObject as InteractablePoint;
+        if (parent != null)
+        {
+            var interactTypeField = property.serializedObject.FindProperty("interactType");
+            if (interactTypeField != null && interactTypeField.enumValueIndex == 2) // 2 = Puzzle
+            {
+                EditorGUI.PropertyField(position, property, label);
+            }
+        }
+    }
+
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+    {
+        var parent = property.serializedObject.targetObject as InteractablePoint;
+        if (parent != null)
+        {
+            var interactTypeField = property.serializedObject.FindProperty("interactType");
+            if (interactTypeField != null && interactTypeField.enumValueIndex == 2) // 2 = Puzzle
+            {
+                return EditorGUI.GetPropertyHeight(property);
+            }
+        }
+        return 0;
+    }
+}
+
+[CustomPropertyDrawer(typeof(ShowIfLogOrDiaryAttribute))]
+public class ShowIfLogOrDiaryDrawer : PropertyDrawer
+{
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+    {
+        var parent = property.serializedObject.targetObject as InteractablePoint;
+        if (parent != null)
+        {
+            var interactTypeField = property.serializedObject.FindProperty("interactType");
+            if (interactTypeField != null && (interactTypeField.enumValueIndex == 0 || interactTypeField.enumValueIndex == 1)) // 0 = Log, 1 = Diary
+            {
+                EditorGUI.PropertyField(position, property, label);
+            }
+        }
+    }
+
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+    {
+        var parent = property.serializedObject.targetObject as InteractablePoint;
+        if (parent != null)
+        {
+            var interactTypeField = property.serializedObject.FindProperty("interactType");
+            if (interactTypeField != null && (interactTypeField.enumValueIndex == 0 || interactTypeField.enumValueIndex == 1)) // 0 = Log, 1 = Diary
+            {
+                return EditorGUI.GetPropertyHeight(property);
+            }
+        }
+        return 0;
+    }
+}
+#endif
