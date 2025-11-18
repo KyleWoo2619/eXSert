@@ -5,8 +5,6 @@
     This will not be the only script on the puzzle, but it will handle checking if the puzzle can be activated.
     If the puzzle can be activated, it will trigger the puzzle logic from another script.
 */
-
-using UnityEditor.EditorTools;
 using UnityEngine;
 
 public class PuzzleHandler : MonoBehaviour
@@ -23,6 +21,7 @@ public class PuzzleHandler : MonoBehaviour
         else
         {
             Debug.Log("Puzzle cannot be activated yet. Required items not collected.");
+            return;
         }
     }
 
