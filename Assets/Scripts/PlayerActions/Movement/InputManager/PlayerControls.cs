@@ -183,6 +183,15 @@ namespace eXsert
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Interact"",
+                    ""type"": ""Button"",
+                    ""id"": ""643053a0-4083-40dd-87eb-d692cfe697cc"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -502,6 +511,28 @@ namespace eXsert
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""NavigationMenu"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""5c2d273e-12ef-4b83-b492-749668257d32"",
+                    ""path"": ""<Keyboard>/x"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Interact"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""49804c08-6cea-4a04-8303-32cd91ef9e49"",
+                    ""path"": ""<Gamepad>/buttonEast"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Interact"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -910,6 +941,7 @@ namespace eXsert
             m_Gameplay_Dash = m_Gameplay.FindAction("Dash", throwIfNotFound: true);
             m_Gameplay_Pause = m_Gameplay.FindAction("Pause", throwIfNotFound: true);
             m_Gameplay_NavigationMenu = m_Gameplay.FindAction("NavigationMenu", throwIfNotFound: true);
+            m_Gameplay_Interact = m_Gameplay.FindAction("Interact", throwIfNotFound: true);
             // UI
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
             m_UI_Navigation = m_UI.FindAction("Navigation", throwIfNotFound: true);
@@ -1013,6 +1045,7 @@ namespace eXsert
         private readonly InputAction m_Gameplay_Dash;
         private readonly InputAction m_Gameplay_Pause;
         private readonly InputAction m_Gameplay_NavigationMenu;
+        private readonly InputAction m_Gameplay_Interact;
         /// <summary>
         /// Provides access to input actions defined in input action map "Gameplay".
         /// </summary>
@@ -1064,6 +1097,10 @@ namespace eXsert
             /// Provides access to the underlying input action "Gameplay/NavigationMenu".
             /// </summary>
             public InputAction @NavigationMenu => m_Wrapper.m_Gameplay_NavigationMenu;
+            /// <summary>
+            /// Provides access to the underlying input action "Gameplay/Interact".
+            /// </summary>
+            public InputAction @Interact => m_Wrapper.m_Gameplay_Interact;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
@@ -1120,6 +1157,9 @@ namespace eXsert
                 @NavigationMenu.started += instance.OnNavigationMenu;
                 @NavigationMenu.performed += instance.OnNavigationMenu;
                 @NavigationMenu.canceled += instance.OnNavigationMenu;
+                @Interact.started += instance.OnInteract;
+                @Interact.performed += instance.OnInteract;
+                @Interact.canceled += instance.OnInteract;
             }
 
             /// <summary>
@@ -1161,6 +1201,9 @@ namespace eXsert
                 @NavigationMenu.started -= instance.OnNavigationMenu;
                 @NavigationMenu.performed -= instance.OnNavigationMenu;
                 @NavigationMenu.canceled -= instance.OnNavigationMenu;
+                @Interact.started -= instance.OnInteract;
+                @Interact.performed -= instance.OnInteract;
+                @Interact.canceled -= instance.OnInteract;
             }
 
             /// <summary>
@@ -1544,6 +1587,13 @@ namespace eXsert
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnNavigationMenu(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "Interact" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnInteract(InputAction.CallbackContext context);
         }
         /// <summary>
         /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.
