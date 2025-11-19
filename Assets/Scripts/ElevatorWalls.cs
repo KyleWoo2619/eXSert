@@ -17,13 +17,13 @@ public class ElevatorWalls : MonoBehaviour
 
     [Header("Elevator Movement Settings")]
     [Tooltip("The y position at which the elevator walls will reset to the bottom")]
-    [SerializeField] private float yBounds = 22.4f;
+    [SerializeField] private float yBounds = -22.4f;
     
     [Tooltip("Speed at which the elevator walls move upwards")]
     [SerializeField] private float elevatorSpeed;
 
     [Tooltip("The y position the elevator walls will reset to")]
-    [SerializeField] private float restartPoint = -28f;
+    [SerializeField] private float restartPoint = 28f;
 
     [Space(10)]
 
@@ -39,9 +39,9 @@ public class ElevatorWalls : MonoBehaviour
         {
             if(elevatorWall != null)
             {
-                elevatorWall.transform.position += new Vector3(0, elevatorSpeed * Time.deltaTime, 0);
+                elevatorWall.transform.position -= new Vector3(0, elevatorSpeed * Time.deltaTime, 0);
 
-            if(elevatorWall.transform.position.y >= yBounds)
+            if(elevatorWall.transform.position.y <= yBounds)
             {
                 // Reset positions
                 elevatorWall.transform.position = new Vector3(elevatorWall.transform.position.x, restartPoint, 0f);
@@ -51,9 +51,9 @@ public class ElevatorWalls : MonoBehaviour
 
             if(wallBelow != null)
             {
-                wallBelow.transform.position += new Vector3(0, elevatorSpeed * Time.deltaTime, 0);
+                wallBelow.transform.position -= new Vector3(0, elevatorSpeed * Time.deltaTime, 0);
 
-                if(wallBelow.transform.position.y >= yBounds)
+                if(wallBelow.transform.position.y <= yBounds)
                 {
                     wallBelow.transform.position = new Vector3(wallBelow.transform.position.x, restartPoint, 0f);
                 }
