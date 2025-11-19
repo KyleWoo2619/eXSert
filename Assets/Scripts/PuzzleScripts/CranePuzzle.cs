@@ -94,6 +94,8 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     // When true the crane will respond to input
     private bool puzzleActive = false;
 
+    public bool isCompleted { get; set; }
+
     // Called by whatever system starts this puzzle
     public void StartPuzzle()
     {   
@@ -138,30 +140,37 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
        {
            Debug.LogError("Puzzle Camera not assigned in CranePuzzle.");
        }
+
+       //isCompleted = true;
     }
 
     // Call this when the puzzle is finished or cancelled
     public void EndPuzzle()
     {
 
-        puzzleActive = false;
-
-        // Sets camera priority back to normal
-        if(puzzleCamera != null)
+        if(isCompleted)
         {
-            puzzleCamera.Priority = 9;
+            puzzleActive = false;
+
+            // Sets camera priority back to normal
+            if(puzzleCamera != null)
+            {
+                puzzleCamera.Priority = 9;
+            }
+
+            // Re-enable player input
+            InputReader.inputBusy = false;
+
+            // Restore player's movement component if we disabled it
+            if (disabledPlayerMovement && cachedPlayerMovement != null)
+            {
+                cachedPlayerMovement.enabled = true;
+                cachedPlayerMovement = null;
+                disabledPlayerMovement = false;
+            }
         }
 
-        // Re-enable player input
-        InputReader.inputBusy = false;
-
-        // Restore player's movement component if we disabled it
-        if (disabledPlayerMovement && cachedPlayerMovement != null)
-        {
-            cachedPlayerMovement.enabled = true;
-            cachedPlayerMovement = null;
-            disabledPlayerMovement = false;
-        }
+      
     }
 
     private void Update()
