@@ -8,4 +8,6 @@
 public interface IPuzzleInterface
 {
    public void StartPuzzle();
+
+   public void EndPuzzle();
 }
