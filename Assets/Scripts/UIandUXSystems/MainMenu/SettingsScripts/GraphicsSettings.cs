@@ -7,6 +7,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 public class GraphicsSettings : MonoBehaviour
 {
@@ -19,8 +21,11 @@ public class GraphicsSettings : MonoBehaviour
 
     [Header("Brightness Settings")]
     [SerializeField] private Slider brightnessSlider = null;
-    [SerializeField] private float defaultBrightness = 1f;
+    [SerializeField] private float defaultBrightness = .75f;
+    [SerializeField] internal Volume postProcessVolume;
+    [SerializeField] private Image uiBrightnessOverlay;
     private float brightnessLevel;
+    internal ColorAdjustments colorAdjustments;
     
 
     [Header("Display Mode Settings")]
@@ -66,7 +71,35 @@ public class GraphicsSettings : MonoBehaviour
     public void SetBrightness(float brightness)
     {
         brightnessLevel = brightness;
-        Screen.brightness = brightnessLevel;
+        
+        // Set post-processing brightness
+        colorAdjustments.postExposure.value = (brightness - defaultBrightness) * 2f;
+        
+        // Adjust UI brightness with an overlay
+        if (uiBrightnessOverlay != null)
+        {
+         
+            // When brightness < defaultBrightness, add dark overlay 
+            if (brightness < defaultBrightness)
+            {
+                // Dark overlay: darker values = more alpha
+                float alpha = Mathf.Lerp(0.8f, 0f, brightness / defaultBrightness);
+                uiBrightnessOverlay.color = new Color(0, 0, 0, alpha);
+            }
+            // When brightness > defaultBrightness, add bright overlay
+            else if (brightness > defaultBrightness)
+            {
+                // Bright overlay: brighter values = more alpha
+                float maxBrightness = 3f; //Not settable by player, but allows for proper scaling
+                float alpha = Mathf.Lerp(0f, 0.5f, (brightness - defaultBrightness) / (maxBrightness - defaultBrightness));
+                uiBrightnessOverlay.color = new Color(1, 1, 1, alpha);
+            }
+            else
+            {
+                // When brightness = defaultBrightness, no overlay
+                uiBrightnessOverlay.color = new Color(0, 0, 0, 0);
+            }
+        }
     }
 
     public void SetDisplayMode(int displayMode)
@@ -101,6 +134,7 @@ public class GraphicsSettings : MonoBehaviour
         {
             motionBlurText.text = "On";
             Debug.Log("Motion Blur:" + isMotionBlur);
+            // Add motion blur logic here
         }
         else
         {

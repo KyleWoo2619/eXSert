@@ -1,7 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using UnityEngine.SocialPlatforms;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 public class LoadPrefs : MonoBehaviour
 {
     [Header("Settings")]
@@ -239,6 +240,17 @@ public class LoadPrefs : MonoBehaviour
                 float localBrightness = PlayerPrefs.GetFloat("masterBrightness");
                 if (brightnessTextValue) brightnessTextValue.text = localBrightness.ToString("0.0");
                 if (brightnessSlider) brightnessSlider.value = localBrightness;
+
+                if (graphics.postProcessVolume != null && graphics.postProcessVolume.profile.TryGet(out graphics.colorAdjustments))
+                {
+                    graphics.SetBrightness(localBrightness);
+                }
+ 
+                
+                if (brightnessSlider != null)
+                {
+                    brightnessSlider.value = localBrightness;
+                }
             } 
         }
 
