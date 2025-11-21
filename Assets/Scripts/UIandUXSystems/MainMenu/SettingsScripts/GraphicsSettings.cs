@@ -6,17 +6,27 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.InputSystem;
 
 public class GraphicsSettings : MonoBehaviour
 {
+
+    [Header("Graphics Settings Container Reference")]
+    [SerializeField] private GameObject graphicsSettingsContainer;
+
+    [Space(20)]
+
+
     [Header("Brightness Settings")]
     [SerializeField] private Slider brightnessSlider = null;
     [SerializeField] private float defaultBrightness = 1f;
     private float brightnessLevel;
+    
 
     [Header("Display Mode Settings")]
     [SerializeField] private TMP_Text displayModeText;
     private bool isFullscreen;
+    private int displayModeLevel;
 
     [Header("FPS Mode Settings")]
     [SerializeField] private int frameRate = 60;
@@ -25,6 +35,7 @@ public class GraphicsSettings : MonoBehaviour
 
     [Header("Resolution Mode Settings")]
     [SerializeField] private TMP_Text resolutionText;
+    private bool isResolution1920x1080 = true;
 
     [Header("Camera Shake Settings")]
     [SerializeField] private TMP_Text cameraShakeText;
@@ -33,29 +44,48 @@ public class GraphicsSettings : MonoBehaviour
     [Header("Motion Blur Settings")]
     [SerializeField] private TMP_Text motionBlurText;
     private bool isMotionBlur;
-    
+
+    [Space(20)]
+
+    [SerializeField] private InputActionReference _applyAction;
+
+    void Update()
+    {
+        if (_applyAction.action.WasPerformedThisFrame() && graphicsSettingsContainer.gameObject.activeSelf)
+        {
+            GraphicsApply();
+            Debug.Log("Graphics Settings Applied");
+        }
+        else 
+        {
+            return;
+        }
+    }
 
     //Alls functions below change values based on player choice
     public void SetBrightness(float brightness)
     {
-        Screen.brightness = brightness;
+        brightnessLevel = brightness;
+        Screen.brightness = brightnessLevel;
     }
 
-    public void SetDisplayMode(string displayMode)
+    public void SetDisplayMode(int displayMode)
     {
-        if (displayMode == "fullscreen")
+        displayModeLevel = displayMode;
+
+        if (displayMode == 0) // Fullscreen
         {
             Screen.fullScreenMode = FullScreenMode.FullScreenWindow;
             displayModeText.text = "Fullscreen";
             isFullscreen = true;
         }
-        else if (displayMode == "windowed")
+        else if (displayMode == 1) // Windowed
         {
             Screen.fullScreenMode = FullScreenMode.Windowed;
             displayModeText.text = "Windowed";
             isFullscreen = false;
         }
-        else
+        else if (displayMode == 2) // Borderless
         {
             Screen.SetResolution(Screen.currentResolution.width, Screen.currentResolution.height, FullScreenMode.FullScreenWindow);
             displayModeText.text = "Borderless";
@@ -85,11 +115,13 @@ public class GraphicsSettings : MonoBehaviour
         {
             resolutionText.text = "1920x1080";
             Screen.SetResolution(1920, 1080, isFullscreen);
+            isResolution1920x1080 = true;
         }
         else
         {
             resolutionText.text = "2560x1440";
             Screen.SetResolution(2560, 1440, isFullscreen);
+            isResolution1920x1080 = false;
         }
     }
 
@@ -99,6 +131,7 @@ public class GraphicsSettings : MonoBehaviour
 
         if (cameraShake)
         {
+            //Add camera shake logic here
             cameraShakeText.text = "On";
             Debug.Log("Motion Blur:" + isCameraShake);
         }
@@ -139,6 +172,12 @@ public class GraphicsSettings : MonoBehaviour
         Application.targetFrameRate = fpsLevel;
 
         PlayerPrefs.SetInt("masterMotionBlur", (isMotionBlur ? 1 : 0));
+
+        PlayerPrefs.SetInt("masterFullscreen", displayModeLevel);
+
+        PlayerPrefs.SetInt("masterCameraShake", (isCameraShake ? 1 : 0));
+
+        PlayerPrefs.SetInt("masterResolution", (isResolution1920x1080 ? 0 : 1));
     }
 
     //Resets graphics settings
@@ -148,6 +187,20 @@ public class GraphicsSettings : MonoBehaviour
         brightnessSlider.value = defaultBrightness;
 
         Application.targetFrameRate = 30;
+        fpsText.text = "30";
+        fpsLevel = 30;
+
+        isMotionBlur = true;
+        motionBlurText.text = "On";
+
+        isCameraShake = false;
+        cameraShakeText.text = "Off";
+
+        isResolution1920x1080 = true;
+        resolutionText.text = "1920x1080";
+
+        SetDisplayMode(0); // Fullscreen
+        displayModeText.text = "Fullscreen";  
 
         GraphicsApply();
 
