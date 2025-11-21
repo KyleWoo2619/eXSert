@@ -43,7 +43,7 @@ public class InputReader : Singleton<InputReader>
     public static bool inputBusy = false;
 
     [Header("DeadzoneValues")]
-    [SerializeField] private float leftStickDeadzoneValue;
+    [SerializeField] internal float leftStickDeadzoneValue;
 
     // Gets the input and sets the variable
     public static Vector2 MoveInput { get; private set; }
@@ -67,6 +67,16 @@ public class InputReader : Singleton<InputReader>
         }
         else
             playerInput = _playerInput;
+
+        // Initialize activeControlScheme immediately so other scripts can read it during Awake/Start
+        try
+        {
+            activeControlScheme = playerInput != null ? playerInput.currentControlScheme : string.Empty;
+        }
+        catch
+        {
+            activeControlScheme = string.Empty;
+        }
 
 
         if (_playerControls == null)

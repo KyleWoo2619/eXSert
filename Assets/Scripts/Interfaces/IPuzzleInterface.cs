@@ -5,7 +5,14 @@
     can always call the right function.
 */
 
+using System;
+using Unity.VisualScripting;
+
 public interface IPuzzleInterface
 {
-   public void StartPuzzle();
+   bool isCompleted { get; set; }
+   
+   void StartPuzzle();
+
+   void EndPuzzle();
 }

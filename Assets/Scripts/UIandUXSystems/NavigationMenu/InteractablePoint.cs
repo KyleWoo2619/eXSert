@@ -4,6 +4,7 @@
 
     Written by Brandon Wahl
 */
+using System;
 using UnityEngine;
 using TMPro;
 using UnityEngine.InputSystem;
@@ -18,10 +19,18 @@ public class ShowIfPuzzleAttribute : PropertyAttribute { }
 // Attribute to show field only for Log or Diary type
 public class ShowIfLogOrDiaryAttribute : PropertyAttribute { }
 
+// Attribute to show field only for Item type
+public class ShowIfItemAttribute : PropertyAttribute { }
+
+// Attribute to show field for Log, Diary, or Item types
+public class ShowIfCollectibleAttribute : PropertyAttribute { }    
+
 [RequireComponent(typeof(BoxCollider))]
 public class InteractablePoint : MonoBehaviour
 {
-    public enum InteractType { Log, Diary, Puzzle }
+    [SerializeField] private bool showHitbox = false;
+
+    public enum InteractType { Log, Diary, Puzzle, Item }
 
     [Header("Interactable Entry")]
     [SerializeField] private InteractType interactType;
@@ -40,12 +49,23 @@ public class InteractablePoint : MonoBehaviour
     [ShowIfPuzzle]
     [SerializeField] private GameObject puzzleHandler; // Only shows when InteractType is Puzzle
     private bool playerIsNear = false;
+    
+    [ShowIfCollectible]
     [SerializeField] private string collectibleId;
+    // Mark that this interactable has already been used to prevent re-showing
+    private bool interacted = false;
 
-    private void FixedUpdate()
+    // Detects if the player is using keyboard or gamepad
+    private bool IsUsingKeyboard()
     {
-        OnInteractButtonPressed();
+        var scheme = InputReader.Instance != null ? InputReader.Instance.activeControlScheme ?? string.Empty : string.Empty;
+        return scheme.IndexOf("keyboard", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
 
+    private void Update()
+    {
+        // Use Update (per-frame) for action.triggered checks so Input System callbacks aren't missed
+        OnInteractButtonPressed();
     }
 
     private void Awake()
@@ -71,12 +91,16 @@ public class InteractablePoint : MonoBehaviour
             Debug.LogWarning("No interaction animation assigned to InteractablePoint at " + this.gameObject.name);
         }
         
+        //Standardize collectible ID
+        collectibleId = collectibleId.Trim().ToLowerInvariant();
+
         // Will hide the text on start
         interractableText.gameObject.SetActive(false);
 
 
         interactGamePadIcon.gameObject.SetActive(false);
 
+        Debug.Log(InputReader.Instance.activeControlScheme);
         
     }
 
@@ -126,11 +150,11 @@ public class InteractablePoint : MonoBehaviour
     // If the player is in the trigger and presses the interact button, then the corresponding event is triggered
     private void OnInteractButtonPressed()
     {
-        if (playerIsNear)
+        if (playerIsNear && !interacted)
         {
             if(_interactAction != null && _interactAction.action != null && _interactAction.action.triggered)
             {
-                InternalPlayerInventory.Instance.AddCollectible(collectibleId);
+                Debug.Log($"Interact pressed on {gameObject.name} (id={collectibleId})");
 
                 if (interactType == InteractType.Log)
                 {
@@ -147,16 +171,67 @@ public class InteractablePoint : MonoBehaviour
                 }
                 else if (interactType == InteractType.Puzzle)
                 {
-                    var puzzleHandlerComponent = puzzleHandler.GetComponent<PuzzleHandler>();
-                    puzzleHandlerComponent.ActivatePuzzle();
-                    Debug.Log("Event triggered");
+                    if (puzzleHandler == null)
+                    {
+                        Debug.LogError($"puzzleHandler is NULL on {gameObject.name}. Assign it in the inspector.");
+                    }
+                        else
+                        {
+                            var puzzleHandlerComponent = puzzleHandler.GetComponent<PuzzleHandler>();
+                            if (puzzleHandlerComponent == null)
+                            {
+                                Debug.LogError($"PuzzleHandler component not found on {puzzleHandler.name}.");
+                            }
+                            else
+                            {
+                                if (InternalPlayerInventory.Instance == null)
+                                {
+                                    Debug.LogError("InternalPlayerInventory.Instance is null");
+                                }
+                                else
+                                {
+                                    bool has = InternalPlayerInventory.Instance.collectedInteractables.Contains(puzzleHandlerComponent.puzzleIDNeeded);
+                                    Debug.Log($"Inventory contains required id: {has}");
+                                    if (has)
+                                    {
+                                        try
+                                        {
+                                            puzzleHandlerComponent.ActivatePuzzle();
+                                            Debug.Log("Puzzle triggered");
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Debug.LogError($"Exception while activating puzzle on {puzzleHandler.name}: {ex}");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                }
+                else if (interactType == InteractType.Item)
+                {
+                    Debug.Log($"{collectibleId} found!");
+                    InternalPlayerInventory.Instance.AddCollectible(collectibleId);
                 }
 
-                interractableText.gameObject.SetActive(false); // Once the gameobject is off the text stays, so it is turned off here
-                this.gameObject.SetActive(false); // Makes the interactable point disappear after interaction
+                if(interactType != InteractType.Puzzle) //If it is a puzzle you should be able to interact again later
+                {
+                    interractableText.gameObject.SetActive(false); // Once the gameobject is off the text stays, so it is turned off here
+                     // mark interacted so triggers won't re-show the prompt
+                    interacted = true;
 
-                if(InputReader.Instance.activeControlScheme != "KeyboardMouse"){
-                    interactGamePadIcon.gameObject.SetActive(false); // turns off the gamepad icon
+                    // disable collider immediately so player cannot retrigger while we deactivate
+                    var col = GetComponent<Collider>();
+                    if (col != null) col.enabled = false;
+
+                    // Always hide the gamepad icon after interaction regardless of control scheme
+                    if (interactGamePadIcon != null)
+                        interactGamePadIcon.gameObject.SetActive(false);
+
+                    // Attempt to deactivate the whole gameobject. If something else re-enables it later,
+                    // the interacted bool prevents it from showing again.
+                    Debug.Log($"Disabling interactable {gameObject.name}");
+                    this.gameObject.SetActive(false); // Makes the interactable point disappear after interaction
                 }
             }
         }
@@ -168,15 +243,20 @@ public class InteractablePoint : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
+            if (interacted) return; // already used
             playerIsNear = true;
             interractableText.gameObject.SetActive(true);
             //Shows different text based on control scheme
-            if(InputReader.Instance.activeControlScheme == "KeyboardMouse"){
+            if(IsUsingKeyboard()){
                 interractableText.text = $"Press {(_interactAction.action.controls[0].name).ToUpperInvariant()} to interact";
+                if (interactGamePadIcon != null)
+                    interactGamePadIcon.gameObject.SetActive(false);
             }
             else
             {
                 string gamePadButtonName = _interactAction.action.controls[0].name;
+                if (interactGamePadIcon != null)
+                    interactGamePadIcon.gameObject.SetActive(true);
                 foreach (var iconEntry in SettingsManager.Instance.gamePadIcons)
                 {
                     if (iconEntry.Key == gamePadButtonName)
@@ -185,7 +265,6 @@ public class InteractablePoint : MonoBehaviour
                         break;
                     }
                 }
-                interactGamePadIcon.gameObject.SetActive(true);
                 interractableText.text = $"Press \n\n to interact";
             }
         }
@@ -198,9 +277,19 @@ public class InteractablePoint : MonoBehaviour
             playerIsNear = false;
             interractableText.gameObject.SetActive(false);
 
-            if(InputReader.Instance.activeControlScheme != "KeyboardMouse"){
-                    interactGamePadIcon.gameObject.SetActive(false); // turns off the gamepad icon
-                }   
+            if (interactGamePadIcon != null)
+            {
+                interactGamePadIcon.gameObject.SetActive(false); // turns off the gamepad icon
+            }
+        }
+    }
+
+    private void OnDrawGizmos()
+    {
+        if(showHitbox)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireCube(transform.position, GetComponent<BoxCollider>().size);
         }
     }
 }
@@ -239,6 +328,37 @@ public class ShowIfPuzzleDrawer : PropertyDrawer
     }
 }
 
+[CustomPropertyDrawer(typeof(ShowIfItemAttribute))]
+public class ShowIfItemDrawer : PropertyDrawer
+{
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+    {
+        var parent = property.serializedObject.targetObject as InteractablePoint;
+        if (parent != null)
+        {
+            var interactTypeField = property.serializedObject.FindProperty("interactType");
+            if (interactTypeField != null && interactTypeField.enumValueIndex == 3) // 3 = Item
+            {
+                EditorGUI.PropertyField(position, property, label);
+            }
+        }
+    }
+
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+    {
+        var parent = property.serializedObject.targetObject as InteractablePoint;
+        if (parent != null)
+        {
+            var interactTypeField = property.serializedObject.FindProperty("interactType");
+            if (interactTypeField != null && interactTypeField.enumValueIndex == 3) // 3 = Item
+            {
+                return EditorGUI.GetPropertyHeight(property);
+            }
+        }
+        return 0;
+    }
+}
+
 [CustomPropertyDrawer(typeof(ShowIfLogOrDiaryAttribute))]
 public class ShowIfLogOrDiaryDrawer : PropertyDrawer
 {
@@ -262,6 +382,39 @@ public class ShowIfLogOrDiaryDrawer : PropertyDrawer
         {
             var interactTypeField = property.serializedObject.FindProperty("interactType");
             if (interactTypeField != null && (interactTypeField.enumValueIndex == 0 || interactTypeField.enumValueIndex == 1)) // 0 = Log, 1 = Diary
+            {
+                return EditorGUI.GetPropertyHeight(property);
+            }
+        }
+        return 0;
+    }
+}
+
+[CustomPropertyDrawer(typeof(ShowIfCollectibleAttribute))]
+public class ShowIfCollectibleDrawer : PropertyDrawer
+{
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+    {
+        var parent = property.serializedObject.targetObject as InteractablePoint;
+        if (parent != null)
+        {
+            var interactTypeField = property.serializedObject.FindProperty("interactType");
+            // Show for Log (0), Diary (1), or Item (3)
+            if (interactTypeField != null && (interactTypeField.enumValueIndex == 0 || interactTypeField.enumValueIndex == 1 || interactTypeField.enumValueIndex == 3))
+            {
+                EditorGUI.PropertyField(position, property, label);
+            }
+        }
+    }
+
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+    {
+        var parent = property.serializedObject.targetObject as InteractablePoint;
+        if (parent != null)
+        {
+            var interactTypeField = property.serializedObject.FindProperty("interactType");
+            // Show for Log (0), Diary (1), or Item (3)
+            if (interactTypeField != null && (interactTypeField.enumValueIndex == 0 || interactTypeField.enumValueIndex == 1 || interactTypeField.enumValueIndex == 3))
             {
                 return EditorGUI.GetPropertyHeight(property);
             }
