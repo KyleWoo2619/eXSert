@@ -143,11 +143,11 @@ namespace Utilities.Combat.Attacks
 
         [SerializeField, Tooltip("How much time after the attack starts before the attack damage is applied, " +
             "also prevents another attack or action to be started before this finished " +
-            "This usually would incorporate how long the attack animation is")]
+            "This usually would incorporate how long the attack animation is before the \"punch\" hits")]
         private float _startLag = 0.2f;
         public float startLag { get => _startLag; }
 
-        [SerializeField, Tooltip("How much time after the damage is applied before the next input can be registered")]
+        [SerializeField, Tooltip("How much time after the damage is applied before the attack is complete.")]
         private float _endLag = 0.2f;
         public float endLag { get => _endLag; }
 

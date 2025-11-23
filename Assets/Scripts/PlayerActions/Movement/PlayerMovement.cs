@@ -13,6 +13,8 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+using Utilities.Combat;
+
 public class PlayerMovement : MonoBehaviour
 {
     private static CharacterController characterController;

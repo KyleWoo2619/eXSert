@@ -19,9 +19,10 @@ Handles player movement and saves/loads player position
 */
 
 using System.Collections;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
+
+using Utilities.Combat;
 using Utilities.Combat.Attacks;
 
 public class EnhancedPlayerMovement : MonoBehaviour

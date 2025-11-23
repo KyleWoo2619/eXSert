@@ -12,6 +12,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+using Utilities.Combat;
 using Utilities.Combat.Attacks;
 
 public class EnhancedPlayerAttackManager : MonoBehaviour
@@ -59,20 +60,6 @@ public class EnhancedPlayerAttackManager : MonoBehaviour
     // action event for other systems to subscribe to when an attack is executed. Includes the attack that was executed.
     public static event Action<PlayerAttack> OnAttack;
 
-    private void Awake()
-    {
-        ValidateReferences();
-    }
-
-    private void Start()
-    {
-        if (_lightAttackAction.action == null)
-            Debug.LogError("Light Attack Action is NULL! Assign the Light Attack Action.");
-
-        if (_heavyAttackAction.action == null)
-            Debug.LogError("Heavy Attack Action is NULL! Assign the Heavy Attack Action.");
-    }
-
     private void Update()
     {
         // Check for attack inputs with buffering support
@@ -97,60 +84,6 @@ public class EnhancedPlayerAttackManager : MonoBehaviour
         currentStance = CombatManager.singleTargetMode 
             ? TierComboManager.AttackStance.Single 
             : TierComboManager.AttackStance.AOE;
-    }
-
-    public void ValidateReferences()
-    {
-        // Auto-find references if not assigned
-        if (comboManager == null)
-        {
-            comboManager = GetComponent<TierComboManager>();
-            if (comboManager == null)
-                comboManager = GetComponentInChildren<TierComboManager>();
-        }
-
-        if (aerialComboManager == null)
-        {
-            aerialComboManager = GetComponent<AerialComboManager>();
-            if (aerialComboManager == null)
-                aerialComboManager = GetComponentInChildren<AerialComboManager>();
-        }
-
-        if (animFacade == null)
-        {
-            animFacade = GetComponent<AnimFacade>();
-            if (animFacade == null)
-            {
-                animFacade = GetComponentInParent<AnimFacade>();
-                if (animFacade == null)
-                    animFacade = GetComponentInChildren<AnimFacade>();
-            }
-        }
-
-        if (characterController == null)
-            characterController = GetComponent<CharacterController>();
-        if (animator == null)
-        {
-            animator = GetComponent<Animator>();
-            if (animator == null && animFacade != null)
-                animator = animFacade.GetComponent<Animator>();
-            if (animator == null)
-                animator = GetComponentInChildren<Animator>();
-        }
-
-        if (comboManager == null)
-            Debug.LogError("EnhancedPlayerAttackManager: TierComboManager not found! Assign manually in Inspector.");
-
-        if (aerialComboManager == null)
-            Debug.LogError("EnhancedPlayerAttackManager: AerialComboManager not found! Assign manually in Inspector.");
-
-        if (animFacade == null)
-            Debug.LogError("EnhancedPlayerAttackManager: AnimFacade not found! Assign manually in Inspector.");
-
-        if (characterController == null)
-            Debug.LogError("EnhancedPlayerAttackManager: CharacterController not found!");
-        if (animator == null)
-            Debug.LogError("EnhancedPlayerAttackManager: Animator not found! Assign manually in Inspector.");
     }
 
     private void HandleLightInput()

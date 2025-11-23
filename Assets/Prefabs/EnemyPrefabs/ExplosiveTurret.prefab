@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 1396623275049561943}
   m_Layer: 0
   m_Name: ExplosiveTurret
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -157,7 +157,12 @@ MonoBehaviour:
   firePoint: {fileID: 2262844699853818991}
   rotateYawOnly: 1
   aimYOffset: 0.5
+  muzzleForwardOffset: 0.1
   projectilePoolSize: 16
+  enterBuffer: 0
+  exitBuffer: 0.5
+  enterSustain: 0.15
+  exitSustain: 0.25
   explosiveFireCooldown: 2.5
   explosiveProjectilePrefab: {fileID: 12072098264220021, guid: 7b4aa8d82cd3ff542b0cc9e56ce38bf4, type: 3}
   explosiveProjectileSpeed: 18

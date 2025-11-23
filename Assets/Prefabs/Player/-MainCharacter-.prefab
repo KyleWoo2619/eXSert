@@ -272,9 +272,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InputReader
   _playerControls: {fileID: -944628639613478452, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
-  _playerInput: {fileID: 6857259650679578637}
-  ableToGuard: 0
-  leftStickDeadzoneValue: 0
 --- !u!136 &445797957380096698
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1646,6 +1643,7 @@ GameObject:
   - component: {fileID: 9005950028633721683}
   - component: {fileID: 3918307614257722462}
   - component: {fileID: 8984555077238467240}
+  - component: {fileID: 5365648545412633292}
   m_Layer: 6
   m_Name: Combat Scripts
   m_TagString: Untagged
@@ -1768,6 +1766,18 @@ MonoBehaviour:
   _guardActionReference: {fileID: -4486452803221664991, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
   animFacade: {fileID: 3357620752726882877}
   useCameraManager: 1
+--- !u!114 &5365648545412633292
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4110720578632064250}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b19dc608cef71d4da470f1474716616, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttackLockSystem
 --- !u!1 &4765254742029716377
 GameObject:
   m_ObjectHideFlags: 0
@@ -1908,7 +1918,7 @@ Transform:
   m_GameObject: {fileID: 5394842071070745128}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0006448617, y: 0.9975245, z: -0.069708794, w: 0.009227895}
-  m_LocalPosition: {x: -4.6957397, y: 1.8310001, z: -0.33786154}
+  m_LocalPosition: {x: -0.0071308613, y: 1.9080002, z: 3.6674573}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
