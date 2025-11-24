@@ -21,7 +21,13 @@ public class BossRoombaController : MonoBehaviour
     private NavMeshAgent agent;
     private Transform player;
     private Animator animator;
-    public GameObject alarm; // visual alarm object
+    public GameObject alarm;
+
+    [Header("Alarm Settings")]
+    [Tooltip("Time in seconds before alarm activates automatically (if player doesn't mount first)")]
+    public float AlarmAutoActivateTime = 15f;
+    private bool alarmActivated;
+    private float alarmTimer;
 
     [Header("Spawn Pockets")]
     [Tooltip("Pockets for drone spawns (flying)")]
@@ -34,11 +40,14 @@ public class BossRoombaController : MonoBehaviour
 
     public GameObject dronePrefab;
     public GameObject crawlerPrefab;
-    public int dronesPerSpawn =4;
-    public int crawlersPerSpawn =2;
-    public float suctionRadius =5f;
-    public float suctionStrength =10f;
-    public float dashSpeedMultiplier =3f;
+    [Tooltip("Maximum number of each enemy type that can exist at once")]
+    public int maxDrones = 4;
+    public int maxCrawlers = 2;
+    public int dronesPerSpawn = 4;
+    public int crawlersPerSpawn = 2;
+    public float suctionRadius = 5f;
+    public float suctionStrength = 10f;
+    public float dashSpeedMultiplier = 3f;
 
     [Header("Locomotion")]
     [Tooltip("Minimum stopping distance to avoid overlapping the player.")]
@@ -58,14 +67,17 @@ public class BossRoombaController : MonoBehaviour
     [Tooltip("Time range (seconds) before repicking a new wander target.")]
     public Vector2 TopWanderRepathTimeRange = new Vector2(0.7f, 1.4f);
 
-    // simple local pools (fallback if ScenePoolManager not present)
+    // Object pools
+    private readonly Dictionary<Transform, GameObject> activeDrones = new Dictionary<Transform, GameObject>();
+    private readonly Dictionary<Transform, GameObject> activeCrawlers = new Dictionary<Transform, GameObject>();
     private readonly Queue<GameObject> dronePool = new Queue<GameObject>();
     private readonly Queue<GameObject> crawlerPool = new Queue<GameObject>();
-    public int initialPoolSize =8;
+    public int initialPoolSize = 8;
 
     private Coroutine followRoutine;
     private Coroutine animParamsRoutine;
     private Coroutine topWanderRoutine;
+    private Coroutine spawnManagementRoutine;
     private float lastFollowCadence = 0.1f;
 
     // Saved agent settings for top-wander
@@ -86,11 +98,22 @@ public class BossRoombaController : MonoBehaviour
 
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponentInChildren<Animator>();
-        // prewarm pools
-        for (int i =0; i < initialPoolSize; i++)
+        
+        // Prewarm pools
+        for (int i = 0; i < initialPoolSize; i++)
         {
-            if (dronePrefab != null) { var g = Instantiate(dronePrefab); g.SetActive(false); dronePool.Enqueue(g); }
-            if (crawlerPrefab != null) { var c = Instantiate(crawlerPrefab); c.SetActive(false); crawlerPool.Enqueue(c); }
+            if (dronePrefab != null)
+            {
+                var g = Instantiate(dronePrefab);
+                g.SetActive(false);
+                dronePool.Enqueue(g);
+            }
+            if (crawlerPrefab != null)
+            {
+                var c = Instantiate(crawlerPrefab);
+                c.SetActive(false);
+                crawlerPool.Enqueue(c);
+            }
         }
     }
 
@@ -98,11 +121,15 @@ public class BossRoombaController : MonoBehaviour
     {
         if (animParamsRoutine != null) StopCoroutine(animParamsRoutine);
         animParamsRoutine = StartCoroutine(AnimParamsLoop(0.05f));
+        
+        alarmTimer = 0f;
+        alarmActivated = false;
     }
 
     void OnDisable()
     {
         if (animParamsRoutine != null) { StopCoroutine(animParamsRoutine); animParamsRoutine = null; }
+        if (spawnManagementRoutine != null) { StopCoroutine(spawnManagementRoutine); spawnManagementRoutine = null; }
         StopTopWander();
         StopFollowing();
     }
@@ -110,7 +137,7 @@ public class BossRoombaController : MonoBehaviour
     private IEnumerator AnimParamsLoop(float cadence)
     {
         var wait = new WaitForSeconds(Mathf.Max(0.02f, cadence));
-        if (animator == null) yield break; // single null check at start
+        if (animator == null) yield break;
         while (true)
         {
             float spd = (agent != null && agent.enabled) ? agent.velocity.magnitude : 0f;
@@ -124,10 +151,23 @@ public class BossRoombaController : MonoBehaviour
     {
         ApplyProfile();
         player = GameObject.FindWithTag("Player")?.transform;
-        // optionally register boss as a high-importance crowd agent if desired
+        
         var ca = new EnemyBehavior.Crowd.CrowdAgent() { Agent = agent, Profile = profile };
         if (EnemyBehavior.Crowd.CrowdController.Instance != null)
             EnemyBehavior.Crowd.CrowdController.Instance.Register(ca);
+    }
+
+    void Update()
+    {
+        // Handle alarm timing
+        if (!alarmActivated && alarm != null)
+        {
+            alarmTimer += Time.deltaTime;
+            if (alarmTimer >= AlarmAutoActivateTime)
+            {
+                ActivateAlarm();
+            }
+        }
     }
 
     void ApplyProfile()
@@ -141,7 +181,6 @@ public class BossRoombaController : MonoBehaviour
         agent.autoBraking = false;
     }
 
-    // Event-driven follow (avoids Update)
     public void StartFollowingPlayer(float cadenceSeconds)
     {
         lastFollowCadence = Mathf.Max(0.02f, cadenceSeconds);
@@ -200,13 +239,17 @@ public class BossRoombaController : MonoBehaviour
         }
     }
 
-    // Top-wander movement while player is on top
     public void StartTopWander()
     {
         if (topWanderActive) return;
         topWanderActive = true;
 
-        // Save and apply wander settings
+        // Trigger alarm on player mount (if not already activated)
+        if (!alarmActivated)
+        {
+            ActivateAlarm();
+        }
+
         savedSpeed = agent.speed;
         savedAutoBraking = agent.autoBraking;
         savedStoppingDistance = agent.stoppingDistance;
@@ -231,12 +274,10 @@ public class BossRoombaController : MonoBehaviour
             topWanderRoutine = null;
         }
 
-        // Restore saved movement settings
         agent.speed = savedSpeed;
         agent.autoBraking = savedAutoBraking;
         agent.stoppingDistance = savedStoppingDistance;
 
-        // Resume following after wander ends
         StartFollowingPlayer(lastFollowCadence);
     }
 
@@ -264,18 +305,116 @@ public class BossRoombaController : MonoBehaviour
         }
     }
 
-    // Alarm visual only (no spawning)
     public void ActivateAlarm()
     {
+        if (alarmActivated) return;
+        
+        alarmActivated = true;
         if (alarm != null) alarm.SetActive(true);
+        
+        Debug.Log("Alarm ACTIVATED - Starting spawn management");
+        
+        // Start spawn management routine
+        if (spawnManagementRoutine != null) StopCoroutine(spawnManagementRoutine);
+        spawnManagementRoutine = StartCoroutine(ManageSpawnsRoutine());
     }
 
     public void DeactivateAlarm()
     {
+        alarmActivated = false;
         if (alarm != null) alarm.SetActive(false);
+        
+        Debug.Log("Alarm DEACTIVATED - Stopping spawn management");
+        
+        if (spawnManagementRoutine != null)
+        {
+            StopCoroutine(spawnManagementRoutine);
+            spawnManagementRoutine = null;
+        }
     }
 
-    // Spawn a total count distributed across available spawn points
+    private IEnumerator ManageSpawnsRoutine()
+    {
+        var wait = new WaitForSeconds(2f);
+        
+        while (alarmActivated)
+        {
+            RespawnDeadEnemies(activeDrones, droneSpawnPoints, dronePrefab, maxDrones, dronePool);
+            RespawnDeadEnemies(activeCrawlers, crawlerSpawnPoints, crawlerPrefab, maxCrawlers, crawlerPool);
+            
+            yield return wait;
+        }
+    }
+
+    private void RespawnDeadEnemies(Dictionary<Transform, GameObject> activeEnemies, Transform[] spawnPoints, 
+        GameObject prefab, int maxCount, Queue<GameObject> pool)
+    {
+        if (prefab == null || spawnPoints == null || spawnPoints.Length == 0) return;
+
+        var deadSpawnPoints = new List<Transform>();
+        foreach (var kvp in activeEnemies)
+        {
+            if (kvp.Value == null || !kvp.Value.activeInHierarchy)
+            {
+                deadSpawnPoints.Add(kvp.Key);
+            }
+        }
+
+        foreach (var sp in deadSpawnPoints)
+        {
+            activeEnemies.Remove(sp);
+        }
+
+        int currentCount = activeEnemies.Count;
+        int toSpawn = Mathf.Min(maxCount - currentCount, spawnPoints.Length);
+
+        for (int i = 0; i < toSpawn; i++)
+        {
+            Transform spawnPoint = null;
+            foreach (var sp in spawnPoints)
+            {
+                if (!activeEnemies.ContainsKey(sp))
+                {
+                    spawnPoint = sp;
+                    break;
+                }
+            }
+
+            if (spawnPoint != null)
+            {
+                var enemy = SpawnEnemy(prefab, spawnPoint.position, pool);
+                if (enemy != null)
+                {
+                    activeEnemies[spawnPoint] = enemy;
+                }
+            }
+        }
+    }
+
+    private GameObject SpawnEnemy(GameObject prefab, Vector3 position, Queue<GameObject> pool)
+    {
+        GameObject enemy = null;
+
+        while (pool.Count > 0)
+        {
+            enemy = pool.Dequeue();
+            if (enemy != null) break;
+        }
+
+        if (enemy == null)
+        {
+            enemy = Instantiate(prefab);
+        }
+
+        enemy.transform.position = position;
+        enemy.transform.rotation = Quaternion.identity;
+        enemy.SetActive(true);
+
+        RegisterSpawned(enemy);
+
+        return enemy;
+    }
+
     public void TriggerSpawnWave(int totalDrones, int totalCrawlers)
     {
         StartCoroutine(SpawnAddsCoroutine(totalDrones, totalCrawlers));
@@ -286,61 +425,31 @@ public class BossRoombaController : MonoBehaviour
         var drones = (droneSpawnPoints != null && droneSpawnPoints.Length > 0) ? droneSpawnPoints : pocketSpawnPoints;
         var crawlers = (crawlerSpawnPoints != null && crawlerSpawnPoints.Length > 0) ? crawlerSpawnPoints : pocketSpawnPoints;
 
-        // Drones: distribute across points
         if (dronePrefab != null && drones != null && drones.Length > 0 && totalDrones > 0)
         {
             for (int i = 0; i < totalDrones; i++)
             {
                 var p = drones[i % drones.Length];
                 if (p == null) continue;
-                var g = Spawn(dronePrefab, p.position);
-                if (g != null) { g.SetActive(true); RegisterSpawned(g); }
+                var g = SpawnEnemy(dronePrefab, p.position, dronePool);
                 yield return null;
             }
         }
 
-        // Crawlers: distribute across points
         if (crawlerPrefab != null && crawlers != null && crawlers.Length > 0 && totalCrawlers > 0)
         {
             for (int j = 0; j < totalCrawlers; j++)
             {
                 var p = crawlers[j % crawlers.Length];
                 if (p == null) continue;
-                var c = Spawn(crawlerPrefab, p.position);
-                if (c != null) { c.SetActive(true); RegisterSpawned(c); }
+                var c = SpawnEnemy(crawlerPrefab, p.position, crawlerPool);
                 yield return null;
             }
         }
     }
 
-    private GameObject Spawn(GameObject prefab, Vector3 pos)
-    {
-        if (prefab == null) return null;
-        // Prefer scene pool manager if available
-        var spm = EnemyBehavior.Crowd.ScenePoolManager.Instance;
-        if (spm != null)
-            return spm.Spawn(prefab, pos, Quaternion.identity);
-
-        // Fallback local pools
-        if (prefab == dronePrefab && dronePool.Count >0)
-        {
-            var g = dronePool.Dequeue();
-            g.transform.position = pos;
-            return g;
-        }
-        if (prefab == crawlerPrefab && crawlerPool.Count >0)
-        {
-            var c = crawlerPool.Dequeue();
-            c.transform.position = pos;
-            return c;
-        }
-        var newG = Instantiate(prefab, pos, Quaternion.identity);
-        return newG;
-    }
-
     private void RegisterSpawned(GameObject g)
     {
-        // try to register with crowd controller
         var agentComp = g.GetComponent<NavMeshAgent>();
         if (agentComp != null && EnemyBehavior.Crowd.CrowdController.Instance != null)
         {
@@ -349,7 +458,6 @@ public class BossRoombaController : MonoBehaviour
         }
     }
 
-    // Suction: pull player and adds toward boss center
     public void BeginSuction(float duration)
     {
         StartCoroutine(SuctionCoroutine(duration));
@@ -357,11 +465,11 @@ public class BossRoombaController : MonoBehaviour
 
     private IEnumerator SuctionCoroutine(float duration)
     {
-        float t =0f;
+        float t = 0f;
         while (t < duration)
         {
             t += Time.deltaTime;
-            // affect player
+            
             if (player != null)
             {
                 var dir = (transform.position - player.position);
@@ -369,18 +477,15 @@ public class BossRoombaController : MonoBehaviour
                 if (d < suctionRadius)
                 {
                     var force = dir.normalized * (suctionStrength / Mathf.Max(1f, d));
-                    // pseudocode: apply to player controller
                 }
             }
 
-            // destroy or pull in drones/crawlers
             var coll = Physics.OverlapSphere(transform.position, suctionRadius);
             foreach (var c in coll)
             {
                 if (c == null) continue;
                 if (c.gameObject.CompareTag("Enemy"))
                 {
-                    // pull toward center (if has rigidbody), or disable
                     var rb = c.attachedRigidbody;
                     if (rb != null)
                         rb.AddForce((transform.position - c.transform.position).normalized * suctionStrength * Time.deltaTime, ForceMode.VelocityChange);
@@ -389,14 +494,5 @@ public class BossRoombaController : MonoBehaviour
 
             yield return null;
         }
-    }
-
-    // Slam logic could go here
-
-    // Parry callback pseudocode
-    private void OnParriedCallback(GameObject player)
-    {
-        StopAllCoroutines();
-        // enter stagger state
     }
 }
