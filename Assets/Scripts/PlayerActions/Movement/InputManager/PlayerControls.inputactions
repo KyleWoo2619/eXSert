@@ -113,6 +113,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "EscapePuzzle",
+                    "type": "Button",
+                    "id": "83079eeb-c0e3-4074-a954-bfa174fec163",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -476,6 +485,28 @@
                     "processors": "",
                     "groups": "",
                     "action": "ApplySettings",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "0f5a4364-d6e2-4271-8d29-cf9f9adb46d6",
+                    "path": "<Keyboard>/z",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "EscapePuzzle",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "d5b7c1c9-bb3b-42af-944d-70ac967260a8",
+                    "path": "<Gamepad>/buttonSouth",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "EscapePuzzle",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

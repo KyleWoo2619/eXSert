@@ -39,6 +39,7 @@ public class InputReader : Singleton<InputReader>
     private InputAction dashAction;
     private InputAction navigationMenuAction;
     private InputAction interactAction;
+    private InputAction escapePuzzleAction;
 
     public static bool inputBusy = false;
 
@@ -117,6 +118,7 @@ public class InputReader : Singleton<InputReader>
             heavyAttackAction = playerInput.actions["HeavyAttack"];
             dashAction = playerInput.actions["Dash"];
             interactAction = playerInput.actions["Interact"];
+            escapePuzzleAction = playerInput.actions["EscapePuzzle"];
             
             // Try to get NavigationMenu, but don't fail if it doesn't exist
             try
@@ -170,6 +172,7 @@ public class InputReader : Singleton<InputReader>
         if (dashAction != null) dashAction.Enable();
         if (navigationMenuAction != null) navigationMenuAction.Enable();
         if (interactAction != null) interactAction.Enable();
+        if (escapePuzzleAction != null) escapePuzzleAction.Enable();
     }
 
     private void OnDisable()
@@ -184,6 +187,7 @@ public class InputReader : Singleton<InputReader>
         if (dashAction != null) dashAction.Disable();
         if (navigationMenuAction != null) navigationMenuAction.Disable();
         if (interactAction != null) interactAction.Disable();
+        if (escapePuzzleAction != null) escapePuzzleAction.Disable();
     }
 
     /// <summary>
@@ -211,6 +215,7 @@ public class InputReader : Singleton<InputReader>
         if (dashAction != null) dashAction.Disable();
         if (navigationMenuAction != null) navigationMenuAction.Disable();
         if (interactAction != null) interactAction.Disable();
+        if (escapePuzzleAction != null) escapePuzzleAction.Disable();
 
         _playerInput = newPlayerInput;
         playerInput = newPlayerInput;
@@ -236,6 +241,7 @@ public class InputReader : Singleton<InputReader>
             heavyAttackAction = playerInput.actions["HeavyAttack"];
             dashAction = playerInput.actions["Dash"];
             interactAction = playerInput.actions["Interact"];
+            escapePuzzleAction = playerInput.actions["EscapePuzzle"];
 
             try { navigationMenuAction = playerInput.actions["NavigationMenu"]; }
             catch { navigationMenuAction = null; }
@@ -258,6 +264,7 @@ public class InputReader : Singleton<InputReader>
             if (dashAction != null) dashAction.Enable();
             if (navigationMenuAction != null) navigationMenuAction.Enable();
             if (interactAction != null) interactAction.Enable();
+            if (escapePuzzleAction != null) escapePuzzleAction.Enable();
         }
 
         Debug.Log("[InputReader] Rebound to new PlayerInput and actions re-enabled.");

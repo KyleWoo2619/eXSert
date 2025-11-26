@@ -201,6 +201,15 @@ namespace eXsert
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""EscapePuzzle"",
+                    ""type"": ""Button"",
+                    ""id"": ""83079eeb-c0e3-4074-a954-bfa174fec163"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -564,6 +573,28 @@ namespace eXsert
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""ApplySettings"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""0f5a4364-d6e2-4271-8d29-cf9f9adb46d6"",
+                    ""path"": ""<Keyboard>/z"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""EscapePuzzle"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""d5b7c1c9-bb3b-42af-944d-70ac967260a8"",
+                    ""path"": ""<Gamepad>/buttonSouth"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""EscapePuzzle"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -974,6 +1005,7 @@ namespace eXsert
             m_Gameplay_NavigationMenu = m_Gameplay.FindAction("NavigationMenu", throwIfNotFound: true);
             m_Gameplay_Interact = m_Gameplay.FindAction("Interact", throwIfNotFound: true);
             m_Gameplay_ApplySettings = m_Gameplay.FindAction("ApplySettings", throwIfNotFound: true);
+            m_Gameplay_EscapePuzzle = m_Gameplay.FindAction("EscapePuzzle", throwIfNotFound: true);
             // UI
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
             m_UI_Navigation = m_UI.FindAction("Navigation", throwIfNotFound: true);
@@ -1079,6 +1111,7 @@ namespace eXsert
         private readonly InputAction m_Gameplay_NavigationMenu;
         private readonly InputAction m_Gameplay_Interact;
         private readonly InputAction m_Gameplay_ApplySettings;
+        private readonly InputAction m_Gameplay_EscapePuzzle;
         /// <summary>
         /// Provides access to input actions defined in input action map "Gameplay".
         /// </summary>
@@ -1138,6 +1171,10 @@ namespace eXsert
             /// Provides access to the underlying input action "Gameplay/ApplySettings".
             /// </summary>
             public InputAction @ApplySettings => m_Wrapper.m_Gameplay_ApplySettings;
+            /// <summary>
+            /// Provides access to the underlying input action "Gameplay/EscapePuzzle".
+            /// </summary>
+            public InputAction @EscapePuzzle => m_Wrapper.m_Gameplay_EscapePuzzle;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
@@ -1200,6 +1237,9 @@ namespace eXsert
                 @ApplySettings.started += instance.OnApplySettings;
                 @ApplySettings.performed += instance.OnApplySettings;
                 @ApplySettings.canceled += instance.OnApplySettings;
+                @EscapePuzzle.started += instance.OnEscapePuzzle;
+                @EscapePuzzle.performed += instance.OnEscapePuzzle;
+                @EscapePuzzle.canceled += instance.OnEscapePuzzle;
             }
 
             /// <summary>
@@ -1247,6 +1287,9 @@ namespace eXsert
                 @ApplySettings.started -= instance.OnApplySettings;
                 @ApplySettings.performed -= instance.OnApplySettings;
                 @ApplySettings.canceled -= instance.OnApplySettings;
+                @EscapePuzzle.started -= instance.OnEscapePuzzle;
+                @EscapePuzzle.performed -= instance.OnEscapePuzzle;
+                @EscapePuzzle.canceled -= instance.OnEscapePuzzle;
             }
 
             /// <summary>
@@ -1644,6 +1687,13 @@ namespace eXsert
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnApplySettings(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "EscapePuzzle" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnEscapePuzzle(InputAction.CallbackContext context);
         }
         /// <summary>
         /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.

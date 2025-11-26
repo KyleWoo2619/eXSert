@@ -12,7 +12,9 @@
 using Unity.Cinemachine;
 using UnityEngine;
 using System.Collections.Generic;
-using Microsoft.Unity.VisualStudio.Editor;
+using TMPro;
+using UnityEngine.InputSystem;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -69,6 +71,8 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     private EnhancedPlayerMovement cachedPlayerMovement;
     private bool disabledPlayerMovement = false;
 
+    [SerializeField] private InputActionReference _escapePuzzleAction;
+
     // Cinemachine camera for the puzzle
     [SerializeField] CinemachineCamera puzzleCamera;
 
@@ -93,8 +97,10 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     [Header("Crane Settings")]
     [SerializeField] private float craneMoveSpeed = 2f;
 
-    [SerializeField] private GameObject[] craneUI;
+    [SerializeField] private GameObject[] craneUI; // UI elements to show/hide during puzzle
 
+    [Tooltip("Invert horizontal input (A/D) so A acts as right and D as left when enabled")][SerializeField]
+    private bool invertHorizontal = false;
     // When true the crane will respond to input
     private bool puzzleActive = false;
 
@@ -116,8 +122,9 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
         {
             craneUI[1].SetActive(true);
         } 
-        else 
+        else if (InputReader.Instance.activeControlScheme == "Keyboard&Mouse")
         {
+            Debug.Log("Keyboard Crane UI Activated");
             craneUI[0].SetActive(true);
         }
 
@@ -169,9 +176,6 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     // Call this when the puzzle is finished or cancelled
     public void EndPuzzle()
     {
-
-        if(isCompleted)
-        {
             foreach (GameObject img in craneUI)
             {
                 img.SetActive(false);
@@ -195,9 +199,6 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
                 cachedPlayerMovement = null;
                 disabledPlayerMovement = false;
             }
-        }
-
-      
     }
 
     private void Update()
@@ -210,6 +211,12 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
 
         // Ignore small input within deadzone
         if (move.sqrMagnitude < InputReader.Instance.leftStickDeadzoneValue * InputReader.Instance.leftStickDeadzoneValue) return;
+
+        // Optionally invert only horizontal input (A/D)
+        if (invertHorizontal)
+        {
+            move.x = -move.x;
+        }
 
         // Move all crane parts simultaneously based on their enabled axes
         foreach (CranePart part in craneParts)
@@ -255,6 +262,11 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
             {
                 part.partObject.transform.position = newPos;
             }
+        }
+
+        if(isCompleted || _escapePuzzleAction != null && _escapePuzzleAction.action != null && _escapePuzzleAction.action.triggered)
+        {
+            EndPuzzle();
         }
     }
 
