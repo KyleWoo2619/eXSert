@@ -18,129 +18,176 @@ using Singletons;
 
 public class InputReader : Singleton<InputReader>
 {
-    [SerializeField]
-    private InputActionAsset _playerControls;
-    public static InputActionAsset playerControls { get; private set; }
+    [SerializeField] private InputActionAsset _playerControls;
+    [SerializeField] internal PlayerInput _playerInput;
 
-    private static PlayerInput _playerInput;
+    [SerializeField] internal string activeControlScheme;
 
-    // Static property to access PlayerInput instance
-    public static PlayerInput playerInput
-    {
-        get
-        {
-            // Lazy load PlayerInput if not already assigned
-            if (_playerInput == null && awakeComplete == true)
-            {
-                Debug.LogError("InputReader: PlayerInput not assigned, returning null value");
-            }
-
-            return _playerInput;
-        } 
-
-        private set
-        {
-            _playerInput = value;
-        }
-    }
+    private static InputActionAsset playerControls;
+    public static PlayerInput playerInput {get; private set; }
     
-
+    public bool ableToGuard;
     internal float mouseSens;
 
-    private static InputAction moveAction => playerInput == null ? null : playerInput.actions["Move"];
-    private static InputAction jumpAction => playerInput == null ? null : playerInput.actions["Jump"];
-    private static InputAction lookAction => playerInput == null ? null : playerInput.actions["Look"];
-    private static InputAction changeStanceAction => playerInput == null ? null : playerInput.actions["ChangeStance"];
-    private static InputAction guardAction => playerInput == null ? null : playerInput.actions["Guard"];
-    private static InputAction lightAttackAction => playerInput == null ? null : playerInput.actions["LightAttack"];
-    private static InputAction heavyAttackAction => playerInput == null ? null : playerInput.actions["HeavyAttack"];
-    private static InputAction dashAction => playerInput == null ? null : playerInput.actions["Dash"];
-    private static InputAction navigationMenuAction => playerInput == null ? null : playerInput.actions["NavigationMenu"];
-
-    // array to hold all actions for easy enabling/disabling if needed
-    private InputAction[] actions;
+    private InputAction moveAction;
+    private InputAction jumpAction;
+    private InputAction lookAction;
+    private InputAction changeStanceAction;
+    private InputAction guardAction;
+    private InputAction lightAttackAction;
+    private InputAction heavyAttackAction;
+    private InputAction dashAction;
+    private InputAction navigationMenuAction;
+    private InputAction interactAction;
+    private InputAction escapePuzzleAction;
 
     public static bool inputBusy = false;
 
+    [Header("DeadzoneValues")]
+    [SerializeField] internal float leftStickDeadzoneValue;
+
     // Gets the input and sets the variable
-    public static Vector2 MoveInput
-    { 
-        get
-        {
-            if (moveAction == null)
-                return Vector2.zero;
+    public static Vector2 MoveInput { get; private set; }
+    public Vector2 LookInput { get; private set; }
+    public bool DashTrigger { get; private set; } = false;
 
-            return moveAction.ReadValue<Vector2>();
-        }
+    // Reset methods for triggers that need manual resetting
+    public void ResetDashTrigger()
+    {
+        DashTrigger = false;
     }
 
-    public static Vector2 LookInput
-    { 
-        get
-        {
-            if (lookAction == null)
-                return Vector2.zero;
-
-            return lookAction.ReadValue<Vector2>();
-        }
-    }
-
-    static bool awakeComplete = false;
     override protected void Awake()
     {
         base.Awake(); // Call singleton Awake first
 
-        // tries to assign playerControls if it isn't already assigned
-        if (_playerControls == null)
-            playerControls = new eXsert.PlayerControls().asset; // Initialize the InputActionAsset
+        if (_playerInput == null)
+        {
+            Debug.LogError("Player Input component not found. Input won't work.");
+            return; // Exit early if no PlayerInput
+        }
+        else
+            playerInput = _playerInput;
 
+        // Initialize activeControlScheme immediately so other scripts can read it during Awake/Start
+        try
+        {
+            activeControlScheme = playerInput != null ? playerInput.currentControlScheme : string.Empty;
+        }
+        catch
+        {
+            activeControlScheme = string.Empty;
+        }
+
+
+        if (_playerControls == null)
+        {
+            Debug.LogError("Player Controls Input Action component not found. Input won't work.");
+            return; // Exit early if no controls
+        }
         else
             playerControls = _playerControls;
 
-        if (playerInput == null)
+        // Make sure PlayerInput is enabled before accessing actions
+        if (!playerInput.enabled)
         {
-            Debug.LogWarning("InputReader: PlayerInput not assigned in inspector, attempting to find in scene...");
-            playerInput = FindAnyObjectByType<PlayerInput>();
-            if (playerInput == null)
-            {
-                Debug.LogError("InputReader: No PlayerInput found in scene during Awake!");
-            }
-            else
-            {
-                Debug.Log("InputReader: Successfully found PlayerInput in scene during Awake!");
-            }
+            Debug.LogWarning("PlayerInput is not enabled. Enabling now...");
+            playerInput.enabled = true;
         }
 
+        // Switch to Gameplay action map only (disable UI to prevent errors)
+        try
+        {
+            playerInput.SwitchCurrentActionMap("Gameplay");
+            Debug.Log("Switched to Gameplay action map");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"Could not switch to Gameplay action map: {e.Message}");
+        }
+
+        // Assigns the input action variables to the action in the action map
+        try
+        {
+            moveAction = playerInput.actions["Move"];
+            jumpAction = playerInput.actions["Jump"];
+            lookAction = playerInput.actions["Look"];
+            changeStanceAction = playerInput.actions["ChangeStance"];
+            guardAction = playerInput.actions["Guard"];
+            lightAttackAction = playerInput.actions["LightAttack"];
+            heavyAttackAction = playerInput.actions["HeavyAttack"];
+            dashAction = playerInput.actions["Dash"];
+            interactAction = playerInput.actions["Interact"];
+            escapePuzzleAction = playerInput.actions["EscapePuzzle"];
+            
+            // Try to get NavigationMenu, but don't fail if it doesn't exist
+            try
+            {
+                navigationMenuAction = playerInput.actions["NavigationMenu"];
+            }
+            catch
+            {
+                Debug.LogWarning("NavigationMenu action not found - continuing without it");
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Failed to assign input actions: {e.Message}");
+            return;
+        }
+
+        //RegisterInputAction();
+            
         //Sets gamepad deadzone
-        InputSystem.settings.defaultDeadzoneMin = 0;
-
-        // Move action array initialization here so playerInput is guaranteed to be assigned
-        actions = new InputAction[] {moveAction, jumpAction, lookAction, changeStanceAction, guardAction, lightAttackAction, heavyAttackAction, dashAction, navigationMenuAction};
-
-        awakeComplete = true;
+        InputSystem.settings.defaultDeadzoneMin = leftStickDeadzoneValue;
     }
+
+    private void Update()
+    {
+        // Null checks to prevent Input System errors before initialization
+        if (moveAction != null && moveAction.enabled)
+            MoveInput = moveAction.ReadValue<Vector2>();
+        else
+            MoveInput = Vector2.zero;
+            
+        if (lookAction != null && lookAction.enabled)
+            LookInput = lookAction.ReadValue<Vector2>();
+        else
+            LookInput = Vector2.zero;
+
+        activeControlScheme = playerInput.currentControlScheme;
+    }
+
 
     //Turns the actions on
     private void OnEnable()
     {
-        EnableAllActions();
+        if (moveAction != null) moveAction.Enable();
+        if (jumpAction != null) jumpAction.Enable();
+        if (lookAction != null) lookAction.Enable();
+        if (changeStanceAction != null) changeStanceAction.Enable();
+        if (guardAction != null) guardAction.Enable();
+        if (lightAttackAction != null) lightAttackAction.Enable();
+        if (heavyAttackAction != null) heavyAttackAction.Enable();
+        if (dashAction != null) dashAction.Enable();
+        if (navigationMenuAction != null) navigationMenuAction.Enable();
+        if (interactAction != null) interactAction.Enable();
+        if (escapePuzzleAction != null) escapePuzzleAction.Enable();
     }
 
     private void OnDisable()
     {
-        DisableAllActions();
-    }
-
-    public static void AssignPlayerInput(PlayerInput newPlayerInput)
-    {
-        Debug.Log("InputReader: Assigning new PlayerInput instance.");
-
-        if (newPlayerInput == null)
-        {
-            Debug.LogError("InputReader: Cannot assign null PlayerInput!");
-            return;
-        }
-        playerInput = newPlayerInput;
+        if (moveAction != null) moveAction.Disable();
+        if (jumpAction != null) jumpAction.Disable();
+        if (lookAction != null) lookAction.Disable();
+        if (changeStanceAction != null) changeStanceAction.Disable();
+        if (guardAction != null) guardAction.Disable();
+        if (lightAttackAction != null) lightAttackAction.Disable();
+        if (heavyAttackAction != null) heavyAttackAction.Disable();
+        if (dashAction != null) dashAction.Disable();
+        if (navigationMenuAction != null) navigationMenuAction.Disable();
+        if (interactAction != null) interactAction.Disable();
+        if (escapePuzzleAction != null) escapePuzzleAction.Disable();
     }
 
     /// <summary>
@@ -158,8 +205,19 @@ public class InputReader : Singleton<InputReader>
         }
 
         // Disable any old actions to avoid ghost reads
-        DisableAllActions();
+        if (moveAction != null) moveAction.Disable();
+        if (jumpAction != null) jumpAction.Disable();
+        if (lookAction != null) lookAction.Disable();
+        if (changeStanceAction != null) changeStanceAction.Disable();
+        if (guardAction != null) guardAction.Disable();
+        if (lightAttackAction != null) lightAttackAction.Disable();
+        if (heavyAttackAction != null) heavyAttackAction.Disable();
+        if (dashAction != null) dashAction.Disable();
+        if (navigationMenuAction != null) navigationMenuAction.Disable();
+        if (interactAction != null) interactAction.Disable();
+        if (escapePuzzleAction != null) escapePuzzleAction.Disable();
 
+        _playerInput = newPlayerInput;
         playerInput = newPlayerInput;
 
         if (!playerInput.enabled)
@@ -172,34 +230,43 @@ public class InputReader : Singleton<InputReader>
             catch (System.Exception e) { Debug.LogWarning($"[InputReader] Failed to switch to Gameplay map during rebind: {e.Message}"); }
         }
 
+        try
+        {
+            moveAction = playerInput.actions["Move"];
+            jumpAction = playerInput.actions["Jump"];
+            lookAction = playerInput.actions["Look"];
+            changeStanceAction = playerInput.actions["ChangeStance"];
+            guardAction = playerInput.actions["Guard"];
+            lightAttackAction = playerInput.actions["LightAttack"];
+            heavyAttackAction = playerInput.actions["HeavyAttack"];
+            dashAction = playerInput.actions["Dash"];
+            interactAction = playerInput.actions["Interact"];
+            escapePuzzleAction = playerInput.actions["EscapePuzzle"];
+
+            try { navigationMenuAction = playerInput.actions["NavigationMenu"]; }
+            catch { navigationMenuAction = null; }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[InputReader] Failed to assign actions during rebind: {e.Message}");
+        }
+
         // Re-enable actions if this component is active
         if (isActiveAndEnabled)
         {
-            EnableAllActions();
+            if (moveAction != null) moveAction.Enable();
+            if (jumpAction != null) jumpAction.Enable();
+            if (lookAction != null) lookAction.Enable();
+            if (changeStanceAction != null) changeStanceAction.Enable();
+            if (guardAction != null) guardAction.Enable();
+            if (lightAttackAction != null) lightAttackAction.Enable();
+            if (heavyAttackAction != null) heavyAttackAction.Enable();
+            if (dashAction != null) dashAction.Enable();
+            if (navigationMenuAction != null) navigationMenuAction.Enable();
+            if (interactAction != null) interactAction.Enable();
+            if (escapePuzzleAction != null) escapePuzzleAction.Enable();
         }
 
         Debug.Log("[InputReader] Rebound to new PlayerInput and actions re-enabled.");
-    }
-
-    private void EnableAllActions()
-    {
-        foreach (var action in actions)
-        {
-            if (action != null)
-                action.Enable();
-            else
-                Debug.LogWarning($"InputReader: Tried to enable action {action.name} but it was null!");
-        }
-    }
-
-    private void DisableAllActions()
-    {
-        foreach (var action in actions)
-        {
-            if (action != null)
-                action.Disable();
-            else
-                Debug.LogWarning($"InputReader: Tried to disable action {action.name} but it was null!");
-        }
     }
 }

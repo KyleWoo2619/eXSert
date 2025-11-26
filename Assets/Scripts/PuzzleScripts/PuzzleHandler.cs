@@ -22,8 +22,17 @@ public class PuzzleHandler : MonoBehaviour
     {
         if(CheckIfPuzzleCanBeActivated())
         {
-            puzzleScript.GetComponent<IPuzzleInterface>().StartPuzzle();
-            Debug.Log("Activating Puzzle");
+            if(puzzleScript.GetComponent<IPuzzleInterface>().isCompleted)
+            {
+                puzzleScript.GetComponent<IPuzzleInterface>().EndPuzzle();
+                return;
+            }
+            else
+            {
+                puzzleScript.GetComponent<IPuzzleInterface>().StartPuzzle();  
+                return;
+            }
+            
         }
         else
         {

@@ -17,22 +17,54 @@ public class DiaryButton : MonoBehaviour, ISelectHandler
     public Button button { get; private set; }
     private MenuEventSystemHandler diaryUI;
 
+
     private void Awake()
     {
-        //Adds the buttons that are instanitated to the MenuEventSystemHandler selectable list
-        diaryUI = GameObject.FindGameObjectWithTag("DiaryUI").GetComponent<MenuEventSystemHandler>();
-        diaryUI.Selectables.Add(this.button);
+
+        this.button = this.GetComponent<Button>();
+        
+        GameObject diaryUIObject = GameObject.FindGameObjectWithTag("DiaryUI");
+        if (diaryUIObject != null)
+        {
+            diaryUI = diaryUIObject.GetComponent<MenuEventSystemHandler>();
+            if (diaryUI != null)
+            {
+                diaryUI.Selectables.Add(this.button);
+            }
+            else
+            {
+                Debug.LogError("MenuEventSystemHandler component not found on DiaryUI GameObject");
+            }
+        }
+        else
+        {
+            Debug.LogError("GameObject with tag 'DiaryUI' not found");
+        }
     }
 
     //Components get assigned moment of initlization
     public void InitializeButton(string logName, UnityAction selectAction)
     {
-        this.button = this.GetComponent<Button>();
+        // Ensure button is assigned (in case InitializeButton is called before Awake)
+        if (this.button == null)
+        {
+            this.button = this.GetComponent<Button>();
+        }
+        
         this.buttonText = this.GetComponentInChildren<TMP_Text>();
 
-        this.buttonText.text = logName;
+        if (this.buttonText != null)
+        {
+            this.buttonText.text = logName;
+        }
+        
         this.onSelectAction = selectAction;
-
+        
+        // Add onClick listener so action triggers on click, not just select
+        if (this.button != null && selectAction != null)
+        {
+            this.button.onClick.AddListener(selectAction);
+        }
     }
 
     public void OnSelect(BaseEventData eventData)
@@ -43,7 +75,17 @@ public class DiaryButton : MonoBehaviour, ISelectHandler
     //Hides Menus
     public void hideMenuOnClick()
     {
-        GameObject.FindGameObjectWithTag("DiaryMenuOverview").SetActive(false);
+        GameObject diaryMenuOverview = GameObject.FindGameObjectWithTag("DiaryMenuOverview");
+        if (diaryMenuOverview != null)
+        {
+            diaryMenuOverview.SetActive(false);
+        }
 
+        GameObject parent = GameObject.FindGameObjectWithTag("DiaryUI");
+        if (parent != null && parent.transform.childCount > 0)
+        {
+            Transform child = parent.transform.GetChild(0);
+            child.gameObject.SetActive(true);
+        }
     }
 }

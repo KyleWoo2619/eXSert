@@ -12,6 +12,10 @@
 using Unity.Cinemachine;
 using UnityEngine;
 using System.Collections.Generic;
+using TMPro;
+using UnityEngine.InputSystem;
+
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -67,6 +71,8 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     private EnhancedPlayerMovement cachedPlayerMovement;
     private bool disabledPlayerMovement = false;
 
+    [SerializeField] private InputActionReference _escapePuzzleAction;
+
     // Cinemachine camera for the puzzle
     [SerializeField] CinemachineCamera puzzleCamera;
 
@@ -91,12 +97,37 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     [Header("Crane Settings")]
     [SerializeField] private float craneMoveSpeed = 2f;
 
+    [SerializeField] private GameObject[] craneUI; // UI elements to show/hide during puzzle
+
+    [Tooltip("Invert horizontal input (A/D) so A acts as right and D as left when enabled")][SerializeField]
+    private bool invertHorizontal = false;
     // When true the crane will respond to input
     private bool puzzleActive = false;
+
+    public bool isCompleted { get; set; }
+
+    private void Awake()
+    {
+        foreach (GameObject img in craneUI)
+        {
+            img.SetActive(false);
+        }
+
+    }
 
     // Called by whatever system starts this puzzle
     public void StartPuzzle()
     {   
+        if(InputReader.Instance.activeControlScheme == "Gamepad")
+        {
+            craneUI[1].SetActive(true);
+        } 
+        else if (InputReader.Instance.activeControlScheme == "Keyboard&Mouse")
+        {
+            Debug.Log("Keyboard Crane UI Activated");
+            craneUI[0].SetActive(true);
+        }
+
         puzzleActive = true;
 
         // Prevent player input reads (used across movement, dash, etc.); Jump still wont deactivate idk why
@@ -138,30 +169,36 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
        {
            Debug.LogError("Puzzle Camera not assigned in CranePuzzle.");
        }
+
+       //isCompleted = true;
     }
 
     // Call this when the puzzle is finished or cancelled
     public void EndPuzzle()
     {
+            foreach (GameObject img in craneUI)
+            {
+                img.SetActive(false);
+            }
 
-        puzzleActive = false;
+            puzzleActive = false;
 
-        // Sets camera priority back to normal
-        if(puzzleCamera != null)
-        {
-            puzzleCamera.Priority = 9;
-        }
+            // Sets camera priority back to normal
+            if(puzzleCamera != null)
+            {
+                puzzleCamera.Priority = 9;
+            }
 
-        // Re-enable player input
-        InputReader.inputBusy = false;
+            // Re-enable player input
+            InputReader.inputBusy = false;
 
-        // Restore player's movement component if we disabled it
-        if (disabledPlayerMovement && cachedPlayerMovement != null)
-        {
-            cachedPlayerMovement.enabled = true;
-            cachedPlayerMovement = null;
-            disabledPlayerMovement = false;
-        }
+            // Restore player's movement component if we disabled it
+            if (disabledPlayerMovement && cachedPlayerMovement != null)
+            {
+                cachedPlayerMovement.enabled = true;
+                cachedPlayerMovement = null;
+                disabledPlayerMovement = false;
+            }
     }
 
     private void Update()
@@ -174,6 +211,12 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
 
         // Ignore small input within deadzone
         if (move.sqrMagnitude < InputReader.Instance.leftStickDeadzoneValue * InputReader.Instance.leftStickDeadzoneValue) return;
+
+        // Optionally invert only horizontal input (A/D)
+        if (invertHorizontal)
+        {
+            move.x = -move.x;
+        }
 
         // Move all crane parts simultaneously based on their enabled axes
         foreach (CranePart part in craneParts)
@@ -219,6 +262,11 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
             {
                 part.partObject.transform.position = newPos;
             }
+        }
+
+        if(isCompleted || _escapePuzzleAction != null && _escapePuzzleAction.action != null && _escapePuzzleAction.action.triggered)
+        {
+            EndPuzzle();
         }
     }
 
