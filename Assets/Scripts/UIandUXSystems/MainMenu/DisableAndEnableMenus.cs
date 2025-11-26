@@ -95,6 +95,13 @@ public class DisableAndEnableMenus : MonoBehaviour
 
     }
 
+    public void onClickBackGeneral()
+    {
+        disableThisGameobject.SetActive(false);
+        enableThisGameobject.SetActive(true);
+
+    }
+
 // Custom Property Drawers
 
 #if UNITY_EDITOR

@@ -9,6 +9,9 @@ using UnityEngine;
 using Singletons;
 using System.Collections.Generic;
 using System;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public class LogManager : Singleton<LogManager>
 {
@@ -16,6 +19,17 @@ public class LogManager : Singleton<LogManager>
     [SerializeField] private bool loadLogState = true;
 
     private Dictionary<string, Logs> logMap;
+
+    // Button function placeholder
+    public void ClearAllLogs()
+    {
+        NavigationLogSO[] allLogs = Resources.LoadAll<NavigationLogSO>("Logs");
+
+        foreach (NavigationLogSO logInfo in allLogs)
+        {
+            PlayerPrefs.DeleteKey(logInfo.logID);
+        }
+    }
 
 
     protected override void Awake()
@@ -45,21 +59,12 @@ public class LogManager : Singleton<LogManager>
         }
     }
 
-    //This function will be used so the findLog function can change the state of the log to true, it will then store the data of the log
-    private void ChangeTheStateOfLog(string id, NavigationLogSO log)
-    {
-        Logs logs = GetLogById(id);
-        logs.info.isFound = log.isFound;
-        EventsManager.Instance.logEvents.LogStateChange(logs);
-        logs.StoreLogState(id, log);
-    }
-
     //Changes the state of the log and if it is Found, it will turn isLogFound true
     private void FindLog(string id)
     {
-        Debug.Log("Found Log: " + id);
         Logs logs = GetLogById(id);
-        ChangeTheStateOfLog(logs.info.logID, logs.info);
+        logs.info.isFound = true;
+        EventsManager.Instance.logEvents.LogStateChange(logs);
     }
 
     //This dictionary will hold all the unique log entries and ensure there is no dupes
@@ -137,3 +142,23 @@ public class LogManager : Singleton<LogManager>
         return log;
     }
 }
+
+#if UNITY_EDITOR
+[CustomEditor(typeof(LogManager))]
+public class LogManagerEditor : Editor
+{
+    public override void OnInspectorGUI()
+    {
+        DrawDefaultInspector();
+
+        LogManager logManager = (LogManager)target;
+
+        GUILayout.Space(10);
+
+        if (GUILayout.Button("Clear All Logs"))
+        {
+            logManager.ClearAllLogs();
+        }
+    }
+}
+#endif

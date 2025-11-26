@@ -12,6 +12,8 @@
 using Unity.Cinemachine;
 using UnityEngine;
 using System.Collections.Generic;
+using Microsoft.Unity.VisualStudio.Editor;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -91,14 +93,34 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     [Header("Crane Settings")]
     [SerializeField] private float craneMoveSpeed = 2f;
 
+    [SerializeField] private GameObject[] craneUI;
+
     // When true the crane will respond to input
     private bool puzzleActive = false;
 
     public bool isCompleted { get; set; }
 
+    private void Awake()
+    {
+        foreach (GameObject img in craneUI)
+        {
+            img.SetActive(false);
+        }
+
+    }
+
     // Called by whatever system starts this puzzle
     public void StartPuzzle()
     {   
+        if(InputReader.Instance.activeControlScheme == "Gamepad")
+        {
+            craneUI[1].SetActive(true);
+        } 
+        else 
+        {
+            craneUI[0].SetActive(true);
+        }
+
         puzzleActive = true;
 
         // Prevent player input reads (used across movement, dash, etc.); Jump still wont deactivate idk why
@@ -150,6 +172,11 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
 
         if(isCompleted)
         {
+            foreach (GameObject img in craneUI)
+            {
+                img.SetActive(false);
+            }
+
             puzzleActive = false;
 
             // Sets camera priority back to normal
