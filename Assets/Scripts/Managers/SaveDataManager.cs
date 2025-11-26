@@ -4,6 +4,7 @@
     This script grabs any variable that needs to be saved/loaded and does each respective task
 */
 using Singletons;
+using Utilities.Combat;
 
 public class SaveDataManager : Singleton<SaveDataManager>, IDataPersistenceManager
 {

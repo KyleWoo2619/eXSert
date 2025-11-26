@@ -13,6 +13,8 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+using Utilities.Combat;
+
 public class PlayerMovement : MonoBehaviour
 {
     private static CharacterController characterController;
@@ -28,7 +30,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("Player Movement Settings")]
     [Tooltip("Speed of player"), SerializeField] internal float speed;
     [SerializeField] private float maxNormalSpeed = 5f;
-    [SerializeField] private float maxguardSpeed = 2.5f;
+    [SerializeField] private float guardWalkingSpeed = 2.5f;
     [SerializeField, Range(0f, 20f)] private float friction = 3f;
     [SerializeField] private Transform cameraTransform;
     [SerializeField] private bool shouldFaceMoveDirection = true;
@@ -57,7 +59,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("Camera Settings")]
     [SerializeField] bool invertYAxis = false;
 
-    private float maxRunningSpeed => CombatManager.isGuarding ? maxguardSpeed : maxNormalSpeed;
+    private float maxRunningSpeed => CombatManager.isGuarding ? guardWalkingSpeed : maxNormalSpeed;
 
     private bool canDash = true;
 
@@ -68,7 +70,8 @@ public class PlayerMovement : MonoBehaviour
     {
         characterController = GetComponent<CharacterController>();
 
-        
+        // Assign PlayerInput to InputReader
+        InputReader.AssignPlayerInput(GetComponent<PlayerInput>());
     }
     private void OnEnable()
     {

@@ -22,6 +22,9 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+using Utilities.Combat;
+using Utilities.Combat.Attacks;
+
 public class EnhancedPlayerMovement : MonoBehaviour
 {
     private CharacterController characterController; // Changed from static to prevent conflicts
@@ -53,14 +56,14 @@ public class EnhancedPlayerMovement : MonoBehaviour
     }
 
     [Header("Animation Integration")]
-    [SerializeField] private AnimFacade animFacade;
+    [SerializeField, CriticalReference] private AnimFacade animFacade;
     [SerializeField] private AerialComboManager aerialComboManager;
     [Tooltip("Fallback: Only used if AnimFacade is null (not recommended)")]
     [SerializeField] private Animator animator;
 
     [Header("Input")]
-    [SerializeField] private InputActionReference _jumpAction;
-    [SerializeField] private InputActionReference _dashAction;
+    [SerializeField, CriticalReference] private InputActionReference _jumpAction;
+    [SerializeField, CriticalReference] private InputActionReference _dashAction;
 
     [Header("Player Movement Settings")]
     [Tooltip("DEPRECATED: Use walk/run speeds instead. This value is no longer used.")]
@@ -164,31 +167,19 @@ public class EnhancedPlayerMovement : MonoBehaviour
     private void OnEnable()
     {
         // Subscribe to attack event from the enhanced manager (used for aerial hop)
-        EnhancedPlayerAttackManager.onAttack += AerialAttackHop;
+        EnhancedPlayerAttackManager.OnAttack += AerialAttackHop;
     }
 
     private void OnDisable()
     {
         // Unsubscribe
-        EnhancedPlayerAttackManager.onAttack -= AerialAttackHop;
+        EnhancedPlayerAttackManager.OnAttack -= AerialAttackHop;
     }
 
     // Update is called once per frame
-    public void FixedUpdate()
+    
+    public void Update()
     {
-        // Debug checks
-        if (cameraTransform == null)
-        {
-            Debug.LogError("Camera Transform is NULL! Assign your Cinemachine camera to Camera Transform field.");
-            return;
-        }
-
-        if (characterController == null)
-        {
-            Debug.LogError("Character Controller is NULL!");
-            return;
-        }
-
         // Check for landing (for aerial combo manager)
         if (!wasGroundedLastFrame && isGrounded && aerialComboManager != null)
         {
@@ -413,7 +404,7 @@ public class EnhancedPlayerMovement : MonoBehaviour
         canDash = true;
     }
 
-    private void AerialAttackHop()
+    private void AerialAttackHop(PlayerAttack attack)
     {
         if (characterController.isGrounded) return;
 

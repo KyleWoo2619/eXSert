@@ -9,6 +9,7 @@
 
 using UnityEngine;
 using System.Collections.Generic;
+using Utilities.Combat.Attacks;
 
 [CreateAssetMenu(fileName = "AttackDatabase", menuName = "Combat/Attack Database")]
 public class AttackDatabase : ScriptableObject
