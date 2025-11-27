@@ -8,13 +8,20 @@
 
 using UnityEngine;
 using System.Collections;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
+public class LockedAttribute : PropertyAttribute { }
 
 public class DoorHandler : MonoBehaviour
 {
     public enum DoorState { Open, Closed, Locked }
 
     public enum DoorType { OpenUp, OpenOut, OpenIn }
+
+    [Locked]
+    [SerializeField] private string doorKeyNeeded = "";
 
     public DoorState currentDoorState;
     public DoorType doorType;
@@ -23,7 +30,6 @@ public class DoorHandler : MonoBehaviour
     private Quaternion doorRotOrigin;
     private Vector3 targetDoorPos;
     private Quaternion targetDoorRot;
-
     private Vector3 targetPos;
 
     [SerializeField] private float openSpeed = 2f;
@@ -42,7 +48,6 @@ public class DoorHandler : MonoBehaviour
     // Store original parent to reparent door after using hinge pivot
     private Transform originalParent;
 
-
     private void Awake()
     {
         doorPosOrigin = this.transform.position;
@@ -60,7 +65,19 @@ public class DoorHandler : MonoBehaviour
                 OpenDoor();
                 break;
             case DoorState.Locked:
-                Debug.Log("The door is locked.");
+                foreach(var item in InternalPlayerInventory.Instance.collectedInteractables)
+                {
+                    if(item == doorKeyNeeded)
+                    {
+                        OpenDoor();
+                        Debug.Log("Door unlocked with key: " + doorKeyNeeded);
+                        return;
+                    }
+                    else 
+                    {
+                        Debug.Log("Door is locked. Key needed: " + doorKeyNeeded);
+                    }
+                }
                 break;
         }
     }
@@ -236,3 +253,38 @@ public class DoorHandler : MonoBehaviour
     }
 
 }
+
+#if UNITY_EDITOR
+[CustomPropertyDrawer(typeof(LockedAttribute))]
+public class LockedAttributeDrawer : PropertyDrawer
+{
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+    {
+        // Only enable editing when the door is actually in the Locked state
+        var parent = property.serializedObject.targetObject as DoorHandler;
+        bool disabled = true;
+        if (parent != null)
+        {
+            disabled = parent.currentDoorState != DoorHandler.DoorState.Locked;
+        }
+
+        EditorGUI.BeginDisabledGroup(disabled);
+        EditorGUI.PropertyField(position, property, label);
+        EditorGUI.EndDisabledGroup();
+    }
+
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+    {
+        var parent = property.serializedObject.targetObject as DoorHandler;
+        if (parent != null)
+        {
+            var stateField = property.serializedObject.FindProperty("currentDoorState");
+            if (stateField != null && stateField.enumValueIndex == (int)DoorHandler.DoorState.Locked)
+            {
+                return EditorGUI.GetPropertyHeight(property);
+            }
+        }
+        return 0;
+    }
+}
+#endif
