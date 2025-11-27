@@ -1,3 +1,7 @@
+// ExplosiveTurretEnemy.cs
+// Purpose: Turret enemy that fires explosive projectiles and manages firing behavior.
+// Works with: ExplosiveEnemyProjectile, BaseTurretEnemy, Pathfinding optional.
+
 using UnityEngine;
 
 [RequireComponent(typeof(MeshRenderer))]

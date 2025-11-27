@@ -1,3 +1,7 @@
+// DroneCluster.cs
+// Purpose: Grouping utility for drone-type enemies (spawning, formation management).
+// Works with: DroneSwarmManager, CrowdController, FlowFieldService.
+
 using System.Collections.Generic;
 using UnityEngine;
 

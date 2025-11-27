@@ -39,6 +39,7 @@ public class InputReader : Singleton<InputReader>
     private InputAction dashAction;
     private InputAction navigationMenuAction;
     private InputAction interactAction;
+    private InputAction escapePuzzleAction;
 
     public static bool inputBusy = false;
 
@@ -117,6 +118,7 @@ public class InputReader : Singleton<InputReader>
             heavyAttackAction = playerInput.actions["HeavyAttack"];
             dashAction = playerInput.actions["Dash"];
             interactAction = playerInput.actions["Interact"];
+            escapePuzzleAction = playerInput.actions["EscapePuzzle"];
             
             // Try to get NavigationMenu, but don't fail if it doesn't exist
             try
@@ -170,6 +172,7 @@ public class InputReader : Singleton<InputReader>
         if (dashAction != null) dashAction.Enable();
         if (navigationMenuAction != null) navigationMenuAction.Enable();
         if (interactAction != null) interactAction.Enable();
+        if (escapePuzzleAction != null) escapePuzzleAction.Enable();
     }
 
     private void OnDisable()
@@ -184,6 +187,30 @@ public class InputReader : Singleton<InputReader>
         if (dashAction != null) dashAction.Disable();
         if (navigationMenuAction != null) navigationMenuAction.Disable();
         if (interactAction != null) interactAction.Disable();
+        if (escapePuzzleAction != null) escapePuzzleAction.Disable();
+    }
+
+    /// <summary>
+    /// Static method to assign a new PlayerInput instance.
+    /// For compatibility with existing code that calls InputReader.AssignPlayerInput().
+    /// </summary>
+    /// <param name="newPlayerInput">The PlayerInput to assign.</param>
+    public static void AssignPlayerInput(PlayerInput newPlayerInput)
+    {
+        if (Instance == null)
+        {
+            Debug.LogError("InputReader: Instance not available, cannot assign PlayerInput!");
+            return;
+        }
+
+        if (newPlayerInput == null)
+        {
+            Debug.LogError("InputReader: Cannot assign null PlayerInput!");
+            return;
+        }
+
+        Debug.Log("InputReader: Assigning new PlayerInput instance via AssignPlayerInput().");
+        Instance.RebindTo(newPlayerInput, switchToGameplay: true);
     }
 
     /// <summary>
@@ -211,6 +238,7 @@ public class InputReader : Singleton<InputReader>
         if (dashAction != null) dashAction.Disable();
         if (navigationMenuAction != null) navigationMenuAction.Disable();
         if (interactAction != null) interactAction.Disable();
+        if (escapePuzzleAction != null) escapePuzzleAction.Disable();
 
         _playerInput = newPlayerInput;
         playerInput = newPlayerInput;
@@ -236,6 +264,7 @@ public class InputReader : Singleton<InputReader>
             heavyAttackAction = playerInput.actions["HeavyAttack"];
             dashAction = playerInput.actions["Dash"];
             interactAction = playerInput.actions["Interact"];
+            escapePuzzleAction = playerInput.actions["EscapePuzzle"];
 
             try { navigationMenuAction = playerInput.actions["NavigationMenu"]; }
             catch { navigationMenuAction = null; }
@@ -258,6 +287,7 @@ public class InputReader : Singleton<InputReader>
             if (dashAction != null) dashAction.Enable();
             if (navigationMenuAction != null) navigationMenuAction.Enable();
             if (interactAction != null) interactAction.Enable();
+            if (escapePuzzleAction != null) escapePuzzleAction.Enable();
         }
 
         Debug.Log("[InputReader] Rebound to new PlayerInput and actions re-enabled.");

@@ -1,3 +1,7 @@
+// BombCarrierEnemy.cs
+// Purpose: Enemy that carries explosive payloads and detonates under conditions.
+// Works with: Explosion systems, EnemyStateMachineConfig.
+
 using UnityEngine;
 using System.Collections;
 using Behaviors;

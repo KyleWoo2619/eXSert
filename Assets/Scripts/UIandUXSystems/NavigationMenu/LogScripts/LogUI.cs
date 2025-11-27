@@ -43,6 +43,6 @@ public class LogUI : MonoBehaviour
         logName.text = log.info.logName;
         logDescription.text = log.info.logDescription;
         logLocation.text = log.info.locationFound;
-        logId_Date.text = (log.info.dateFound + " " + log.info.logID).ToString();
+        logId_Date.text = log.info.logID;
     }
 }

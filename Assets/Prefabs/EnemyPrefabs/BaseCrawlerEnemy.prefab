@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 6272745358913691132}
   m_Layer: 0
   m_Name: BaseCrawlerEnemy
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -126,6 +126,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 735ed16805c3ec74dac6df94ea135d73, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BaseCrawlerEnemy
+  behaviorProfile: {fileID: 11400000, guid: 00406da0031ea004186842087fee3a2e, type: 2}
   agent: {fileID: 0}
   currentState: 0
   maxHealth: 100
@@ -143,6 +144,13 @@ MonoBehaviour:
   attackActiveDuration: 0.5
   showAttackGizmo: 1
   healthBarPrefab: {fileID: 2629286879049192775, guid: 9345af66964a7d64489a46ae511c793b, type: 3}
+  enableAntiStuck: 1
+  stuckSpeedThreshold: 0.05
+  stuckSeconds: 0.9
+  sidestepDistance: 1
+  backoffDistance: 1.5
+  reliefSampleRadius: 1
+  reliefCooldownSeconds: 1.5
   healthBarInstance: {fileID: 0}
   attackCollider: {fileID: 0}
   isAttackBoxActive: 0

@@ -18,7 +18,6 @@ public class NavigationLogSO : ScriptableObject
     [field: SerializeField] public string logID { get; private set; }
     public string logName;
     public string locationFound;
-    public string dateFound;
 
     [TextArea(3, 10)]
     public string logDescription;

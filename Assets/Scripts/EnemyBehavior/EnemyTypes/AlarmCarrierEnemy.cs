@@ -1,3 +1,8 @@
+// AlarmCarrierEnemy.cs
+// Purpose: Enemy type that carries an alarm and can activate group behavior or spawn reinforcements.
+// Works with: BossRoombaController, CrowdController, EnemyStateMachineConfig, EnemyBehaviorProfile, Zone
+// Notes: Scene-scoped; designed to integrate with the crowd/pathfinding systems. Main logic below.
+
 using UnityEngine;
 using System.Collections;
 using System.Linq;

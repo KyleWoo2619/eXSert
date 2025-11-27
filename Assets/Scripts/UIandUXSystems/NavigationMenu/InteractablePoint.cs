@@ -64,12 +64,13 @@ public class InteractablePoint : MonoBehaviour
 
     private void Update()
     {
-        // Use Update (per-frame) for action.triggered checks so Input System callbacks aren't missed
         OnInteractButtonPressed();
     }
 
     private void Awake()
     {
+        this.GetComponent<Collider>().isTrigger = true;
+
         // gets ID based on type
         if (interactType == InteractType.Log)
         {
@@ -161,13 +162,18 @@ public class InteractablePoint : MonoBehaviour
                     var logSO = collectibleInfo as NavigationLogSO;
                     logSO.isFound = true;
                     Debug.Log("Log triggered");
-
+                    
+                    // Trigger event to add log to scrolling list
+                    EventsManager.Instance.logEvents.FoundLog(collectibleId);
                 }
                 else if (interactType == InteractType.Diary)
                 {
                     var diarySO = collectibleInfo as DiarySO;
                     diarySO.isFound = true;
                     Debug.Log("Diary triggered");
+                    
+                    // Trigger event to add diary to scrolling list
+                    EventsManager.Instance.diaryEvents.FoundDiary(collectibleId);
                 }
                 else if (interactType == InteractType.Puzzle)
                 {
@@ -216,7 +222,7 @@ public class InteractablePoint : MonoBehaviour
 
                 if(interactType != InteractType.Puzzle) //If it is a puzzle you should be able to interact again later
                 {
-                    interractableText.gameObject.SetActive(false); // Once the gameobject is off the text stays, so it is turned off here
+                     // Once the gameobject is off the text stays, so it is turned off here
                      // mark interacted so triggers won't re-show the prompt
                     interacted = true;
 
@@ -225,14 +231,17 @@ public class InteractablePoint : MonoBehaviour
                     if (col != null) col.enabled = false;
 
                     // Always hide the gamepad icon after interaction regardless of control scheme
-                    if (interactGamePadIcon != null)
-                        interactGamePadIcon.gameObject.SetActive(false);
+                    
 
                     // Attempt to deactivate the whole gameobject. If something else re-enables it later,
                     // the interacted bool prevents it from showing again.
                     Debug.Log($"Disabling interactable {gameObject.name}");
                     this.gameObject.SetActive(false); // Makes the interactable point disappear after interaction
                 }
+
+                if (interactGamePadIcon != null)
+                    interactGamePadIcon.gameObject.SetActive(false);
+                interractableText.gameObject.SetActive(false);
             }
         }
     }

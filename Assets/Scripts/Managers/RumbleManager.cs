@@ -30,7 +30,7 @@ public class RumbleManager : Singleton<RumbleManager>
     void Start()
     {
         //Subscribes onControlsChanged to SwitchControls function
-        InputReader.Instance._playerInput.onControlsChanged += SwitchControls;
+        InputReader.playerInput.onControlsChanged += SwitchControls;
     }
 
     public void RumblePulse(float lowFreq, float highFreq, float duration)
@@ -75,6 +75,6 @@ public class RumbleManager : Singleton<RumbleManager>
     private void OnDisable()
     {
         //If the script is disabled then onControlsChanged is unsubscribed
-        InputReader.Instance._playerInput.onControlsChanged -= SwitchControls;
+        InputReader.playerInput.onControlsChanged -= SwitchControls;
     }
 }

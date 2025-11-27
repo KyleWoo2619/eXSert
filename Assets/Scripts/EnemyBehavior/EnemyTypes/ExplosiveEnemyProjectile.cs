@@ -1,3 +1,7 @@
+// ExplosiveEnemyProjectile.cs
+// Purpose: Projectile that explodes on impact, applying area damage.
+// Works with: EnemyProjectile, Damage system, Pooling systems (optional).
+
 using UnityEngine;
 
 public class ExplosiveEnemyProjectile : MonoBehaviour

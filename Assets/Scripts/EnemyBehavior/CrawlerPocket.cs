@@ -1,3 +1,7 @@
+// CrawlerPocket.cs
+// Purpose: Defines spawn points (pockets) for crawler adds used by bosses or encounters.
+// Works with: BossRoombaController, ScenePoolManager
+
 using UnityEngine;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -5,6 +9,13 @@ using System.Linq;
 
 public class CrawlerPocket : MonoBehaviour
 {
+    [Header("Component Help")]
+    [SerializeField, TextArea(4, 8)] private string inspectorHelp =
+        "CrawlerPocket: spawns crawlers when the Player enters the trigger zone.\n" +
+        "Configure weighted crawler prefabs, spawnCount, and clustering radius/jitter.\n" +
+        "Calls AmbushReady when most crawlers reach their cluster points.\n" +
+        "Automatically ensures a trigger BoxCollider matches the configured triggerZone.";
+
     [Header("Crawler Types & Weights")]
     [Tooltip("List of crawler enemy prefabs and their relative spawn weights for random generation.")]
     [SerializeField] private List<CrawlerTypeWeight> crawlerTypeWeights;

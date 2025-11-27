@@ -19,30 +19,77 @@ public class LogButton : MonoBehaviour, ISelectHandler
 
     private void Awake()
     {
-        logUI = GameObject.FindGameObjectWithTag("LogUI").GetComponent<MenuEventSystemHandler>();
-        logUI.Selectables.Add(this.button);
+        this.button = this.GetComponent<Button>();
+        
+        GameObject logUIObject = GameObject.FindGameObjectWithTag("LogUI");
+        if (logUIObject != null)
+        {
+            logUI = logUIObject.GetComponent<MenuEventSystemHandler>();
+            if (logUI != null)
+            {
+                logUI.Selectables.Add(this.button);
+            }
+            else
+            {
+                Debug.LogError("MenuEventSystemHandler component not found on LogUI GameObject");
+            }
+        }
+        else
+        {
+            Debug.LogError("GameObject with tag 'LogUI' not found");
+        }
     }
 
     //Components get assigned moment of initlization
     public void InitializeButton(string logName, UnityAction selectAction)
     {
-        this.button = this.GetComponent<Button>();
+        // Ensure button is assigned (in case InitializeButton is called before Awake)
+        if (this.button == null)
+        {
+            this.button = this.GetComponent<Button>();
+        }
+        
         this.buttonText = this.GetComponentInChildren<TMP_Text>();
 
-        this.buttonText.text = logName;
+        if (this.buttonText != null)
+        {
+            this.buttonText.text = logName;
+        }
+        
         this.onSelectAction = selectAction;
-
+        
+        // Add onClick listener so action triggers on click, not just select
+        if (this.button != null && selectAction != null)
+        {
+            this.button.onClick.AddListener(selectAction);
+        }
     }
 
     public void OnSelect(BaseEventData eventData)
     {
-        onSelectAction();
+        if (onSelectAction != null)
+        {
+            onSelectAction();
+        }
     }
 
     //Hides Menus
     public void hideMenuOnClick()
     {
-        GameObject.FindGameObjectWithTag("LogMenuOverview").SetActive(false);
+        GameObject logMenuOverview = GameObject.FindGameObjectWithTag("LogMenuOverview");
+        if (logMenuOverview != null)
+        {
+            logMenuOverview.SetActive(false);
+        }
+
+        GameObject parent = GameObject.FindGameObjectWithTag("IndividualLogMenu");
+        if (parent != null)
+        {
+            Transform child = parent.transform.GetChild(0);
+            child.gameObject.SetActive(true);
+        } else {
+            Debug.LogError("GameObject with tag 'IndividualLogMenu' not found");
+        }
 
     }
 }
