@@ -6,6 +6,7 @@
 
 using UnityEngine;
 using TMPro;
+using UnityEngine.UI;
 public class LogUI : MonoBehaviour
 {
     [Header("Components")]
@@ -15,6 +16,7 @@ public class LogUI : MonoBehaviour
     [SerializeField] private TMP_Text logDescription;
     [SerializeField] private TMP_Text logLocation;
     [SerializeField] private TMP_Text logId_Date;
+    [SerializeField] private Image logImage;
 
     //LogStateChange beong subscribed and unsubscribed
     private void OnEnable()
@@ -44,5 +46,6 @@ public class LogUI : MonoBehaviour
         logDescription.text = log.info.logDescription;
         logLocation.text = log.info.locationFound;
         logId_Date.text = log.info.logID;
+        logImage.sprite = log.info.logImage.sprite;
     }
 }

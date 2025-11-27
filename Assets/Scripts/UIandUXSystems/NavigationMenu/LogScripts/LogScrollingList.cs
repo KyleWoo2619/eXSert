@@ -8,9 +8,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.EventSystems;
 
 public class LogScrollingList : MonoBehaviour
 {
+
+
     [Header("Components")]
     [SerializeField] private GameObject contentParent;
 
@@ -21,8 +24,6 @@ public class LogScrollingList : MonoBehaviour
     [SerializeField] private RectTransform scrollRectTransform;
     [SerializeField] private RectTransform contentRectTransform;
     private Dictionary<string, LogButton> idToButtonMap = new Dictionary<string, LogButton>(); //Dict to hold id of buttons
-
-
     //If the button for a log doesn't already exist, this function will make it
     public LogButton CreateButtonIfNotExists(Logs log, UnityAction selectAction)
     {

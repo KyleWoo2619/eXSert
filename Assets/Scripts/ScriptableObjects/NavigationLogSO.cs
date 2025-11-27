@@ -7,6 +7,7 @@
 using UnityEngine;
 using UnityEditor;
 using System;
+using UnityEngine.UI;
 
 [Serializable]
 [ExecuteInEditMode]
@@ -21,7 +22,7 @@ public class NavigationLogSO : ScriptableObject
 
     [TextArea(3, 10)]
     public string logDescription;
-
+    public Image logImage;
     public bool isFound;
 
     //This ensures that the idName cannot be repeated

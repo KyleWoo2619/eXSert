@@ -16,9 +16,15 @@ public class LogButton : MonoBehaviour, ISelectHandler
     private UnityAction onSelectAction;
     public Button button { get; private set; }
     private MenuEventSystemHandler logUI;
+    private Image iconImage;
+
+    // Expose read-only access to the icon Image so other classes can set/inspect its sprite
+    public Image IconImage => iconImage;
 
     private void Awake()
     {
+        iconImage = GameObject.FindWithTag("LogImage").GetComponent<Image>();
+
         this.button = this.GetComponent<Button>();
         
         GameObject logUIObject = GameObject.FindGameObjectWithTag("LogUI");
@@ -61,7 +67,17 @@ public class LogButton : MonoBehaviour, ISelectHandler
         // Add onClick listener so action triggers on click, not just select
         if (this.button != null && selectAction != null)
         {
-            this.button.onClick.AddListener(selectAction);
+            this.button.onClick.AddListener(() =>
+            {
+                // Ensure EventSystem selection updates for mouse clicks
+                var es = UnityEngine.EventSystems.EventSystem.current;
+                if (es != null)
+                {
+                    es.SetSelectedGameObject(this.gameObject);
+                }
+
+                selectAction();
+            });
         }
     }
 
