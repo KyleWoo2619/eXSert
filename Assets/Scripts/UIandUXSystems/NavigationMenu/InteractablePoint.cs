@@ -9,6 +9,8 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using UnityEngine.ProBuilder.Shapes;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -30,7 +32,7 @@ public class InteractablePoint : MonoBehaviour
 {
     [SerializeField] private bool showHitbox = false;
 
-    public enum InteractType { Log, Diary, Puzzle, Item }
+    public enum InteractType { Log, Diary, Puzzle, Item, Door }
 
     [Header("Interactable Entry")]
     [SerializeField] private InteractType interactType;
@@ -153,9 +155,17 @@ public class InteractablePoint : MonoBehaviour
     {
         if (playerIsNear && !interacted)
         {
+            DoorHandler doorHandler = GetComponent<DoorHandler>();
+
             if(_interactAction != null && _interactAction.action != null && _interactAction.action.triggered)
             {
                 Debug.Log($"Interact pressed on {gameObject.name} (id={collectibleId})");
+
+                if(interactType == InteractType.Door)
+                {
+                    if(doorHandler != null)
+                        doorHandler.Interact();
+                }
 
                 if (interactType == InteractType.Log)
                 {
@@ -220,8 +230,13 @@ public class InteractablePoint : MonoBehaviour
                     InternalPlayerInventory.Instance.AddCollectible(collectibleId);
                 }
 
-                if(interactType != InteractType.Puzzle) //If it is a puzzle you should be able to interact again later
+                
+
+                if(interactType != InteractType.Puzzle && interactType != InteractType.Door) //If it is a puzzle you should be able to interact again later
                 {
+                    
+                    
+
                      // Once the gameobject is off the text stays, so it is turned off here
                      // mark interacted so triggers won't re-show the prompt
                     interacted = true;
@@ -237,11 +252,13 @@ public class InteractablePoint : MonoBehaviour
                     // the interacted bool prevents it from showing again.
                     Debug.Log($"Disabling interactable {gameObject.name}");
                     this.gameObject.SetActive(false); // Makes the interactable point disappear after interaction
+
+                    if (interactGamePadIcon != null)
+                    interactGamePadIcon.gameObject.SetActive(false);
+                    interractableText.gameObject.SetActive(false);
                 }
 
-                if (interactGamePadIcon != null)
-                    interactGamePadIcon.gameObject.SetActive(false);
-                interractableText.gameObject.SetActive(false);
+                
             }
         }
     }
@@ -297,8 +314,10 @@ public class InteractablePoint : MonoBehaviour
     {
         if(showHitbox)
         {
+            Gizmos.matrix = transform.localToWorldMatrix;
             Gizmos.color = Color.red;
-            Gizmos.DrawWireCube(transform.position, GetComponent<BoxCollider>().size);
+            BoxCollider box = GetComponent<BoxCollider>();
+            Gizmos.DrawWireCube(box.center, box.size);
         }
     }
 }
