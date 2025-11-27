@@ -75,13 +75,8 @@ public class DiaryButton : MonoBehaviour, ISelectHandler
     //Hides Menus
     public void hideMenuOnClick()
     {
-        GameObject diaryMenuOverview = GameObject.FindGameObjectWithTag("DiaryMenuOverview");
-        if (diaryMenuOverview != null)
-        {
-            diaryMenuOverview.SetActive(false);
-        }
 
-        GameObject parent = GameObject.FindGameObjectWithTag("DiaryUI");
+        GameObject parent = GameObject.FindGameObjectWithTag("IndividualDiaryMenu");
         if (parent != null && parent.transform.childCount > 0)
         {
             Transform child = parent.transform.GetChild(0);

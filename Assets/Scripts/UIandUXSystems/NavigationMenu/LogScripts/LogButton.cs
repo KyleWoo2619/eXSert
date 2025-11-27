@@ -92,11 +92,6 @@ public class LogButton : MonoBehaviour, ISelectHandler
     //Hides Menus
     public void hideMenuOnClick()
     {
-        GameObject logMenuOverview = GameObject.FindGameObjectWithTag("LogMenuOverview");
-        if (logMenuOverview != null)
-        {
-            logMenuOverview.SetActive(false);
-        }
 
         GameObject parent = GameObject.FindGameObjectWithTag("IndividualLogMenu");
         if (parent != null)

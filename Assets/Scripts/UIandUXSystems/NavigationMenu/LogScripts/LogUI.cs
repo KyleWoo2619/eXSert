@@ -7,6 +7,7 @@
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
+using Unity.VisualScripting;
 public class LogUI : MonoBehaviour
 {
     [Header("Components")]
@@ -48,4 +49,5 @@ public class LogUI : MonoBehaviour
         logId_Date.text = log.info.logID;
         logImage.sprite = log.info.logImage.sprite;
     }
+
 }

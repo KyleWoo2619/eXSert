@@ -169,17 +169,16 @@ public class DisableAndEnableMenus : MonoBehaviour
             return;
         }
 
-        if (IsActive(footer.diaryHolderUI))
+        if (IsActive(footer.diaryHolderUI) && !IsActive(footer.IndividualDiaryUI))
         {
             SafeSetActive(footer.diaryHolderUI, false);
             SafeSetActive(footer.mainNavigationMenuHolderUI, true);
             return;
         }
 
-        if (IsActive(footer.IndividualDiaryUI))
+        if (IsActive(footer.IndividualDiaryUI) && IsActive(footer.diaryHolderUI))
         {
             SafeSetActive(footer.IndividualDiaryUI, false);
-            SafeSetActive(footer.diaryHolderUI, true);
             return;
         }
 
