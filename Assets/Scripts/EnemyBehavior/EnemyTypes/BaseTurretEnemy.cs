@@ -1,3 +1,7 @@
+// BaseTurretEnemy.cs
+// Purpose: Base class for turret-style enemies (stationary or slow-moving) that fire projectiles.
+// Works with: Projectile systems, EnemyBehaviorProfile, CrowdController.
+
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;

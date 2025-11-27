@@ -1,3 +1,7 @@
+// DroneSwarmBehavior.cs
+// Purpose: High-level swarm behavior orchestration for drone groups.
+// Works with: DroneSwarmManager, CrowdController, FlowFieldService for many-to-one movement.
+
 using UnityEngine;
 
 namespace Behaviors

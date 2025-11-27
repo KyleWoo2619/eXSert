@@ -1,6 +1,3 @@
-using UnityEngine;
-using UnityEngine.UI;
-
 /*
 Written by Kyle Woo
 
@@ -8,6 +5,11 @@ Detects the player's current stance and toggles UI icons accordingly.
 Shows PileDriver icon for Single Attack stance and AOE icon for Area of Effect stance.
 Active icons fade/wave between two colors.
 */
+
+using UnityEngine;
+using UnityEngine.UI;
+
+using Utilities.Combat;
 
 public class StanceIconManager : MonoBehaviour
 {

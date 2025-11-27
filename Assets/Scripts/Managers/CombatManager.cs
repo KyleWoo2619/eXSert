@@ -10,141 +10,158 @@ using UnityEngine;
 using Singletons;
 using System;
 using System.Collections;
+using System.ComponentModel;
 
-public class CombatManager : Singleton<CombatManager>, IHealthSystem
+namespace Utilities.Combat
 {
-    public float maxHealth;
-    public float health;
-
-    //Assigns the variables from the health interfaces to variables in this class
-    float IHealthSystem.currentHP => health;
-    float IHealthSystem.maxHP => maxHealth; 
-    
-    // Read-only property to check if in single target mode as a boolean
-    public static bool singleTargetMode { get; private set; } = true;
-
-    // Read-only property to get current stance as a string
-    public static string currentStance => singleTargetMode ? "Single Target" : "Area of Effect";
-
-    public static bool isGuarding { get; private set; } = false;
-
-    [SerializeField, Range(0f, 1f)] private float _parryWindow = 0.3f;
-    public static bool isParrying { get; private set; } = false;
-
-    // Unity Action event for stance change for other scripts to subscribe to
-    public static event Action OnStanceChanged;
-
-    // Unity Action event for successful parry for other scripts to subscribe to
-    public static event Action OnSuccessfulParry;
-
-    override protected void Awake()
+    public enum Stance
     {
-        base.Awake();
-        
-        // Initialize to single target mode (stance 0)
-        singleTargetMode = true;
+        [Description("Single Target Stance")]
+        SingleTarget,
+        [Description("Area of Effect Stance")]
+        AreaOfEffect,
+        [Description("Guarding Stance")]
+        Guarding
     }
 
-    private static AnimFacade cachedAnimFacade; // Cache to avoid repeated FindAnyObjectByType calls
-
-    public static void ChangeStance()
+    public class CombatManager : Singleton<CombatManager>, IHealthSystem
     {
-        singleTargetMode = !singleTargetMode;
-        Debug.Log("Stance changed. Current Stance: " + currentStance);
+        public float maxHealth;
+        public float health;
 
-        // Update AnimFacade if it exists (use cached reference)
-        if (cachedAnimFacade == null)
-            cachedAnimFacade = FindAnyObjectByType<AnimFacade>();
-            
-        if (cachedAnimFacade != null)
+        //Assigns the variables from the health interfaces to variables in this class
+        float IHealthSystem.currentHP => health;
+        float IHealthSystem.maxHP => maxHealth;
+
+        // Read-only property to check if in single target mode as a boolean
+        public static bool singleTargetMode { get; private set; } = true;
+
+        // Read-only property to get current stance. Prioritizes guarding if the character is guarding over other stances.
+        public static Stance CurrentStance => isGuarding ? Stance.Guarding : (singleTargetMode ? Stance.SingleTarget : Stance.AreaOfEffect);
+
+        // Read-only property to get current combat stance without guarding consideration
+        public static Stance currentCombatStance => singleTargetMode ? Stance.SingleTarget : Stance.AreaOfEffect;
+
+        public static bool isGuarding { get; private set; } = false;
+
+        [SerializeField, Range(0f, 1f)] private float _parryWindow = 0.3f;
+        public static bool isParrying { get; private set; } = false;
+
+        // Unity Action event for stance change for other scripts to subscribe to
+        public static event Action OnStanceChanged;
+
+        // Unity Action event for successful parry for other scripts to subscribe to
+        public static event Action OnSuccessfulParry;
+
+        override protected void Awake()
         {
-            // 0 = Single Target, 1 = AOE
-            cachedAnimFacade.SetStance(singleTargetMode ? 0 : 1);
+            base.Awake();
+
+            // Initialize to single target mode (stance 0)
+            singleTargetMode = true;
         }
 
-        OnStanceChanged?.Invoke();
-    }
+        private static AnimFacade cachedAnimFacade; // Cache to avoid repeated FindAnyObjectByType calls
 
-    public static void EnterGuard()
-    {
-        isGuarding = true;
-        Debug.Log("Player is now guarding. Parry window open");
-
-        // Update AnimFacade to guard stance (2)
-        if (cachedAnimFacade == null)
-            cachedAnimFacade = FindAnyObjectByType<AnimFacade>();
-            
-        if (cachedAnimFacade != null)
+        public static void ChangeStance()
         {
-            cachedAnimFacade.SetStance(2); // 2 = Guard
+            singleTargetMode = !singleTargetMode;
+            Debug.Log("Stance changed. Current Stance: " + currentCombatStance.ToString());
+
+            // Update AnimFacade if it exists (use cached reference)
+            if (cachedAnimFacade == null)
+                cachedAnimFacade = FindAnyObjectByType<AnimFacade>();
+
+            if (cachedAnimFacade != null)
+            {
+                // 0 = Single Target, 1 = AOE
+                cachedAnimFacade.SetStance(singleTargetMode ? 0 : 1);
+            }
+
+            OnStanceChanged?.Invoke();
         }
 
-        // Start parry window
-        isParrying = true;
-        Instance.StartCoroutine(ParryWindowCoroutine());
-    }
-
-    public static void ExitGuard()
-    {
-        isGuarding = false;
-        Debug.Log("Player has stopped guarding.");
-
-        // Restore previous stance
-        if (cachedAnimFacade == null)
-            cachedAnimFacade = FindAnyObjectByType<AnimFacade>();
-            
-        if (cachedAnimFacade != null)
+        public static void EnterGuard()
         {
-            cachedAnimFacade.SetStance(singleTargetMode ? 0 : 1); // Back to Single/AOE
+            isGuarding = true;
+            Debug.Log("Player is now guarding. Parry window open");
+
+            // Update AnimFacade to guard stance (2)
+            if (cachedAnimFacade == null)
+                cachedAnimFacade = FindAnyObjectByType<AnimFacade>();
+
+            if (cachedAnimFacade != null)
+            {
+                cachedAnimFacade.SetStance(2); // 2 = Guard
+            }
+
+            // Start parry window
+            isParrying = true;
+            Instance.StartCoroutine(ParryWindowCoroutine());
         }
 
-        // Stop parry window if still active
-        if (isParrying)
-            Instance.StopCoroutine(ParryWindowCoroutine());
-    }
-
-    // Coroutine to handle parry window timing
-    private static IEnumerator ParryWindowCoroutine()
-    {
-        yield return new WaitForSeconds(Instance._parryWindow);
-
-        isParrying = false;
-        Debug.Log("Parry window closed.");
-    }
-
-    // Call this method when a parry is successful
-    public static void ParrySuccessful()
-    {
-        Debug.Log("Parry successful! Counterattack opportunity granted.");
-
-        OnSuccessfulParry?.Invoke();
-
-        // Additional logic for successful parry can be added here
-    }
-
-    public void HealHP(float hp)
-    {
-        health += hp;
-
-        //prevents going over max health
-        if (health > maxHealth)
+        public static void ExitGuard()
         {
-            health = maxHealth;
+            isGuarding = false;
+            Debug.Log("Player has stopped guarding.");
+
+            // Restore previous stance
+            if (cachedAnimFacade == null)
+                cachedAnimFacade = FindAnyObjectByType<AnimFacade>();
+
+            if (cachedAnimFacade != null)
+            {
+                cachedAnimFacade.SetStance(singleTargetMode ? 0 : 1); // Back to Single/AOE
+            }
+
+            // Stop parry window if still active
+            if (isParrying)
+                Instance.StopCoroutine(ParryWindowCoroutine());
         }
-    }
 
-    //Grabs the function from the health interface, updates the health count, and updates the health bar
-    public void LoseHP(float damage)
-    {
-        health -= damage;    
-    }
-
-    //On death, if this is assigned to the player it will take them to the "Gameover" screen. If it is on any other object however, they will be destroyed.
-    public void OnPlayerDeath()
-    {
-        if (health <= 0)
+        // Coroutine to handle parry window timing
+        private static IEnumerator ParryWindowCoroutine()
         {
-            
+            yield return new WaitForSeconds(Instance._parryWindow);
+
+            isParrying = false;
+            Debug.Log("Parry window closed.");
+        }
+
+        // Call this method when a parry is successful
+        public static void ParrySuccessful()
+        {
+            Debug.Log("Parry successful! Counterattack opportunity granted.");
+
+            OnSuccessfulParry?.Invoke();
+
+            // Additional logic for successful parry can be added here
+        }
+
+        public void HealHP(float hp)
+        {
+            health += hp;
+
+            //prevents going over max health
+            if (health > maxHealth)
+            {
+                health = maxHealth;
+            }
+        }
+
+        //Grabs the function from the health interface, updates the health count, and updates the health bar
+        public void LoseHP(float damage)
+        {
+            health -= damage;
+        }
+
+        //On death, if this is assigned to the player it will take them to the "Gameover" screen. If it is on any other object however, they will be destroyed.
+        public void OnPlayerDeath()
+        {
+            if (health <= 0)
+            {
+
+            }
         }
     }
 }

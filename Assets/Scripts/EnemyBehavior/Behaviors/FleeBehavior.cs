@@ -1,3 +1,7 @@
+// FleeBehavior.cs
+// Purpose: Behavior for fleeing when low health or overwhelmed. Handles movement away from threat.
+// Works with: BaseEnemy state machine, NavMeshAgent, CrowdController.
+
 using UnityEngine;
 using System.Collections;
 using UnityEngine.AI;

@@ -3,13 +3,17 @@ Written by Brandon Wahl
 
 Allows the player to switch between states, or stances, which changes attack styles
 
+Editted by Will T
+
+
 */
 
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using System;
 using UnityEngine.InputSystem;
+
+using Utilities.Combat;
+
 public class ChangeStance : MonoBehaviour
 {
     [SerializeField] InputActionReference _changeStanceAction;
