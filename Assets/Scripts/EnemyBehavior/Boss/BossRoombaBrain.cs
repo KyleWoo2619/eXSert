@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using Utilities.Combat;
 
 namespace EnemyBehavior.Boss
 {

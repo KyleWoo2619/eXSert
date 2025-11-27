@@ -5,6 +5,7 @@
 
 using UnityEngine;
 using System.Collections;
+using Utilities.Combat;
 
 namespace Behaviors
 {
