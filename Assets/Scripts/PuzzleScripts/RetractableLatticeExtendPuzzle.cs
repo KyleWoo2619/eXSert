@@ -1,28 +1,33 @@
-using System;
+/*
+    Written by Brandon Wahl
+
+    This script handles the extension and retraction of the lattice catwalks in the hangar level.
+    This script will move both the platform and the lattice (magnet) parts smoothly over time.
+
+*/
 using System.Collections;
 using UnityEngine;
 
 public class RetractableLatticeExtendPuzzle : MonoBehaviour, IPuzzleInterface
 {
+    #region Platform Variables
     [Header("Platform Variables")]
     [SerializeField] private GameObject platform;
-    [Tooltip("How long (in seconds) the extension should take")][SerializeField] private float platformLerpDuration = 0.5f;
     [Tooltip("Offset to apply to the platform when extending (local space). Set Z negative to move back, positive to move forward.")][SerializeField] private Vector3 platformExtendOffset = new Vector3(0f, 0f, -5f);
-    [Tooltip("If true, compute platform duration from `platformSpeed` (units/sec) instead of using `lerpDuration`")][SerializeField] private bool usePlatformSpeed = false;
-    [Tooltip("Platform movement speed in world units per second (used when `usePlatformSpeed` is true)")][SerializeField] private float platformSpeed = 5f;
+    [Tooltip("Platform movement speed in world units per second (used to compute duration as distance/speed). If <=0, falls back to `platformLerpDuration`")][SerializeField] private float platformSpeed = 5f;
     private Vector3 platformStartPos;
     private Vector3 platformTargetPos;
     private float platformDuration = 0.5f;
     protected Vector3 platformOrigin;
+    #endregion
 
     [Space(20)]
-
+    
+    #region Lattice Variables
     [Header("Lattice (Magnet) Variables")]
     [SerializeField] private GameObject magnetOne;
-    [SerializeField] private GameObject magnetTwo;  
-    [Tooltip("How long each lattice part should take to move")][SerializeField] private float latticeLerpDuration = 0.25f;
-    [Tooltip("If true, compute lattice durations from `latticeSpeed` units per second instead of using `latticeLerpDuration`")][SerializeField] private bool useLatticeSpeed = false;
-    [Tooltip("Lattice (magnet) movement speed in local units per second (used when `useLatticeSpeed` is true)")][SerializeField] private float latticeSpeed = 2f;
+    [SerializeField] private GameObject magnetTwo;
+    [Tooltip("Lattice (magnet) movement speed in local units per second (used to compute duration as distance/speed)")][SerializeField] private float latticeSpeed = 2f;
     [SerializeField] private Vector3 latticeExtendOffset = new Vector3(0f, 5f, 0f);
     private Vector3 magnetOneStartPos;
     private Vector3 magnetOneTargetPos;
@@ -33,8 +38,11 @@ public class RetractableLatticeExtendPuzzle : MonoBehaviour, IPuzzleInterface
 
     protected Vector3 magnetOneOrigin;
     protected Vector3 magnetTwoOrigin;
+    #endregion
 
     private bool isExtending = false;
+
+    public bool isCompleted { get; set; }
 
     private void Awake()
     {
@@ -44,8 +52,6 @@ public class RetractableLatticeExtendPuzzle : MonoBehaviour, IPuzzleInterface
         magnetTwoOrigin = magnetTwo != null ? magnetTwo.transform.position : Vector3.zero;
     }
 
-    public bool isCompleted { get; set; }
-
     public void StartPuzzle()
     {
         // Prepare start/target positions
@@ -53,7 +59,7 @@ public class RetractableLatticeExtendPuzzle : MonoBehaviour, IPuzzleInterface
         magnetOneStartPos = magnetOneOrigin;
         magnetTwoStartPos = magnetTwoOrigin;
 
-        // Compute world-space target using platform's transform to respect orientation
+        // Compute world-space target using each respective object's transform to respect orientation
         if (platform != null)
             platformTargetPos = platformStartPos + platform.transform.TransformDirection(platformExtendOffset);
         else
@@ -71,20 +77,20 @@ public class RetractableLatticeExtendPuzzle : MonoBehaviour, IPuzzleInterface
 
         // compute durations from speeds if requested
         float platformDist = Vector3.Distance(platformStartPos, platformTargetPos);
-        platformDuration = (usePlatformSpeed && platformSpeed > 0f) ? platformDist / platformSpeed : platformLerpDuration;
+        platformDuration = (platformSpeed > 0f) ? platformDist / platformSpeed : 0.5f;
 
-        magnetOneDuration = 0f;
+        magnetOneDuration = 0f; 
         if (magnetOne != null)
         {
-            float m1dist = Vector3.Distance(magnetOneStartPos, magnetOneTargetPos);
-            magnetOneDuration = (useLatticeSpeed && latticeSpeed > 0f) ? m1dist / latticeSpeed : latticeLerpDuration;
+            float m1dist = Vector3.Distance(magnetOneStartPos, magnetOneTargetPos); // Distance magnet one needs to travel
+            magnetOneDuration = (latticeSpeed > 0f) ? m1dist / latticeSpeed : 0.25f; // How long it should take magnet one to travel
         }
 
         magnetTwoDuration = 0f;
         if (magnetTwo != null)
         {
-            float m2dist = Vector3.Distance(magnetTwoStartPos, magnetTwoTargetPos);
-            magnetTwoDuration = (useLatticeSpeed && latticeSpeed > 0f) ? m2dist / latticeSpeed : latticeLerpDuration;
+            float m2dist = Vector3.Distance(magnetTwoStartPos, magnetTwoTargetPos); // Distance magnet two needs to travel
+            magnetTwoDuration = (latticeSpeed > 0f) ? m2dist / latticeSpeed : 0.25f; // How long it should take magnet two to travel
         }
 
         // Start smooth extension coroutine (do not flip isCompleted here; coroutine will set it)
@@ -109,35 +115,36 @@ public class RetractableLatticeExtendPuzzle : MonoBehaviour, IPuzzleInterface
 
             // compute durations from speeds if requested
             float platformDist = Vector3.Distance(platformStartPos, platformTargetPos);
-            platformDuration = (usePlatformSpeed && platformSpeed > 0f) ? platformDist / platformSpeed : platformLerpDuration;
+            platformDuration = (platformSpeed > 0f) ? platformDist / platformSpeed : 0.5f;
 
             magnetOneDuration = 0f;
             if (magnetOne != null)
             {
                 float m1dist = Vector3.Distance(magnetOneStartPos, magnetOneTargetPos);
-                magnetOneDuration = (useLatticeSpeed && latticeSpeed > 0f) ? m1dist / latticeSpeed : latticeLerpDuration;
+                magnetOneDuration = (latticeSpeed > 0f) ? m1dist / latticeSpeed : 0.25f;
             }
 
             magnetTwoDuration = 0f;
             if (magnetTwo != null)
             {
                 float m2dist = Vector3.Distance(magnetTwoStartPos, magnetTwoTargetPos);
-                magnetTwoDuration = (useLatticeSpeed && latticeSpeed > 0f) ? m2dist / latticeSpeed : latticeLerpDuration;
+                magnetTwoDuration = (latticeSpeed > 0f) ? m2dist / latticeSpeed : 0.25f;
             }
 
-            // Start smooth retraction coroutine (do not flip isCompleted here; coroutine will set it)
+            // Start smooth retraction coroutine
             StopAllCoroutines();
             StartCoroutine(ExtendLatticeParts());
         }
     }
 
+    #region Coroutines
     private IEnumerator ExtendPlatform()
     {
-        // Animate platform
+
         if (platform == null)
             yield break;
 
-        // compute platform duration based on speed if requested (computed earlier in StartPuzzle)
+        // compute platform duration based on speed if requested
         float pDur = platformDuration;
 
         // if duration is <= 0, snap and finish
@@ -167,7 +174,7 @@ public class RetractableLatticeExtendPuzzle : MonoBehaviour, IPuzzleInterface
         if (magnetOne == null && magnetTwo == null)
             yield break;
 
-        // compute magnet durations based on speeds if requested (computed earlier in StartPuzzle)
+        // compute magnet durations based on speeds if requested
         float m1 = magnetOneDuration;
         float m2 = magnetTwoDuration;
 
@@ -179,26 +186,34 @@ public class RetractableLatticeExtendPuzzle : MonoBehaviour, IPuzzleInterface
             yield break;
         }
 
-        // animate simultaneously using per-magnet durations (use max to drive the loop)
-        float maxDur = Mathf.Max(m1 > 0f ? m1 : 0f, m2 > 0f ? m2 : 0f);
-        if (maxDur <= 0f) maxDur = 0.0001f;
+        // animate simultaneously using per-magnet durations, use max to drive the loop
+        float maxDur = Mathf.Max(m1 > 0f ? m1 : 0f, m2 > 0f ? m2 : 0f); // Assign max duration based on which magnet takes longer
+        if (maxDur <= 0f) maxDur = 0.0001f; // Assign small value to avoid division by zero
+
         isExtending = true;
         float elapsedMag = 0f;
+
+        // Loop until the longest duration is reached
         while (elapsedMag < maxDur)
         {
-            float t1 = (m1 > 0f) ? Mathf.Clamp01(elapsedMag / m1) : 1f;
-            float t2 = (m2 > 0f) ? Mathf.Clamp01(elapsedMag / m2) : 1f;
+            float t1 = (m1 > 0f) ? Mathf.Clamp01(elapsedMag / m1) : 1f; // Calculates for t (duration of lerp) for magnet one
+            float t2 = (m2 > 0f) ? Mathf.Clamp01(elapsedMag / m2) : 1f; // Calculates for t (duration of lerp) for magnet two
+
             if (magnetOne != null)
                 magnetOne.transform.position = Vector3.Lerp(magnetOneStartPos, magnetOneTargetPos, t1);
             if (magnetTwo != null)
                 magnetTwo.transform.position = Vector3.Lerp(magnetTwoStartPos, magnetTwoTargetPos, t2);
+
             elapsedMag += Time.deltaTime;
+
             yield return null;
         }
 
         // Ensure final position
-        if (magnetOne != null) magnetOne.transform.position = magnetOneTargetPos;
-        if (magnetTwo != null) magnetTwo.transform.position = magnetTwoTargetPos;
+        if (magnetOne != null) 
+            magnetOne.transform.position = magnetOneTargetPos;
+        if (magnetTwo != null) 
+            magnetTwo.transform.position = magnetTwoTargetPos;
         isExtending = false;
     }
 
@@ -219,15 +234,17 @@ public class RetractableLatticeExtendPuzzle : MonoBehaviour, IPuzzleInterface
             yield break;
         }
 
-        // animate simultaneously using per-magnet durations (use max to drive the loop)
-        float maxDur = Mathf.Max(m1 > 0f ? m1 : 0f, m2 > 0f ? m2 : 0f);
-        if (maxDur <= 0f) maxDur = 0.0001f;
+        // animate simultaneously using per-magnet durations
+        float maxDur = Mathf.Max(m1 > 0f ? m1 : 0f, m2 > 0f ? m2 : 0f); // Assign max duration based on which magnet takes longer
+        if (maxDur <= 0f) maxDur = 0.0001f; // Assign small value to avoid division by zero
         isExtending = true;
         float elapsedMag = 0f;
+        
+        // Loop until the longest duration is reached
         while (elapsedMag < maxDur)
         {
-            float t1 = (m1 > 0f) ? Mathf.Clamp01(elapsedMag / m1) : 1f;
-            float t2 = (m2 > 0f) ? Mathf.Clamp01(elapsedMag / m2) : 1f;
+            float t1 = (m1 > 0f) ? Mathf.Clamp01(elapsedMag / m1) : 1f; // Calculates for t (duration of lerp) for magnet one
+            float t2 = (m2 > 0f) ? Mathf.Clamp01(elapsedMag / m2) : 1f; // Calculates for t (duration of lerp) for magnet two
             if (magnetOne != null)
                 magnetOne.transform.position = Vector3.Lerp(magnetOneStartPos, magnetOneTargetPos, t1);
             if (magnetTwo != null)
@@ -272,6 +289,7 @@ public class RetractableLatticeExtendPuzzle : MonoBehaviour, IPuzzleInterface
         isExtending = false;
     }
 
+    // Master coroutine to extend or retract all parts in sequence
     IEnumerator ExtendLatticeParts()
     {
         if (!isCompleted)
@@ -295,4 +313,5 @@ public class RetractableLatticeExtendPuzzle : MonoBehaviour, IPuzzleInterface
             yield break;
         }
     }
+    #endregion
 }
