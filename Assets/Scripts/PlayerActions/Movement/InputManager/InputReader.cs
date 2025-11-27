@@ -191,6 +191,29 @@ public class InputReader : Singleton<InputReader>
     }
 
     /// <summary>
+    /// Static method to assign a new PlayerInput instance.
+    /// For compatibility with existing code that calls InputReader.AssignPlayerInput().
+    /// </summary>
+    /// <param name="newPlayerInput">The PlayerInput to assign.</param>
+    public static void AssignPlayerInput(PlayerInput newPlayerInput)
+    {
+        if (Instance == null)
+        {
+            Debug.LogError("InputReader: Instance not available, cannot assign PlayerInput!");
+            return;
+        }
+
+        if (newPlayerInput == null)
+        {
+            Debug.LogError("InputReader: Cannot assign null PlayerInput!");
+            return;
+        }
+
+        Debug.Log("InputReader: Assigning new PlayerInput instance via AssignPlayerInput().");
+        Instance.RebindTo(newPlayerInput, switchToGameplay: true);
+    }
+
+    /// <summary>
     /// Rebind this InputReader to a new PlayerInput instance (e.g., after scene restart or player respawn).
     /// Safely swaps action references and ensures the correct action map is active.
     /// </summary>
