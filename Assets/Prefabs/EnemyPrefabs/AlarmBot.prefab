@@ -104,6 +104,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5dd5948de7b894b4fb287c43f3717175, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AlarmCarrierEnemy
+  behaviorProfile: {fileID: 11400000, guid: fa55e8723891e564b8c7bd0268999be5, type: 2}
   agent: {fileID: 0}
   currentState: 0
   maxHealth: 100
@@ -121,6 +122,13 @@ MonoBehaviour:
   attackActiveDuration: 0.5
   showAttackGizmo: 1
   healthBarPrefab: {fileID: 2629286879049192775, guid: 9345af66964a7d64489a46ae511c793b, type: 3}
+  enableAntiStuck: 1
+  stuckSpeedThreshold: 0.05
+  stuckSeconds: 0.9
+  sidestepDistance: 1
+  backoffDistance: 1.5
+  reliefSampleRadius: 1
+  reliefCooldownSeconds: 1.5
   healthBarInstance: {fileID: 0}
   attackCollider: {fileID: 0}
   isAttackBoxActive: 0

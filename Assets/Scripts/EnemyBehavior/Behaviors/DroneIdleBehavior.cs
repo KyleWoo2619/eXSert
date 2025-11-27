@@ -1,3 +1,7 @@
+// DroneIdleBehavior.cs
+// Purpose: Idle behavior for drones within a swarm, optionally triggers relocation.
+// Works with: DroneSwarmManager, DroneRelocateBehavior.
+
 using Behaviors;
 using UnityEngine;
 

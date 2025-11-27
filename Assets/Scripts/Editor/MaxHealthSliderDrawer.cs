@@ -1,3 +1,7 @@
+// MaxHealthSliderDrawer.cs
+// Purpose: Drawer for MaxHealthSliderAttribute to render the slider in the inspector.
+// Works with: MaxHealthSliderAttribute.
+
 using UnityEditor;
 using UnityEngine;
 

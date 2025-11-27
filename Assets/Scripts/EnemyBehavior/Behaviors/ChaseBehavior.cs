@@ -1,5 +1,10 @@
+// ChaseBehavior.cs
+// Purpose: Behavior module implementing Chase logic: pursuit and attack-range checks.
+// Works with: BaseEnemy state machine, PathRequestManager for pathing, NavMeshAgent movement.
+
 using UnityEngine;
 using System.Collections;
+using UnityEngine.AI;
 
 namespace Behaviors
 {
@@ -16,12 +21,9 @@ namespace Behaviors
             this.enemy = enemy;
             playerTarget = enemy.PlayerTarget;
 
-            Debug.Log($"{enemy.gameObject.name}: ChaseBehavior.OnEnter - PlayerTarget: {(playerTarget != null ? playerTarget.name : "NULL")}, Agent: {(enemy.agent != null ? "EXISTS" : "NULL")}, Agent Enabled: {(enemy.agent != null ? enemy.agent.enabled.ToString() : "N/A")}");
-
             // Special handling for BaseCrawlerEnemy with ForceChasePlayer
             if (enemy is BaseCrawlerEnemy crawler && crawler.ForceChasePlayer)
             {
-                Debug.Log($"{crawler.gameObject.name}: Using ForceChasePlayer mode");
                 if (crawler.PlayerTarget != null && crawler.agent != null && crawler.agent.enabled)
                 {
                     crawler.agent.isStopped = false;
@@ -34,15 +36,14 @@ namespace Behaviors
 
                 // Still run the blob chase coroutine to allow transitions (attack, flee, etc.)
                 chaseCoroutine = crawler.StartCoroutine(CrawlerChaseBlob(crawler));
-                Debug.Log($"{crawler.gameObject.name}: Started CrawlerChaseBlob coroutine");
                 return;
             }
 
             if (playerTarget != null && enemy.agent != null && enemy.agent.enabled)
             {
                 enemy.agent.isStopped = false;
+                // First tick toward player; loop will maintain pursuit
                 enemy.agent.SetDestination(playerTarget.position);
-                Debug.Log($"{enemy.gameObject.name}: Set initial destination to {playerTarget.position}");
             }
 
             enemy.SetEnemyColor(enemy.chaseColor);
@@ -52,15 +53,9 @@ namespace Behaviors
 
             // Use blob chase for crawlers, default for others
             if (enemy is BaseCrawlerEnemy baseCrawler)
-            {
                 chaseCoroutine = enemy.StartCoroutine(CrawlerChaseBlob(baseCrawler));
-                Debug.Log($"{baseCrawler.gameObject.name}: Started CrawlerChaseBlob coroutine");
-            }
             else
-            {
                 chaseCoroutine = enemy.StartCoroutine(DefaultChasePlayerLoop());
-                Debug.Log($"{enemy.gameObject.name}: Started DefaultChasePlayerLoop coroutine");
-            }
         }
 
         public virtual void OnExit(BaseEnemy<TState, TTrigger> enemy)
@@ -77,19 +72,9 @@ namespace Behaviors
         // Blob chase for crawlers
         private IEnumerator CrawlerChaseBlob(BaseCrawlerEnemy crawler)
         {
-            while (crawler.enemyAI.State.Equals(CrawlerEnemyState.Chase))
+            Transform player = crawler.PlayerTarget;
+            while (crawler.enemyAI.State.Equals(CrawlerEnemyState.Chase) && player != null)
             {
-                // Re-acquire player target each frame (handles DontDestroyOnLoad)
-                Transform player = crawler.PlayerTarget;
-                
-                if (player == null)
-                {
-                    Debug.LogWarning($"{crawler.gameObject.name}: Lost player target during chase!");
-                    yield break;
-                }
-                
-                Debug.Log($"{crawler.gameObject.name}: Chasing '{player.name}' at position {player.position} | My position: {crawler.transform.position} | Distance: {Vector3.Distance(crawler.transform.position, player.position):F2}");
-                
                 // Move as a blob toward the player, apply separation
                 if (crawler.agent != null && crawler.agent.enabled)
                 {
@@ -133,35 +118,21 @@ namespace Behaviors
             }
         }
 
-        // Original chase logic for non-crawlers
+        // Chase logic for non-crawlers
         private IEnumerator DefaultChasePlayerLoop()
         {
-            Debug.Log($"{enemy.gameObject.name}: DefaultChasePlayerLoop started!");
-            
-            // Get the "Chase" state enum value for the current enemy type
-            TState chaseState = GetChaseState();
-            
-            while (enemy.enemyAI.State.Equals(chaseState))
+            // A generous threshold to leave chase if the player is far (fallback when no explicit detection range available here)
+            const float losePlayerDistance = 25f;
+
+            while (enemy.enemyAI.State.ToString().Equals("Chase") && playerTarget != null)
             {
-                // Re-acquire player target each frame (handles DontDestroyOnLoad)
-                if (playerTarget == null || enemy.PlayerTarget != playerTarget)
+                if (enemy.agent != null && enemy.agent.enabled)
                 {
-                    playerTarget = enemy.PlayerTarget;
-                    Debug.Log($"{enemy.gameObject.name}: Acquired new player target: {(playerTarget != null ? playerTarget.name : "NULL")}");
+                    MoveToAttackRange(playerTarget);
                 }
-                
-                if (playerTarget == null)
-                {
-                    Debug.LogWarning($"{enemy.gameObject.name}: Lost player target during chase!");
-                    yield break;
-                }
-                
+
                 float attackRange = (Mathf.Max(enemy.attackBoxSize.x, enemy.attackBoxSize.z) * 0.5f) + enemy.attackBoxDistance;
                 float distance = Vector3.Distance(enemy.transform.position, playerTarget.position);
-
-                // Debug.Log($"{enemy.gameObject.name}: Chasing '{playerTarget.name}' at position {playerTarget.position} | My position: {enemy.transform.position} | Distance: {distance:F2}");
-
-                MoveToAttackRange(playerTarget);
 
                 if (distance <= attackRange)
                 {
@@ -169,42 +140,74 @@ namespace Behaviors
                     yield break;
                 }
 
+                if (distance >= losePlayerDistance)
+                {
+                    enemy.TryFireTriggerByName("LosePlayer");
+                    yield break;
+                }
+
                 yield return null;
             }
         }
-        
-        // Helper method to get the Chase state for the current enemy type
-        private TState GetChaseState()
-        {
-            // Try to parse "Chase" as the generic TState enum
-            if (System.Enum.TryParse(typeof(TState), "Chase", out object result))
-            {
-                return (TState)result;
-            }
-            
-            // Fallback: return default value (should never happen if enum has "Chase")
-            Debug.LogError($"ChaseBehavior: Could not find 'Chase' state in enum {typeof(TState).Name}");
-            return default(TState);
-        }
 
+        // Picks an approach point around the player at the desired reach and avoids obstacle corners
         private void MoveToAttackRange(Transform player)
         {
-            // Get direction from enemy to player
-            Vector3 direction = (player.position - enemy.transform.position).normalized;
+            if (enemy.agent == null) return;
 
-            // Calculate reach: half the box's depth (z) plus the offset distance in front of the enemy
-            // Subtract a small buffer to move a little closer
-            // This is to prevent stopping just before the attack box edge
+            // Desired radial distance from player to stand at before attacking
             float chaseBuffer = 0.2f;
             float reach = (Mathf.Max(enemy.attackBoxSize.x, enemy.attackBoxSize.z) * 0.5f) + enemy.attackBoxDistance - chaseBuffer;
+            reach = Mathf.Max(0.1f, reach);
 
-            // Position the enemy so the player is just inside the front face of the attack box
-            Vector3 targetPosition = player.position - direction * reach;
+            Vector3 toPlayer = player.position - enemy.transform.position; toPlayer.y = 0f;
+            Vector3 baseDir = toPlayer.sqrMagnitude < 0.001f ? enemy.transform.forward : toPlayer.normalized;
 
-            // Keep the target position at the same Y as the enemy (for ground-based movement)
-            targetPosition.y = enemy.transform.position.y;
+            // Try candidates around an arc near the facing direction: 0, ±20, ±40, ±60 degrees
+            float[] angles = new float[] { 0f, 20f, -20f, 40f, -40f, 60f, -60f };
+            Vector3 best = Vector3.zero;
+            bool found = false;
+            for (int i = 0; i < angles.Length; i++)
+            {
+                Vector3 dir = Quaternion.AngleAxis(angles[i], Vector3.up) * baseDir;
+                Vector3 candidate = player.position - dir * reach;
+                candidate.y = enemy.transform.position.y;
 
-            enemy.agent.SetDestination(targetPosition);
+                // Snap to closest navmesh point near candidate
+                if (!NavMesh.SamplePosition(candidate, out var hit, 1.0f, NavMesh.AllAreas))
+                    continue;
+
+                // Prefer straight clear ray on navmesh between current and candidate
+                if (!NavMesh.Raycast(enemy.transform.position, hit.position, out var navHit, NavMesh.AllAreas))
+                {
+                    best = hit.position;
+                    found = true;
+                    break;
+                }
+
+                // Keep first valid sample as fallback
+                if (!found)
+                {
+                    best = hit.position;
+                    found = true;
+                }
+            }
+
+            if (!found)
+            {
+                // Final fallback: head directly to player's sampled position
+                if (NavMesh.SamplePosition(player.position, out var phit, 1.5f, NavMesh.AllAreas))
+                {
+                    best = phit.position;
+                    found = true;
+                }
+            }
+
+            if (found)
+            {
+                enemy.agent.isStopped = false;
+                enemy.agent.SetDestination(best);
+            }
         }
         public void Tick(BaseEnemy<TState, TTrigger> enemy)
         {

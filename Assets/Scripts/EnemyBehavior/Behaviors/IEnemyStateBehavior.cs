@@ -1,3 +1,7 @@
+// IEnemyStateBehavior.cs
+// Purpose: Interface for state-machine-driven behavior modules (OnEnter/OnExit/Tick) used by state behaviors.
+// Works with: BaseEnemy state machine and specific behavior implementations.
+
 namespace Behaviors
 {
     public interface IEnemyStateBehavior<TState, TTrigger>

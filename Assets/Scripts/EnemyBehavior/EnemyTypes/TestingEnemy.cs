@@ -56,7 +56,7 @@ public class TestingEnemy : BaseEnemy<EnemyState, EnemyTrigger>
         attackBehavior = new AttackBehavior<EnemyState, EnemyTrigger>();
         deathBehavior = new DeathBehavior<EnemyState, EnemyTrigger>();
 
-        Debug.Log($"{gameObject.name} Awake called");
+        //Debug.Log($"{gameObject.name} Awake called");
 
         // Find the player by tag (if not set elsewhere)
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
@@ -68,10 +68,10 @@ public class TestingEnemy : BaseEnemy<EnemyState, EnemyTrigger>
     {
         InitializeStateMachine(EnemyState.Idle);
         ConfigureStateMachine();
-        Debug.Log($"{gameObject.name} State machine initialized");
+        //Debug.Log($"{gameObject.name} State machine initialized");
         if (enemyAI.State.Equals(EnemyState.Idle))
         {
-            Debug.Log($"{gameObject.name} Manually calling OnEnterIdle for initial Idle state");
+            //Debug.Log($"{gameObject.name} Manually calling OnEnterIdle for initial Idle state");
             idleBehavior.OnEnter(this);
         }
 
@@ -89,7 +89,7 @@ public class TestingEnemy : BaseEnemy<EnemyState, EnemyTrigger>
     {
         base.ConfigureStateMachine();
 
-        Debug.Log($"{gameObject.name} ConfigureStateMachine called");
+        //Debug.Log($"{gameObject.name} ConfigureStateMachine called");
         EnemyStateMachineConfig.ConfigureBasic(enemyAI); // ConfigureBasic is a static helper method to set up the default states and triggers
                                                          // It would not be used again in this derived class if you had custom states/triggers
                                                          // Add more transitions specific to this enemy if needed
@@ -97,7 +97,7 @@ public class TestingEnemy : BaseEnemy<EnemyState, EnemyTrigger>
         // --- IDLE STATE ---
         enemyAI.Configure(EnemyState.Idle)
             .OnEntry(() => {
-                Debug.Log($"{gameObject.name} OnEntry lambda for Idle called");
+                //Debug.Log($"{gameObject.name} OnEntry lambda for Idle called");
                 idleBehavior.OnEnter(this);
             })
             .OnExit(() => idleBehavior.OnExit(this));

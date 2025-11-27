@@ -364,6 +364,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3e4f4e000cbfb5340a49a23b174a5d9f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BoxerEnemy
+  behaviorProfile: {fileID: 11400000, guid: d2e853ab50c464443a710c0b310088df, type: 2}
   agent: {fileID: 0}
   currentState: 0
   maxHealth: 100
@@ -381,6 +382,13 @@ MonoBehaviour:
   attackActiveDuration: 0.5
   showAttackGizmo: 1
   healthBarPrefab: {fileID: 0}
+  enableAntiStuck: 1
+  stuckSpeedThreshold: 0.05
+  stuckSeconds: 0.9
+  sidestepDistance: 1
+  backoffDistance: 1.5
+  reliefSampleRadius: 1
+  reliefCooldownSeconds: 1.5
   healthBarInstance: {fileID: 0}
   attackCollider: {fileID: 0}
   isAttackBoxActive: 0

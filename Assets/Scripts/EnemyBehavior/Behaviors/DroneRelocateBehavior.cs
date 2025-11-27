@@ -1,3 +1,7 @@
+// DroneRelocateBehavior.cs
+// Purpose: Handles drone relocation logic within a swarm, integrates with pathing.
+// Works with: PathRequestManager, DroneSwarmManager.
+
 using Behaviors;
 using UnityEngine;
 using System.Collections;
