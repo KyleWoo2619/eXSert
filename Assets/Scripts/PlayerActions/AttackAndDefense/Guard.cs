@@ -12,6 +12,8 @@ Manages the player's ability to guard
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+using Utilities.Combat;
+
 public class Guard : MonoBehaviour
 {
     [Header("Input")]

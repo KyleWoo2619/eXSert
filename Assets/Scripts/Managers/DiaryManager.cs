@@ -38,21 +38,12 @@ public class DiaryManager : Singleton<DiaryManager>
         }
     }
 
-    //This function will be used so the findLog function can change the state of the log to true, it will then store the data of the log
-    private void ChangeTheStateOfDiary(string id, DiarySO diary)
-    {
-        Diaries diaries = GetDiaryById(id);
-        diaries.info.isFound = diary.isFound;
-        EventsManager.Instance.diaryEvents.DiaryStateChange(diaries);
-        diaries.StoreDiaryState(id, diary);
-    }
-
-    //Changes the state of the log and if it is Found, it will turn isLogFound true
+    //Changes the state of the diary and if it is Found, it will turn isDiaryFound truetrue
     private void FindDiary(string id)
     {
-        Debug.Log("Found Log: " + id);
         Diaries diaries = GetDiaryById(id);
-        ChangeTheStateOfDiary(diaries.info.diaryID, diaries.info);
+        diaries.info.isFound = true;
+        EventsManager.Instance.diaryEvents.DiaryStateChange(diaries);
     }
 
     //This dictionary will hold all the unique log entries and ensure there is no dupes

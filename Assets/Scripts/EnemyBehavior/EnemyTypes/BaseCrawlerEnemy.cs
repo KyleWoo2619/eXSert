@@ -1,3 +1,8 @@
+// BaseCrawlerEnemy.cs
+// Purpose: Base class for crawler-type enemies (ground-based) providing movement and crawler-specific behaviors.
+// Works with: BaseEnemy, NavMeshAgent, CrowdController, EnemyStateMachineConfig.
+// Notes: Extend to implement crawler-specific OnHit and movement.
+
 using UnityEngine;
 using Behaviors;
 using System.Collections;

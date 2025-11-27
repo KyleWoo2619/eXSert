@@ -5,6 +5,8 @@
  */
 using UnityEngine;
 using System.Collections;
+using Utilities.Combat.Attacks;
+using Utilities.Combat.Attacks.Combos;
 
 public class ComboManager : Singletons.Singleton<ComboManager>
 {

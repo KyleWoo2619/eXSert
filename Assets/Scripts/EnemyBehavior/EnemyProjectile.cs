@@ -1,3 +1,7 @@
+// EnemyProjectile.cs
+// Purpose: Base projectile logic for enemy-fired projectiles, handles movement and collision damage.
+// Works with: Turret weapons, ExplosiveEnemyProjectile, player hit detection.
+
 using UnityEngine;
 using System.Collections;
 

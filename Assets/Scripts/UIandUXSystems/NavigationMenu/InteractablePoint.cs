@@ -9,6 +9,8 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using UnityEngine.ProBuilder.Shapes;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -30,7 +32,7 @@ public class InteractablePoint : MonoBehaviour
 {
     [SerializeField] private bool showHitbox = false;
 
-    public enum InteractType { Log, Diary, Puzzle, Item }
+    public enum InteractType { Log, Diary, Puzzle, Item, Door }
 
     [Header("Interactable Entry")]
     [SerializeField] private InteractType interactType;
@@ -64,12 +66,13 @@ public class InteractablePoint : MonoBehaviour
 
     private void Update()
     {
-        // Use Update (per-frame) for action.triggered checks so Input System callbacks aren't missed
         OnInteractButtonPressed();
     }
 
     private void Awake()
     {
+        this.GetComponent<Collider>().isTrigger = true;
+
         // gets ID based on type
         if (interactType == InteractType.Log)
         {
@@ -152,22 +155,35 @@ public class InteractablePoint : MonoBehaviour
     {
         if (playerIsNear && !interacted)
         {
+            DoorHandler doorHandler = GetComponent<DoorHandler>();
+
             if(_interactAction != null && _interactAction.action != null && _interactAction.action.triggered)
             {
                 Debug.Log($"Interact pressed on {gameObject.name} (id={collectibleId})");
+
+                if(interactType == InteractType.Door)
+                {
+                    if(doorHandler != null)
+                        doorHandler.Interact();
+                }
 
                 if (interactType == InteractType.Log)
                 {
                     var logSO = collectibleInfo as NavigationLogSO;
                     logSO.isFound = true;
                     Debug.Log("Log triggered");
-
+                    
+                    // Trigger event to add log to scrolling list
+                    EventsManager.Instance.logEvents.FoundLog(collectibleId);
                 }
                 else if (interactType == InteractType.Diary)
                 {
                     var diarySO = collectibleInfo as DiarySO;
                     diarySO.isFound = true;
                     Debug.Log("Diary triggered");
+                    
+                    // Trigger event to add diary to scrolling list
+                    EventsManager.Instance.diaryEvents.FoundDiary(collectibleId);
                 }
                 else if (interactType == InteractType.Puzzle)
                 {
@@ -214,9 +230,14 @@ public class InteractablePoint : MonoBehaviour
                     InternalPlayerInventory.Instance.AddCollectible(collectibleId);
                 }
 
-                if(interactType != InteractType.Puzzle) //If it is a puzzle you should be able to interact again later
+                
+
+                if(interactType != InteractType.Puzzle && interactType != InteractType.Door) //If it is a puzzle you should be able to interact again later
                 {
-                    interractableText.gameObject.SetActive(false); // Once the gameobject is off the text stays, so it is turned off here
+                    
+                    
+
+                     // Once the gameobject is off the text stays, so it is turned off here
                      // mark interacted so triggers won't re-show the prompt
                     interacted = true;
 
@@ -225,14 +246,19 @@ public class InteractablePoint : MonoBehaviour
                     if (col != null) col.enabled = false;
 
                     // Always hide the gamepad icon after interaction regardless of control scheme
-                    if (interactGamePadIcon != null)
-                        interactGamePadIcon.gameObject.SetActive(false);
+                    
 
                     // Attempt to deactivate the whole gameobject. If something else re-enables it later,
                     // the interacted bool prevents it from showing again.
                     Debug.Log($"Disabling interactable {gameObject.name}");
                     this.gameObject.SetActive(false); // Makes the interactable point disappear after interaction
+
+                    if (interactGamePadIcon != null)
+                    interactGamePadIcon.gameObject.SetActive(false);
+                    interractableText.gameObject.SetActive(false);
                 }
+
+                
             }
         }
     }
@@ -288,8 +314,10 @@ public class InteractablePoint : MonoBehaviour
     {
         if(showHitbox)
         {
+            Gizmos.matrix = transform.localToWorldMatrix;
             Gizmos.color = Color.red;
-            Gizmos.DrawWireCube(transform.position, GetComponent<BoxCollider>().size);
+            BoxCollider box = GetComponent<BoxCollider>();
+            Gizmos.DrawWireCube(box.center, box.size);
         }
     }
 }
