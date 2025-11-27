@@ -1,4 +1,5 @@
 using UnityEngine;
+using Utilities.Combat;
 
 namespace EnemyBehavior.Boss
 {
