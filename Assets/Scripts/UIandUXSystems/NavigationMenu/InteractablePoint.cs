@@ -54,6 +54,8 @@ public class InteractablePoint : MonoBehaviour
     
     [ShowIfCollectible]
     [SerializeField] private string collectibleId;
+
+    [SerializeField] private GameObject reactionObject;
     // Mark that this interactable has already been used to prevent re-showing
     private bool interacted = false;
 
@@ -72,6 +74,7 @@ public class InteractablePoint : MonoBehaviour
     private void Awake()
     {
         this.GetComponent<Collider>().isTrigger = true;
+
 
         // gets ID based on type
         if (interactType == InteractType.Log)
@@ -93,7 +96,13 @@ public class InteractablePoint : MonoBehaviour
         {
             Debug.LogWarning("No interaction animation assigned to InteractablePoint at " + this.gameObject.name);
         }
-        
+
+        //Temporary if statement for Brandon to address later
+        if (interactType != InteractType.Door) 
+        {
+            reactionObject = null;
+        }
+
         //Standardize collectible ID
         collectibleId = collectibleId.Trim().ToLowerInvariant();
 
@@ -155,7 +164,7 @@ public class InteractablePoint : MonoBehaviour
     {
         if (playerIsNear && !interacted)
         {
-            DoorHandler doorHandler = GetComponent<DoorHandler>();
+            DoorHandler doorHandler = reactionObject.GetComponent<DoorHandler>();
 
             if(_interactAction != null && _interactAction.action != null && _interactAction.action.triggered)
             {
