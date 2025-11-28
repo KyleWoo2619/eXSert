@@ -27,6 +27,8 @@ public class ShowIfItemAttribute : PropertyAttribute { }
 // Attribute to show field for Log, Diary, or Item types
 public class ShowIfCollectibleAttribute : PropertyAttribute { }    
 
+public class ShowIfDoorAttribute : PropertyAttribute { }  
+
 [RequireComponent(typeof(BoxCollider))]
 public class InteractablePoint : MonoBehaviour
 {
@@ -54,6 +56,9 @@ public class InteractablePoint : MonoBehaviour
     
     [ShowIfCollectible]
     [SerializeField] private string collectibleId;
+
+    [ShowIfDoor]
+    [SerializeField] private GameObject doorComponent; // Only shows when InteractType is Door
     // Mark that this interactable has already been used to prevent re-showing
     private bool interacted = false;
 
@@ -72,6 +77,7 @@ public class InteractablePoint : MonoBehaviour
     private void Awake()
     {
         this.GetComponent<Collider>().isTrigger = true;
+
 
         // gets ID based on type
         if (interactType == InteractType.Log)
@@ -93,13 +99,12 @@ public class InteractablePoint : MonoBehaviour
         {
             Debug.LogWarning("No interaction animation assigned to InteractablePoint at " + this.gameObject.name);
         }
-        
+
         //Standardize collectible ID
         collectibleId = collectibleId.Trim().ToLowerInvariant();
 
         // Will hide the text on start
         interractableText.gameObject.SetActive(false);
-
 
         interactGamePadIcon.gameObject.SetActive(false);
 
@@ -155,7 +160,7 @@ public class InteractablePoint : MonoBehaviour
     {
         if (playerIsNear && !interacted)
         {
-            DoorHandler doorHandler = GetComponent<DoorHandler>();
+            DoorHandler doorHandler = doorComponent.GetComponent<DoorHandler>();
 
             if(_interactAction != null && _interactAction.action != null && _interactAction.action.triggered)
             {
@@ -450,4 +455,36 @@ public class ShowIfCollectibleDrawer : PropertyDrawer
         return 0;
     }
 }
+
+[CustomPropertyDrawer(typeof(ShowIfDoorAttribute))]
+public class ShowIfDoorDrawer : PropertyDrawer
+{
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+    {
+        var parent = property.serializedObject.targetObject as InteractablePoint;
+        if (parent != null)
+        {
+            var interactTypeField = property.serializedObject.FindProperty("interactType");
+            if (interactTypeField != null && interactTypeField.enumValueIndex == 4) // 4 = Door
+            {
+                EditorGUI.PropertyField(position, property, label);
+            }
+        }
+    }
+
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+    {
+        var parent = property.serializedObject.targetObject as InteractablePoint;
+        if (parent != null)
+        {
+            var interactTypeField = property.serializedObject.FindProperty("interactType");
+            if (interactTypeField != null && interactTypeField.enumValueIndex == 4) // 4 = Door
+            {
+                return EditorGUI.GetPropertyHeight(property);
+            }
+        }
+        return 0;
+    }
+}
+
 #endif
