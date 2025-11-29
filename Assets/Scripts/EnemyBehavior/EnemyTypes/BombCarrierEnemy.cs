@@ -479,12 +479,14 @@ public class BombCarrierEnemy : BaseEnemy<BombStates, BombTriggers>, IPocketSpaw
         // Arrived at pocket, return to inactive
         Pocket.ReturnEnemyToInactive(this);
     }
-    protected virtual void OnDestroy()
+    protected override void OnDestroy()
     {
         if (Pocket != null)
         {
             Pocket.RemoveFromActiveLists(this);
         }
+
+        base.OnDestroy();
     }
 
 

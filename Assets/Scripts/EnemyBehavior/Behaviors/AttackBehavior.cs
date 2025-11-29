@@ -158,6 +158,7 @@ namespace Behaviors
                         DealDamageToPlayerOnce(playerCollider);
 
                         didAttack = true;
+                        enemy.TriggerAttackAnimation();
                     }
                     else
                     {

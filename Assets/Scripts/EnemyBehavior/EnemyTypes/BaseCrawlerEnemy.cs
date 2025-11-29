@@ -6,6 +6,7 @@
 using UnityEngine;
 using Behaviors;
 using System.Collections;
+using System.Collections.Generic;
 
 #region States and Triggers
 public enum CrawlerEnemyState
@@ -43,8 +44,14 @@ public class BaseCrawlerEnemy : BaseEnemy<CrawlerEnemyState, CrawlerEnemyTrigger
 
     private Coroutine bombAvoidanceBurstCoroutine;
     private Coroutine horseshoeReturnCoroutine;
+    private Coroutine waitForSwarmManagerCoroutine;
+    private Coroutine ensureChaseCoroutine;
 
     private bool wasBombAvoiding = false;
+
+    [Header("IK / Helper Roots")]
+    [SerializeField, Tooltip("Any helper GameObjects (like IK targets) that live outside this crawler's root. They will be destroyed with this crawler to prevent orphaned references.")]
+    private List<GameObject> helperRootsToCleanup = new();
 
     [Header("Swarm Behavior")]
     [SerializeField, Tooltip("If false, this crawler ignores swarm behavior and acts independently.")]
@@ -56,6 +63,11 @@ public class BaseCrawlerEnemy : BaseEnemy<CrawlerEnemyState, CrawlerEnemyTrigger
     protected override void Awake()
     {
         base.Awake();
+
+        foreach (var helper in helperRootsToCleanup)
+        {
+            RegisterExternalHelper(helper);
+        }
 
         // Get or add required behaviors
         ambushBehavior = new AmbushBehavior<CrawlerEnemyState, CrawlerEnemyTrigger>();
@@ -92,6 +104,9 @@ public class BaseCrawlerEnemy : BaseEnemy<CrawlerEnemyState, CrawlerEnemyTrigger
         if (bombAvoidanceBurstCoroutine != null)
             StopCoroutine(bombAvoidanceBurstCoroutine);
         bombAvoidanceBurstCoroutine = StartCoroutine(BombAvoidanceBurst());
+
+        ensureChaseCoroutine = StartCoroutine(EnsureChaseIfNoPocket());
+        TryAutoRegisterWithSwarmManager();
     }
 
     private IEnumerator BombAvoidanceBurst()
@@ -111,6 +126,8 @@ public class BaseCrawlerEnemy : BaseEnemy<CrawlerEnemyState, CrawlerEnemyTrigger
         if (bombAvoidanceBurstCoroutine != null)
             StopCoroutine(bombAvoidanceBurstCoroutine);
         bombAvoidanceBurstCoroutine = StartCoroutine(BombAvoidanceBurst());
+
+        TryAutoRegisterWithSwarmManager();
     }
 
     protected virtual void OnDisable()
@@ -118,6 +135,14 @@ public class BaseCrawlerEnemy : BaseEnemy<CrawlerEnemyState, CrawlerEnemyTrigger
         // Optionally stop the coroutine when disabled
         if (bombAvoidanceBurstCoroutine != null)
             StopCoroutine(bombAvoidanceBurstCoroutine);
+
+        if (waitForSwarmManagerCoroutine != null)
+        {
+            StopCoroutine(waitForSwarmManagerCoroutine);
+            waitForSwarmManagerCoroutine = null;
+        }
+
+        UnregisterFromSwarmManager();
     }
 
     protected virtual void LateUpdate()
@@ -136,7 +161,7 @@ public class BaseCrawlerEnemy : BaseEnemy<CrawlerEnemyState, CrawlerEnemyTrigger
         int count = 0;
 
         // Only apply separation if swarm behavior is enabled
-        if (enableSwarmBehavior)
+        if (enableSwarmBehavior && SwarmManager.Instance != null)
         {
             foreach (var other in SwarmManager.Instance.GetActiveCrawlers())
             {
@@ -277,7 +302,11 @@ public class BaseCrawlerEnemy : BaseEnemy<CrawlerEnemyState, CrawlerEnemyTrigger
     {
         // Ambush: Cluster near pocket, prepare to swarm
         enemyAI.Configure(CrawlerEnemyState.Ambush)
-            .OnEntry(() => ambushBehavior?.OnEnter(this))
+            .OnEntry(() =>
+            {
+                ambushBehavior?.OnEnter(this);
+                PlayIdleAnim();
+            })
             .OnExit(() => ambushBehavior?.OnExit(this))
             .Permit(CrawlerEnemyTrigger.AmbushReady, CrawlerEnemyState.Swarm)
             .Permit(CrawlerEnemyTrigger.LosePlayer, CrawlerEnemyState.Chase)
@@ -287,7 +316,11 @@ public class BaseCrawlerEnemy : BaseEnemy<CrawlerEnemyState, CrawlerEnemyTrigger
 
         // Swarm: Blob moves toward/surrounds player, attack when close
         enemyAI.Configure(CrawlerEnemyState.Swarm)
-            .OnEntry(() => swarmBehavior?.OnEnter(this))
+            .OnEntry(() =>
+            {
+                swarmBehavior?.OnEnter(this);
+                // Crawlers stay on idle loop while sliding
+            })
             .OnExit(() => swarmBehavior?.OnExit(this))
             .Permit(CrawlerEnemyTrigger.InAttackRange, CrawlerEnemyState.Attack)
             .Permit(CrawlerEnemyTrigger.LosePlayer, CrawlerEnemyState.Chase)
@@ -299,7 +332,11 @@ public class BaseCrawlerEnemy : BaseEnemy<CrawlerEnemyState, CrawlerEnemyTrigger
 
         // Chase: Blob chases player, regroup to swarm when close
         enemyAI.Configure(CrawlerEnemyState.Chase)
-            .OnEntry(() => chaseBehavior?.OnEnter(this))
+            .OnEntry(() =>
+            {
+                chaseBehavior?.OnEnter(this);
+                // No locomotion anim for crawler; keep idle playing
+            })
             .OnExit(() => chaseBehavior?.OnExit(this))
             .Permit(CrawlerEnemyTrigger.InAttackRange, CrawlerEnemyState.Attack)
             .Permit(CrawlerEnemyTrigger.ReachSwarm, CrawlerEnemyState.Swarm)
@@ -310,7 +347,11 @@ public class BaseCrawlerEnemy : BaseEnemy<CrawlerEnemyState, CrawlerEnemyTrigger
 
         // Attack: Attack logic, return to swarm or flee as needed
         enemyAI.Configure(CrawlerEnemyState.Attack)
-            .OnEntry(() => attackBehavior?.OnEnter(this))
+            .OnEntry(() =>
+            {
+                attackBehavior?.OnEnter(this);
+                PlayAttackAnim();
+            })
             .OnExit(() => attackBehavior?.OnExit(this))
             .Permit(CrawlerEnemyTrigger.OutOfAttackRange, CrawlerEnemyState.Swarm)
             .Permit(CrawlerEnemyTrigger.LowHealth, CrawlerEnemyState.Flee)
@@ -321,7 +362,11 @@ public class BaseCrawlerEnemy : BaseEnemy<CrawlerEnemyState, CrawlerEnemyTrigger
 
         // Flee: Retreat to pocket, but allow chasing again if player is seen
         enemyAI.Configure(CrawlerEnemyState.Flee)
-            .OnEntry(() => fleeBehavior?.OnEnter(this))
+            .OnEntry(() =>
+            {
+                fleeBehavior?.OnEnter(this);
+                // Remain on idle pose while sliding away
+            })
             .OnExit(() => fleeBehavior?.OnExit(this))
             .Permit(CrawlerEnemyTrigger.SeePlayer, CrawlerEnemyState.Chase)
             .Permit(CrawlerEnemyTrigger.Die, CrawlerEnemyState.Death)
@@ -363,7 +408,7 @@ public class BaseCrawlerEnemy : BaseEnemy<CrawlerEnemyState, CrawlerEnemyTrigger
 
     public System.Action OnDestroyCallback;
 
-    protected virtual void OnDestroy()
+    protected override void OnDestroy()
     {
         OnDestroyCallback?.Invoke();
 
@@ -379,6 +424,8 @@ public class BaseCrawlerEnemy : BaseEnemy<CrawlerEnemyState, CrawlerEnemyTrigger
         // Use the unregister method
         UnregisterFromSwarmManager();
         OnCrawlerDeathOrReturn?.Invoke(this);
+
+        base.OnDestroy();
     }
 
     protected override void OnTriggerStay(Collider other)
@@ -528,6 +575,57 @@ public class BaseCrawlerEnemy : BaseEnemy<CrawlerEnemyState, CrawlerEnemyTrigger
     {
         yield return null; // Wait one frame
         base.TryFireTriggerByName(CrawlerEnemyTrigger.LosePlayer.ToString());
+    }
+
+    private IEnumerator EnsureChaseIfNoPocket()
+    {
+        // Allow any spawner (like CrawlerPocket) a frame to assign the Pocket reference
+        yield return null;
+
+        if (Pocket == null || !enableSwarmBehavior)
+        {
+            ForceChasePlayer = true;
+            if (enemyAI != null && enemyAI.State == CrawlerEnemyState.Ambush)
+            {
+                enemyAI.Fire(CrawlerEnemyTrigger.LosePlayer);
+            }
+        }
+
+        ensureChaseCoroutine = null;
+    }
+
+    private void TryAutoRegisterWithSwarmManager()
+    {
+        if (!enableSwarmBehavior || _isRegisteredWithSwarmManager)
+            return;
+
+        if (SwarmManager.Instance != null)
+        {
+            RegisterWithSwarmManager();
+        }
+        else if (waitForSwarmManagerCoroutine == null)
+        {
+            waitForSwarmManagerCoroutine = StartCoroutine(WaitForSwarmManagerThenRegister());
+        }
+    }
+
+    private IEnumerator WaitForSwarmManagerThenRegister()
+    {
+        const float timeoutSeconds = 3f;
+        float timer = 0f;
+
+        while (SwarmManager.Instance == null && timer < timeoutSeconds)
+        {
+            timer += Time.deltaTime;
+            yield return null;
+        }
+
+        if (SwarmManager.Instance != null)
+        {
+            RegisterWithSwarmManager();
+        }
+
+        waitForSwarmManagerCoroutine = null;
     }
 
     public void RegisterWithSwarmManager()

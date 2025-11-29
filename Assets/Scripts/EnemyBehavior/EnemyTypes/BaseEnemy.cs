@@ -1,27 +1,15 @@
-// BaseEnemy.cs
-// Purpose: Generic base class for all enemy types. Implements common systems: health, detection, colliders, state machine integration, and optional CrowdAgent registration.
-// Works with: Stateless state machine library, EnemyStateMachineConfig, NavMeshAgent, CrowdController, EnemyBehaviorProfile, HealthBar UI.
-// Notes: Derived classes define their own TState/TTrigger enums and configure the state machine. This file registers a CrowdAgent when available.
-
 using System.Collections;
+using System.Collections.Generic;
 using Stateless;
 using UnityEngine;
 using UnityEngine.AI;
-using EnemyBehavior.Crowd;
 
 // BaseEnemy is generic so derived classes can define their own states and triggers
 public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
- where TState : struct, System.Enum
- where TTrigger : struct, System.Enum
+    where TState : struct, System.Enum
+    where TTrigger : struct, System.Enum
 {
-    [Header("Behavior Profile")]
-    [SerializeField, Tooltip(
-        "ScriptableObject that tunes nav/avoidance/importance and planner hints.\n" +
-        "Assign an asset from Assets > Scripts > EnemyBehavior > Profiles (Create > AI > EnemyBehaviorProfile).\n" +
-        "Values are applied to this enemy's NavMeshAgent on Awake and passed to Crowd/Path systems.")]
-    public EnemyBehaviorProfile behaviorProfile;
-
-    [SerializeField, Tooltip("Reference to the NavMeshAgent attached to this enemy. Serialized so agent settings can be tweaked per-enemy in the Inspector.")]
+    [HideInInspector]
     public NavMeshAgent agent;
     public StateMachine<TState, TTrigger> enemyAI; // StateMachine<StateEnum, TriggerEnum> is from the Stateless library
 
@@ -69,22 +57,6 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     [SerializeField, Tooltip("Prefab for the enemy's health bar UI.")]
     public GameObject healthBarPrefab;
 
-    [Header("Anti-Stuck")] 
-    [SerializeField, Tooltip("Enable a lightweight anti-stuck behavior that side-steps or backs off when velocity is near zero for a short time while having a path.")]
-    private bool enableAntiStuck = true;
-    [SerializeField, Tooltip("Speed (m/s) below which the agent is considered stalled.")]
-    private float stuckSpeedThreshold = 0.05f;
-    [SerializeField, Tooltip("Seconds the agent must remain under the speed threshold before relief kicks in.")]
-    private float stuckSeconds = 0.9f;
-    [SerializeField, Tooltip("Meters to step sideways when attempting relief.")]
-    private float sidestepDistance = 1.0f;
-    [SerializeField, Tooltip("Meters to back off when attempting relief if sidestep is not possible.")]
-    private float backoffDistance = 1.5f;
-    [SerializeField, Tooltip("Radius used with NavMesh.SamplePosition when probing relief points.")]
-    private float reliefSampleRadius = 1.0f;
-    [SerializeField, Tooltip("Cooldown after a relief move before checking for another relief (seconds).")]
-    private float reliefCooldownSeconds = 1.5f;
-
     // Non-serialized fields
     [HideInInspector]
     public EnemyHealthBar healthBarInstance;
@@ -103,6 +75,31 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     //private Vector3 lastZoneCheckPosition;
 
     protected Renderer enemyRenderer;
+    protected Animator animator;
+
+    [Header("External Helper Roots")]
+    [SerializeField, Tooltip("Any helper GameObjects that live outside this enemy's hierarchy (IK targets, FX anchors, etc.). They will be destroyed automatically when this enemy is destroyed.")]
+    private List<GameObject> externalHelperRoots = new();
+
+    [Header("Animation Settings")]
+    [SerializeField, Tooltip("Animator state name used when forcing the idle pose.")]
+    private string idleStateName = "Idle";
+    [SerializeField, Tooltip("Animator state used when no locomotion parameter exists.")]
+    private string locomotionStateName = "Locomotion";
+    [SerializeField, Tooltip("Animator state used as a fallback for attack.")]
+    private string attackStateName = "Attack";
+    [SerializeField, Tooltip("Animator state used as a fallback for hit reactions.")]
+    private string hitStateName = "Hit";
+    [SerializeField, Tooltip("Animator state used as a fallback for death.")]
+    private string dieStateName = "Die";
+    [SerializeField, Tooltip("Animator trigger name for attack (optional).")]
+    private string attackTriggerName = "Attack";
+    [SerializeField, Tooltip("Animator trigger name for hit reactions (optional).")]
+    private string hitTriggerName = "Hit";
+    [SerializeField, Tooltip("Animator trigger name for death (optional).")]
+    private string dieTriggerName = "Die";
+    [SerializeField, Tooltip("Animator float parameter name for locomotion speed (optional).")]
+    private string moveSpeedParameterName = "MoveSpeed";
     [HideInInspector]
     public Color patrolColor = Color.green;
     [HideInInspector]
@@ -119,10 +116,6 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         set => playerTarget = value;
     }
 
-    // Anti-stuck state
-    private float _stuckTimer;
-    private float _reliefUntil;
-
     // Awake is called when the script instance is being loaded
     protected virtual void Awake()
     {
@@ -132,10 +125,6 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
             this.gameObject.AddComponent<NavMeshAgent>();
         }
         agent = this.gameObject.GetComponent<NavMeshAgent>();
-
-        // Apply behavior profile to nav agent if present
-        ApplyBehaviorProfile();
-
         // enemyAI and currentState should be initialized in the derived class
 
         // Detection collider
@@ -152,37 +141,7 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
 
         // Automatically assign the capsule's MeshRenderer
         enemyRenderer = GetComponent<MeshRenderer>();
-
-        // Register with CrowdController as a CrowdAgent if available
-        try
-        {
-            var ca = new CrowdAgent() { Agent = agent, Profile = behaviorProfile };
-            if (CrowdController.Instance != null)
-            {
-                CrowdController.Instance.Register(ca);
-            }
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogWarning("BaseEnemy: failed to register CrowdAgent: " + ex.Message);
-        }
-    }
-
-    protected void ApplyBehaviorProfile()
-    {
-        if (behaviorProfile == null || agent == null) return;
-        // Speed can be randomized within the provided range
-        agent.speed = Random.Range(behaviorProfile.SpeedRange.x, behaviorProfile.SpeedRange.y);
-        agent.acceleration = behaviorProfile.Acceleration;
-        agent.angularSpeed = behaviorProfile.AngularSpeed;
-        agent.stoppingDistance = behaviorProfile.StoppingDistance;
-        // Jitter priority slightly to break symmetrical face-offs in corridors
-        int basePrio = Mathf.Clamp(behaviorProfile.AvoidancePriority, 0, 99);
-        int jittered = Mathf.Clamp(basePrio + Random.Range(-7, 8), 0, 99);
-        agent.avoidancePriority = jittered;
-        agent.autoRepath = true;
-        agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
-        agent.autoBraking = false;
+        animator = GetComponentInChildren<Animator>();
     }
 
     // Helper to initialize the state machine and inspector state
@@ -206,50 +165,9 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     // Update is called once per frame
     protected virtual void Update()
     {
-        // Lightweight anti-stuck relief for narrow corridors
-        if (enableAntiStuck && agent != null && agent.enabled && agent.isOnNavMesh)
-        {
-            if (Time.time >= _reliefUntil && agent.hasPath && agent.remainingDistance > agent.stoppingDistance + 0.05f)
-            {
-                float spd = agent.velocity.magnitude;
-                if (spd < stuckSpeedThreshold)
-                {
-                    _stuckTimer += Time.deltaTime;
-                    if (_stuckTimer >= stuckSeconds)
-                    {
-                        TryStuckRelief();
-                        _stuckTimer = 0f;
-                        _reliefUntil = Time.time + reliefCooldownSeconds;
-                    }
-                }
-                else
-                {
-                    _stuckTimer = 0f;
-                }
-            }
-        }
-    }
-
-    private void TryStuckRelief()
-    {
-        if (agent == null) return;
-        Vector3 pos = agent.transform.position;
-        Vector3 dir = agent.desiredVelocity.sqrMagnitude > 0.001f ? agent.desiredVelocity.normalized : agent.transform.forward;
-        Vector3 perp = Vector3.Cross(Vector3.up, dir).normalized;
-
-        Vector3[] probes = new Vector3[3];
-        probes[0] = pos + perp * sidestepDistance; // left
-        probes[1] = pos - perp * sidestepDistance; // right
-        probes[2] = pos - dir * backoffDistance;   // back
-
-        for (int i = 0; i < probes.Length; i++)
-        {
-            if (NavMesh.SamplePosition(probes[i], out NavMeshHit hit, reliefSampleRadius, NavMesh.AllAreas))
-            {
-                agent.SetDestination(hit.position);
-                return;
-            }
-        }
+        // Not sure if Update will be needed in the base class
+        // but it is here if we need it later
+        // Trying to not use it as much as possible for performance reasons
     }
 
     // --- PASSIVE MOVEMENT AND BEHAVIOR METHODS ---
@@ -259,9 +177,133 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
             enemyRenderer.material.color = color;
     }
 
+    // --- ANIMATION API ---
+    protected virtual void PlayIdleAnim()
+    {
+        PlayState(idleStateName);
+    }
+
+    protected void RegisterExternalHelper(GameObject helper)
+    {
+        if (helper == null)
+            return;
+
+        if (!externalHelperRoots.Contains(helper))
+            externalHelperRoots.Add(helper);
+    }
+
+    protected void UnregisterExternalHelper(GameObject helper)
+    {
+        if (helper == null)
+            return;
+
+        externalHelperRoots.Remove(helper);
+    }
+
+    private void CleanupExternalHelpers()
+    {
+        foreach (var helper in externalHelperRoots)
+        {
+            if (helper != null)
+                Destroy(helper);
+        }
+        externalHelperRoots.Clear();
+    }
+
+    protected virtual void OnDestroy()
+    {
+        CleanupExternalHelpers();
+    }
+
+    protected virtual void PlayLocomotionAnim(float moveSpeed)
+    {
+        if (animator == null)
+            return;
+
+        if (!string.IsNullOrEmpty(moveSpeedParameterName) && AnimatorHasParameter(moveSpeedParameterName, AnimatorControllerParameterType.Float))
+        {
+            animator.SetFloat(moveSpeedParameterName, moveSpeed);
+        }
+        else
+        {
+            PlayState(locomotionStateName);
+        }
+    }
+
+    protected virtual void PlayAttackAnim()
+    {
+        if (!TrySetTrigger(attackTriggerName))
+        {
+            PlayState(attackStateName);
+        }
+    }
+
+    protected virtual void PlayHitAnim()
+    {
+        if (!TrySetTrigger(hitTriggerName))
+        {
+            PlayState(hitStateName);
+        }
+    }
+
+    protected virtual void PlayDieAnim()
+    {
+        if (!TrySetTrigger(dieTriggerName))
+        {
+            PlayState(dieStateName);
+        }
+    }
+
+    private bool TrySetTrigger(string triggerName)
+    {
+        if (animator == null || string.IsNullOrEmpty(triggerName))
+            return false;
+
+        if (!AnimatorHasParameter(triggerName, AnimatorControllerParameterType.Trigger))
+            return false;
+
+        animator.ResetTrigger(triggerName);
+        animator.SetTrigger(triggerName);
+        return true;
+    }
+
+    private bool AnimatorHasParameter(string parameterName, AnimatorControllerParameterType type)
+    {
+        if (animator == null || string.IsNullOrEmpty(parameterName))
+            return false;
+
+        foreach (var parameter in animator.parameters)
+        {
+            if (parameter.type == type && parameter.name == parameterName)
+                return true;
+        }
+        return false;
+    }
+
+    private void PlayState(string stateName)
+    {
+        if (animator == null || string.IsNullOrEmpty(stateName))
+            return;
+
+        animator.Play(stateName, 0, 0f);
+    }
+
+    public virtual void TriggerAttackAnimation()
+    {
+        PlayAttackAnim();
+    }
+
+    protected virtual void OnDamageTaken(float amount)
+    {
+        if (currentHealth > 0f)
+        {
+            PlayHitAnim();
+        }
+    }
+
     public virtual void UpdateCurrentZone()
     {
-        //Debug.Log($"{gameObject.name} Updating current zone.");
+        Debug.Log($"{gameObject.name} Updating current zone.");
         Zone[] zones = Object.FindObjectsByType<Zone>(FindObjectsSortMode.None);
         foreach (var zone in zones)
         {
@@ -284,7 +326,17 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     // LoseHP is called to apply damage to the enemy
     public void LoseHP(float damage)
     {
+        if (damage <= 0f)
+            return;
+
+        float previousHealth = currentHealth;
         SetHealth(currentHealth - damage);
+
+        float actualDamage = Mathf.Max(0f, previousHealth - currentHealth);
+        if (actualDamage > 0f)
+        {
+            OnDamageTaken(actualDamage);
+        }
     }
 
     // HealHP is called to restore health (used by RecoverBehavior)
@@ -396,8 +448,7 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
             if (detectionCollider != null && detectionCollider.enabled && detectionCollider.bounds.Contains(other.transform.position))
             {
                 // Only fire SeePlayer if not already in Chase
-                // Use string comparison to avoid generic enum casting issues in the base class
-                if (!enemyAI.State.ToString().Equals("Chase"))
+                if (!enemyAI.State.Equals((TState)System.Enum.Parse(typeof(TState), "Chase")))
                 {
                     TryFireTriggerByName("SeePlayer");
                 }
@@ -449,58 +500,58 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
 #region States and Triggers
 public enum EnemyState
 {
- Idle, // My idea is that when in Idle, the enemy is moving around a section of the map (zone)
- // so it is idle in the sense that it is not actively searching for the player
+    Idle,           // My idea is that when in Idle, the enemy is moving around a section of the map (zone)
+                    // so it is idle in the sense that it is not actively searching for the player
 
- Relocate, // Relocate is a substate of Patrol where the enemy moves to a new area or waypoint
- // before transitioning to Idle. This could be used when the enemy loses sight of the player
- // and needs to move to a different location to search.
+    Relocate,       // Relocate is a substate of Patrol where the enemy moves to a new area or waypoint
+                    // before transitioning to Idle. This could be used when the enemy loses sight of the player
+                    // and needs to move to a different location to search.
 
- Patrol, // Patrol is the main state where the enemy is actively moving from zone to zone.
- // It contains the shared trigger of seeing the player to transition to Chase.
+    Patrol,         // Patrol is the main state where the enemy is actively moving from zone to zone.
+                    // It contains the shared trigger of seeing the player to transition to Chase.
 
- Reinforcements, // This state would be used when another enemy calls for help
+    Reinforcements, // This state would be used when another enemy calls for help
 
- Chase, // Chase is when the enemy has detected the player and is actively pursuing them.
+    Chase,          // Chase is when the enemy has detected the player and is actively pursuing them.
 
- Attack, // Attack is when the enemy is in range to attack the player.
+    Attack,         // Attack is when the enemy is in range to attack the player.
 
- Flee, // Flee is when the enemy is low on health and tries to escape from the player.
+    Flee,           // Flee is when the enemy is low on health and tries to escape from the player.
 
- Fled, // Fled is when the enemy has successfully escaped (out of attack range) and is no longer in immediate danger.
+    Fled,           // Fled is when the enemy has successfully escaped (out of attack range) and is no longer in immediate danger.
 
- Recover, // Recover is when the enemy is regaining health passively while idle.
+    Recover,        // Recover is when the enemy is regaining health passively while idle.
 
- Death // Death is when the enemy has been defeated and is no longer active.
+    Death           // Death is when the enemy has been defeated and is no longer active.
 }
 
 public enum EnemyTrigger
 {
- SeePlayer, // Within a certain detection radius or line of sight
+    SeePlayer,         // Within a certain detection radius or line of sight
 
- LosePlayer, // Out of detection radius or line of sight for a certain time
+    LosePlayer,        // Out of detection radius or line of sight for a certain time
 
- AidRequested, // Another enemy has called for help
+    AidRequested,      // Another enemy has called for help
 
- FailedAid, // The aid request was unsuccessful (e.g., arrived and player was gone)
- // It would start a timer to relocate after a certain time after arriving if no player is seen
+    FailedAid,         // The aid request was unsuccessful (e.g., arrived and player was gone)
+                       // It would start a timer to relocate after a certain time after arriving if no player is seen
 
- LowHealth, // I was thinking LowHealth would be like20-25% of max health
+    LowHealth,         // I was thinking LowHealth would be like 20-25% of max health
 
- RecoveredHealth, // We discussed whether or not enemies should have passive health regen
- // I think it could be interesting if they do, but it should be slow and only while idle
- // So I am including functionality for it for now
+    RecoveredHealth,   // We discussed whether or not enemies should have passive health regen
+                       // I think it could be interesting if they do, but it should be slow and only while idle
+                       // So I am including functionality for it for now
 
- InAttackRange, // These ranges are based on the enemy's attack range, and not the player's
- OutOfAttackRange, // Therefore, they may need to be adjusted for how they interact with fleeing behavior
+    InAttackRange,     // These ranges are based on the enemy's attack range, and not the player's
+    OutOfAttackRange,  // Therefore, they may need to be adjusted for how they interact with fleeing behavior
 
- ReachZone, // Reached the new zone after relocating
+    ReachZone,         // Reached the new zone after relocating
 
- IdleTimerElapsed, // Timer for how long the enemy has been idle before relocating
+    IdleTimerElapsed,  // Timer for how long the enemy has been idle before relocating
 
- Attacked, // The enemy has been attacked by the player
+    Attacked,           // The enemy has been attacked by the player
 
- Die // The enemy has been defeated
+    Die                 // The enemy has been defeated
 }
 #endregion
 // Static class to hold shared (default) state machine configurations
@@ -509,65 +560,65 @@ public enum EnemyTrigger
 // Derived enemy classes will handle OnEntry/OnExit actions in their own ConfigureStateMachine method
 public static class EnemyStateMachineConfig
 {
- public static void ConfigureBasic(StateMachine<EnemyState, EnemyTrigger> sm)
- {
- sm.Configure(EnemyState.Idle)
- .SubstateOf(EnemyState.Patrol) // Idle is a substate of Patrol
- .Permit(EnemyTrigger.LowHealth, EnemyState.Recover) // Only in Idle will it transition to Recover
- .Permit(EnemyTrigger.IdleTimerElapsed, EnemyState.Relocate); // After some time in Idle, it relocates
- // My idea is that it would be more dynamic
- // if the enemy moved around from zone to zone
- // instead of just standing still in one spot
+    public static void ConfigureBasic(StateMachine<EnemyState, EnemyTrigger> sm)
+    {
+        sm.Configure(EnemyState.Idle)
+            .SubstateOf(EnemyState.Patrol) // Idle is a substate of Patrol
+            .Permit(EnemyTrigger.LowHealth, EnemyState.Recover) // Only in Idle will it transition to Recover
+            .Permit(EnemyTrigger.IdleTimerElapsed, EnemyState.Relocate); // After some time in Idle, it relocates
+                                                                         // My idea is that it would be more dynamic
+                                                                         // if the enemy moved around from zone to zone
+                                                                         // instead of just standing still in one spot
 
- sm.Configure(EnemyState.Relocate)
- .SubstateOf(EnemyState.Patrol) // Relocate is a substate of Patrol
- .Permit(EnemyTrigger.ReachZone, EnemyState.Idle); // Once it reaches the new zone, it goes to Idle
+        sm.Configure(EnemyState.Relocate)
+            .SubstateOf(EnemyState.Patrol) // Relocate is a substate of Patrol
+            .Permit(EnemyTrigger.ReachZone, EnemyState.Idle); // Once it reaches the new zone, it goes to Idle
 
- sm.Configure(EnemyState.Patrol)
- .Permit(EnemyTrigger.SeePlayer, EnemyState.Chase) // Shared trigger to Chase from Patrol
- .Permit(EnemyTrigger.AidRequested, EnemyState.Reinforcements) // Shared trigger to call for reinforcements from Patrol
- .Permit(EnemyTrigger.Attacked, EnemyState.Chase); // If attacked while patrolling, it chases the player
+        sm.Configure(EnemyState.Patrol)
+            .Permit(EnemyTrigger.SeePlayer, EnemyState.Chase) // Shared trigger to Chase from Patrol
+            .Permit(EnemyTrigger.AidRequested, EnemyState.Reinforcements) // Shared trigger to call for reinforcements from Patrol
+            .Permit(EnemyTrigger.Attacked, EnemyState.Chase); // If attacked while patrolling, it chases the player
 
- sm.Configure(EnemyState.Reinforcements)
- .Permit(EnemyTrigger.SeePlayer, EnemyState.Chase) // Shared trigger to Chase from Reinforcements
- .Permit(EnemyTrigger.FailedAid, EnemyState.Relocate); // If the aid request fails, it relocates
+        sm.Configure(EnemyState.Reinforcements)
+            .Permit(EnemyTrigger.SeePlayer, EnemyState.Chase) // Shared trigger to Chase from Reinforcements
+            .Permit(EnemyTrigger.FailedAid, EnemyState.Relocate); // If the aid request fails, it relocates
 
- sm.Configure(EnemyState.Chase)
- .Permit(EnemyTrigger.LosePlayer, EnemyState.Relocate) // If it loses the player, it relocates
- .Permit(EnemyTrigger.InAttackRange, EnemyState.Attack); // If it gets in range, it attacks
+        sm.Configure(EnemyState.Chase)
+            .Permit(EnemyTrigger.LosePlayer, EnemyState.Relocate) // If it loses the player, it relocates
+            .Permit(EnemyTrigger.InAttackRange, EnemyState.Attack); // If it gets in range, it attacks
 
- sm.Configure(EnemyState.Attack)
- .Permit(EnemyTrigger.OutOfAttackRange, EnemyState.Chase); // If the player moves out of range, it chases again
- //.Permit(EnemyTrigger.LowHealth, EnemyState.Flee); // If low on health, it flees
- // Commented out until fleeing behavior is functional, or if we even want to use it at all
+        sm.Configure(EnemyState.Attack)
+            .Permit(EnemyTrigger.OutOfAttackRange, EnemyState.Chase); // If the player moves out of range, it chases again
+            //.Permit(EnemyTrigger.LowHealth, EnemyState.Flee);  // If low on health, it flees
+            // Commented out until fleeing behavior is functional, or if we even want to use it at all
 
- sm.Configure(EnemyState.Flee) // This state can be used for unique fleeing behavior like calling for reinforcements or defensive manuevers
- .Permit(EnemyTrigger.OutOfAttackRange, EnemyState.Fled); // Once out of range, it goes to Fled
+        sm.Configure(EnemyState.Flee) // This state can be used for unique fleeing behavior like calling for reinforcements or defensive manuevers
+            .Permit(EnemyTrigger.OutOfAttackRange, EnemyState.Fled); // Once out of range, it goes to Fled
 
- sm.Configure(EnemyState.Fled)
- .Permit(EnemyTrigger.InAttackRange, EnemyState.Flee) // If the player comes back into range, it goes back to Flee
- .Permit(EnemyTrigger.LosePlayer, EnemyState.Relocate); // If it loses the player while fleeing, it relocates
+        sm.Configure(EnemyState.Fled)
+            .Permit(EnemyTrigger.InAttackRange, EnemyState.Flee) // If the player comes back into range, it goes back to Flee
+            .Permit(EnemyTrigger.LosePlayer, EnemyState.Relocate); // If it loses the player while fleeing, it relocates
 
- sm.Configure(EnemyState.Recover) // Essentially the same as Idle but with health regen, maybe no movement at all
- .SubstateOf(EnemyState.Patrol) // Recover is a substate of Patrol
- .Permit(EnemyTrigger.RecoveredHealth, EnemyState.Idle); // Once it recovers health, it goes back to Idle
+        sm.Configure(EnemyState.Recover)  // Essentially the same as Idle but with health regen, maybe no movement at all
+            .SubstateOf(EnemyState.Patrol) // Recover is a substate of Patrol
+            .Permit(EnemyTrigger.RecoveredHealth, EnemyState.Idle); // Once it recovers health, it goes back to Idle
 
- // Permit Die from any state except Death itself
- foreach (EnemyState state in System.Enum.GetValues(typeof(EnemyState)))
- {
- if (state != EnemyState.Death)
- {
- sm.Configure(state)
- .Permit(EnemyTrigger.Die, EnemyState.Death);
- }
- else
- {
- sm.Configure(state)
- .Ignore(EnemyTrigger.Die);
- }
- }
+        // Permit Die from any state except Death itself
+        foreach (EnemyState state in System.Enum.GetValues(typeof(EnemyState)))
+        {
+            if (state != EnemyState.Death)
+            {
+                sm.Configure(state)
+                    .Permit(EnemyTrigger.Die, EnemyState.Death);
+            }
+            else
+            {
+                sm.Configure(state)
+                    .Ignore(EnemyTrigger.Die);
+            }
+        }
 
- // Configure Death state (no outgoing transitions)
- sm.Configure(EnemyState.Death);
- }
+        // Configure Death state (no outgoing transitions)
+        sm.Configure(EnemyState.Death);
+    }
 }
