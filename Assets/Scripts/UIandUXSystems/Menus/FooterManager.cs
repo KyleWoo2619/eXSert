@@ -10,6 +10,7 @@ public class FooterManager : MonoBehaviour
     [SerializeField] internal GameObject IndividualLogUI;
     [SerializeField] internal GameObject IndividualDiaryUI;
     [SerializeField] internal GameObject overlayUI;
+    [SerializeField] internal GameObject ActsUI;
 
     public void CheckForFooterUpdate()
     {
@@ -33,6 +34,11 @@ public class FooterManager : MonoBehaviour
         {
             footerText.text = "Return to Diary";
         }
+        else if (ActsUI.activeSelf)
+        {
+            footerText.text = "Explore Previous Acts";
+        }
+
     }
 
     private void Update()
