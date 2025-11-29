@@ -162,7 +162,7 @@ public class DisableAndEnableMenus : MonoBehaviour
             return;
         }
 
-        if (IsActive(footer.logHolderUI))
+        if (IsActive(footer.logHolderUI) && !IsActive(footer.IndividualLogUI))
         {
             SafeSetActive(footer.logHolderUI, false);
             SafeSetActive(footer.mainNavigationMenuHolderUI, true);
@@ -176,21 +176,23 @@ public class DisableAndEnableMenus : MonoBehaviour
             return;
         }
 
-        if (IsActive(footer.IndividualDiaryUI) && IsActive(footer.diaryHolderUI))
+        if (IsActive(footer.IndividualDiaryUI))
         {
             SafeSetActive(footer.IndividualDiaryUI, false);
+            SafeSetActive(footer.overlayUI, false);
             return;
         }
 
         if (IsActive(footer.IndividualLogUI))
         {
             SafeSetActive(footer.IndividualLogUI, false);
-            SafeSetActive(footer.logHolderUI, true);
+            SafeSetActive(footer.overlayUI, false);
             return;
         }
 
         // if nothing matched, ensure main navigation is visible
         SafeSetActive(footer.mainNavigationMenuHolderUI, true);
+        SafeSetActive(footer.overlayUI, false);
     }
 
 // Custom Property Drawers

@@ -14,7 +14,7 @@ public class LogUI : MonoBehaviour
     [SerializeField] private GameObject contentParent;
     [SerializeField] private LogScrollingList scrollingList;
     [SerializeField] private TMP_Text logName;
-    [SerializeField] private TMP_Text logDescription;
+    [SerializeField] private GameObject logDescription;
     [SerializeField] private TMP_Text logLocation;
     [SerializeField] private TMP_Text logId_Date;
     [SerializeField] private Image logImage;
@@ -44,7 +44,7 @@ public class LogUI : MonoBehaviour
     private void SetLogInfo(Logs log)
     {
         logName.text = log.info.logName;
-        logDescription.text = log.info.logDescription;
+        logDescription.GetComponent<TMP_Text>().text = log.info.logDescription;
         logLocation.text = log.info.locationFound;
         logId_Date.text = log.info.logID;
         logImage.sprite = log.info.logImage.sprite;

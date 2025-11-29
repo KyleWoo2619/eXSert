@@ -16,14 +16,9 @@ public class LogButton : MonoBehaviour, ISelectHandler
     private UnityAction onSelectAction;
     public Button button { get; private set; }
     private MenuEventSystemHandler logUI;
-    private Image iconImage;
-
-    // Expose read-only access to the icon Image so other classes can set/inspect its sprite
-    public Image IconImage => iconImage;
 
     private void Awake()
     {
-        iconImage = GameObject.FindWithTag("LogImage").GetComponent<Image>();
 
         this.button = this.GetComponent<Button>();
         
@@ -92,6 +87,15 @@ public class LogButton : MonoBehaviour, ISelectHandler
     //Hides Menus
     public void hideMenuOnClick()
     {
+
+        GameObject overlayParent = GameObject.FindGameObjectWithTag("Overlay");
+        if (overlayParent != null)
+        {
+            Transform child = overlayParent.transform.GetChild(0);
+            child.gameObject.SetActive(true);
+        } else {
+            Debug.LogError("GameObject with tag 'Overlay' not found");
+        }
 
         GameObject parent = GameObject.FindGameObjectWithTag("IndividualLogMenu");
         if (parent != null)

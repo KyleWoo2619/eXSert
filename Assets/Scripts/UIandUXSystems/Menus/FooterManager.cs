@@ -9,6 +9,7 @@ public class FooterManager : MonoBehaviour
     [SerializeField] internal GameObject mainNavigationMenuHolderUI;
     [SerializeField] internal GameObject IndividualLogUI;
     [SerializeField] internal GameObject IndividualDiaryUI;
+    [SerializeField] internal GameObject overlayUI;
 
     public void CheckForFooterUpdate()
     {
