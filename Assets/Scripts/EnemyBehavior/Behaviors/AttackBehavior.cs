@@ -128,6 +128,7 @@ namespace Behaviors
                 try
                 {
                     Vector3 boxCenter = enemy.transform.position + enemy.transform.forward * enemy.attackBoxDistance;
+                    boxCenter += Vector3.up * enemy.attackBoxHeightOffset;
                     Vector3 boxHalfExtents = enemy.attackBoxSize * 0.5f;
                     Quaternion boxRotation = enemy.transform.rotation;
 

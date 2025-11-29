@@ -46,6 +46,8 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     public Vector3 attackBoxSize = new Vector3(2f, 2f, 2f);
     [SerializeField, Tooltip("Distance in front of the enemy where the attack box is positioned.")]
     public float attackBoxDistance = 1.5f;
+    [SerializeField, Tooltip("Vertical offset (in meters) applied to the attack box center.")]
+    public float attackBoxHeightOffset = 0f;
     [SerializeField, Tooltip("Time in seconds between attacks (attack cooldown).")]
     public float attackInterval = 1.0f;
     [SerializeField, Tooltip("Time in seconds the attack box is enabled (attack active duration).")]
@@ -136,7 +138,7 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         attackCollider = gameObject.AddComponent<BoxCollider>();
         attackCollider.isTrigger = true;
         attackCollider.size = attackBoxSize;
-        attackCollider.center = new Vector3(0f, 0f, attackBoxDistance);
+        attackCollider.center = new Vector3(0f, attackBoxHeightOffset, attackBoxDistance);
         attackCollider.enabled = false; // Default off
 
         // Automatically assign the capsule's MeshRenderer
@@ -473,6 +475,7 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         {
             Gizmos.color = new Color(1f, 0.2f, 0.2f, 0.3f); // Red, semi-transparent
             Vector3 boxCenter = transform.position + transform.forward * attackBoxDistance;
+            boxCenter += Vector3.up * attackBoxHeightOffset;
             Gizmos.matrix = Matrix4x4.TRS(boxCenter, transform.rotation, Vector3.one);
             Gizmos.DrawWireCube(Vector3.zero, attackBoxSize);
             Gizmos.color = new Color(1f, 0.2f, 0.2f, 0.1f);
@@ -492,7 +495,7 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         if (attackCollider != null)
         {
             attackCollider.size = attackBoxSize;
-            attackCollider.center = new Vector3(0f, 0f, attackBoxDistance);
+            attackCollider.center = new Vector3(0f, attackBoxHeightOffset, attackBoxDistance);
         }
     }
 }
