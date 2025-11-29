@@ -122,6 +122,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "SwapMenus",
+                    "type": "Button",
+                    "id": "0c11f1e3-08aa-48e1-ac23-f3ca57779be7",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -507,6 +516,28 @@
                     "processors": "",
                     "groups": "",
                     "action": "EscapePuzzle",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "95b5378d-738a-4c33-891b-08ab45fde785",
+                    "path": "<XInputController>/rightShoulder",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "SwapMenus",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "67759e80-2c92-4d9b-a152-33d2b6d0663b",
+                    "path": "<Keyboard>/alt",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "SwapMenus",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

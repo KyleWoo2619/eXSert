@@ -160,114 +160,132 @@ public class InteractablePoint : MonoBehaviour
     {
         if (playerIsNear && !interacted)
         {
-            DoorHandler doorHandler = doorComponent.GetComponent<DoorHandler>();
-
             if(_interactAction != null && _interactAction.action != null && _interactAction.action.triggered)
             {
                 Debug.Log($"Interact pressed on {gameObject.name} (id={collectibleId})");
 
-                if(interactType == InteractType.Door)
+                switch (interactType)
                 {
-                    if(doorHandler != null)
-                        doorHandler.Interact();
+                    case InteractType.Log:
+                        LogInteract();
+                        break;
+                    case InteractType.Diary:
+                        DiaryInteract();
+                        break;
+                    case InteractType.Puzzle:
+                        PuzzleInteract();
+                        break;
+                    case InteractType.Item:
+                        ItemInteract();
+                        break;
+                    case InteractType.Door:
+                        DoorInteract();
+                        break;
+                    default:
+                        Debug.LogError("Unhandled InteractType: " + interactType);
+                        break;
                 }
-
-                if (interactType == InteractType.Log)
-                {
-                    var logSO = collectibleInfo as NavigationLogSO;
-                    logSO.isFound = true;
-                    Debug.Log("Log triggered");
-                    
-                    // Trigger event to add log to scrolling list
-                    EventsManager.Instance.logEvents.FoundLog(collectibleId);
-                }
-                else if (interactType == InteractType.Diary)
-                {
-                    var diarySO = collectibleInfo as DiarySO;
-                    diarySO.isFound = true;
-                    Debug.Log("Diary triggered");
-                    
-                    // Trigger event to add diary to scrolling list
-                    EventsManager.Instance.diaryEvents.FoundDiary(collectibleId);
-                }
-                else if (interactType == InteractType.Puzzle)
-                {
-                    if (puzzleHandler == null)
-                    {
-                        Debug.LogError($"puzzleHandler is NULL on {gameObject.name}. Assign it in the inspector.");
-                    }
-                        else
-                        {
-                            var puzzleHandlerComponent = puzzleHandler.GetComponent<PuzzleHandler>();
-                            if (puzzleHandlerComponent == null)
-                            {
-                                Debug.LogError($"PuzzleHandler component not found on {puzzleHandler.name}.");
-                            }
-                            else
-                            {
-                                if (InternalPlayerInventory.Instance == null)
-                                {
-                                    Debug.LogError("InternalPlayerInventory.Instance is null");
-                                }
-                                else
-                                {
-                                    bool has = InternalPlayerInventory.Instance.collectedInteractables.Contains(puzzleHandlerComponent.puzzleIDNeeded);
-                                    Debug.Log($"Inventory contains required id: {has}");
-                                    if (has)
-                                    {
-                                        try
-                                        {
-                                            puzzleHandlerComponent.ActivatePuzzle();
-                                            Debug.Log("Puzzle triggered");
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            Debug.LogError($"Exception while activating puzzle on {puzzleHandler.name}: {ex}");
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                }
-                else if (interactType == InteractType.Item)
-                {
-                    Debug.Log($"{collectibleId} found!");
-                    InternalPlayerInventory.Instance.AddCollectible(collectibleId);
-                }
-
-                
-
-                if(interactType != InteractType.Puzzle && interactType != InteractType.Door) //If it is a puzzle you should be able to interact again later
-                {
-                    
-                    
-
-                     // Once the gameobject is off the text stays, so it is turned off here
-                     // mark interacted so triggers won't re-show the prompt
-                    interacted = true;
-
-                    // disable collider immediately so player cannot retrigger while we deactivate
-                    var col = GetComponent<Collider>();
-                    if (col != null) col.enabled = false;
-
-                    // Always hide the gamepad icon after interaction regardless of control scheme
-                    
-
-                    // Attempt to deactivate the whole gameobject. If something else re-enables it later,
-                    // the interacted bool prevents it from showing again.
-                    Debug.Log($"Disabling interactable {gameObject.name}");
-                    this.gameObject.SetActive(false); // Makes the interactable point disappear after interaction
-
-                    if (interactGamePadIcon != null)
-                    interactGamePadIcon.gameObject.SetActive(false);
-                    interractableText.gameObject.SetActive(false);
-                }
-
                 
             }
         }
     }
 
+    private void LogInteract()
+    {
+        var logSO = collectibleInfo as NavigationLogSO;
+        logSO.isFound = true;
+        Debug.Log("Log triggered");
+            
+        // Trigger event to add log to scrolling list
+        EventsManager.Instance.logEvents.FoundLog(collectibleId);
+        DeactivateInteractable();
+    }
+
+    private void DiaryInteract()
+    {
+        var diarySO = collectibleInfo as DiarySO;
+        diarySO.isFound = true;
+        Debug.Log("Diary triggered");
+                    
+        // Trigger event to add diary to scrolling list
+        EventsManager.Instance.diaryEvents.FoundDiary(collectibleId);
+        DeactivateInteractable();
+    }
+
+    private void PuzzleInteract()
+    {
+        var puzzleHandlerComponent = puzzleHandler.GetComponent<PuzzleHandler>();
+        if (puzzleHandler == null)
+        {       
+            Debug.LogError($"puzzleHandler is NULL on {gameObject.name}. Assign it in the inspector.");
+        }
+
+        if (puzzleHandlerComponent == null)
+        {
+            Debug.LogError($"PuzzleHandler component not found on {puzzleHandler.name}.");
+        }
+
+        if (InternalPlayerInventory.Instance == null)
+        {
+            Debug.LogError("InternalPlayerInventory.Instance is null");
+        }                        
+                                
+        bool has = InternalPlayerInventory.Instance.collectedInteractables.Contains(puzzleHandlerComponent.puzzleIDNeeded);
+        Debug.Log($"Inventory contains required id: {has}");
+        if (has)
+        {
+            try
+            {
+                puzzleHandlerComponent.ActivatePuzzle();
+                Debug.Log("Puzzle triggered");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Exception while activating puzzle on {puzzleHandler.name}: {ex}");
+            }
+        }
+    }
+
+    private void ItemInteract()
+    {
+        Debug.Log($"{collectibleId} found!");
+        InternalPlayerInventory.Instance.AddCollectible(collectibleId);
+        DeactivateInteractable();
+    }
+
+    private void DoorInteract()
+    {
+        DoorHandler doorHandler = doorComponent.GetComponent<DoorHandler>();
+
+        if(interactType == InteractType.Door)
+        {
+            if(doorHandler != null)
+                doorHandler.Interact();
+        }
+    }
+
+    private void DeactivateInteractable()
+    {
+
+        interacted = true;
+
+        // disable collider immediately so player cannot retrigger while we deactivate
+        var col = GetComponent<Collider>();
+        if (col != null) col.enabled = false;
+
+        // Always hide the gamepad icon after interaction regardless of control scheme
+                    
+
+        // Attempt to deactivate the whole gameobject. If something else re-enables it later,
+        // the interacted bool prevents it from showing again.
+        Debug.Log($"Disabling interactable {gameObject.name}");
+        this.gameObject.SetActive(false); // Makes the interactable point disappear after interaction
+
+        if (interactGamePadIcon != null)
+            interactGamePadIcon.gameObject.SetActive(false);
+
+        interractableText.gameObject.SetActive(false);
+    }
 
     // PlayerIsNear bool changes depending on these
     private void OnTriggerEnter(Collider other)

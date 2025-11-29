@@ -54,6 +54,19 @@ public class GraphicsSettings : MonoBehaviour
 
     [SerializeField] private InputActionReference _applyAction;
 
+    void Awake()
+    {
+        if(postProcessVolume == null)
+        {
+           Debug.Log("Post Process Volume not found");
+        }
+
+        if(uiBrightnessOverlay == null)
+        {
+            Debug.Log("UI Brightness Overlay not found");
+        }
+    }
+
     void Update()
     {
         if (_applyAction.action.WasPerformedThisFrame() && graphicsSettingsContainer.gameObject.activeSelf)

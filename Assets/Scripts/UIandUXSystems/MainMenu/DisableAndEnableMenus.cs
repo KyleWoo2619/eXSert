@@ -15,8 +15,7 @@ using UnityEngine;
 public class SubSettingAttribute : PropertyAttribute { }
 public class SettingsMenuAttribute : PropertyAttribute { }
 public class NavigationBackButtonAttribute : PropertyAttribute { }
-
-
+public class InGameMenuAttribute : PropertyAttribute { }
 public class DisableAndEnableMenus : MonoBehaviour
 {
     
@@ -34,6 +33,12 @@ public class DisableAndEnableMenus : MonoBehaviour
 
     [NavigationBackButton]
     [SerializeField] private FooterManager footer = null;
+    [SerializeField] private bool isInGame;
+
+    [InGameMenu]
+    [SerializeField] private GameObject pauseMenuUI;
+
+     private
 
     void Awake()
     {
@@ -105,7 +110,7 @@ public class DisableAndEnableMenus : MonoBehaviour
             return;
         }
         //If back button and the player is not on settings menu this part of the function will run
-        if (menuType == MenuType.SettingsBackButton)
+        if (menuType == MenuType.SettingsBackButton && !isInGame)
         {
             if (subMenuManager == null)
             {
@@ -118,15 +123,34 @@ public class DisableAndEnableMenus : MonoBehaviour
             SafeSetActive(disableThisGameobject, false);
             subMenuManager.isOnSettingsMenu = true;
         }
+        if (menuType == MenuType.SettingsBackButton && isInGame)
+        {
+            if (pauseMenuUI != null)
+            {
+                Debug.Log("Disabled Settings Menu UI");
+                var parent = subMenuManager.gameObject.transform;
+                disableThisGameobject = parent.gameObject;
+                SafeSetActive(disableThisGameobject, false);
+
+                Debug.Log("Enabled Pause Menu UI");
+                var parentPause = pauseMenuUI.gameObject.transform;
+                enableThisGameobject = parentPause.GetChild(0).gameObject;
+                SafeSetActive(enableThisGameobject, true);
+            }
+            else
+            {
+                Debug.LogWarning($"{nameof(DisableAndEnableMenus)}: pauseMenuUI is not assigned on '{name}'. Cannot return to pause menu.");
+            }
+        }
         else
         {
-            // Disable the settings menu and enable the main menu
             disableThisGameobject = subMenuManager.gameObject;
             SafeSetActive(disableThisGameobject, false);
 
+            Debug.Log("Enabled Main Menu UI");
             enableThisGameobject = subMenuManager.mainMenu;
             SafeSetActive(enableThisGameobject, true);
-
+        
             if (subMenuManager != null)
                 subMenuManager.isOnSettingsMenu = false;
         }
@@ -290,6 +314,38 @@ public class NavigationBackButtonDrawer : PropertyDrawer
         return 0;
     }
 }
+
+[CustomPropertyDrawer(typeof(InGameMenuAttribute))]
+public class InGameMenuDrawer : PropertyDrawer
+{
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+    {
+        var parent = property.serializedObject.targetObject as DisableAndEnableMenus;
+        if (parent != null)
+        {
+            var isInGameField = property.serializedObject.FindProperty("isInGame");
+            if (isInGameField != null && isInGameField.boolValue)
+            {
+                EditorGUI.PropertyField(position, property, label, true);
+            }
+        }
+    }
+
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+    {
+        var parent = property.serializedObject.targetObject as DisableAndEnableMenus;
+        if (parent != null)
+        {
+            var isInGameField = property.serializedObject.FindProperty("isInGame");
+            if (isInGameField != null && isInGameField.boolValue)
+            {
+                return EditorGUI.GetPropertyHeight(property, label, true);
+            }
+        }
+        return 0;
+    }
+}
+
 
 #endif
 
