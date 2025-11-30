@@ -19,6 +19,7 @@ public class LogButton : MonoBehaviour, ISelectHandler
 
     private void Awake()
     {
+
         this.button = this.GetComponent<Button>();
         
         GameObject logUIObject = GameObject.FindGameObjectWithTag("LogUI");
@@ -61,7 +62,17 @@ public class LogButton : MonoBehaviour, ISelectHandler
         // Add onClick listener so action triggers on click, not just select
         if (this.button != null && selectAction != null)
         {
-            this.button.onClick.AddListener(selectAction);
+            this.button.onClick.AddListener(() =>
+            {
+                // Ensure EventSystem selection updates for mouse clicks
+                var es = UnityEngine.EventSystems.EventSystem.current;
+                if (es != null)
+                {
+                    es.SetSelectedGameObject(this.gameObject);
+                }
+
+                selectAction();
+            });
         }
     }
 
@@ -76,10 +87,14 @@ public class LogButton : MonoBehaviour, ISelectHandler
     //Hides Menus
     public void hideMenuOnClick()
     {
-        GameObject logMenuOverview = GameObject.FindGameObjectWithTag("LogMenuOverview");
-        if (logMenuOverview != null)
+
+        GameObject overlayParent = GameObject.FindGameObjectWithTag("Overlay");
+        if (overlayParent != null)
         {
-            logMenuOverview.SetActive(false);
+            Transform child = overlayParent.transform.GetChild(0);
+            child.gameObject.SetActive(true);
+        } else {
+            Debug.LogError("GameObject with tag 'Overlay' not found");
         }
 
         GameObject parent = GameObject.FindGameObjectWithTag("IndividualLogMenu");

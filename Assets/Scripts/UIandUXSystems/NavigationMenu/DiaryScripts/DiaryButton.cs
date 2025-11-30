@@ -75,13 +75,17 @@ public class DiaryButton : MonoBehaviour, ISelectHandler
     //Hides Menus
     public void hideMenuOnClick()
     {
-        GameObject diaryMenuOverview = GameObject.FindGameObjectWithTag("DiaryMenuOverview");
-        if (diaryMenuOverview != null)
+
+        GameObject overlayParent = GameObject.FindGameObjectWithTag("Overlay");
+        if (overlayParent != null)
         {
-            diaryMenuOverview.SetActive(false);
+            Transform child = overlayParent.transform.GetChild(0);
+            child.gameObject.SetActive(true);
+        } else {
+            Debug.LogError("GameObject with tag 'Overlay' not found");
         }
 
-        GameObject parent = GameObject.FindGameObjectWithTag("DiaryUI");
+        GameObject parent = GameObject.FindGameObjectWithTag("IndividualDiaryMenu");
         if (parent != null && parent.transform.childCount > 0)
         {
             Transform child = parent.transform.GetChild(0);

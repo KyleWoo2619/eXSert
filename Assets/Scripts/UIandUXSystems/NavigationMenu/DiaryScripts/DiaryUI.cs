@@ -6,13 +6,15 @@
 
 using UnityEngine;
 using TMPro;
+using UnityEngine.UI;
 public class DiaryUI : MonoBehaviour
 {
     [Header("Components")]
     [SerializeField] private GameObject contentParent;
     [SerializeField] private DiaryScrollingList scrollingList;
     [SerializeField] private TMP_Text diaryID;
-    [SerializeField] private TMP_Text diaryDescription;
+    [SerializeField] private GameObject diaryDescription;
+    [SerializeField] private Image diaryImage;
 
     //DiaryStateChange being subscribed and unsubscribed
     private void OnEnable()
@@ -39,6 +41,7 @@ public class DiaryUI : MonoBehaviour
     private void SetDiaryInfo(Diaries diaries)
     {
         diaryID.text = diaries.info.diaryID;
-        diaryDescription.text = diaries.info.diaryDescription;
+        diaryDescription.GetComponent<TMP_Text>().text = diaries.info.diaryDescription;
+        diaryImage.sprite = diaries.info.diaryImage.sprite;
     }
 }

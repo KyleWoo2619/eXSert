@@ -5,22 +5,25 @@
     the same space on the screen, this script allows for easy switching between them.
 **/
 #if UNITY_EDITOR
+using System.Runtime.InteropServices;
+using Mono.Cecil;
 using UnityEditor;
 #endif
 
 
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 // Custom Attributes
 public class SubSettingAttribute : PropertyAttribute { }
 public class SettingsMenuAttribute : PropertyAttribute { }
 public class NavigationBackButtonAttribute : PropertyAttribute { }
-
-
+public class InGameMenuAttribute : PropertyAttribute { }
+public class IsCanvasAttachedAttribute : PropertyAttribute { }
 public class DisableAndEnableMenus : MonoBehaviour
 {
     
-    [Tooltip("SubSettingMenu refers to menus inside the settings (e.g. invertY or master volume)\n SettingsMenu refers to the general settings tabs like audio\n BackButton is for back buttons, duh.")] public enum MenuType { SubSettingMenu, SettingsMenu, SettingsBackButton, NavigationBackButton }
+    [Tooltip("SubSettingMenu refers to menus inside the settings (e.g. invertY or master volume)\n SettingsMenu refers to the general settings tabs like audio\n BackButton is for back buttons, duh.")] public enum MenuType { SubSettingMenu, SettingsMenu, SettingsBackButton, NavigationBackButton, IsCanvasAttached }
     [SerializeField] private MenuType menuType;
     [Tooltip("Leave blank if you don't intend to enable anything")][SerializeField] private GameObject enableThisGameobject = null;
     [Tooltip("Leave blank if you don't intend to disable anything")][SerializeField] private GameObject disableThisGameobject = null;
@@ -34,6 +37,19 @@ public class DisableAndEnableMenus : MonoBehaviour
 
     [NavigationBackButton]
     [SerializeField] private FooterManager footer = null;
+    [SerializeField] private bool isInGame;
+
+    
+    [SerializeField] private GameObject masterMenu;
+
+    [IsCanvasAttached]
+    [SerializeField] private GameObject pauseMenuUI;
+
+    [IsCanvasAttached]
+    [SerializeField] private GameObject navigationMenuUI;
+
+    [IsCanvasAttached]
+    [SerializeField] private InputActionReference _enterMenuAction;
 
     void Awake()
     {
@@ -49,6 +65,11 @@ public class DisableAndEnableMenus : MonoBehaviour
                 }
             }
         }
+    }
+
+    private void Update()
+    {
+       ActivateMenus();
     }
 
     //Enables or disables the assigned gameobjects based on the boolean selections
@@ -105,7 +126,7 @@ public class DisableAndEnableMenus : MonoBehaviour
             return;
         }
         //If back button and the player is not on settings menu this part of the function will run
-        if (menuType == MenuType.SettingsBackButton)
+        if (menuType == MenuType.SettingsBackButton && !isInGame)
         {
             if (subMenuManager == null)
             {
@@ -118,15 +139,34 @@ public class DisableAndEnableMenus : MonoBehaviour
             SafeSetActive(disableThisGameobject, false);
             subMenuManager.isOnSettingsMenu = true;
         }
+        if (menuType == MenuType.SettingsBackButton && isInGame)
+        {
+            if (pauseMenuUI != null)
+            {
+                Debug.Log("Disabled Settings Menu UI");
+                var parent = subMenuManager.gameObject.transform;
+                disableThisGameobject = parent.gameObject;
+                SafeSetActive(disableThisGameobject, false);
+
+                Debug.Log("Enabled Pause Menu UI");
+                var parentPause = pauseMenuUI.gameObject.transform;
+                enableThisGameobject = parentPause.GetChild(0).gameObject;
+                SafeSetActive(enableThisGameobject, true);
+            }
+            else
+            {
+                Debug.LogWarning($"{nameof(DisableAndEnableMenus)}: pauseMenuUI is not assigned on '{name}'. Cannot return to pause menu.");
+            }
+        }
         else
         {
-            // Disable the settings menu and enable the main menu
             disableThisGameobject = subMenuManager.gameObject;
             SafeSetActive(disableThisGameobject, false);
 
+            Debug.Log("Enabled Main Menu UI");
             enableThisGameobject = subMenuManager.mainMenu;
             SafeSetActive(enableThisGameobject, true);
-
+        
             if (subMenuManager != null)
                 subMenuManager.isOnSettingsMenu = false;
         }
@@ -153,23 +193,35 @@ public class DisableAndEnableMenus : MonoBehaviour
         return go != null && go.activeSelf;
     }
 
+    private void ActivateMenus()
+    {
+        if(_enterMenuAction != null && _enterMenuAction.action.triggered){
+            if(navigationMenuUI.activeSelf ||pauseMenuUI.activeSelf)
+            {
+                var child = masterMenu.transform.GetChild(0);
+                SafeSetActive(child.gameObject, true);
+            }
+        }
+    }
+
     // Centralized navigation-back handling for the footer to avoid duplicated code
     public void HandleNavigationBack()
     {
+        
         if (footer == null)
         {
             Debug.LogWarning($"{nameof(DisableAndEnableMenus)}: footer is not assigned on '{name}'. Cannot perform navigation back.");
             return;
         }
 
-        if (IsActive(footer.logHolderUI))
+        if (IsActive(footer.logHolderUI) && !IsActive(footer.IndividualLogUI))
         {
             SafeSetActive(footer.logHolderUI, false);
             SafeSetActive(footer.mainNavigationMenuHolderUI, true);
             return;
         }
 
-        if (IsActive(footer.diaryHolderUI))
+        if (IsActive(footer.diaryHolderUI) && !IsActive(footer.IndividualDiaryUI))
         {
             SafeSetActive(footer.diaryHolderUI, false);
             SafeSetActive(footer.mainNavigationMenuHolderUI, true);
@@ -179,19 +231,34 @@ public class DisableAndEnableMenus : MonoBehaviour
         if (IsActive(footer.IndividualDiaryUI))
         {
             SafeSetActive(footer.IndividualDiaryUI, false);
-            SafeSetActive(footer.diaryHolderUI, true);
+            SafeSetActive(footer.overlayUI, false);
             return;
         }
 
         if (IsActive(footer.IndividualLogUI))
         {
             SafeSetActive(footer.IndividualLogUI, false);
-            SafeSetActive(footer.logHolderUI, true);
+            SafeSetActive(footer.overlayUI, false);
+            return;
+        }
+
+        if(IsActive(pauseMenuUI))
+        {
+            var child = masterMenu.transform.GetChild(0);
+            SafeSetActive(child.gameObject, false);
+            return;
+        }
+
+        if(IsActive(footer.mainNavigationMenuHolderUI))
+        {
+            var child = masterMenu.transform.GetChild(0);
+            SafeSetActive(child.gameObject, false);
             return;
         }
 
         // if nothing matched, ensure main navigation is visible
         SafeSetActive(footer.mainNavigationMenuHolderUI, true);
+        SafeSetActive(footer.overlayUI, false);
     }
 
 // Custom Property Drawers
@@ -202,29 +269,13 @@ public class SubSettingDrawer : PropertyDrawer
 {
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        var parent = property.serializedObject.targetObject as DisableAndEnableMenus;
-        if (parent != null)
-        {
-            var menuTypeField = property.serializedObject.FindProperty("menuType");
-            if (menuTypeField != null && menuTypeField.enumValueIndex == 0) // 0 = SubSettingMenu
-            {
-                EditorGUI.PropertyField(position, property, label);
-            }
-        }
+        if (DrawerHelpers.ShouldShowForMenuType(property, 0)) // 0 = SubSettingMenu
+            EditorGUI.PropertyField(position, property, label, true);
     }
 
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
-        var parent = property.serializedObject.targetObject as DisableAndEnableMenus;
-        if (parent != null)
-        {
-            var menuTypeField = property.serializedObject.FindProperty("menuType");
-            if (menuTypeField != null && menuTypeField.enumValueIndex == 0) // 0 = SubSettingMenu
-            {
-                return EditorGUI.GetPropertyHeight(property, label);
-            }
-        }
-        return 0;
+        return DrawerHelpers.GetHeightForMenuType(property, label, 0);
     }
 }
 
@@ -233,29 +284,13 @@ public class SettingsMenuDrawer : PropertyDrawer
 {
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        var parent = property.serializedObject.targetObject as DisableAndEnableMenus;
-        if (parent != null)
-        {
-            var menuTypeField = property.serializedObject.FindProperty("menuType");
-            if (menuTypeField != null && menuTypeField.enumValueIndex == 1) // 1 = SettingsMenu
-            {
-                EditorGUI.PropertyField(position, property, label);
-            }
-        }
+        if (DrawerHelpers.ShouldShowForMenuType(property, 1)) // 1 = SettingsMenu
+            EditorGUI.PropertyField(position, property, label, true);
     }
 
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
-        var parent = property.serializedObject.targetObject as DisableAndEnableMenus;
-        if (parent != null)
-        {
-            var menuTypeField = property.serializedObject.FindProperty("menuType");
-            if (menuTypeField != null && menuTypeField.enumValueIndex == 1) // 1 = SettingsMenu
-            {
-                return EditorGUI.GetPropertyHeight(property, label);
-            }
-        }
-        return 0;
+        return DrawerHelpers.GetHeightForMenuType(property, label, 1);
     }
 }
 
@@ -264,31 +299,67 @@ public class NavigationBackButtonDrawer : PropertyDrawer
 {
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        var parent = property.serializedObject.targetObject as DisableAndEnableMenus;
-        if (parent != null)
-        {
-            var menuTypeField = property.serializedObject.FindProperty("menuType");
-            if (menuTypeField != null && menuTypeField.enumValueIndex == 3) // 3 = NavigationBackButton
-            {
-                EditorGUI.PropertyField(position, property, label);
-            }
-        }
+        if (DrawerHelpers.ShouldShowForMenuType(property, 3)) // 3 = NavigationBackButton
+            EditorGUI.PropertyField(position, property, label, true);
     }
 
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
-        var parent = property.serializedObject.targetObject as DisableAndEnableMenus;
-        if (parent != null)
-        {
-            var menuTypeField = property.serializedObject.FindProperty("menuType");
-            if (menuTypeField != null && menuTypeField.enumValueIndex == 3) // 3 = NavigationBackButton
-            {
-                return EditorGUI.GetPropertyHeight(property, label);
-            }
-        }
+        return DrawerHelpers.GetHeightForMenuType(property, label, 3);
+    }
+}
+
+[CustomPropertyDrawer(typeof(InGameMenuAttribute))]
+public class InGameMenuDrawer : PropertyDrawer
+{
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+    {
+        var isInGameField = property.serializedObject.FindProperty("isInGame");
+        if (isInGameField != null && isInGameField.boolValue)
+            EditorGUI.PropertyField(position, property, label, true);
+    }
+
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+    {
+        var isInGameField = property.serializedObject.FindProperty("isInGame");
+        if (isInGameField != null && isInGameField.boolValue)
+            return EditorGUI.GetPropertyHeight(property, label, true);
         return 0;
     }
 }
+
+[CustomPropertyDrawer(typeof(IsCanvasAttachedAttribute))]
+public class IsCanvasAttachedDrawer : PropertyDrawer
+{
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+    {
+        if (DrawerHelpers.ShouldShowForMenuType(property, 4)) // 4 = IsCanvasAttached
+            EditorGUI.PropertyField(position, property, label, true);
+    }
+
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+    {
+        return DrawerHelpers.GetHeightForMenuType(property, label, 4);
+    }
+}
+
+
+// Helper utilities to reduce duplicate drawer logic
+internal static class DrawerHelpers
+{
+    public static bool ShouldShowForMenuType(SerializedProperty property, int expectedEnumIndex)
+    {
+        if (property == null) return false;
+        var menuTypeField = property.serializedObject.FindProperty("menuType");
+        return menuTypeField != null && menuTypeField.enumValueIndex == expectedEnumIndex;
+    }
+
+    public static float GetHeightForMenuType(SerializedProperty property, GUIContent label, int expectedEnumIndex)
+    {
+        return ShouldShowForMenuType(property, expectedEnumIndex) ? EditorGUI.GetPropertyHeight(property, label, true) : 0f;
+    }
+}
+
 
 #endif
 

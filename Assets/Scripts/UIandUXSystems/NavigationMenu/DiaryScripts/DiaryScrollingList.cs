@@ -9,8 +9,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.EventSystems;
 public class DiaryScrollingList : MonoBehaviour
 {
+    public GameObject selectedButton;
+
     [Header("Components")]
     [SerializeField] private GameObject contentParent;
 
@@ -22,6 +25,14 @@ public class DiaryScrollingList : MonoBehaviour
     [SerializeField] private RectTransform contentRectTransform;
     private Dictionary<string, DiaryButton> idToButtonMap = new Dictionary<string, DiaryButton>(); //Dict to hold id of buttons
 
+    void Update()
+    {
+        if (EventSystem.current.currentSelectedGameObject != null)
+        {
+            selectedButton = EventSystem.current.currentSelectedGameObject;
+            Debug.Log("Selected Button: " + selectedButton.name);
+        }
+    }
 
     //If the button for a diary doesn't already exist, this function will make it
     public DiaryButton CreateButtonIfNotExists(Diaries diary, UnityAction selectAction)

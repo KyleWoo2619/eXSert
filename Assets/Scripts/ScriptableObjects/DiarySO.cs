@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using UnityEngine.UI;
 
 [CreateAssetMenu(fileName = "DiarySO", menuName = "NavigationMenu/Diaries", order = 1)]
 public class DiarySO : ScriptableObject
@@ -9,6 +10,7 @@ public class DiarySO : ScriptableObject
     [TextArea(3, 10)]
     public string diaryDescription;
 
+    public Image diaryImage;
     public bool isFound;
 
     //This ensures that the idName cannot be repeated

@@ -210,6 +210,24 @@ namespace eXsert
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""SwapMenus"",
+                    ""type"": ""Button"",
+                    ""id"": ""0c11f1e3-08aa-48e1-ac23-f3ca57779be7"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""EnterMenus"",
+                    ""type"": ""Button"",
+                    ""id"": ""ff081906-1d83-4cfe-b797-c0ec10b54579"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -595,6 +613,50 @@ namespace eXsert
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""EscapePuzzle"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""95b5378d-738a-4c33-891b-08ab45fde785"",
+                    ""path"": ""<XInputController>/rightShoulder"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""SwapMenus"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""67759e80-2c92-4d9b-a152-33d2b6d0663b"",
+                    ""path"": ""<Keyboard>/alt"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""SwapMenus"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""933103cc-2da8-480f-842d-d15cd9e40f50"",
+                    ""path"": ""<Keyboard>/escape"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""EnterMenus"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""60b84386-ca57-464d-90ab-e7cb64320427"",
+                    ""path"": ""<Gamepad>/start"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""EnterMenus"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1006,6 +1068,8 @@ namespace eXsert
             m_Gameplay_Interact = m_Gameplay.FindAction("Interact", throwIfNotFound: true);
             m_Gameplay_ApplySettings = m_Gameplay.FindAction("ApplySettings", throwIfNotFound: true);
             m_Gameplay_EscapePuzzle = m_Gameplay.FindAction("EscapePuzzle", throwIfNotFound: true);
+            m_Gameplay_SwapMenus = m_Gameplay.FindAction("SwapMenus", throwIfNotFound: true);
+            m_Gameplay_EnterMenus = m_Gameplay.FindAction("EnterMenus", throwIfNotFound: true);
             // UI
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
             m_UI_Navigation = m_UI.FindAction("Navigation", throwIfNotFound: true);
@@ -1112,6 +1176,8 @@ namespace eXsert
         private readonly InputAction m_Gameplay_Interact;
         private readonly InputAction m_Gameplay_ApplySettings;
         private readonly InputAction m_Gameplay_EscapePuzzle;
+        private readonly InputAction m_Gameplay_SwapMenus;
+        private readonly InputAction m_Gameplay_EnterMenus;
         /// <summary>
         /// Provides access to input actions defined in input action map "Gameplay".
         /// </summary>
@@ -1175,6 +1241,14 @@ namespace eXsert
             /// Provides access to the underlying input action "Gameplay/EscapePuzzle".
             /// </summary>
             public InputAction @EscapePuzzle => m_Wrapper.m_Gameplay_EscapePuzzle;
+            /// <summary>
+            /// Provides access to the underlying input action "Gameplay/SwapMenus".
+            /// </summary>
+            public InputAction @SwapMenus => m_Wrapper.m_Gameplay_SwapMenus;
+            /// <summary>
+            /// Provides access to the underlying input action "Gameplay/EnterMenus".
+            /// </summary>
+            public InputAction @EnterMenus => m_Wrapper.m_Gameplay_EnterMenus;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
@@ -1240,6 +1314,12 @@ namespace eXsert
                 @EscapePuzzle.started += instance.OnEscapePuzzle;
                 @EscapePuzzle.performed += instance.OnEscapePuzzle;
                 @EscapePuzzle.canceled += instance.OnEscapePuzzle;
+                @SwapMenus.started += instance.OnSwapMenus;
+                @SwapMenus.performed += instance.OnSwapMenus;
+                @SwapMenus.canceled += instance.OnSwapMenus;
+                @EnterMenus.started += instance.OnEnterMenus;
+                @EnterMenus.performed += instance.OnEnterMenus;
+                @EnterMenus.canceled += instance.OnEnterMenus;
             }
 
             /// <summary>
@@ -1290,6 +1370,12 @@ namespace eXsert
                 @EscapePuzzle.started -= instance.OnEscapePuzzle;
                 @EscapePuzzle.performed -= instance.OnEscapePuzzle;
                 @EscapePuzzle.canceled -= instance.OnEscapePuzzle;
+                @SwapMenus.started -= instance.OnSwapMenus;
+                @SwapMenus.performed -= instance.OnSwapMenus;
+                @SwapMenus.canceled -= instance.OnSwapMenus;
+                @EnterMenus.started -= instance.OnEnterMenus;
+                @EnterMenus.performed -= instance.OnEnterMenus;
+                @EnterMenus.canceled -= instance.OnEnterMenus;
             }
 
             /// <summary>
@@ -1694,6 +1780,20 @@ namespace eXsert
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnEscapePuzzle(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "SwapMenus" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnSwapMenus(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "EnterMenus" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnEnterMenus(InputAction.CallbackContext context);
         }
         /// <summary>
         /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.
