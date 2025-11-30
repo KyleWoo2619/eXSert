@@ -115,11 +115,9 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
     [Tooltip("Minimum planar speed before we use agent velocity for facing.")]
     [SerializeField] private float velocityFacingThreshold = 0.2f;
 
-    [Header("Animation Overrides")]
-    [Tooltip("Optional animator state name to jump to when reacting to damage. Leave blank to use triggers.")]
-    [SerializeField] private string hitStateOverride = "Hit";
-    [Tooltip("Seconds the hit reaction should suppress the attack animation so it stays visible.")]
-    [SerializeField] private float hitAnimLockDuration = 0.3f;
+    [Header("Hit Reaction")]
+    [Tooltip("Seconds the drone is staggered (no firing) after being hit.")]
+    [SerializeField] private float hitStaggerDuration = 0.1f;
 
     private Queue<GameObject> projectilePool;
 
@@ -199,7 +197,7 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
 
     private Coroutine tickCoroutine;
     private float lastFireTime = 0f;
-    private float nextAllowedAttackAnimTime = 0f;
+    private float staggerUntilTime = 0f;
     private Transform player;
 
     private IEnemyStateBehavior<DroneState, DroneTrigger> idleBehavior, relocateBehavior, swarmBehavior, fireBehavior, deathBehavior;
@@ -410,6 +408,9 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
 
     public void TryFireAtPlayer()
     {
+        if (Time.time < staggerUntilTime)
+            return;
+
         if (player == null) return;
         if (Time.time - lastFireTime < fireCooldown) return;
         lastFireTime = Time.time;
@@ -442,10 +443,7 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
             var enemyProj = proj.GetComponent<EnemyProjectile>();
             if (enemyProj != null) enemyProj.SetOwner(this);
 
-            if (Time.time >= nextAllowedAttackAnimTime)
-            {
-                PlayAttackAnim();
-            }
+            PlayAttackAnim();
         }
     }
 
@@ -652,16 +650,13 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
         transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, turnSpeed * Time.deltaTime);
     }
 
-    protected override void PlayHitAnim()
+    protected override void OnDamageTaken(float amount)
     {
-        if (!string.IsNullOrEmpty(hitStateOverride) && animator != null)
+        if (currentHealth > 0f)
         {
-            animator.Play(hitStateOverride, 0, 0f);
-            nextAllowedAttackAnimTime = Time.time + hitAnimLockDuration;
-            return;
+            staggerUntilTime = Time.time + hitStaggerDuration;
         }
-
-        nextAllowedAttackAnimTime = Time.time + hitAnimLockDuration;
-        base.PlayHitAnim();
+        base.OnDamageTaken(amount);
     }
+
 }
