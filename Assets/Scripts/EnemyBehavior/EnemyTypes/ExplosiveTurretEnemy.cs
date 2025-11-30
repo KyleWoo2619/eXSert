@@ -4,7 +4,7 @@
 
 using UnityEngine;
 
-[RequireComponent(typeof(MeshRenderer))]
+// [RequireComponent(typeof(MeshRenderer))]
 public class ExplosiveTurretEnemy : BaseTurretEnemy
 {
     [Header("Explosive Turret")]

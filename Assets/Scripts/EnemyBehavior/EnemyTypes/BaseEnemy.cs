@@ -122,28 +122,32 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     protected virtual void Awake()
     {
         // Ensure the GameObject has a NavMeshAgent component
-        if (this.gameObject.GetComponent<NavMeshAgent>() == null)
-        {
-            this.gameObject.AddComponent<NavMeshAgent>();
-        }
+        // if (this.gameObject.GetComponent<NavMeshAgent>() == null)
+        // {
+        //     this.gameObject.AddComponent<NavMeshAgent>();
+        // }
         agent = this.gameObject.GetComponent<NavMeshAgent>();
         // enemyAI and currentState should be initialized in the derived class
 
         // Detection collider
-        detectionCollider = gameObject.AddComponent<SphereCollider>();
-        detectionCollider.isTrigger = true;
-        detectionCollider.radius = detectionRange;
+        // detectionCollider = gameObject.AddComponent<SphereCollider>();
+        // detectionCollider.isTrigger = true;
+        // detectionCollider.radius = detectionRange;
 
         // Attack collider
-        attackCollider = gameObject.AddComponent<BoxCollider>();
-        attackCollider.isTrigger = true;
-        attackCollider.size = attackBoxSize;
-        attackCollider.center = new Vector3(0f, attackBoxHeightOffset, attackBoxDistance);
-        attackCollider.enabled = false; // Default off
+        // attackCollider = gameObject.AddComponent<BoxCollider>();
+        // attackCollider.isTrigger = true;
+        // attackCollider.size = attackBoxSize;
+        // attackCollider.center = new Vector3(0f, attackBoxHeightOffset, attackBoxDistance);
+        // attackCollider.enabled = false; // Default off
 
         // Automatically assign the capsule's MeshRenderer
-        enemyRenderer = GetComponent<MeshRenderer>();
+        // enemyRenderer = GetComponent<MeshRenderer>();
         animator = GetComponentInChildren<Animator>();
+        if (animator == null)
+        {
+            animator = GetComponentInParent<Animator>();
+        }
     }
 
     // Helper to initialize the state machine and inspector state

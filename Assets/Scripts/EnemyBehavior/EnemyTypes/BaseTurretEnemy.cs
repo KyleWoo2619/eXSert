@@ -31,6 +31,16 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
     [Tooltip("Vertical aim offset in meters to target the player's center/head instead of feet.")]
     [SerializeField] private float aimYOffset = 1.0f;
 
+    [Header("Rotation Limits")]
+    [Tooltip("Prevent turrets from rotating a full 360 degrees around the base when tracking.")]
+    [SerializeField] private bool clampYaw = false;
+    [Tooltip("Maximum degrees the turret can turn to the left of its forward axis.")]
+    [Range(0f, 180f)]
+    [SerializeField] private float maxYawLeft = 90f;
+    [Tooltip("Maximum degrees the turret can turn to the right of its forward axis.")]
+    [Range(0f, 180f)]
+    [SerializeField] private float maxYawRight = 90f;
+
     [Header("Firing")]
     [Tooltip("Spawn the projectile slightly forward from the muzzle to avoid self-collision at spawn.")]
     [SerializeField] private float muzzleForwardOffset = 0.1f;
@@ -55,15 +65,24 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
     private readonly List<GameObject> projectilePool = new List<GameObject>(32);
     private Transform projectilePoolParent;
 
-    private Transform player;
+    protected Transform player;
     private Coroutine attackLoop;
     private Coroutine detectLoop;
+    private Coroutine animationRestoreRoutine;
 
     // Cache own colliders to ignore self-collision on fired projectiles
     private Collider[] ownColliders;
 
     // Cooldown tracking persists across state flaps to prevent edge rapid-fire
     private float lastShotTime = -1e9f;
+
+    [Header("Animation")]
+    [SerializeField, Tooltip("Delay before returning to the state animation after a hit animation.")]
+    private float hitAnimationRecoveryDelay = 0.15f;
+    [SerializeField, Tooltip("If true, turrets hold their pose instead of returning to idle while actively targeting the player.")]
+    private bool suppressIdleWhileTargeting = true;
+
+    private bool isTargetEngaged;
 
     // IProjectileShooter implementation
     public GameObject ProjectilePrefab => projectilePrefab;
@@ -87,6 +106,7 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
         // Cache player
         var found = GameObject.FindGameObjectWithTag("Player");
         player = found != null ? found.transform : null;
+        PlayerTarget = player;
 
         // Cache only the turret's own colliders BEFORE creating the pool (so pool colliders are excluded)
         ownColliders = GetComponentsInChildren<Collider>(includeInactive: true);
@@ -107,17 +127,49 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
         detectLoop = StartCoroutine(DetectionLoop());
     }
 
+    protected virtual bool ShouldAimContinuously()
+    {
+        return enemyAI != null && player != null && enemyAI.State.Equals(EnemyState.Attack);
+    }
+
+    protected override void Update()
+    {
+        base.Update();
+
+        if (ShouldAimContinuously())
+        {
+            AimAtTarget(player);
+        }
+    }
+
     protected override void ConfigureStateMachine()
     {
         enemyAI.Configure(EnemyState.Idle)
-            .OnEntry(() => { SetEnemyColor(patrolColor); StopAttackLoop(); })
+            .OnEntry(() =>
+            {
+                /* SetEnemyColor(patrolColor); */
+                isTargetEngaged = false;
+                RequestIdlePose(force: true);
+                StopAttackLoop();
+            })
             .Permit(EnemyTrigger.SeePlayer, EnemyState.Attack)
             .Permit(EnemyTrigger.InAttackRange, EnemyState.Attack)
             .Permit(EnemyTrigger.Die, EnemyState.Death);
 
         enemyAI.Configure(EnemyState.Attack)
-            .OnEntry(() => { SetEnemyColor(attackColor); StartAttackLoop(); })
-            .OnExit(() => { StopAttackLoop(); })
+            .OnEntry(() =>
+            {
+                /* SetEnemyColor(attackColor); */
+                isTargetEngaged = true;
+                PlayAttackAnim();
+                StartAttackLoop();
+            })
+            .OnExit(() =>
+            {
+                isTargetEngaged = false;
+                StopAttackLoop();
+                RequestIdlePose();
+            })
             .Permit(EnemyTrigger.LosePlayer, EnemyState.Idle)
             .Permit(EnemyTrigger.OutOfAttackRange, EnemyState.Idle)
             .Ignore(EnemyTrigger.SeePlayer)
@@ -125,7 +177,13 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
             .Permit(EnemyTrigger.Die, EnemyState.Death);
 
         enemyAI.Configure(EnemyState.Death)
-            .OnEntry(() => { SetEnemyColor(Color.black); StopAttackLoop(); })
+            .OnEntry(() =>
+            {
+                /* SetEnemyColor(Color.black); */
+                isTargetEngaged = false;
+                PlayDieAnim();
+                StopAttackLoop();
+            })
             .Ignore(EnemyTrigger.SeePlayer)
             .Ignore(EnemyTrigger.LosePlayer)
             .Ignore(EnemyTrigger.InAttackRange)
@@ -145,6 +203,7 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
             {
                 var found = GameObject.FindGameObjectWithTag("Player");
                 player = found != null ? found.transform : null;
+                PlayerTarget = player;
                 yield return new WaitForSeconds(interval);
                 continue;
             }
@@ -162,7 +221,8 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
                 if (dist <= enterThreshold)
                 {
                     enterTimer += interval;
-                    if (enterTimer >= enterSustain)
+                    bool yawOk = IsTargetWithinYawLimits(player.position);
+                    if (enterTimer >= enterSustain && yawOk)
                     {
                         TryFireTriggerByName("SeePlayer"); // -> Attack
                         enterTimer = 0f;
@@ -190,6 +250,13 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
                 {
                     exitTimer = 0f;
                 }
+
+                if (clampYaw && !IsTargetWithinYawLimits(player.position))
+                {
+                    TryFireTriggerByName("LosePlayer");
+                    enterTimer = 0f;
+                    continue;
+                }
             }
 
             yield return new WaitForSeconds(interval);
@@ -199,7 +266,7 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
     private void StartAttackLoop()
     {
         StopAttackLoop();
-        attackLoop = StartCoroutine(AttackLoop());
+        attackLoop = StartCoroutine(GetAttackLoopRoutine());
     }
 
     private void StopAttackLoop()
@@ -211,6 +278,11 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
         }
     }
 
+    protected virtual IEnumerator GetAttackLoopRoutine()
+    {
+        return AttackLoop();
+    }
+
     private IEnumerator AttackLoop()
     {
         while (enemyAI.State.Equals(EnemyState.Attack))
@@ -219,18 +291,18 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
             {
                 var found = GameObject.FindGameObjectWithTag("Player");
                 player = found != null ? found.transform : null;
+                PlayerTarget = player;
                 yield return null;
                 continue;
             }
 
             // Aim at player (optionally yaw-only)
-            Vector3 targetPos = player.position + Vector3.up * aimYOffset;
-            Vector3 dir = (targetPos - transform.position);
-            if (rotateYawOnly) dir.y = 0f;
-            if (dir.sqrMagnitude > 0.0001f)
+            bool canAim = AimAtTarget(player);
+            if (!canAim)
             {
-                Quaternion targetRot = Quaternion.LookRotation(dir.normalized);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, turnSpeed * Time.deltaTime);
+                TryFireTriggerByName("LosePlayer");
+                yield return null;
+                continue;
             }
 
             // Fire on cooldown using a persistent timestamp (prevents edge rapid-fire)
@@ -280,6 +352,13 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
         {
             rb.linearVelocity = dir * ProjectileSpeed;
         }
+
+        OnProjectileFired();
+    }
+
+    protected virtual void OnProjectileFired()
+    {
+        PlayAttackAnim();
     }
 
     // Permanently ignore collisions between this turret's colliders and this projectile's colliders
@@ -345,5 +424,117 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
             detectLoop = null;
         }
         StopAttackLoop();
+    }
+
+    protected bool AimAtTarget(Transform target)
+    {
+        if (target == null)
+            return false;
+
+        Vector3 targetPos = target.position + Vector3.up * aimYOffset;
+        Vector3 dir = targetPos - transform.position;
+        if (dir.sqrMagnitude <= 0.0001f)
+            return false;
+
+        Vector3 aimDir = dir.normalized;
+        Vector3 planarDir = new Vector3(aimDir.x, 0f, aimDir.z);
+        if (planarDir.sqrMagnitude <= 0.0001f)
+            planarDir = transform.forward;
+
+        if (rotateYawOnly)
+        {
+            aimDir = planarDir.normalized;
+        }
+
+        bool withinYaw = true;
+        if (clampYaw && planarDir.sqrMagnitude > 0.0001f)
+        {
+            Vector3 referenceDir = planarDir.normalized;
+            Transform parent = transform.parent;
+            Vector3 localDir = parent != null ? parent.InverseTransformDirection(referenceDir) : referenceDir;
+            float yaw = Mathf.Atan2(localDir.x, localDir.z) * Mathf.Rad2Deg;
+            float clampedYaw = Mathf.Clamp(yaw, -maxYawLeft, maxYawRight);
+            withinYaw = Mathf.Approximately(yaw, clampedYaw);
+            float yawRad = clampedYaw * Mathf.Deg2Rad;
+            Vector3 clampedLocalDir = new Vector3(Mathf.Sin(yawRad), 0f, Mathf.Cos(yawRad));
+            Vector3 clampedWorldDir = parent != null ? parent.TransformDirection(clampedLocalDir) : clampedLocalDir;
+
+            if (rotateYawOnly)
+            {
+                aimDir = clampedWorldDir.normalized;
+            }
+            else
+            {
+                aimDir = (clampedWorldDir.normalized + Vector3.up * aimDir.y).normalized;
+            }
+
+            if (!withinYaw)
+            {
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(clampedWorldDir), turnSpeed * Time.deltaTime);
+                return false;
+            }
+        }
+
+        Quaternion targetRot = Quaternion.LookRotation(aimDir.normalized);
+        transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, turnSpeed * Time.deltaTime);
+        return true;
+    }
+
+    private bool IsTargetWithinYawLimits(Vector3 targetPosition)
+    {
+        if (!clampYaw)
+            return true;
+
+        Vector3 dir = targetPosition - transform.position;
+        Vector3 planarDir = new Vector3(dir.x, 0f, dir.z);
+        if (planarDir.sqrMagnitude <= 0.0001f)
+            return true;
+
+        Transform parent = transform.parent;
+        Vector3 localDir = parent != null ? parent.InverseTransformDirection(planarDir.normalized) : planarDir.normalized;
+        float yaw = Mathf.Atan2(localDir.x, localDir.z) * Mathf.Rad2Deg;
+        return yaw >= -maxYawLeft && yaw <= maxYawRight;
+    }
+
+
+    protected override void OnDamageTaken(float amount)
+    {
+        base.OnDamageTaken(amount);
+
+        if (animationRestoreRoutine != null)
+        {
+            StopCoroutine(animationRestoreRoutine);
+        }
+        animationRestoreRoutine = StartCoroutine(RestoreAnimationAfterHit());
+    }
+
+    private IEnumerator RestoreAnimationAfterHit()
+    {
+        if (hitAnimationRecoveryDelay > 0f)
+            yield return new WaitForSeconds(hitAnimationRecoveryDelay);
+
+        if (enemyAI == null)
+            yield break;
+
+        switch (enemyAI.State)
+        {
+            case EnemyState.Attack:
+                PlayAttackAnim();
+                break;
+            case EnemyState.Death:
+                PlayDieAnim();
+                break;
+            default:
+                RequestIdlePose(force: !suppressIdleWhileTargeting);
+                break;
+        }
+    }
+
+    protected void RequestIdlePose(bool force = false)
+    {
+        if (!force && suppressIdleWhileTargeting && isTargetEngaged)
+            return;
+
+        PlayIdleAnim();
     }
 }
