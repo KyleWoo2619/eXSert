@@ -109,6 +109,18 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
     [Tooltip("Maximum degrees to offset when missing (yaw only).")]
     [SerializeField, Range(0f, 45f)] private float maxMissAngleDeg = 6f;
 
+    [Header("Facing")]
+    [Tooltip("Degrees/second to rotate toward the desired facing direction.")]
+    [SerializeField] private float turnSpeed = 540f;
+    [Tooltip("Minimum planar speed before we use agent velocity for facing.")]
+    [SerializeField] private float velocityFacingThreshold = 0.2f;
+
+    [Header("Animation Overrides")]
+    [Tooltip("Optional animator state name to jump to when reacting to damage. Leave blank to use triggers.")]
+    [SerializeField] private string hitStateOverride = "Hit";
+    [Tooltip("Seconds the hit reaction should suppress the attack animation so it stays visible.")]
+    [SerializeField] private float hitAnimLockDuration = 0.3f;
+
     private Queue<GameObject> projectilePool;
 
     public float HoverHeight => hoverHeight;
@@ -187,18 +199,13 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
 
     private Coroutine tickCoroutine;
     private float lastFireTime = 0f;
+    private float nextAllowedAttackAnimTime = 0f;
     private Transform player;
 
     private IEnemyStateBehavior<DroneState, DroneTrigger> idleBehavior, relocateBehavior, swarmBehavior, fireBehavior, deathBehavior;
 
     public float zoneMoveInterval = 5f;
     public float lastZoneMoveTime = 0f;
-
-    private static readonly Color IdleColor = Color.green;
-    private static readonly Color RelocateColor = Color.blue;
-    private static readonly Color ChaseColor = Color.yellow;
-    private static readonly Color FireColor = new Color(1f, 0.5f, 0f); // Orange
-    private static readonly Color DeathColor = Color.black;
 
     // Add this near the other coroutine fields
     private Coroutine fireTickCoroutine;
@@ -210,8 +217,6 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
         agent.updateRotation = false;
         agent.updateUpAxis = false;
         player = GameObject.FindGameObjectWithTag("Player")?.transform;
-
-        enemyRenderer = GetComponentInChildren<Renderer>();
 
         idleBehavior = new DroneIdleBehavior<DroneState, DroneTrigger>();
         relocateBehavior = new DroneRelocateBehavior<DroneState, DroneTrigger>();
@@ -245,10 +250,24 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
         if (enemyAI.State.Equals(DroneState.Idle))
         {
             idleBehavior.OnEnter(this);
-            SetEnemyColor(IdleColor);
         }
 
         StartIdleTimer();
+    }
+
+    protected override void Update()
+    {
+        base.Update();
+
+        float speed01 = 0f;
+        if (agent != null && agent.enabled)
+        {
+            float normalizedDivisor = Mathf.Max(agent.speed, 0.01f);
+            speed01 = Mathf.Clamp01(agent.velocity.magnitude / normalizedDivisor);
+        }
+
+        PlayLocomotionAnim(speed01);
+        UpdateFacing();
     }
 
     public void StartIdleTimer()
@@ -267,14 +286,14 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
     protected override void ConfigureStateMachine()
     {
         enemyAI.Configure(DroneState.Idle)
-            .OnEntry(() => { idleBehavior.OnEnter(this); SetEnemyColor(IdleColor); })
+            .OnEntry(() => { idleBehavior.OnEnter(this); })
             .OnExit(() => idleBehavior.OnExit(this))
             .Permit(DroneTrigger.SeePlayer, DroneState.Chase)
             .Permit(DroneTrigger.Die, DroneState.Death)
             .Permit(DroneTrigger.LosePlayer, DroneState.Relocate);
 
         enemyAI.Configure(DroneState.Relocate)
-            .OnEntry(() => { relocateBehavior.OnEnter(this); SetEnemyColor(RelocateColor); })
+            .OnEntry(() => { relocateBehavior.OnEnter(this); })
             .OnExit(() => relocateBehavior.OnExit(this))
             .Permit(DroneTrigger.LosePlayer, DroneState.Idle)
             .Permit(DroneTrigger.SeePlayer, DroneState.Chase)
@@ -285,7 +304,6 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
         enemyAI.Configure(DroneState.Chase)
             .OnEntry(() => {
                 swarmBehavior.OnEnter(this);
-                SetEnemyColor(ChaseColor);
                 ResetAgentDestination();
             })
             .OnExit(() => swarmBehavior.OnExit(this))
@@ -296,19 +314,17 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
             .Ignore(DroneTrigger.RelocateComplete);
 
         enemyAI.Configure(DroneState.Fire)
-            .OnEntry(() => { fireBehavior.OnEnter(this); SetEnemyColor(FireColor); StartFireTick(); })   // start tick
+            .OnEntry(() => { fireBehavior.OnEnter(this); StartFireTick(); })   // start tick
             .OnExit(() => { fireBehavior.OnExit(this); StopFireTick(); })                                // stop tick
             .Permit(DroneTrigger.OutOfAttackRange, DroneState.Chase)
             .Permit(DroneTrigger.LosePlayer, DroneState.Relocate)
             .Permit(DroneTrigger.Die, DroneState.Death)
             .Ignore(DroneTrigger.SeePlayer)
-            .Ignore(DroneTrigger.LosePlayer)
             .Ignore(DroneTrigger.InAttackRange)
-            .Ignore(DroneTrigger.Die)
             .Ignore(DroneTrigger.RelocateComplete);
 
         enemyAI.Configure(DroneState.Death)
-            .OnEntry(() => { deathBehavior.OnEnter(this); SetEnemyColor(DeathColor); })
+            .OnEntry(() => { deathBehavior.OnEnter(this); })
             .OnExit(() => deathBehavior.OnExit(this))
             .Ignore(DroneTrigger.SeePlayer)
             .Ignore(DroneTrigger.LosePlayer)
@@ -425,6 +441,11 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
 
             var enemyProj = proj.GetComponent<EnemyProjectile>();
             if (enemyProj != null) enemyProj.SetOwner(this);
+
+            if (Time.time >= nextAllowedAttackAnimTime)
+            {
+                PlayAttackAnim();
+            }
         }
     }
 
@@ -604,5 +625,43 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
             }
         }
         return dir;
+    }
+
+    private void UpdateFacing()
+    {
+        Vector3 forward = Vector3.zero;
+
+        if (agent != null && agent.enabled)
+        {
+            Vector3 planarVel = new Vector3(agent.velocity.x, 0f, agent.velocity.z);
+            if (planarVel.sqrMagnitude >= velocityFacingThreshold * velocityFacingThreshold)
+            {
+                forward = planarVel;
+            }
+        }
+
+        if (forward == Vector3.zero && player != null)
+        {
+            forward = new Vector3(player.position.x - transform.position.x, 0f, player.position.z - transform.position.z);
+        }
+
+        if (forward.sqrMagnitude < 0.0001f)
+            return;
+
+        Quaternion targetRot = Quaternion.LookRotation(forward.normalized, Vector3.up);
+        transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, turnSpeed * Time.deltaTime);
+    }
+
+    protected override void PlayHitAnim()
+    {
+        if (!string.IsNullOrEmpty(hitStateOverride) && animator != null)
+        {
+            animator.Play(hitStateOverride, 0, 0f);
+            nextAllowedAttackAnimTime = Time.time + hitAnimLockDuration;
+            return;
+        }
+
+        nextAllowedAttackAnimTime = Time.time + hitAnimLockDuration;
+        base.PlayHitAnim();
     }
 }

@@ -89,9 +89,21 @@ namespace Behaviors
             }
             else
             {
-                // Fallback: move directly towards the player (flatten Y to NavMesh plane)
-                var flatTarget = new Vector3(player.position.x, d.transform.position.y, player.position.z);
-                d.MoveTo(flatTarget);
+                // Fallback: move toward the player but stop at the preferred perimeter
+                Vector3 flatPlayer = new Vector3(player.position.x, d.transform.position.y, player.position.z);
+                Vector3 toPlayer = flatPlayer - d.transform.position;
+                float planarDist = new Vector3(toPlayer.x, 0f, toPlayer.z).magnitude;
+                float desiredRadius = Mathf.Max(d.attackRange - 0.75f, 0.5f);
+
+                if (planarDist > desiredRadius)
+                {
+                    Vector3 destination = flatPlayer - toPlayer.normalized * desiredRadius;
+                    d.MoveTo(destination);
+                }
+                else
+                {
+                    d.ResetAgentDestination();
+                }
             }
         }
     }

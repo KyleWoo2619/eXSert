@@ -226,6 +226,13 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         if (animator == null)
             return;
 
+        // Drive additive locomotion overlays when the optional IsMoving bool exists
+        if (AnimatorHasParameter("IsMoving", AnimatorControllerParameterType.Bool))
+        {
+            bool isMoving = moveSpeed > 0.05f;
+            animator.SetBool("IsMoving", isMoving);
+        }
+
         if (!string.IsNullOrEmpty(moveSpeedParameterName) && AnimatorHasParameter(moveSpeedParameterName, AnimatorControllerParameterType.Float))
         {
             animator.SetFloat(moveSpeedParameterName, moveSpeed);

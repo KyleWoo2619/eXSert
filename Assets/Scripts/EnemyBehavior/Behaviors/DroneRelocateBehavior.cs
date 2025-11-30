@@ -16,6 +16,9 @@ public class DroneRelocateBehavior<TState, TTrigger> : RelocateBehavior<TState, 
     public override void OnEnter(BaseEnemy<TState, TTrigger> enemy)
     {
         var drone = enemy as DroneEnemy;
+        if (drone == null || drone.Cluster == null)
+            return;
+
         if (drone != null)
         {
             // Pick a new zone different from currentZone
@@ -54,8 +57,10 @@ public class DroneRelocateBehavior<TState, TTrigger> : RelocateBehavior<TState, 
             relocateCoroutine = null;
         }
         if (drone != null)
+        {
             drone.StopTickCoroutine();
-        drone.Cluster.EndRelocate();
+            drone.Cluster?.EndRelocate();
+        }
     }
 
     // Coroutine: Wait until all cluster members are inside the target zone, then fire trigger to return to Idle
