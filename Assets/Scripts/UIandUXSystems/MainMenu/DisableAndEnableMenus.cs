@@ -39,7 +39,7 @@ public class DisableAndEnableMenus : MonoBehaviour
     [SerializeField] private FooterManager footer = null;
     [SerializeField] private bool isInGame;
 
-    
+    [InGameMenu]
     [SerializeField] private GameObject masterMenu;
 
     [IsCanvasAttached]
