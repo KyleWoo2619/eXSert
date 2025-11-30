@@ -1,5 +1,7 @@
 using UnityEngine;
 using TMPro;
+using System.ComponentModel;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -42,6 +44,11 @@ public class FooterManager : MonoBehaviour
 
     [ShowIfPause]
     [SerializeField] internal GameObject controlsUI;
+
+    [ShowIfPause]
+    [SerializeField] internal GameObject pauseUI;
+
+    [SerializeField] internal GameObject masterMenu;
 
     public void CheckForFooterUpdate()
     {
