@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAttack
   _attackId: SY2
   _attackName: SY2
+  _comboStage: 2
+  _isFinisher: 0
   _attackType: 0
   _attackWeight: 1
   _damage: 15
@@ -27,7 +29,9 @@ MonoBehaviour:
   _defaultDistanceFromPlayer: 1
   _customAttackDistanceFromPlayer: 0.75
   _hitboxHeightOffset: 1
-  _startLag: 0.15
-  _endLag: 0.1
+  _animationClip: {fileID: 1827226128182048838, guid: 7811af931137400428fa24442093bb47, type: 3}
+  _allowLateChain: 1
+  _hitboxDuration: 0.1
+  _tickInterval: 0
   _attackSFX: {fileID: 8300000, guid: 1935e65c657c36c4eb37279e27f91ee5, type: 3}
   _hitSFX: {fileID: 0}

@@ -70,7 +70,7 @@ public class HitboxDamageManager : MonoBehaviour, IAttackSystem
             transform.rotation
         );
         
-        Debug.Log($"{weaponName} checking {overlapping.Length} overlapping colliders on activation");
+        // Debug.Log($"{weaponName} checking {overlapping.Length} overlapping colliders on activation");
         
         foreach (var collider in overlapping)
         {
@@ -83,28 +83,28 @@ public class HitboxDamageManager : MonoBehaviour, IAttackSystem
     
     void OnDisable() 
     { 
-        Debug.Log($"{weaponName} hitbox DISABLED - hit {hitThisActivation.Count} enemies during this activation");
+        // Debug.Log($"{weaponName} hitbox DISABLED - hit {hitThisActivation.Count} enemies during this activation");
         // Note: We keep hitThisActivation data until next OnEnable() clears it
     }
 
 
     private void ProcessPotentialHit(Collider other)
     {
-        Debug.Log($"{weaponName} processing potential hit on {other.gameObject.name} (Tag: {other.tag}, Layer: {LayerMask.LayerToName(other.gameObject.layer)})");
-        Debug.Log($"  - Root object: {other.transform.root.name} (Tag: {other.transform.root.tag})");
-        Debug.Log($"  - All components on this object: {string.Join(", ", other.GetComponents<Component>().Select(c => c.GetType().Name))}");
+        // Debug.Log($"{weaponName} processing potential hit on {other.gameObject.name} (Tag: {other.tag}, Layer: {LayerMask.LayerToName(other.gameObject.layer)})");
+        // Debug.Log($"  - Root object: {other.transform.root.name} (Tag: {other.transform.root.tag})");
+        // Debug.Log($"  - All components on this object: {string.Join(", ", other.GetComponents<Component>().Select(c => c.GetType().Name))}");
         
         // IMPORTANT: Only damage enemies, never the player or player's components
         if (!other.CompareTag("Enemy")) 
         {
-            Debug.Log($"{weaponName} hit non-enemy object: {other.gameObject.name} with tag '{other.tag}' - ignoring");
+            // Debug.Log($"{weaponName} hit non-enemy object: {other.gameObject.name} with tag '{other.tag}' - ignoring");
             return;
         }
         
         // Additional safety: Don't hit the player even if they somehow have "Enemy" tag
         if (other.CompareTag("Player") || other.transform.root.CompareTag("Player"))
         {
-            Debug.LogWarning($"{weaponName} blocked attempt to damage player object: {other.gameObject.name}");
+            // Debug.LogWarning($"{weaponName} blocked attempt to damage player object: {other.gameObject.name}");
             return;
         }
         
@@ -112,7 +112,7 @@ public class HitboxDamageManager : MonoBehaviour, IAttackSystem
         var health = other.GetComponentInParent<IHealthSystem>();
         if (health == null) 
         {
-            Debug.LogWarning($"{weaponName} hit enemy {other.gameObject.name} but no IHealthSystem found!");
+            // Debug.LogWarning($"{weaponName} hit enemy {other.gameObject.name} but no IHealthSystem found!");
             return;
         }
         
@@ -120,37 +120,37 @@ public class HitboxDamageManager : MonoBehaviour, IAttackSystem
         var healthComp = health as Component;
         if (healthComp.CompareTag("Player"))
         {
-            Debug.LogWarning($"{weaponName} tried to damage player - blocked for safety");
+            // Debug.LogWarning($"{weaponName} tried to damage player - blocked for safety");
             return;
         }
         
         // One hit per activation: Check if this enemy was already hit during current activation
         int enemyId = healthComp.GetInstanceID();
-        Debug.Log($"{weaponName} checking enemy ID {enemyId} ({healthComp.name}) - HashSet currently has {hitThisActivation.Count} entries");
+        // Debug.Log($"{weaponName} checking enemy ID {enemyId} ({healthComp.name}) - HashSet currently has {hitThisActivation.Count} entries");
         
         if (hitThisActivation.Contains(enemyId))
         {
-            Debug.Log($"{weaponName} BLOCKED: already hit {healthComp.name} (ID: {enemyId}) during this activation");
+            // Debug.Log($"{weaponName} BLOCKED: already hit {healthComp.name} (ID: {enemyId}) during this activation");
             return;
         }
         
         // Mark this enemy as hit during this activation
         hitThisActivation.Add(enemyId);
-        Debug.Log($"{weaponName} ADDED enemy {healthComp.name} (ID: {enemyId}) to hit tracking - HashSet now has {hitThisActivation.Count} entries");
+        // Debug.Log($"{weaponName} ADDED enemy {healthComp.name} (ID: {enemyId}) to hit tracking - HashSet now has {hitThisActivation.Count} entries");
         
         // Apply damage via the interface
         float beforeHP = health.currentHP;
         health.LoseHP(damageAmount);
         float afterHP = health.currentHP;
         
-        Debug.Log($"SUCCESS: {weaponName} hit {healthComp.name} for {damageAmount} damage! Health: {beforeHP} -> {afterHP} (Max: {health.maxHP})");
+        // Debug.Log($"SUCCESS: {weaponName} hit {healthComp.name} for {damageAmount} damage! Health: {beforeHP} -> {afterHP} (Max: {health.maxHP})");
         
         // Tell the enemy AI it was attacked (for state machine reactions)
         var enemy = other.GetComponentInParent<BaseEnemy<EnemyState, EnemyTrigger>>();
         if (enemy != null)
         {
             enemy.TryFireTriggerByName("Attacked");
-            Debug.Log($"{weaponName} fired 'Attacked' trigger on {enemy.name}");
+            // Debug.Log($"{weaponName} fired 'Attacked' trigger on {enemy.name}");
         }
     }
     
@@ -159,7 +159,7 @@ public class HitboxDamageManager : MonoBehaviour, IAttackSystem
         // Only process if hitbox is actually enabled
         if (!boxCollider.enabled) return;
         
-        Debug.Log($"{weaponName} OnTriggerEnter with {other.gameObject.name}");
+        // Debug.Log($"{weaponName} OnTriggerEnter with {other.gameObject.name}");
         ProcessPotentialHit(other);
     }
     

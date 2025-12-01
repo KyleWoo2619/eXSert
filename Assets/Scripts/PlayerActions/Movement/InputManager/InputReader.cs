@@ -26,7 +26,6 @@ public class InputReader : Singleton<InputReader>
     private static InputActionAsset playerControls;
     public static PlayerInput playerInput {get; private set; }
     
-    public bool ableToGuard;
     internal float mouseSens;
 
     private InputAction moveAction;
@@ -40,24 +39,83 @@ public class InputReader : Singleton<InputReader>
     private InputAction navigationMenuAction;
     private InputAction interactAction;
     private InputAction escapePuzzleAction;
+    private InputAction lockOnAction;
+    private InputAction leftTargetAction;
+    private InputAction rightTargetAction;
+
+    private bool callbacksRegistered = false;
+
+    public static event Action LockOnPressed;
+    public static event Action LeftTargetPressed;
+    public static event Action RightTargetPressed;
 
     public static bool inputBusy = false;
 
     [Header("DeadzoneValues")]
-    [SerializeField] internal float leftStickDeadzoneValue;
+    [SerializeField, Range(0f, 0.5f)] internal float leftStickDeadzoneValue = 0.15f;
+    [SerializeField, Range(0f, 0.5f)] internal float rightStickDeadzoneValue = 0.15f;
 
     // Gets the input and sets the variable
     public static Vector2 MoveInput { get; private set; }
-    public Vector2 LookInput { get; private set; }
-    public bool DashTrigger { get; private set; } = false;
+    public static Vector2 LookInput { get; private set; }
 
-    // Reset methods for triggers that need manual resetting
-    public void ResetDashTrigger()
-    {
-        DashTrigger = false;
-    }
+    // Centralized action accessors so gameplay scripts never touch InputActions directly
+    public static bool JumpTriggered =>
+        Instance != null
+        && Instance.jumpAction != null
+        && Instance.jumpAction.triggered;
 
-    override protected void Awake()
+    public static bool DashTriggered =>
+        Instance != null
+        && Instance.dashAction != null
+        && Instance.dashAction.triggered;
+
+    public static bool JumpHeld =>
+        Instance != null
+        && Instance.jumpAction != null
+        && Instance.jumpAction.IsPressed();
+
+    public static bool DashHeld =>
+        Instance != null
+        && Instance.dashAction != null
+        && Instance.dashAction.IsPressed();
+
+    public static bool GuardHeld =>
+        Instance != null
+        && Instance.guardAction != null
+        && Instance.guardAction.IsPressed();
+
+    public static bool LightAttackTriggered =>
+        Instance != null
+        && Instance.lightAttackAction != null
+        && Instance.lightAttackAction.triggered;
+
+    public static bool HeavyAttackTriggered =>
+        Instance != null
+        && Instance.heavyAttackAction != null
+        && Instance.heavyAttackAction.triggered;
+
+    public static bool ChangeStanceTriggered =>
+        Instance != null
+        && Instance.changeStanceAction != null
+        && Instance.changeStanceAction.triggered;
+
+    public static bool InteractTriggered =>
+        Instance != null
+        && Instance.interactAction != null
+        && Instance.interactAction.triggered;
+
+    public static bool EscapePuzzleTriggered =>
+        Instance != null
+        && Instance.escapePuzzleAction != null
+        && Instance.escapePuzzleAction.triggered;
+
+    public static bool NavigationMenuTriggered =>
+        Instance != null
+        && Instance.navigationMenuAction != null
+        && Instance.navigationMenuAction.triggered;
+
+    protected override void Awake()
     {
         base.Awake(); // Call singleton Awake first
 
@@ -119,6 +177,9 @@ public class InputReader : Singleton<InputReader>
             dashAction = playerInput.actions["Dash"];
             interactAction = playerInput.actions["Interact"];
             escapePuzzleAction = playerInput.actions["EscapePuzzle"];
+            lockOnAction = playerInput.actions["LockOn"];
+            leftTargetAction = playerInput.actions["LeftTarget"];
+            rightTargetAction = playerInput.actions["RightTarget"];
             
             // Try to get NavigationMenu, but don't fail if it doesn't exist
             try
@@ -129,6 +190,8 @@ public class InputReader : Singleton<InputReader>
             {
                 Debug.LogWarning("NavigationMenu action not found - continuing without it");
             }
+
+            RegisterActionCallbacks();
         }
         catch (System.Exception e)
         {
@@ -137,21 +200,21 @@ public class InputReader : Singleton<InputReader>
         }
 
         //RegisterInputAction();
-            
-        //Sets gamepad deadzone
-        InputSystem.settings.defaultDeadzoneMin = leftStickDeadzoneValue;
+
+        // Sets a conservative global deadzone so even blended inputs respect drift filtering
+        InputSystem.settings.defaultDeadzoneMin = Mathf.Min(leftStickDeadzoneValue, rightStickDeadzoneValue);
     }
 
     private void Update()
     {
         // Null checks to prevent Input System errors before initialization
         if (moveAction != null && moveAction.enabled)
-            MoveInput = moveAction.ReadValue<Vector2>();
+            MoveInput = ApplyDeadzone(moveAction.ReadValue<Vector2>(), leftStickDeadzoneValue);
         else
             MoveInput = Vector2.zero;
             
         if (lookAction != null && lookAction.enabled)
-            LookInput = lookAction.ReadValue<Vector2>();
+            LookInput = ApplyDeadzone(lookAction.ReadValue<Vector2>(), rightStickDeadzoneValue);
         else
             LookInput = Vector2.zero;
 
@@ -173,6 +236,9 @@ public class InputReader : Singleton<InputReader>
         if (navigationMenuAction != null) navigationMenuAction.Enable();
         if (interactAction != null) interactAction.Enable();
         if (escapePuzzleAction != null) escapePuzzleAction.Enable();
+        if (lockOnAction != null) lockOnAction.Enable();
+        if (leftTargetAction != null) leftTargetAction.Enable();
+        if (rightTargetAction != null) rightTargetAction.Enable();
     }
 
     private void OnDisable()
@@ -188,6 +254,14 @@ public class InputReader : Singleton<InputReader>
         if (navigationMenuAction != null) navigationMenuAction.Disable();
         if (interactAction != null) interactAction.Disable();
         if (escapePuzzleAction != null) escapePuzzleAction.Disable();
+        if (lockOnAction != null) lockOnAction.Disable();
+        if (leftTargetAction != null) leftTargetAction.Disable();
+        if (rightTargetAction != null) rightTargetAction.Disable();
+    }
+
+    private void OnDestroy()
+    {
+        UnregisterActionCallbacks();
     }
 
     /// <summary>
@@ -239,6 +313,11 @@ public class InputReader : Singleton<InputReader>
         if (navigationMenuAction != null) navigationMenuAction.Disable();
         if (interactAction != null) interactAction.Disable();
         if (escapePuzzleAction != null) escapePuzzleAction.Disable();
+        if (lockOnAction != null) lockOnAction.Disable();
+        if (leftTargetAction != null) leftTargetAction.Disable();
+        if (rightTargetAction != null) rightTargetAction.Disable();
+
+        UnregisterActionCallbacks();
 
         _playerInput = newPlayerInput;
         playerInput = newPlayerInput;
@@ -265,9 +344,14 @@ public class InputReader : Singleton<InputReader>
             dashAction = playerInput.actions["Dash"];
             interactAction = playerInput.actions["Interact"];
             escapePuzzleAction = playerInput.actions["EscapePuzzle"];
+            lockOnAction = playerInput.actions["LockOn"];
+            leftTargetAction = playerInput.actions["LeftTarget"];
+            rightTargetAction = playerInput.actions["RightTarget"];
 
             try { navigationMenuAction = playerInput.actions["NavigationMenu"]; }
             catch { navigationMenuAction = null; }
+
+            RegisterActionCallbacks();
         }
         catch (System.Exception e)
         {
@@ -288,8 +372,74 @@ public class InputReader : Singleton<InputReader>
             if (navigationMenuAction != null) navigationMenuAction.Enable();
             if (interactAction != null) interactAction.Enable();
             if (escapePuzzleAction != null) escapePuzzleAction.Enable();
+            if (lockOnAction != null) lockOnAction.Enable();
+            if (leftTargetAction != null) leftTargetAction.Enable();
+            if (rightTargetAction != null) rightTargetAction.Enable();
         }
 
         Debug.Log("[InputReader] Rebound to new PlayerInput and actions re-enabled.");
     }
+
+    private void RegisterActionCallbacks()
+    {
+        if (callbacksRegistered)
+            return;
+
+        if (lockOnAction != null)
+            lockOnAction.performed += HandleLockOnPerformed;
+        if (leftTargetAction != null)
+            leftTargetAction.performed += HandleLeftTargetPerformed;
+        if (rightTargetAction != null)
+            rightTargetAction.performed += HandleRightTargetPerformed;
+
+        callbacksRegistered = true;
+    }
+
+    private void UnregisterActionCallbacks()
+    {
+        if (!callbacksRegistered)
+            return;
+
+        if (lockOnAction != null)
+            lockOnAction.performed -= HandleLockOnPerformed;
+        if (leftTargetAction != null)
+            leftTargetAction.performed -= HandleLeftTargetPerformed;
+        if (rightTargetAction != null)
+            rightTargetAction.performed -= HandleRightTargetPerformed;
+
+        callbacksRegistered = false;
+    }
+
+    private void HandleLockOnPerformed(InputAction.CallbackContext context)
+    {
+        if (!context.performed)
+            return;
+
+        LockOnPressed?.Invoke();
+    }
+
+    private void HandleLeftTargetPerformed(InputAction.CallbackContext context)
+    {
+        if (!context.performed)
+            return;
+
+        LeftTargetPressed?.Invoke();
+    }
+
+    private void HandleRightTargetPerformed(InputAction.CallbackContext context)
+    {
+        if (!context.performed)
+            return;
+
+        RightTargetPressed?.Invoke();
+    }
+
+    private static Vector2 ApplyDeadzone(Vector2 value, float deadzone)
+    {
+        if (deadzone <= 0f)
+            return value;
+
+        return value.magnitude < deadzone ? Vector2.zero : value;
+    }
 }
+

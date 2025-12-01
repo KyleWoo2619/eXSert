@@ -41,7 +41,7 @@ ModelImporter:
       takeName: Take 001
       internalID: 1827226128182048838
       firstFrame: 2
-      lastFrame: 60
+      lastFrame: 97
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -61,22 +61,15 @@ ModelImporter:
       bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
       curves: []
       events:
-      - time: 0
-        functionName: SetComboStage
-        data: 
-        objectReferenceParameter: {instanceID: 0}
-        floatParameter: 0
-        intParameter: 3
-        messageOptions: 0
-      - time: 0
-        functionName: MarkInCombat
+      - time: 0.19581465
+        functionName: GenerateHitbox
         data: 
         objectReferenceParameter: {instanceID: 0}
         floatParameter: 0
         intParameter: 0
         messageOptions: 0
-      - time: 0.8099862
-        functionName: OpenChainWindow
+      - time: 0.68908817
+        functionName: CancelWindowStart
         data: 
         objectReferenceParameter: {instanceID: 0}
         floatParameter: 0

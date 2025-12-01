@@ -228,6 +228,33 @@ namespace eXsert
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""LockOn"",
+                    ""type"": ""Button"",
+                    ""id"": ""04e7c2f7-fc9e-4eb3-b0b6-8e2fac26fabb"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""LeftTarget"",
+                    ""type"": ""Button"",
+                    ""id"": ""74e0d850-6f57-411c-92f5-820dc32f2cf4"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""RightTarget"",
+                    ""type"": ""Button"",
+                    ""id"": ""e31e44d1-eff4-4091-acf1-807f99b023cf"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -659,6 +686,72 @@ namespace eXsert
                     ""action"": ""EnterMenus"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""860224b9-93ab-4a09-8b81-7d63e0171ad8"",
+                    ""path"": ""<Gamepad>/dpad/up"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""LockOn"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""48168113-4519-4fec-8b46-17a387a888c9"",
+                    ""path"": ""<Gamepad>/rightStickPress"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""LockOn"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""bb0b5685-8391-49bb-b453-60f24e189c5e"",
+                    ""path"": ""<Gamepad>/dpad/left"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""LeftTarget"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""8c5d8d67-0e8b-4722-8efe-0143ba8e0fd9"",
+                    ""path"": ""<Gamepad>/rightStick/left"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""LeftTarget"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""dd89e015-48e7-438f-9615-74f08732a5c7"",
+                    ""path"": ""<Gamepad>/dpad/right"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""RightTarget"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""0cba0e89-504f-4187-8fce-e18ee2a5b898"",
+                    ""path"": ""<Gamepad>/rightStick/right"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""RightTarget"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         },
@@ -1070,6 +1163,9 @@ namespace eXsert
             m_Gameplay_EscapePuzzle = m_Gameplay.FindAction("EscapePuzzle", throwIfNotFound: true);
             m_Gameplay_SwapMenus = m_Gameplay.FindAction("SwapMenus", throwIfNotFound: true);
             m_Gameplay_EnterMenus = m_Gameplay.FindAction("EnterMenus", throwIfNotFound: true);
+            m_Gameplay_LockOn = m_Gameplay.FindAction("LockOn", throwIfNotFound: true);
+            m_Gameplay_LeftTarget = m_Gameplay.FindAction("LeftTarget", throwIfNotFound: true);
+            m_Gameplay_RightTarget = m_Gameplay.FindAction("RightTarget", throwIfNotFound: true);
             // UI
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
             m_UI_Navigation = m_UI.FindAction("Navigation", throwIfNotFound: true);
@@ -1178,6 +1274,9 @@ namespace eXsert
         private readonly InputAction m_Gameplay_EscapePuzzle;
         private readonly InputAction m_Gameplay_SwapMenus;
         private readonly InputAction m_Gameplay_EnterMenus;
+        private readonly InputAction m_Gameplay_LockOn;
+        private readonly InputAction m_Gameplay_LeftTarget;
+        private readonly InputAction m_Gameplay_RightTarget;
         /// <summary>
         /// Provides access to input actions defined in input action map "Gameplay".
         /// </summary>
@@ -1250,6 +1349,18 @@ namespace eXsert
             /// </summary>
             public InputAction @EnterMenus => m_Wrapper.m_Gameplay_EnterMenus;
             /// <summary>
+            /// Provides access to the underlying input action "Gameplay/LockOn".
+            /// </summary>
+            public InputAction @LockOn => m_Wrapper.m_Gameplay_LockOn;
+            /// <summary>
+            /// Provides access to the underlying input action "Gameplay/LeftTarget".
+            /// </summary>
+            public InputAction @LeftTarget => m_Wrapper.m_Gameplay_LeftTarget;
+            /// <summary>
+            /// Provides access to the underlying input action "Gameplay/RightTarget".
+            /// </summary>
+            public InputAction @RightTarget => m_Wrapper.m_Gameplay_RightTarget;
+            /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
             public InputActionMap Get() { return m_Wrapper.m_Gameplay; }
@@ -1320,6 +1431,15 @@ namespace eXsert
                 @EnterMenus.started += instance.OnEnterMenus;
                 @EnterMenus.performed += instance.OnEnterMenus;
                 @EnterMenus.canceled += instance.OnEnterMenus;
+                @LockOn.started += instance.OnLockOn;
+                @LockOn.performed += instance.OnLockOn;
+                @LockOn.canceled += instance.OnLockOn;
+                @LeftTarget.started += instance.OnLeftTarget;
+                @LeftTarget.performed += instance.OnLeftTarget;
+                @LeftTarget.canceled += instance.OnLeftTarget;
+                @RightTarget.started += instance.OnRightTarget;
+                @RightTarget.performed += instance.OnRightTarget;
+                @RightTarget.canceled += instance.OnRightTarget;
             }
 
             /// <summary>
@@ -1376,6 +1496,15 @@ namespace eXsert
                 @EnterMenus.started -= instance.OnEnterMenus;
                 @EnterMenus.performed -= instance.OnEnterMenus;
                 @EnterMenus.canceled -= instance.OnEnterMenus;
+                @LockOn.started -= instance.OnLockOn;
+                @LockOn.performed -= instance.OnLockOn;
+                @LockOn.canceled -= instance.OnLockOn;
+                @LeftTarget.started -= instance.OnLeftTarget;
+                @LeftTarget.performed -= instance.OnLeftTarget;
+                @LeftTarget.canceled -= instance.OnLeftTarget;
+                @RightTarget.started -= instance.OnRightTarget;
+                @RightTarget.performed -= instance.OnRightTarget;
+                @RightTarget.canceled -= instance.OnRightTarget;
             }
 
             /// <summary>
@@ -1794,6 +1923,27 @@ namespace eXsert
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnEnterMenus(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "LockOn" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnLockOn(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "LeftTarget" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnLeftTarget(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "RightTarget" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnRightTarget(InputAction.CallbackContext context);
         }
         /// <summary>
         /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.

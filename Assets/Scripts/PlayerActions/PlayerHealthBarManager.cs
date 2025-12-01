@@ -9,12 +9,15 @@ using UnityEngine;
 using UnityEngine.UI;
 using Unity.VisualScripting;
 using UnityEngine.SceneManagement;
+using System;
 
 public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersistenceManager
 
 {
     public float maxHealth;
     public float health;
+
+    public static event Action<float> OnPlayerDamaged;
     
     [Header("UI References")]
     [SerializeField] private Slider slider; // Old slider system (optional)
@@ -77,6 +80,9 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
         health -= damage;
         
         SetHealth();
+
+        if (damage > 0f)
+            OnPlayerDamaged?.Invoke(damage);
 
         //detects if the gameobject has gone below their health count
        

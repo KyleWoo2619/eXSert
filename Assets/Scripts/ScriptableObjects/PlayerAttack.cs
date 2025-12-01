@@ -42,6 +42,15 @@ namespace Utilities.Combat.Attacks
         // If no custom name is given, use the scriptable object's name
         public string attackName { get => _attackName != "" ? _attackName : this.name; }
 
+        [Space, Header("Combo Metadata")]
+        [SerializeField, Tooltip("Explicit combo stage index (1-3) for validation and progression.")]
+        private int _comboStage = 1;
+        public int comboStage { get => Mathf.Clamp(_comboStage, 1, 3); }
+
+        [SerializeField, Tooltip("Marks this attack as a finisher that forces a combo reset.")]
+        private bool _isFinisher = false;
+        public bool isFinisher { get => _isFinisher; }
+
         [SerializeField, Tooltip("Type of attack, single target or area of effect")]
         private AttackCategory _attackType = AttackCategory.Single;
         [SerializeField, Tooltip("Weight of the attack, light or heavy")]
@@ -139,17 +148,23 @@ namespace Utilities.Combat.Attacks
 
         // ---------------------------------------------------------------------------------------------
 
-        [Space, Header("Timing")]
+        [Space, Header("Timing / Animation Reference")]
 
-        [SerializeField, Tooltip("How much time after the attack starts before the attack damage is applied, " +
-            "also prevents another attack or action to be started before this finished " +
-            "This usually would incorporate how long the attack animation is before the \"punch\" hits")]
-        private float _startLag = 0.2f;
-        public float startLag { get => _startLag; }
+        [SerializeField, Tooltip("Animation clip associated with this attack (reference for event placement).")]
+        private AnimationClip _animationClip;
+        public AnimationClip animationClip { get => _animationClip; }
 
-        [SerializeField, Tooltip("How much time after the damage is applied before the attack is complete.")]
-        private float _endLag = 0.2f;
-        public float endLag { get => _endLag; }
+        [SerializeField, Tooltip("If true, player may continue holding the current stance idle even when no buffered input exists after the cancel window.")]
+        private bool _allowLateChain = true;
+        public bool allowLateChain { get => _allowLateChain; }
+
+        [SerializeField, Tooltip("How long the hitbox stays active once spawned.")]
+        private float _hitboxDuration = 0.1f;
+        public float hitboxDuration { get => Mathf.Max(0f, _hitboxDuration); }
+
+        [SerializeField, Tooltip("If greater than zero, reapplies damage every interval during the hitbox duration (useful for flamethrowers).")]
+        private float _tickInterval = 0f;
+        public float tickInterval { get => Mathf.Max(0f, _tickInterval); }
 
         // ---------------------------------------------------------------------------------------------
 

@@ -1,184 +1,359 @@
-/*
-Written by Brandon Wahl
-
-This script is the framework for eXsert's combo system. Here it juggles between the four hitboxes used and activates and deactivates them based on player input. 
-It also checks for inactivity between inputs so the combo resets.
-
-
-*/
-
 using System;
 using System.Collections;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 using Utilities.Combat;
 using Utilities.Combat.Attacks;
 
 public class PlayerAttackManager : MonoBehaviour
 {
-    // will's stuff
-    [Header("Input")]
-    [SerializeField] private InputActionReference _lightAttackAction;
-    [SerializeField] private InputActionReference _heavyAttackAction;
+    [Header("References")]
+    [SerializeField] private PlayerAnimationController animationController;
+    [SerializeField] private TierComboManager tierComboManager;
+    [SerializeField] private AerialComboManager aerialComboManager;
+    [SerializeField] private AttackDatabase attackDatabase;
+    [SerializeField] private CharacterController characterController;
 
-    [Space, Header("Animator")]
-    [SerializeField] Animator animator;
+    [Header("Stance Switching")]
+    [SerializeField, Range(0.1f, 5f)] private float stanceCooldownTime = 1f;
+    [SerializeField] private AudioClip changeStanceAudio;
 
-    PlayerAttack currentAttack;
+    private AudioSource sfxSource;
+    private Coroutine stanceCooldownRoutine;
+    private GameObject activeHitbox;
+    private PlayerAttack currentAttack;
+    private Coroutine hitboxLifetimeRoutine;
 
-    public static event Action onAttack;
+    [Header("Input Buffering")]
+    [SerializeField, Range(0.05f, 0.6f)] private float inputBufferWindow = 0.25f;
+
+    private enum AttackButton { None, Light, Heavy }
+    private AttackButton bufferedAttackButton = AttackButton.None;
+    private float bufferedAttackExpiresAt = -1f;
+
+    public static event Action<PlayerAttack> OnAttack;
+
+    private void Awake()
+    {
+        animationController ??= GetComponent<PlayerAnimationController>() ?? GetComponentInChildren<PlayerAnimationController>();
+        tierComboManager ??= GetComponent<TierComboManager>() ?? GetComponentInChildren<TierComboManager>() ?? GetComponentInParent<TierComboManager>();
+        aerialComboManager ??= GetComponent<AerialComboManager>() ?? GetComponentInChildren<AerialComboManager>() ?? GetComponentInParent<AerialComboManager>();
+        characterController ??= GetComponent<CharacterController>();
+
+        if (attackDatabase == null)
+        {
+            attackDatabase = Resources.Load<AttackDatabase>("AttackDatabase");
+            if (attackDatabase == null)
+                Debug.LogWarning("[PlayerAttackManager] AttackDatabase reference is missing.");
+        }
+    }
 
     private void Start()
     {
-        if (_lightAttackAction.action == null)
-            Debug.LogError("Light Attack Action is NULL! Assign the Light Attack Action to the Player Input component.");
+        sfxSource = SoundManager.Instance != null ? SoundManager.Instance.sfxSource : null;
+    }
 
-        if (_heavyAttackAction.action == null)
-            Debug.LogError("Heavy Attack Action is NULL! Assign the Heavy Attack Action to the Player Input component.");
+    private void OnDisable()
+    {
+        if (stanceCooldownRoutine != null)
+        {
+            StopCoroutine(stanceCooldownRoutine);
+            stanceCooldownRoutine = null;
+        }
+        if (hitboxLifetimeRoutine != null)
+        {
+            StopCoroutine(hitboxLifetimeRoutine);
+            hitboxLifetimeRoutine = null;
+        }
+
+        ClearHitbox();
+        InputReader.inputBusy = false;
     }
 
     private void Update()
     {
-        if (_lightAttackAction.action.triggered && !InputReader.inputBusy)
-            OnLightAttack();
-        //else
-            //animator.ResetTrigger("lightTrigger");
+        if (InputReader.LightAttackTriggered)
+            ProcessAttackInput(true);
 
+        if (InputReader.HeavyAttackTriggered)
+            ProcessAttackInput(false);
 
-        if (!_lightAttackAction.action.triggered && _heavyAttackAction.action.triggered && !InputReader.inputBusy)
-            OnHeavyAttack();
-        //else
-            //animator.ResetTrigger("heavyTrigger");
+        if (InputReader.ChangeStanceTriggered)
+            TryChangeStance();
+    }
 
+    private void ProcessAttackInput(bool lightAttack)
+    {
+        if (!InputReader.inputBusy)
+        {
+            if (lightAttack)
+                OnLightAttack();
+            else
+                OnHeavyAttack();
+        }
+        else
+        {
+            BufferAttack(lightAttack);
+        }
+    }
+
+    private void TryChangeStance()
+    {
+        if (stanceCooldownRoutine != null)
+            return;
+
+        CombatManager.ChangeStance();
+
+        if (changeStanceAudio != null && sfxSource != null)
+            sfxSource.PlayOneShot(changeStanceAudio);
+
+        stanceCooldownRoutine = StartCoroutine(StanceChangeCooldown());
+    }
+
+    private IEnumerator StanceChangeCooldown()
+    {
+        yield return new WaitForSeconds(stanceCooldownTime);
+        stanceCooldownRoutine = null;
     }
 
     public void OnLightAttack()
     {
-        Debug.Log("Light Attack Input Detected");
+        if (InputReader.inputBusy)
+            return;
 
-        if (InputReader.inputBusy) return;
-
-        PerformLightAttack();
+        AttemptAttack(true);
     }
 
     public void OnHeavyAttack()
     {
-        Debug.Log("Heavy Attack Input Detected");
+        if (InputReader.inputBusy)
+            return;
 
-        if (InputReader.inputBusy) return;
-
-        PerformHeavyAttack();
+        AttemptAttack(false);
     }
 
-    private void PerformLightAttack()
+    private void BufferAttack(bool lightAttack)
     {
-        InitiateAttack(true);
+        bufferedAttackButton = lightAttack ? AttackButton.Light : AttackButton.Heavy;
+        bufferedAttackExpiresAt = Time.time + inputBufferWindow;
     }
 
-    private void PerformHeavyAttack()
+    private void AttemptAttack(bool lightAttack)
     {
-        InitiateAttack(false);
+        tierComboManager?.CancelComboResetCountdown();
+
+        string attackId = ResolveAttackId(lightAttack);
+        if (string.IsNullOrEmpty(attackId))
+            return;
+
+        PlayerAttack attackData = attackDatabase != null ? attackDatabase.GetAttack(attackId) : null;
+        if (attackData == null)
+        {
+            Debug.LogWarning($"[PlayerAttackManager] Attack '{attackId}' not found in database.");
+            return;
+        }
+
+        ExecuteAttack(attackData, attackId);
     }
 
-    private void InitiateAttack(bool lightAttack)
+    private string ResolveAttackId(bool lightAttack)
     {
-        /*
-         *              ,O,
-         *             ,OOO,
-         *       'oooooOOOOOooooo'
-         *         `OOOOOOOOOOO`
-         *           `OOOOOOO`
-         *           OOOO'OOOO
-         *          OOO'   'OOO
-         *         O'         'O
-         *         
-         * CHANGE this to reference the sound from the attack scriptable object later
-         */
+        bool grounded = IsGrounded();
 
-        if (animator != null)
+        if (grounded)
         {
-            animator.SetBool("stance", CombatManager.singleTargetMode);
-            if (lightAttack)
-                animator.SetTrigger("lightTrigger");
-            else
-                animator.SetTrigger("heavyTrigger");
+            if (tierComboManager == null)
+            {
+                Debug.LogWarning("[PlayerAttackManager] TierComboManager missing; cannot resolve grounded attack.");
+                return null;
+            }
+
+            TierComboManager.AttackStance stance = CombatManager.singleTargetMode
+                ? TierComboManager.AttackStance.Single
+                : TierComboManager.AttackStance.AOE;
+
+            return lightAttack
+                ? tierComboManager.RequestFastAttack(stance)
+                : tierComboManager.RequestHeavyAttack(stance);
         }
 
-
-        //First determines whether the heavy or light input is detected
-        if (lightAttack)
+        if (aerialComboManager == null)
         {
-            if (!PlayerMovement.isGrounded)
-                currentAttack = ComboManager.Attack(AttackType.LightAerial);
-            
-            //Then checks which stance the player is in to properly activated a hitbox
-            else if (CombatManager.singleTargetMode)
-                currentAttack = ComboManager.Attack(AttackType.LightSingle);
-            else
-                currentAttack = ComboManager.Attack(AttackType.LightAOE);
+            Debug.LogWarning("[PlayerAttackManager] AerialComboManager missing; cannot resolve aerial attack.");
+            return null;
         }
 
-        else
-        {
-            if (!PlayerMovement.isGrounded)
-                currentAttack = ComboManager.Attack(AttackType.HeavyAerial);
-
-            else if (CombatManager.singleTargetMode)
-                currentAttack = ComboManager.Attack(AttackType.HeavySingle);
-            else
-                currentAttack = ComboManager.Attack(AttackType.HeavyAOE);
-        }
-
-        if (currentAttack.attackSFX != null)
-        {
-            currentAttack._sfxSource.clip = currentAttack.attackSFX;
-            currentAttack._sfxSource.Play();
-        }
-
-        onAttack?.Invoke();
-
-        //Not sure if there is a detection yet, but this will play on top of the attack sfx if the player hits an enemy
-        /* if(Player hits enemy)
-         {
-             currentAttack._sfxSource.PlayOneShot(currentAttack.hitSFX);
-         }
-         */
-
-        // Calls the coroutine to handle the attack timing and hitbox activation depending on the attack chosen by ComboManager
-        StartCoroutine(PerformAttack(currentAttack));
-
-        Debug.Log("Combo Amount: " + ComboManager.comboCount);
-
-        Debug.Log($"Performed Attack: {currentAttack.attackName}");
-
+        return lightAttack
+            ? aerialComboManager.RequestAerialFastAttack()
+            : aerialComboManager.RequestAerialHeavyAttack();
     }
 
-    /*
-     * Coroutine to handle the timing of the attack, including start lag and end lag.
-     * It also manages the enabling and disabling of hitboxes and starts the timer for combo reset.
-     * Disables player input during the attack animation.
-     */
-    public IEnumerator PerformAttack(PlayerAttack attack)
+    private void ExecuteAttack(PlayerAttack attackData, string attackId)
     {
-        PlayerAttack executedAttack = attack;
+        currentAttack = attackData;
         InputReader.inputBusy = true;
 
-        // Start the attack animation
+        if (attackData.attackSFX != null)
+        {
+            AudioSource attackSource = attackData._sfxSource;
+            if (attackSource != null)
+                attackSource.PlayOneShot(attackData.attackSFX);
+        }
 
-        yield return new WaitForSeconds(executedAttack.startLag);
+        animationController?.PlayAttack(attackId);
 
-        // Here you would typically enable the hitbox and apply damage to enemies within range
-        Debug.Log($"Executing Attack: {executedAttack.attackName} with Damage: {executedAttack.damage}");
+        OnAttack?.Invoke(attackData);
 
-        animator.ResetTrigger("lightTrigger");
-        animator.ResetTrigger("heavyTrigger");
+        Debug.Log($"[PlayerAttackManager] Executing attack {attackData.attackName} ({attackId})");
+    }
 
-        // End the attack animation
-        yield return new WaitForSeconds(executedAttack.endLag);
+    private bool IsGrounded()
+    {
+        if (characterController != null)
+            return characterController.isGrounded;
+
+        return PlayerMovement.isGrounded;
+    }
+
+    private void ClearHitbox()
+    {
+        if (hitboxLifetimeRoutine != null)
+        {
+            StopCoroutine(hitboxLifetimeRoutine);
+            hitboxLifetimeRoutine = null;
+        }
+
+        if (activeHitbox != null)
+        {
+            Destroy(activeHitbox);
+            activeHitbox = null;
+        }
+    }
+
+    private void SpawnHitbox(PlayerAttack attack)
+    {
+        ClearHitbox();
+
+        activeHitbox = attack.createHitBox(transform.position, transform.forward);
+        if (activeHitbox != null)
+            activeHitbox.transform.SetParent(transform, worldPositionStays: true);
+    }
+
+    public void SpawnOneShotHitbox(string attackId, float activeDuration)
+    {
+        var attackData = attackDatabase?.GetAttack(attackId);
+        if (attackData == null)
+        {
+            Debug.LogWarning($"[PlayerAttackManager] Cannot spawn hitbox; attack '{attackId}' missing.");
+            return;
+        }
+
+        TriggerHitboxWindow(attackData, Mathf.Max(0f, activeDuration));
+    }
+
+    private void TriggerHitboxWindow(PlayerAttack attack, float overrideDuration)
+    {
+        if (attack == null)
+            return;
+
+        SpawnHitbox(attack);
+
+        float lifetime = overrideDuration >= 0f
+            ? overrideDuration
+            : attack.hitboxDuration;
+
+        BeginHitboxLifetime(lifetime);
+    }
+
+    private void BeginHitboxLifetime(float duration)
+    {
+        if (duration <= 0f)
+        {
+            ClearHitbox();
+            return;
+        }
+
+        if (hitboxLifetimeRoutine != null)
+            StopCoroutine(hitboxLifetimeRoutine);
+
+        hitboxLifetimeRoutine = StartCoroutine(HitboxLifetimeRoutine(duration));
+    }
+
+    private IEnumerator HitboxLifetimeRoutine(float duration)
+    {
+        yield return new WaitForSeconds(Mathf.Max(0f, duration));
+        hitboxLifetimeRoutine = null;
+        ClearHitbox();
+    }
+
+    #region Animation Event Hooks
+    public void HandleAnimationHitbox()
+    {
+        HandleAnimationHitbox(-1f);
+    }
+
+    public void HandleAnimationHitbox(float overrideDuration)
+    {
+        if (currentAttack == null)
+        {
+            Debug.LogWarning("[PlayerAttackManager] Animation requested a hitbox but no attack is active.");
+            return;
+        }
+
+        TriggerHitboxWindow(currentAttack, overrideDuration);
+    }
+
+    public void HandleAnimationCancelWindow()
+    {
         InputReader.inputBusy = false;
 
-        StartCoroutine(ComboManager.WaitForInputReset());
-        yield return null;
+        if (TryConsumeBufferedAttack())
+            return;
+
+        tierComboManager?.StartComboResetCountdown();
     }
+
+    private bool TryConsumeBufferedAttack()
+    {
+        if (bufferedAttackButton == AttackButton.None)
+            return false;
+
+        if (Time.time > bufferedAttackExpiresAt)
+        {
+            bufferedAttackButton = AttackButton.None;
+            bufferedAttackExpiresAt = -1f;
+            return false;
+        }
+
+        bool lightAttack = bufferedAttackButton == AttackButton.Light;
+        bufferedAttackButton = AttackButton.None;
+        bufferedAttackExpiresAt = -1f;
+
+        AttemptAttack(lightAttack);
+        return true;
+    }
+
+    private void ClearBufferedAttack()
+    {
+        bufferedAttackButton = AttackButton.None;
+        bufferedAttackExpiresAt = -1f;
+    }
+
+    public void ForceCancelCurrentAttack(bool resetCombo = true)
+    {
+        ClearBufferedAttack();
+        ClearHitbox();
+        currentAttack = null;
+        InputReader.inputBusy = false;
+
+        if (resetCombo)
+        {
+            tierComboManager?.ResetCombo();
+        }
+        else
+        {
+            tierComboManager?.CancelComboResetCountdown();
+        }
+    }
+    #endregion
 }
