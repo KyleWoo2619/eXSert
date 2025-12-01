@@ -21,10 +21,11 @@ public class InputReader : Singleton<InputReader>
     [SerializeField] private InputActionAsset _playerControls;
     [SerializeField] internal PlayerInput _playerInput;
 
+    [SerializeField] internal string activeControlScheme;
+
     private static InputActionAsset playerControls;
     public static PlayerInput playerInput {get; private set; }
     
-
     public bool ableToGuard;
     internal float mouseSens;
 
@@ -37,11 +38,12 @@ public class InputReader : Singleton<InputReader>
     private InputAction heavyAttackAction;
     private InputAction dashAction;
     private InputAction navigationMenuAction;
+    private InputAction interactAction;
 
     public static bool inputBusy = false;
 
     [Header("DeadzoneValues")]
-    [SerializeField] private float leftStickDeadzoneValue;
+    [SerializeField] internal float leftStickDeadzoneValue;
 
     // Gets the input and sets the variable
     public static Vector2 MoveInput { get; private set; }
@@ -65,6 +67,16 @@ public class InputReader : Singleton<InputReader>
         }
         else
             playerInput = _playerInput;
+
+        // Initialize activeControlScheme immediately so other scripts can read it during Awake/Start
+        try
+        {
+            activeControlScheme = playerInput != null ? playerInput.currentControlScheme : string.Empty;
+        }
+        catch
+        {
+            activeControlScheme = string.Empty;
+        }
 
 
         if (_playerControls == null)
@@ -104,6 +116,7 @@ public class InputReader : Singleton<InputReader>
             lightAttackAction = playerInput.actions["LightAttack"];
             heavyAttackAction = playerInput.actions["HeavyAttack"];
             dashAction = playerInput.actions["Dash"];
+            interactAction = playerInput.actions["Interact"];
             
             // Try to get NavigationMenu, but don't fail if it doesn't exist
             try
@@ -139,6 +152,8 @@ public class InputReader : Singleton<InputReader>
             LookInput = lookAction.ReadValue<Vector2>();
         else
             LookInput = Vector2.zero;
+
+        activeControlScheme = playerInput.currentControlScheme;
     }
 
 
@@ -154,6 +169,7 @@ public class InputReader : Singleton<InputReader>
         if (heavyAttackAction != null) heavyAttackAction.Enable();
         if (dashAction != null) dashAction.Enable();
         if (navigationMenuAction != null) navigationMenuAction.Enable();
+        if (interactAction != null) interactAction.Enable();
     }
 
     private void OnDisable()
@@ -167,6 +183,7 @@ public class InputReader : Singleton<InputReader>
         if (heavyAttackAction != null) heavyAttackAction.Disable();
         if (dashAction != null) dashAction.Disable();
         if (navigationMenuAction != null) navigationMenuAction.Disable();
+        if (interactAction != null) interactAction.Disable();
     }
 
     /// <summary>
@@ -193,6 +210,7 @@ public class InputReader : Singleton<InputReader>
         if (heavyAttackAction != null) heavyAttackAction.Disable();
         if (dashAction != null) dashAction.Disable();
         if (navigationMenuAction != null) navigationMenuAction.Disable();
+        if (interactAction != null) interactAction.Disable();
 
         _playerInput = newPlayerInput;
         playerInput = newPlayerInput;
@@ -217,6 +235,7 @@ public class InputReader : Singleton<InputReader>
             lightAttackAction = playerInput.actions["LightAttack"];
             heavyAttackAction = playerInput.actions["HeavyAttack"];
             dashAction = playerInput.actions["Dash"];
+            interactAction = playerInput.actions["Interact"];
 
             try { navigationMenuAction = playerInput.actions["NavigationMenu"]; }
             catch { navigationMenuAction = null; }
@@ -238,6 +257,7 @@ public class InputReader : Singleton<InputReader>
             if (heavyAttackAction != null) heavyAttackAction.Enable();
             if (dashAction != null) dashAction.Enable();
             if (navigationMenuAction != null) navigationMenuAction.Enable();
+            if (interactAction != null) interactAction.Enable();
         }
 
         Debug.Log("[InputReader] Rebound to new PlayerInput and actions re-enabled.");

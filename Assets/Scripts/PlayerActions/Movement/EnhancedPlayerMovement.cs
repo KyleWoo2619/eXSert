@@ -198,7 +198,7 @@ public class EnhancedPlayerMovement : MonoBehaviour
         
         Move();
 
-        if (_jumpAction != null && _jumpAction.action != null && _jumpAction.action.triggered)
+        if (_jumpAction != null && _jumpAction.action != null && _jumpAction.action.triggered && !InputReader.inputBusy)
             OnJump();
 
         if (_dashAction != null && _dashAction.action != null && _dashAction.action.triggered)
