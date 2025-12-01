@@ -64,6 +64,15 @@ public class AttackLockSystem : MonoBehaviour
     [Tooltip("Steer the active camera instead of moving the player root.")]
     private bool steerCamera = true;
 
+    [Header("Hard Lock Settings")]
+    [SerializeField]
+    [Tooltip("Rotate the player toward the locked enemy while hard lock is active.")]
+    private bool rotatePlayerDuringHardLock = true;
+
+    [SerializeField, Range(30f, 1440f)]
+    [Tooltip("Degrees per second to rotate while tracking a hard-lock target.")]
+    private float hardLockRotateSpeed = 540f;
+
     [SerializeField, Range(0.05f, 1.5f)]
     [Tooltip("Seconds it should take to align the camera towards the enemy.")]
     private float cameraSnapTime = 0.35f;
@@ -123,6 +132,9 @@ public class AttackLockSystem : MonoBehaviour
             AimCameraAtTarget(currentTarget, instant: false);
         else if (rotatePlayerIfCameraDisabled)
             FaceTargetImmediately(currentTarget);
+
+        if (rotatePlayerDuringHardLock)
+            RotatePlayerTowardTarget(currentTarget, instant: false);
     }
 
     private void HandleAttackEvent(PlayerAttack executedAttack)
@@ -141,6 +153,9 @@ public class AttackLockSystem : MonoBehaviour
                     AimCameraAtTarget(currentTarget, instant: true);
                 else if (rotatePlayerIfCameraDisabled)
                     FaceTargetImmediately(currentTarget);
+
+                if (rotatePlayerDuringHardLock)
+                    RotatePlayerTowardTarget(currentTarget, instant: true);
             }
             else
             {
@@ -175,6 +190,9 @@ public class AttackLockSystem : MonoBehaviour
             AimCameraAtTarget(candidate, instant: true);
         else if (rotatePlayerIfCameraDisabled)
             FaceTargetImmediately(candidate);
+
+        if (rotatePlayerDuringHardLock)
+            RotatePlayerTowardTarget(candidate, instant: false);
     }
 
     private void HandleLeftTargetRequested() => CycleHardLock(-1);
@@ -196,6 +214,9 @@ public class AttackLockSystem : MonoBehaviour
             AimCameraAtTarget(nextTarget, instant: true);
         else if (rotatePlayerIfCameraDisabled)
             FaceTargetImmediately(nextTarget);
+
+        if (rotatePlayerDuringHardLock)
+            RotatePlayerTowardTarget(nextTarget, instant: false);
     }
 
     private void TryApplySoftLockNudge()
@@ -212,12 +233,14 @@ public class AttackLockSystem : MonoBehaviour
 
         float planarDistance = Vector3.Distance(
             new Vector3(target.position.x, playerTransform.position.y, target.position.z),
-            playerTransform.position);
+            playerTransform.position
+        );
 
         float moveDistance = Mathf.Clamp(
             planarDistance - softLockStopBuffer,
             0f,
-            softLockMoveDistance);
+            softLockMoveDistance
+        );
 
         if (moveDistance <= 0.01f)
         {
@@ -387,7 +410,8 @@ public class AttackLockSystem : MonoBehaviour
         forward = Vector3.zero;
         right = Vector3.zero;
 
-        CinemachineCamera activeCamera = cameraManager != null ? cameraManager.GetActiveCamera() : null;
+        CinemachineCamera activeCamera =
+            cameraManager != null ? cameraManager.GetActiveCamera() : null;
         
         if (activeCamera == null || activeCamera.transform == null)
             return false;
@@ -412,7 +436,8 @@ public class AttackLockSystem : MonoBehaviour
         if (attack == null)
             return false;
 
-        return attack.attackType == AttackType.LightSingle || attack.attackType == AttackType.HeavySingle;
+        return attack.attackType == AttackType.LightSingle
+            || attack.attackType == AttackType.HeavySingle;
     }
 
     private bool IsTargetValid(Transform target, float maxDistance)
@@ -467,6 +492,32 @@ public class AttackLockSystem : MonoBehaviour
             return;
 
         playerTransform.rotation = Quaternion.LookRotation(direction);
+    }
+
+    private void RotatePlayerTowardTarget(Transform target, bool instant)
+    {
+        if (target == null || playerTransform == null)
+            return;
+
+        Vector3 direction = target.position - playerTransform.position;
+        direction.y = 0f;
+        if (direction.sqrMagnitude < 0.001f)
+            return;
+
+        Quaternion desired = Quaternion.LookRotation(direction);
+
+        if (instant || hardLockRotateSpeed <= 0f)
+        {
+            playerTransform.rotation = desired;
+            return;
+        }
+
+        float maxStep = hardLockRotateSpeed * Time.deltaTime;
+        playerTransform.rotation = Quaternion.RotateTowards(
+            playerTransform.rotation,
+            desired,
+            maxStep
+        );
     }
 
     private IEnumerator MoveAndFaceCoroutine(Vector3 endPos, Quaternion endRot, float duration)
