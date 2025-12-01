@@ -68,7 +68,7 @@ public class ShowIfZAttribute : PropertyAttribute { }
 public class CranePuzzle : MonoBehaviour, IPuzzleInterface
 {
     // Cache of the player's movement component so it can be re-enabled later
-    private EnhancedPlayerMovement cachedPlayerMovement;
+    private PlayerMovement cachedPlayerMovement;
     private bool disabledPlayerMovement = false;
 
     [SerializeField] private InputActionReference _escapePuzzleAction;
@@ -139,8 +139,8 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
         
         if (player != null)
         {
-            var pm = player.GetComponent<EnhancedPlayerMovement>();
-            Debug.Log($"EnhancedPlayerMovement found: {(pm != null ? "YES" : "NO")}");
+            var pm = player.GetComponent<PlayerMovement>();
+            Debug.Log($"PlayerMovement found: {(pm != null ? "YES" : "NO")}");
             
             // If found, the movement is disabled and stored for later restoration
             if (pm != null)
@@ -148,11 +148,11 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
                 cachedPlayerMovement = pm;
                 pm.enabled = false;
                 disabledPlayerMovement = true;
-                Debug.Log($"EnhancedPlayerMovement disabled on {player.name}");
+                Debug.Log($"PlayerMovement disabled on {player.name}");
             }
             else
             {
-                Debug.LogError($"EnhancedPlayerMovement NOT FOUND on {player.name}");
+                Debug.LogError($"PlayerMovement NOT FOUND on {player.name}");
             }
         }
         else

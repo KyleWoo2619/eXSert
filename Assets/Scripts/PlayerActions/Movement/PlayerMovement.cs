@@ -7,6 +7,11 @@ Handles player movement and saves/loads player position
 * 
 * Added dash functionality and modified jump to include double jump
 * Also added animator integration
+*
+*
+* Edited by Kyle Woo
+* Added aerial combat integration, including aerial attack hops and plunge attacks
+* Included more complex animation system and intricate movement state management
 */
 
 using System.Collections;
@@ -92,6 +97,15 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField]
     private bool canDoubleJump;
 
+    [Header("Aerial Combat Integration")]
+    [SerializeField] private AerialComboManager aerialComboManager;
+    [SerializeField, Tooltip("How long to freeze vertical velocity during aerial light attacks")]
+    [Range(0.05f, 0.6f)] private float aerialLightAttackHangTime = 0.22f;
+    [SerializeField, Tooltip("Initial hover duration before plunging downward")] 
+    [Range(0f, 0.3f)] private float plungeHoverTime = 0.06f;
+    [SerializeField, Tooltip("Downward speed applied during plunge phase")] 
+    [Range(10f, 60f)] private float plungeDownSpeed = 32f;
+
     [Header("GroundCheck Variables")]
     [SerializeField]
     private Vector3 boxSize = new Vector3(.8f, .1f, .8f);
@@ -143,6 +157,10 @@ public class PlayerMovement : MonoBehaviour
     private bool airDashInProgress;
     private bool hasCombatIdleController;
     private PlayerCombatIdleController combatIdleController;
+    private float aerialAttackLockTimer;
+    private bool isPlunging;
+    private float plungeTimer;
+    private bool plungeLandingPending;
 
     private Vector3 forward => new Vector3(cameraTransform.forward.x, 0f, cameraTransform.forward.z);
     private Vector3 right => new Vector3(cameraTransform.right.x, 0f, cameraTransform.right.z);
@@ -188,6 +206,15 @@ public class PlayerMovement : MonoBehaviour
     {
         characterController = GetComponent<CharacterController>();
         animationController = animationController != null ? animationController : GetComponent<PlayerAnimationController>();
+
+        if (aerialComboManager == null)
+        {
+            aerialComboManager = GetComponent<AerialComboManager>()
+                ?? GetComponentInParent<AerialComboManager>();
+
+            if (aerialComboManager == null)
+                Debug.LogWarning("PlayerMovement: AerialComboManager reference missing - aerial combos won't reset correctly.");
+        }
 
         // Assign PlayerInput to InputReader
         InputReader.AssignPlayerInput(GetComponent<PlayerInput>());
@@ -385,7 +412,10 @@ public class PlayerMovement : MonoBehaviour
         dashDirection.Normalize();
 
         if (!grounded)
+        {
             airDashAvailable = false;
+            aerialComboManager?.TryAirDash();
+        }
 
         if (dashDirection.sqrMagnitude > 0.0001f)
         {
@@ -440,19 +470,64 @@ public class PlayerMovement : MonoBehaviour
         canDash = true;
     }
 
-    private void AerialAttackHop(PlayerAttack _)
+    private void AerialAttackHop(PlayerAttack attack)
     {
-        if (characterController.isGrounded) return;
+        if (attack == null || characterController.isGrounded)
+            return;
 
-        currentMovement.y = airAttackHopForce;
-        airborneAnimationLocked = true;
-        fallingAnimationPlaying = false;
+        if (attack.attackType == AttackType.LightAerial)
+        {
+            float lockDuration = aerialLightAttackHangTime > 0f
+                ? aerialLightAttackHangTime
+                : Mathf.Clamp(airAttackHopForce * 0.02f, 0.05f, 0.6f);
+            aerialAttackLockTimer = lockDuration;
+            currentMovement.y = 0f;
+            airborneAnimationLocked = true;
+            fallingAnimationPlaying = false;
+        }
+        else if (attack.attackType == AttackType.HeavyAerial)
+        {
+            StartPlunge();
+        }
+    }
+
+    public void StartPlunge()
+    {
+        if (characterController == null)
+            return;
+        if (isPlunging)
+            return;
+
+        isPlunging = true;
+        plungeTimer = plungeHoverTime;
+        aerialAttackLockTimer = 0f;
+        suspendGravityDuringDash = false;
+        currentMovement.y = Mathf.Min(0f, currentMovement.y);
+        currentMovement.x *= 0.5f;
+        currentMovement.z *= 0.5f;
+        plungeLandingPending = false;
     }
 
     private void ApplyMovement()
     {
-        // apply gravity over time unless temporarily suspended for air dash
-        if (!suspendGravityDuringDash)
+        if (isPlunging)
+        {
+            if (plungeTimer > 0f)
+            {
+                plungeTimer -= Time.deltaTime;
+                currentMovement.y = 0f;
+            }
+            else
+            {
+                currentMovement.y = -plungeDownSpeed;
+            }
+        }
+        else if (aerialAttackLockTimer > 0f)
+        {
+            aerialAttackLockTimer -= Time.deltaTime;
+            currentMovement.y = 0f;
+        }
+        else if (!suspendGravityDuringDash)
         {
             currentMovement.y += gravity * Time.deltaTime;
         }
@@ -468,6 +543,11 @@ public class PlayerMovement : MonoBehaviour
         if (characterController.isGrounded && currentMovement.y < 0)
         {
             currentMovement.y = -1f; // small negative value to keep the player grounded
+            if (isPlunging)
+                plungeLandingPending = true;
+            isPlunging = false;
+            plungeTimer = 0f;
+            aerialAttackLockTimer = 0f;
         }
     }
 
@@ -477,7 +557,17 @@ public class PlayerMovement : MonoBehaviour
 
         if (!wasGrounded && grounded)
         {
-            animationController?.PlayLand();
+            bool landedFromPlunge = plungeLandingPending || isPlunging;
+            plungeLandingPending = false;
+
+            if (landedFromPlunge)
+            {
+                // Plunge handles its own animation; keep playing until cancel window fires.
+            }
+            else
+            {
+                animationController?.PlayLand();
+            }
             ResetMoveState();
             doubleJumpAvailable = canDoubleJump;
             airborneAnimationLocked = false;
@@ -485,9 +575,13 @@ public class PlayerMovement : MonoBehaviour
             highFallActive = false;
             airDashAvailable = true;
             suspendGravityDuringDash = false;
+            isPlunging = false;
+            plungeTimer = 0f;
+            aerialAttackLockTimer = 0f;
+            aerialComboManager?.OnLanded();
 
             bool movementBuffered = InputReader.MoveInput.sqrMagnitude > moveInputDeadZone * moveInputDeadZone;
-            landingAnimationLockTimer = movementBuffered ? 0f : landingLockDuration;
+            landingAnimationLockTimer = landedFromPlunge || movementBuffered ? 0f : landingLockDuration;
         }
         else if (!grounded)
         {
@@ -500,7 +594,16 @@ public class PlayerMovement : MonoBehaviour
                 airDashAvailable = true;
             }
 
-            if (currentMovement.y <= 0f && !fallingAnimationPlaying && !airDashInProgress)
+            bool aerialAttackAnimationActive = aerialAttackLockTimer > 0f
+                || isPlunging
+                || (aerialComboManager != null && aerialComboManager.IsInAerialCombo && InputReader.inputBusy);
+
+            if (aerialAttackAnimationActive)
+            {
+                // Keep aerial attack clips in control so their events (hitboxes, cancel windows) still fire.
+                fallingAnimationPlaying = false;
+            }
+            else if (currentMovement.y <= 0f && !fallingAnimationPlaying && !airDashInProgress)
             {
                 if (ShouldUseHighFallAnimation())
                     animationController?.PlayFallingHigh();

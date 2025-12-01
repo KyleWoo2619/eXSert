@@ -18,11 +18,18 @@ public class PlayerAttackManager : MonoBehaviour
     [SerializeField, Range(0.1f, 5f)] private float stanceCooldownTime = 1f;
     [SerializeField] private AudioClip changeStanceAudio;
 
+    [Header("Aerial Attack Recovery")]
+    [SerializeField, Tooltip("Additional lockout applied after landing a plunge attack.")]
+    [Range(0f, 2f)] private float plungeRecoveryDelay = 0.75f;
+    [SerializeField, Tooltip("Cross-fade duration when exiting a plunge into combat idle.")]
+    [Range(0f, 1f)] private float plungeIdleBlendTime = 0.25f;
+
     private AudioSource sfxSource;
     private Coroutine stanceCooldownRoutine;
     private GameObject activeHitbox;
     private PlayerAttack currentAttack;
     private Coroutine hitboxLifetimeRoutine;
+    private Coroutine plungeRecoveryRoutine;
 
     [Header("Input Buffering")]
     [SerializeField, Range(0.05f, 0.6f)] private float inputBufferWindow = 0.25f;
@@ -64,6 +71,11 @@ public class PlayerAttackManager : MonoBehaviour
         {
             StopCoroutine(hitboxLifetimeRoutine);
             hitboxLifetimeRoutine = null;
+        }
+        if (plungeRecoveryRoutine != null)
+        {
+            StopCoroutine(plungeRecoveryRoutine);
+            plungeRecoveryRoutine = null;
         }
 
         ClearHitbox();
@@ -142,41 +154,56 @@ public class PlayerAttackManager : MonoBehaviour
     {
         tierComboManager?.CancelComboResetCountdown();
 
-        string attackId = ResolveAttackId(lightAttack);
-        if (string.IsNullOrEmpty(attackId))
-            return;
+        PlayerAttack attackData;
+        string attackId;
 
-        PlayerAttack attackData = attackDatabase != null ? attackDatabase.GetAttack(attackId) : null;
-        if (attackData == null)
+        if (IsGrounded())
         {
-            Debug.LogWarning($"[PlayerAttackManager] Attack '{attackId}' not found in database.");
-            return;
+            attackId = ResolveGroundAttackId(lightAttack);
+            if (string.IsNullOrEmpty(attackId))
+                return;
+
+            attackData = attackDatabase != null ? attackDatabase.GetAttack(attackId) : null;
+            if (attackData == null)
+            {
+                Debug.LogWarning($"[PlayerAttackManager] Attack '{attackId}' not found in database.");
+                return;
+            }
+        }
+        else
+        {
+            attackData = ResolveAerialAttack(lightAttack);
+            attackId = attackData != null ? attackData.attackId : null;
+
+            if (attackData == null || string.IsNullOrEmpty(attackId))
+            {
+                Debug.LogWarning("[PlayerAttackManager] Failed to resolve aerial attack data.");
+                return;
+            }
         }
 
         ExecuteAttack(attackData, attackId);
     }
 
-    private string ResolveAttackId(bool lightAttack)
+    private string ResolveGroundAttackId(bool lightAttack)
     {
-        bool grounded = IsGrounded();
-
-        if (grounded)
+        if (tierComboManager == null)
         {
-            if (tierComboManager == null)
-            {
-                Debug.LogWarning("[PlayerAttackManager] TierComboManager missing; cannot resolve grounded attack.");
-                return null;
-            }
-
-            TierComboManager.AttackStance stance = CombatManager.singleTargetMode
-                ? TierComboManager.AttackStance.Single
-                : TierComboManager.AttackStance.AOE;
-
-            return lightAttack
-                ? tierComboManager.RequestFastAttack(stance)
-                : tierComboManager.RequestHeavyAttack(stance);
+            Debug.LogWarning("[PlayerAttackManager] TierComboManager missing; cannot resolve grounded attack.");
+            return null;
         }
 
+        TierComboManager.AttackStance stance = CombatManager.singleTargetMode
+            ? TierComboManager.AttackStance.Single
+            : TierComboManager.AttackStance.AOE;
+
+        return lightAttack
+            ? tierComboManager.RequestFastAttack(stance)
+            : tierComboManager.RequestHeavyAttack(stance);
+    }
+
+    private PlayerAttack ResolveAerialAttack(bool lightAttack)
+    {
         if (aerialComboManager == null)
         {
             Debug.LogWarning("[PlayerAttackManager] AerialComboManager missing; cannot resolve aerial attack.");
@@ -184,7 +211,7 @@ public class PlayerAttackManager : MonoBehaviour
         }
 
         return lightAttack
-            ? aerialComboManager.RequestAerialFastAttack()
+            ? aerialComboManager.RequestAerialLightAttack()
             : aerialComboManager.RequestAerialHeavyAttack();
     }
 
@@ -305,12 +332,65 @@ public class PlayerAttackManager : MonoBehaviour
 
     public void HandleAnimationCancelWindow()
     {
+        bool needsPlungeRecovery = currentAttack != null
+            && currentAttack.attackType == AttackType.HeavyAerial
+            && plungeRecoveryDelay > 0f;
+
+        if (needsPlungeRecovery)
+        {
+            if (plungeRecoveryRoutine != null)
+                StopCoroutine(plungeRecoveryRoutine);
+
+            plungeRecoveryRoutine = StartCoroutine(PlungeRecoveryRoutine());
+        }
+        else
+        {
+            CompleteCancelWindow();
+        }
+    }
+
+    private IEnumerator PlungeRecoveryRoutine()
+    {
+        yield return new WaitForSeconds(plungeRecoveryDelay);
+        plungeRecoveryRoutine = null;
+        CompleteCancelWindow();
+    }
+
+    private void CompleteCancelWindow()
+    {
         InputReader.inputBusy = false;
+
+        var finishedAttack = currentAttack;
+
+        if (finishedAttack != null)
+        {
+            aerialComboManager?.HandleAttackAnimationComplete(finishedAttack);
+
+            bool shouldReturnToCombatIdle = finishedAttack.attackType == AttackType.HeavyAerial
+                && characterController != null
+                && characterController.isGrounded;
+
+            if (shouldReturnToCombatIdle)
+                PlayCombatIdle(plungeIdleBlendTime);
+        }
+
+        currentAttack = null;
 
         if (TryConsumeBufferedAttack())
             return;
 
         tierComboManager?.StartComboResetCountdown();
+    }
+
+    private void PlayCombatIdle(float transition)
+    {
+        if (animationController == null)
+            return;
+
+        if (CombatManager.singleTargetMode)
+            animationController.PlaySingleTargetIdleCombat(transition);
+        else
+            animationController.PlayAoeIdleCombat(transition);
     }
 
     private bool TryConsumeBufferedAttack()
@@ -341,6 +421,12 @@ public class PlayerAttackManager : MonoBehaviour
 
     public void ForceCancelCurrentAttack(bool resetCombo = true)
     {
+        if (plungeRecoveryRoutine != null)
+        {
+            StopCoroutine(plungeRecoveryRoutine);
+            plungeRecoveryRoutine = null;
+        }
+
         ClearBufferedAttack();
         ClearHitbox();
         currentAttack = null;
