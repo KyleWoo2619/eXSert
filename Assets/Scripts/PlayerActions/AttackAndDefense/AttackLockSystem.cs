@@ -31,6 +31,10 @@ public class AttackLockSystem : MonoBehaviour
     private GameObject player;
 
     [SerializeField]
+    [Tooltip("Optional reference to PlayerMovement so we can pause rotation while dashing.")]
+    private PlayerMovement playerMovement;
+
+    [SerializeField]
     [Tooltip("Optionally restrict candidates to specific layers.")]
     private LayerMask enemyLayers = ~0;
 
@@ -50,6 +54,10 @@ public class AttackLockSystem : MonoBehaviour
     [SerializeField]
     [Tooltip("Minimum buffer to leave between the player and the target after a soft lock nudge.")]
     private float softLockStopBuffer = 0.5f;
+
+    [SerializeField]
+    [Tooltip("Inside this radius the soft lock stops moving the player and only rotates them toward the target.")]
+    private float softLockNoMoveRadius = 1.15f;
 
     [SerializeField, Range(0.05f, 0.4f)]
     [Tooltip("Duration of the soft lock movement blend.")]
@@ -89,10 +97,13 @@ public class AttackLockSystem : MonoBehaviour
     private Transform currentTarget;
     private bool hardLockActive;
     private Coroutine moveCoroutine;
+    public bool IsHardLockActive => hardLockActive && currentTarget != null;
+    public Transform CurrentHardLockTarget => currentTarget;
 
     private void Awake()
     {
         cameraManager ??= CameraManager.Instance;
+        ResolvePlayerMovement();
     }
 
     private void OnEnable()
@@ -179,20 +190,7 @@ public class AttackLockSystem : MonoBehaviour
             return;
         }
 
-        Transform candidate = FindBestHardLockTarget();
-        if (candidate == null)
-            return;
-
-        hardLockActive = true;
-        currentTarget = candidate;
-
-        if (steerCamera)
-            AimCameraAtTarget(candidate, instant: true);
-        else if (rotatePlayerIfCameraDisabled)
-            FaceTargetImmediately(candidate);
-
-        if (rotatePlayerDuringHardLock)
-            RotatePlayerTowardTarget(candidate, instant: false);
+        ActivateHardLock(null, instantCameraAlign: true);
     }
 
     private void HandleLeftTargetRequested() => CycleHardLock(-1);
@@ -209,14 +207,51 @@ public class AttackLockSystem : MonoBehaviour
             return;
 
         currentTarget = nextTarget;
+        AlignPlayerAndCamera(nextTarget, instantCameraAlign: true);
+    }
+
+    public bool ActivateHardLock(Transform forcedTarget = null, bool instantCameraAlign = false)
+    {
+        Transform candidate = forcedTarget ?? FindBestHardLockTarget();
+        if (candidate == null)
+            return false;
+
+        hardLockActive = true;
+        currentTarget = candidate;
+        AlignPlayerAndCamera(candidate, instantCameraAlign);
+        return true;
+    }
+
+    public bool EnsureHardLock(bool instantCameraAlign = false)
+    {
+        if (IsHardLockActive)
+        {
+            AlignPlayerAndCamera(currentTarget, instantCameraAlign);
+            return true;
+        }
+
+        return ActivateHardLock(null, instantCameraAlign);
+    }
+
+    public void ReleaseHardLock()
+    {
+        ClearHardLock();
+    }
+
+    public void AlignPlayerAndCamera(Transform target, bool instantCameraAlign)
+    {
+        if (target == null)
+            return;
 
         if (steerCamera)
-            AimCameraAtTarget(nextTarget, instant: true);
+            AimCameraAtTarget(target, instantCameraAlign);
         else if (rotatePlayerIfCameraDisabled)
-            FaceTargetImmediately(nextTarget);
+            FaceTargetImmediately(target);
 
         if (rotatePlayerDuringHardLock)
-            RotatePlayerTowardTarget(nextTarget, instant: false);
+            RotatePlayerTowardTarget(target, instant: true);
+        else
+            FaceTargetImmediately(target);
     }
 
     private void TryApplySoftLockNudge()
@@ -236,6 +271,12 @@ public class AttackLockSystem : MonoBehaviour
             playerTransform.position
         );
 
+        if (planarDistance <= softLockNoMoveRadius)
+        {
+            FaceTargetImmediately(target);
+            return;
+        }
+
         float moveDistance = Mathf.Clamp(
             planarDistance - softLockStopBuffer,
             0f,
@@ -249,11 +290,22 @@ public class AttackLockSystem : MonoBehaviour
         }
 
         Vector3 desiredPosition = playerTransform.position + direction * moveDistance;
+        if (TrySnapPlayerToSoftLock(desiredPosition, desiredRotation))
+            return;
 
         StopMoveRoutine();
         moveCoroutine = StartCoroutine(
             MoveAndFaceCoroutine(desiredPosition, desiredRotation, softLockMoveDuration)
         );
+    }
+
+    private bool TrySnapPlayerToSoftLock(Vector3 worldPosition, Quaternion desiredRotation)
+    {
+        PlayerMovement movement = ResolvePlayerMovement();
+        if (movement == null)
+            return false;
+
+        return movement.TrySnapToSoftLock(worldPosition, desiredRotation);
     }
 
     private void ClearHardLock()
@@ -499,6 +551,9 @@ public class AttackLockSystem : MonoBehaviour
         if (target == null || playerTransform == null)
             return;
 
+        if (!instant && IsPlayerCurrentlyDashing())
+            return;
+
         Vector3 direction = target.position - playerTransform.position;
         direction.y = 0f;
         if (direction.sqrMagnitude < 0.001f)
@@ -518,6 +573,33 @@ public class AttackLockSystem : MonoBehaviour
             desired,
             maxStep
         );
+    }
+
+    private bool IsPlayerCurrentlyDashing()
+    {
+        PlayerMovement movement = ResolvePlayerMovement();
+        return movement != null && movement.IsDashing;
+    }
+
+    private PlayerMovement ResolvePlayerMovement()
+    {
+        if (playerMovement != null)
+            return playerMovement;
+
+        if (player != null)
+        {
+            playerMovement = player.GetComponent<PlayerMovement>()
+                ?? player.GetComponentInChildren<PlayerMovement>()
+                ?? player.GetComponentInParent<PlayerMovement>();
+            if (playerMovement != null)
+                return playerMovement;
+        }
+
+        playerMovement = GetComponent<PlayerMovement>()
+            ?? GetComponentInChildren<PlayerMovement>()
+            ?? GetComponentInParent<PlayerMovement>();
+
+        return playerMovement;
     }
 
     private IEnumerator MoveAndFaceCoroutine(Vector3 endPos, Quaternion endRot, float duration)

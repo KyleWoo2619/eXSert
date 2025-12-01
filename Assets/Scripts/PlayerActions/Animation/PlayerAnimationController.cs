@@ -47,6 +47,7 @@ public class PlayerAnimationController : MonoBehaviour
             internal const string Raise = "Guard_Up";
             internal const string Idle = "Guard_Idle";
             internal const string Walk = "G_Walk";
+            internal const string Attack = "G_Attack";
             internal const string DashLeft = "G_Dash_L";
             internal const string DashRight = "G_Dash_R";
             internal const string Parry = "Parry";
@@ -166,6 +167,7 @@ public class PlayerAnimationController : MonoBehaviour
     public void PlayGuardUp() => CrossFade(PlayerAnim.Guard.Raise, 0.02f, true);
     public void PlayGuardIdle() => CrossFade(PlayerAnim.Guard.Idle);
     public void PlayGuardWalk() => CrossFade(PlayerAnim.Guard.Walk);
+    public void PlayGuardAttack() => CrossFade(PlayerAnim.Guard.Attack, 0.03f, true);
     public void PlayGuardDashLeft() => CrossFade(PlayerAnim.Guard.DashLeft, 0.02f, true);
     public void PlayGuardDashRight() => CrossFade(PlayerAnim.Guard.DashRight, 0.02f, true);
     public void PlayParry() => CrossFade(PlayerAnim.Guard.Parry, 0.01f, true);

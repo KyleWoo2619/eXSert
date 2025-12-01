@@ -14,9 +14,12 @@ Handles player movement and saves/loads player position
 * Included more complex animation system and intricate movement state management
 */
 
+using System;
 using System.Collections;
 using UnityEngine;
+using Unity.Cinemachine;
 using UnityEngine.InputSystem;
+using Utilities.Combat;
 using Utilities.Combat.Attacks;
 
 public class PlayerMovement : MonoBehaviour
@@ -73,6 +76,9 @@ public class PlayerMovement : MonoBehaviour
     private Transform cameraTransform;
 
     [SerializeField]
+    private Transform guardCameraTransform;
+
+    [SerializeField]
     private bool shouldFaceMoveDirection = true;
 
     internal Vector3 currentMovement = Vector3.zero;
@@ -126,6 +132,13 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField]
     private float dashCoolDown = 0.6f;
 
+    [Header("Launcher Settings")]
+    [SerializeField, Range(1f, 25f)]
+    private float launcherJumpVelocity = 12f;
+
+    [SerializeField, Range(0f, 10f)]
+    private float launcherForwardVelocity = 2.5f;
+
     [Header("Camera Settings")]
     [SerializeField] bool invertYAxis = false;
 
@@ -155,15 +168,65 @@ public class PlayerMovement : MonoBehaviour
     private bool airDashAvailable = true;
     private bool suspendGravityDuringDash;
     private bool airDashInProgress;
+    private bool dashForceStop;
+    private Coroutine dashRoutine;
+    private bool dashInputLockOwned;
     private bool hasCombatIdleController;
     private PlayerCombatIdleController combatIdleController;
     private float aerialAttackLockTimer;
     private bool isPlunging;
     private float plungeTimer;
     private bool plungeLandingPending;
+    private bool locomotionAnimationSuppressed;
+    private bool movementSpeedOverrideActive;
+    private float movementSpeedOverride;
 
-    private Vector3 forward => new Vector3(cameraTransform.forward.x, 0f, cameraTransform.forward.z);
-    private Vector3 right => new Vector3(cameraTransform.right.x, 0f, cameraTransform.right.z);
+    private Transform ResolveCameraTransform()
+    {
+        Transform fallback = cameraTransform;
+        bool guardActive = CombatManager.isGuarding;
+
+        if (guardActive && guardCameraTransform != null)
+            fallback = guardCameraTransform;
+
+        if (fallback != null)
+            return fallback;
+
+        CinemachineCamera activeCamera = CameraManager.Instance != null
+            ? CameraManager.Instance.GetActiveCamera()
+            : null;
+
+        if (activeCamera != null)
+            return activeCamera.transform;
+
+        return Camera.main != null ? Camera.main.transform : null;
+    }
+
+    private Vector3 forward
+    {
+        get
+        {
+            Transform cam = ResolveCameraTransform();
+            if (cam == null)
+                return Vector3.forward;
+
+            Vector3 camForward = cam.forward;
+            return new Vector3(camForward.x, 0f, camForward.z);
+        }
+    }
+
+    private Vector3 right
+    {
+        get
+        {
+            Transform cam = ResolveCameraTransform();
+            if (cam == null)
+                return Vector3.right;
+
+            Vector3 camRight = cam.right;
+            return new Vector3(camRight.x, 0f, camRight.z);
+        }
+    }
 
     private enum GroundMoveState
     {
@@ -238,9 +301,9 @@ public class PlayerMovement : MonoBehaviour
     public void FixedUpdate()
     {
         // Debug checks
-        if (cameraTransform == null)
+        if (ResolveCameraTransform() == null)
         {
-            Debug.LogError("Camera Transform is NULL! Assign your Cinemachine camera to Camera Transform field.");
+            Debug.LogError("Camera Transform is NULL! Assign your Cinemachine camera references in PlayerMovement.");
             return;
         }
 
@@ -304,7 +367,8 @@ public class PlayerMovement : MonoBehaviour
             bool stateChanged = UpdateMoveState(usingAnalogThresholds, inputMagnitude);
 
             Vector3 moveDirection = (forward * inputMove.y + right * inputMove.x).normalized;
-            Vector3 desiredVelocity = moveDirection * CurrentSpeed;
+            float targetSpeed = movementSpeedOverrideActive ? movementSpeedOverride : CurrentSpeed;
+            Vector3 desiredVelocity = moveDirection * targetSpeed;
             currentMovement.x = desiredVelocity.x;
             currentMovement.z = desiredVelocity.z;
 
@@ -314,7 +378,7 @@ public class PlayerMovement : MonoBehaviour
                 transform.rotation = Quaternion.Slerp(transform.rotation, toRotation, Time.deltaTime * 10f);
             }
 
-            if (!previouslyMoving && !stateChanged)
+            if (!locomotionAnimationSuppressed && !previouslyMoving && !stateChanged)
             {
                 PlayMovementAnimation();
             }
@@ -331,7 +395,7 @@ public class PlayerMovement : MonoBehaviour
             currentMovement.x = Mathf.MoveTowards(currentMovement.x, 0f, friction * Time.deltaTime);
             currentMovement.z = Mathf.MoveTowards(currentMovement.z, 0f, friction * Time.deltaTime);
 
-            if (characterController.isGrounded && !airborneAnimationLocked && landingAnimationLockTimer <= 0f &&
+            if (!locomotionAnimationSuppressed && characterController.isGrounded && !airborneAnimationLocked && landingAnimationLockTimer <= 0f &&
                 (previouslyMoving || (Mathf.Abs(currentMovement.x) < 0.01f && Mathf.Abs(currentMovement.z) < 0.01f)))
             {
                 EnsureCombatIdleControllerReference();
@@ -366,6 +430,9 @@ public class PlayerMovement : MonoBehaviour
 
     private void OnJump()
     {
+        if (CombatManager.isGuarding)
+            return;
+
         // checks to see if the player can jump or double jump
         if (characterController.isGrounded)
         {
@@ -393,6 +460,9 @@ public class PlayerMovement : MonoBehaviour
         if (!canDash)
             return;
 
+        if (CombatManager.isGuarding)
+            return;
+
         bool grounded = characterController.isGrounded;
         bool dashAllowed = grounded || airDashAvailable;
         if (!dashAllowed)
@@ -402,7 +472,6 @@ public class PlayerMovement : MonoBehaviour
             attackManager?.ForceCancelCurrentAttack();
 
         canDash = false;
-        InputReader.inputBusy = true;
 
         Vector3 dashDirection = (forward * InputReader.MoveInput.y) + (right * InputReader.MoveInput.x);
         if (dashDirection.sqrMagnitude < 0.01f)
@@ -415,6 +484,7 @@ public class PlayerMovement : MonoBehaviour
         {
             airDashAvailable = false;
             aerialComboManager?.TryAirDash();
+            attackManager?.TriggerAirDashAttack();
         }
 
         if (dashDirection.sqrMagnitude > 0.0001f)
@@ -422,16 +492,60 @@ public class PlayerMovement : MonoBehaviour
             transform.rotation = Quaternion.LookRotation(dashDirection, Vector3.up);
         }
 
-        StartCoroutine(DashCoroutine(dashDirection, !grounded));
+        bool isAirDash = !grounded;
+
+        dashForceStop = false;
+        if (dashRoutine != null)
+            StopCoroutine(dashRoutine);
+
+        dashRoutine = StartCoroutine(
+            DashCoroutine(
+                dashDirection,
+                isAirDash,
+                dashDistance,
+                dashDuration,
+                lockInput: true,
+                respectCooldown: true,
+                onStart: () =>
+                {
+                    if (characterController.isGrounded)
+                        animationController?.PlayDash();
+                    else
+                        animationController?.PlayAirDash();
+                },
+                onComplete: () =>
+                {
+                    if (InputReader.MoveInput.sqrMagnitude > 0.1f)
+                        TrySetMoveState(GroundMoveState.Sprint, force: true);
+                    else
+                        ResetMoveState();
+                }));
     }
 
-    private IEnumerator DashCoroutine(Vector3 direction, bool isAirDash)
+    private IEnumerator DashCoroutine(
+        Vector3 direction,
+        bool isAirDash,
+        float distance,
+        float duration,
+        bool lockInput,
+        bool respectCooldown,
+        Action onStart,
+        Action onComplete)
     {
+        duration = Mathf.Max(0.01f, duration);
+        direction = direction.sqrMagnitude > 0.0001f ? direction.normalized : transform.forward;
+
         isDashing = true;
         airDashInProgress = isAirDash;
-        dashVelocity = direction * (dashDistance / dashDuration);
+        dashVelocity = direction * (distance / duration);
         currentMovement.x = 0f;
         currentMovement.z = 0f;
+
+        if (lockInput)
+        {
+            dashInputLockOwned = true;
+            InputReader.inputBusy = true;
+        }
 
         if (isAirDash)
         {
@@ -439,14 +553,14 @@ public class PlayerMovement : MonoBehaviour
             currentMovement.y = 0f;
         }
 
-        if (characterController.isGrounded)
-            animationController?.PlayDash();
-        else
-            animationController?.PlayAirDash();
+        onStart?.Invoke();
 
         float elapsed = 0f;
-        while (elapsed < dashDuration)
+        while (elapsed < duration)
         {
+            if (dashForceStop)
+                break;
+
             elapsed += Time.deltaTime;
             yield return null;
         }
@@ -455,19 +569,80 @@ public class PlayerMovement : MonoBehaviour
         isDashing = false;
         airDashInProgress = false;
         suspendGravityDuringDash = false;
-        InputReader.inputBusy = false;
+        dashForceStop = false;
+        dashRoutine = null;
 
-        if (InputReader.MoveInput.sqrMagnitude > 0.1f)
+        if (lockInput && dashInputLockOwned)
         {
-            TrySetMoveState(GroundMoveState.Sprint, force: true);
-        }
-        else
-        {
-            ResetMoveState();
+            InputReader.inputBusy = false;
+            dashInputLockOwned = false;
         }
 
-        yield return new WaitForSeconds(dashCoolDown);
-        canDash = true;
+        onComplete?.Invoke();
+
+        if (respectCooldown)
+        {
+            yield return new WaitForSeconds(dashCoolDown);
+            canDash = true;
+        }
+    }
+
+    public bool TryStartGuardDash(
+        Vector3 direction,
+        float distance,
+        float duration,
+        Action onStart,
+        Action onComplete)
+    {
+        if (isDashing || direction.sqrMagnitude < 0.0001f)
+            return false;
+
+        StartCoroutine(
+            DashCoroutine(
+                direction,
+                isAirDash: false,
+                distance,
+                duration,
+                lockInput: true,
+                respectCooldown: false,
+                onStart,
+                onComplete));
+
+        return true;
+    }
+
+    private void ForceStopDashImmediate(bool relinquishInputLock = false)
+    {
+        if (!isDashing)
+            return;
+
+        dashForceStop = true;
+
+        if (relinquishInputLock)
+            dashInputLockOwned = false;
+    }
+
+    public bool TryTriggerLauncherJump()
+    {
+        if (!isDashing || characterController == null || !characterController.isGrounded)
+            return false;
+
+        ForceStopDashImmediate(relinquishInputLock: true);
+
+        Vector3 forwardDir = transform.forward;
+        currentMovement.x = forwardDir.x * launcherForwardVelocity;
+        currentMovement.z = forwardDir.z * launcherForwardVelocity;
+        currentMovement.y = launcherJumpVelocity;
+
+        dashVelocity = Vector3.zero;
+        isDashing = false;
+
+        suspendGravityDuringDash = false;
+        airDashInProgress = false;
+        airborneAnimationLocked = true;
+        fallingAnimationPlaying = false;
+
+        return true;
     }
 
     private void AerialAttackHop(PlayerAttack attack)
@@ -649,7 +824,8 @@ public class PlayerMovement : MonoBehaviour
                 break;
         }
 
-        PlayMovementAnimation();
+        if (!locomotionAnimationSuppressed)
+            PlayMovementAnimation();
         return true;
     }
 
@@ -782,6 +958,62 @@ public class PlayerMovement : MonoBehaviour
         TrySetMoveState(GroundMoveState.Jog, force: true);
     }
 
+    public void SuppressLocomotionAnimations(bool suppress)
+    {
+        locomotionAnimationSuppressed = suppress;
+    }
+
+    public bool IsLocomotionAnimationSuppressed => locomotionAnimationSuppressed;
+
+    public void SetMovementSpeedOverride(float speed)
+    {
+        movementSpeedOverride = Mathf.Max(0f, speed);
+        movementSpeedOverrideActive = true;
+    }
+
+    public void ClearMovementSpeedOverride()
+    {
+        movementSpeedOverrideActive = false;
+    }
+
+    public bool HasMovementSpeedOverride => movementSpeedOverrideActive;
+
+    public bool ShouldFaceMoveDirection => shouldFaceMoveDirection;
+
+    public void SetShouldFaceMoveDirection(bool shouldFace)
+    {
+        shouldFaceMoveDirection = shouldFace;
+    }
+
+    public bool IsDashing => isDashing;
+
+    public bool CanTriggerLauncherFromDash => isDashing && characterController != null && characterController.isGrounded;
+
+    public bool TrySnapToSoftLock(Vector3 worldPosition, Quaternion desiredRotation)
+    {
+        Transform root = transform;
+
+        if (characterController != null)
+        {
+            bool wasEnabled = characterController.enabled;
+            characterController.enabled = false;
+            root.SetPositionAndRotation(worldPosition, desiredRotation);
+            characterController.enabled = wasEnabled;
+        }
+        else
+        {
+            root.SetPositionAndRotation(worldPosition, desiredRotation);
+        }
+
+        currentMovement.x = 0f;
+        currentMovement.z = 0f;
+
+        if (characterController != null && characterController.isGrounded)
+            currentMovement.y = -1f;
+
+        return true;
+    }
+
     private bool ShouldUseHighFallAnimation()
     {
         if (highFallActive)
@@ -809,6 +1041,9 @@ public class PlayerMovement : MonoBehaviour
 
     private void PlayMovementAnimation()
     {
+        if (locomotionAnimationSuppressed)
+            return;
+
         if (animationController == null)
             return;
 

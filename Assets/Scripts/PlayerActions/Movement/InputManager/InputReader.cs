@@ -44,6 +44,8 @@ public class InputReader : Singleton<InputReader>
     private InputAction rightTargetAction;
 
     private bool callbacksRegistered = false;
+    [SerializeField, Range(0f, 0.5f)] private float lockOnDashSuppressionWindow = 0.18f;
+    private float lastDashPerformedTime = float.NegativeInfinity;
 
     public static event Action LockOnPressed;
     public static event Action LeftTargetPressed;
@@ -391,6 +393,8 @@ public class InputReader : Singleton<InputReader>
             leftTargetAction.performed += HandleLeftTargetPerformed;
         if (rightTargetAction != null)
             rightTargetAction.performed += HandleRightTargetPerformed;
+        if (dashAction != null)
+            dashAction.performed += HandleDashPerformed;
 
         callbacksRegistered = true;
     }
@@ -406,6 +410,8 @@ public class InputReader : Singleton<InputReader>
             leftTargetAction.performed -= HandleLeftTargetPerformed;
         if (rightTargetAction != null)
             rightTargetAction.performed -= HandleRightTargetPerformed;
+        if (dashAction != null)
+            dashAction.performed -= HandleDashPerformed;
 
         callbacksRegistered = false;
     }
@@ -413,6 +419,9 @@ public class InputReader : Singleton<InputReader>
     private void HandleLockOnPerformed(InputAction.CallbackContext context)
     {
         if (!context.performed)
+            return;
+
+        if (Time.time - lastDashPerformedTime <= lockOnDashSuppressionWindow)
             return;
 
         LockOnPressed?.Invoke();
@@ -432,6 +441,14 @@ public class InputReader : Singleton<InputReader>
             return;
 
         RightTargetPressed?.Invoke();
+    }
+
+    private void HandleDashPerformed(InputAction.CallbackContext context)
+    {
+        if (!context.performed)
+            return;
+
+        lastDashPerformedTime = Time.time;
     }
 
     private static Vector2 ApplyDeadzone(Vector2 value, float deadzone)

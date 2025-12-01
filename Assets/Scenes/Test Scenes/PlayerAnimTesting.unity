@@ -308,10 +308,10 @@ PrefabInstance:
       addedObject: {fileID: 386938905}
     - targetCorrespondingSourceObject: {fileID: 2964100175291877921, guid: 2f4b04b127b00fe4ba1e0aee5e2c8ddb, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 386938903}
+      addedObject: {fileID: 386938906}
     - targetCorrespondingSourceObject: {fileID: 2964100175291877921, guid: 2f4b04b127b00fe4ba1e0aee5e2c8ddb, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 386938906}
+      addedObject: {fileID: 386938903}
     - targetCorrespondingSourceObject: {fileID: 1389480476809507416, guid: 2f4b04b127b00fe4ba1e0aee5e2c8ddb, type: 3}
       insertIndex: -1
       addedObject: {fileID: 402317201}
@@ -438,6 +438,7 @@ MonoBehaviour:
   landingLockDuration: 0.35
   keyboardDoubleTapWindow: 0.25
   cameraTransform: {fileID: 181884376}
+  guardCameraTransform: {fileID: 1865332735}
   shouldFaceMoveDirection: 1
   gravity: -9.81
   jumpForce: 7
@@ -446,7 +447,7 @@ MonoBehaviour:
   terminalVelocity: 20
   canDoubleJump: 1
   aerialComboManager: {fileID: 1386980480}
-  aerialLightAttackHangTime: 0.22
+  aerialLightAttackHangTime: 0.6
   plungeHoverTime: 0.13
   plungeDownSpeed: 16
   boxSize: {x: 0.8, y: 0.1, z: 0.8}
@@ -457,6 +458,8 @@ MonoBehaviour:
   dashDistance: 6
   dashDuration: 0.5
   dashCoolDown: 0.5
+  launcherJumpVelocity: 12
+  launcherForwardVelocity: 2.5
   invertYAxis: 0
   highFallHeightThreshold: 6
   highFallGroundProbeDistance: 25
@@ -473,17 +476,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AttackLockSystem
   lockOnAngle: 30
-  lockOnDistance: 6
+  lockOnDistance: 10
   player: {fileID: 386938898}
+  playerMovement: {fileID: 0}
   enemyLayers:
     serializedVersion: 2
     m_Bits: 256
   enforceLayerMask: 1
-  softLockRadius: 4.23
+  softLockRadius: 4
   softLockMoveDistance: 0.75
   softLockStopBuffer: 0.5
+  softLockNoMoveRadius: 1.5
   softLockMoveDuration: 0.1
-  onlySoftLockSingleTarget: 1
+  onlySoftLockSingleTarget: 0
   steerCamera: 1
   rotatePlayerDuringHardLock: 1
   hardLockRotateSpeed: 360
@@ -583,6 +588,7 @@ MonoBehaviour:
   _playerControls: {fileID: -944628639613478452, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
   _playerInput: {fileID: 386938901}
   activeControlScheme: 
+  lockOnDashSuppressionWindow: 0.18
   leftStickDeadzoneValue: 0.15
   rightStickDeadzoneValue: 0.15
 --- !u!4 &564399900
@@ -878,9 +884,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01a0e82a04cd6b944b5aed9073b7153c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Guard
-  _guardActionReference: {fileID: -4486452803221664991, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
-  animFacade: {fileID: 0}
-  useCameraManager: 1
+  guardMoveSpeed: 2.4
+  movementDeadZone: 0.15
+  guardDashDistance: 3.75
+  guardDashDuration: 0.18
+  guardDashCooldown: 0.45
+  autoHardLockWhileGuarding: 1
+  instantAlignOnEntry: 1
+  switchToGuardCamera: 1
+  cameraOverride: {fileID: 1297005616}
+  freeAimTurnSpeed: 180
+  animationController: {fileID: 402317204}
+  playerMovement: {fileID: 386938905}
+  attackManager: {fileID: 1386980487}
+  attackLockSystem: {fileID: 386938906}
 --- !u!114 &1386980484
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -913,6 +930,17 @@ MonoBehaviour:
   aerialComboManager: {fileID: 1386980480}
   attackDatabase: {fileID: 11400000, guid: 5faf74d628b25214ca871b83ff4b455d, type: 2}
   characterController: {fileID: 386938902}
+  playerMovement: {fileID: 386938905}
+  guardAttackOverride: {fileID: 11400000, guid: 5a480b1f839418f4f8f624bbd8b6cc3d, type: 2}
+  guardAttackId: G_Attack
+  airDashAttackOverride: {fileID: 11400000, guid: 3b8d3e6dd09f4c24887c0a275b8337f5, type: 2}
+  airDashAttackId: AirDash
+  launcherAttackOverride: {fileID: 11400000, guid: a97f6d1b2da245babf2325f59c59e86a, type: 2}
+  launcherAttackId: Launcher
+  guardAttackHitboxDelay: 0.08
+  guardAttackAutoCancelDuration: 0.65
+  launcherAutoCancelDuration: 0.9
+  guardAttackAutoGenerateHitbox: 0
   stanceCooldownTime: 1
   changeStanceAudio: {fileID: 8300000, guid: c499d32b11e58a84089a5095ba2ad8d1, type: 3}
   plungeRecoveryDelay: 0
@@ -1031,6 +1059,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &1865332735 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2668597168084764808, guid: 2f4b04b127b00fe4ba1e0aee5e2c8ddb, type: 3}
+  m_PrefabInstance: {fileID: 386938897}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1906481343
 GameObject:
   m_ObjectHideFlags: 0

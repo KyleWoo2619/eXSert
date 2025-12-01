@@ -13,6 +13,22 @@ public class PlayerAttackManager : MonoBehaviour
     [SerializeField] private AerialComboManager aerialComboManager;
     [SerializeField] private AttackDatabase attackDatabase;
     [SerializeField] private CharacterController characterController;
+    [SerializeField] private PlayerMovement playerMovement;
+
+    [Header("Special Attacks")]
+    [SerializeField] private PlayerAttack guardAttackOverride;
+    [SerializeField] private string guardAttackId = "G_Attack";
+    [SerializeField] private PlayerAttack airDashAttackOverride;
+    [SerializeField] private string airDashAttackId = "AirDash";
+    [SerializeField] private PlayerAttack launcherAttackOverride;
+    [SerializeField] private string launcherAttackId = "Launcher";
+
+    [Header("Special Attack Timing")]
+    [SerializeField, Range(0f, 0.3f)] private float guardAttackHitboxDelay = 0.08f;
+    [SerializeField, Range(0.2f, 1.5f)] private float guardAttackAutoCancelDuration = 0.65f;
+    [SerializeField, Range(0.2f, 1.5f)] private float launcherAutoCancelDuration = 0.9f;
+    [SerializeField, Tooltip("Auto-generate guard attack hitbox (use only if the animation lacks events).")]
+    private bool guardAttackAutoGenerateHitbox = false;
 
     [Header("Stance Switching")]
     [SerializeField, Range(0.1f, 5f)] private float stanceCooldownTime = 1f;
@@ -30,6 +46,8 @@ public class PlayerAttackManager : MonoBehaviour
     private PlayerAttack currentAttack;
     private Coroutine hitboxLifetimeRoutine;
     private Coroutine plungeRecoveryRoutine;
+    private Coroutine guardAttackFlowRoutine;
+    private Coroutine specialAttackAutoCancelRoutine;
 
     [Header("Input Buffering")]
     [SerializeField, Range(0.05f, 0.6f)] private float inputBufferWindow = 0.25f;
@@ -46,6 +64,7 @@ public class PlayerAttackManager : MonoBehaviour
         tierComboManager ??= GetComponent<TierComboManager>() ?? GetComponentInChildren<TierComboManager>() ?? GetComponentInParent<TierComboManager>();
         aerialComboManager ??= GetComponent<AerialComboManager>() ?? GetComponentInChildren<AerialComboManager>() ?? GetComponentInParent<AerialComboManager>();
         characterController ??= GetComponent<CharacterController>();
+        playerMovement ??= GetComponent<PlayerMovement>() ?? GetComponentInChildren<PlayerMovement>() ?? GetComponentInParent<PlayerMovement>();
 
         if (attackDatabase == null)
         {
@@ -77,6 +96,8 @@ public class PlayerAttackManager : MonoBehaviour
             StopCoroutine(plungeRecoveryRoutine);
             plungeRecoveryRoutine = null;
         }
+        StopGuardAttackFlowRoutine();
+        StopSpecialAttackAutoCancelRoutine();
 
         ClearHitbox();
         InputReader.inputBusy = false;
@@ -84,18 +105,43 @@ public class PlayerAttackManager : MonoBehaviour
 
     private void Update()
     {
+        if (CombatManager.isGuarding)
+        {
+            HandleGuardStateAttacks();
+            return;
+        }
+
         if (InputReader.LightAttackTriggered)
             ProcessAttackInput(true);
 
         if (InputReader.HeavyAttackTriggered)
+        {
+            if (TryExecuteDashLauncherAttack())
+                return;
+
             ProcessAttackInput(false);
+        }
 
         if (InputReader.ChangeStanceTriggered)
             TryChangeStance();
     }
 
+    private void HandleGuardStateAttacks()
+    {
+        ClearBufferedAttack();
+
+        if (InputReader.inputBusy)
+            return;
+
+        if (InputReader.LightAttackTriggered)
+            TryExecuteGuardAttack();
+    }
+
     private void ProcessAttackInput(bool lightAttack)
     {
+        if (CombatManager.isGuarding)
+            return;
+
         if (!InputReader.inputBusy)
         {
             if (lightAttack)
@@ -107,6 +153,54 @@ public class PlayerAttackManager : MonoBehaviour
         {
             BufferAttack(lightAttack);
         }
+    }
+
+    private void TryExecuteGuardAttack()
+    {
+        PlayerAttack guardAttack = ResolveGuardAttack();
+        if (guardAttack == null)
+        {
+            Debug.LogWarning("[PlayerAttackManager] Guard attack data missing. Assign GuardAttackOverride or ensure ID exists in AttackDatabase.");
+            return;
+        }
+
+        ExecuteAttack(
+            guardAttack,
+            guardAttack.attackId,
+            controller => controller?.PlayGuardAttack()
+        );
+
+        StartGuardAttackFlow(guardAttack);
+        ScheduleSpecialAttackAutoCancel(GetAnimationDurationOrFallback(guardAttack, guardAttackAutoCancelDuration));
+    }
+
+    private bool TryExecuteDashLauncherAttack()
+    {
+        if (playerMovement == null)
+            return false;
+
+        if (!playerMovement.CanTriggerLauncherFromDash)
+            return false;
+
+        PlayerAttack launcherAttack = ResolveLauncherAttack();
+        if (launcherAttack == null)
+        {
+            Debug.LogWarning("[PlayerAttackManager] Launcher attack data missing. Assign LauncherAttackOverride or ensure ID exists in AttackDatabase.");
+            return false;
+        }
+
+        if (!playerMovement.TryTriggerLauncherJump())
+            return false;
+
+        ExecuteAttack(
+            launcherAttack,
+            launcherAttack.attackId,
+            controller => controller?.PlayLauncher()
+        );
+
+        ScheduleSpecialAttackAutoCancel(GetAnimationDurationOrFallback(launcherAttack, launcherAutoCancelDuration));
+
+        return true;
     }
 
     private void TryChangeStance()
@@ -130,6 +224,9 @@ public class PlayerAttackManager : MonoBehaviour
 
     public void OnLightAttack()
     {
+        if (CombatManager.isGuarding)
+            return;
+
         if (InputReader.inputBusy)
             return;
 
@@ -138,10 +235,26 @@ public class PlayerAttackManager : MonoBehaviour
 
     public void OnHeavyAttack()
     {
+        if (CombatManager.isGuarding)
+            return;
+
         if (InputReader.inputBusy)
             return;
 
         AttemptAttack(false);
+    }
+
+    public void TriggerAirDashAttack()
+    {
+        PlayerAttack airDashAttack = ResolveAirDashAttack();
+        if (airDashAttack == null)
+        {
+            Debug.LogWarning("[PlayerAttackManager] Air dash attack data missing. Assign AirDashAttackOverride or ensure ID exists in AttackDatabase.");
+            return;
+        }
+
+        OnAttack?.Invoke(airDashAttack);
+        TriggerHitboxWindow(airDashAttack, airDashAttack.hitboxDuration);
     }
 
     private void BufferAttack(bool lightAttack)
@@ -215,7 +328,44 @@ public class PlayerAttackManager : MonoBehaviour
             : aerialComboManager.RequestAerialHeavyAttack();
     }
 
-    private void ExecuteAttack(PlayerAttack attackData, string attackId)
+    private PlayerAttack ResolveGuardAttack()
+    {
+        if (guardAttackOverride != null)
+            return guardAttackOverride;
+
+        if (attackDatabase == null || string.IsNullOrWhiteSpace(guardAttackId))
+            return null;
+
+        return attackDatabase.GetAttack(guardAttackId);
+    }
+
+    private PlayerAttack ResolveAirDashAttack()
+    {
+        if (airDashAttackOverride != null)
+            return airDashAttackOverride;
+
+        if (attackDatabase == null || string.IsNullOrWhiteSpace(airDashAttackId))
+            return null;
+
+        return attackDatabase.GetAttack(airDashAttackId);
+    }
+
+    private PlayerAttack ResolveLauncherAttack()
+    {
+        if (launcherAttackOverride != null)
+            return launcherAttackOverride;
+
+        if (attackDatabase == null || string.IsNullOrWhiteSpace(launcherAttackId))
+            return null;
+
+        return attackDatabase.GetAttack(launcherAttackId);
+    }
+
+    private void ExecuteAttack(
+        PlayerAttack attackData,
+        string attackId,
+        Action<PlayerAnimationController> animationOverride = null,
+        bool playDefaultAnimation = true)
     {
         currentAttack = attackData;
         InputReader.inputBusy = true;
@@ -227,7 +377,10 @@ public class PlayerAttackManager : MonoBehaviour
                 attackSource.PlayOneShot(attackData.attackSFX);
         }
 
-        animationController?.PlayAttack(attackId);
+        if (animationOverride != null)
+            animationOverride(animationController);
+        else if (playDefaultAnimation)
+            animationController?.PlayAttack(attackId);
 
         OnAttack?.Invoke(attackData);
 
@@ -292,6 +445,70 @@ public class PlayerAttackManager : MonoBehaviour
         BeginHitboxLifetime(lifetime);
     }
 
+    private void StartGuardAttackFlow(PlayerAttack guardAttack)
+    {
+        if (!guardAttackAutoGenerateHitbox || guardAttack == null)
+            return;
+
+        StopGuardAttackFlowRoutine();
+        guardAttackFlowRoutine = StartCoroutine(GuardAttackFlowRoutine(guardAttack));
+    }
+
+    private IEnumerator GuardAttackFlowRoutine(PlayerAttack guardAttack)
+    {
+        float delay = Mathf.Max(0f, guardAttackHitboxDelay);
+        if (delay > 0f)
+            yield return new WaitForSeconds(delay);
+
+        TriggerHitboxWindow(guardAttack, guardAttack.hitboxDuration);
+        guardAttackFlowRoutine = null;
+    }
+
+    private void StopGuardAttackFlowRoutine()
+    {
+        if (guardAttackFlowRoutine == null)
+            return;
+
+        StopCoroutine(guardAttackFlowRoutine);
+        guardAttackFlowRoutine = null;
+    }
+
+    private void ScheduleSpecialAttackAutoCancel(float duration)
+    {
+        StopSpecialAttackAutoCancelRoutine();
+
+        if (duration <= 0f)
+            return;
+
+        specialAttackAutoCancelRoutine = StartCoroutine(SpecialAttackAutoCancelRoutine(duration));
+    }
+
+    private IEnumerator SpecialAttackAutoCancelRoutine(float duration)
+    {
+        yield return new WaitForSeconds(duration);
+        specialAttackAutoCancelRoutine = null;
+
+        if (currentAttack != null)
+            CompleteCancelWindow();
+    }
+
+    private void StopSpecialAttackAutoCancelRoutine()
+    {
+        if (specialAttackAutoCancelRoutine == null)
+            return;
+
+        StopCoroutine(specialAttackAutoCancelRoutine);
+        specialAttackAutoCancelRoutine = null;
+    }
+
+    private static float GetAnimationDurationOrFallback(PlayerAttack attack, float fallback)
+    {
+        if (attack != null && attack.animationClip != null)
+            return Mathf.Max(0.05f, attack.animationClip.length);
+
+        return Mathf.Max(0f, fallback);
+    }
+
     private void BeginHitboxLifetime(float duration)
     {
         if (duration <= 0f)
@@ -332,6 +549,7 @@ public class PlayerAttackManager : MonoBehaviour
 
     public void HandleAnimationCancelWindow()
     {
+        StopSpecialAttackAutoCancelRoutine();
         bool needsPlungeRecovery = currentAttack != null
             && currentAttack.attackType == AttackType.HeavyAerial
             && plungeRecoveryDelay > 0f;
@@ -428,6 +646,8 @@ public class PlayerAttackManager : MonoBehaviour
         }
 
         ClearBufferedAttack();
+        StopGuardAttackFlowRoutine();
+        StopSpecialAttackAutoCancelRoutine();
         ClearHitbox();
         currentAttack = null;
         InputReader.inputBusy = false;

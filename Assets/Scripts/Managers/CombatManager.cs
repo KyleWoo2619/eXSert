@@ -61,22 +61,12 @@ namespace Utilities.Combat
             singleTargetMode = true;
         }
 
-        private static AnimFacade cachedAnimFacade; // Cache to avoid repeated FindAnyObjectByType calls
+        private static Coroutine parryWindowRoutine;
 
         public static void ChangeStance()
         {
             singleTargetMode = !singleTargetMode;
             Debug.Log("Stance changed. Current Stance: " + currentCombatStance.ToString());
-
-            // Update AnimFacade if it exists (use cached reference)
-            if (cachedAnimFacade == null)
-                cachedAnimFacade = FindAnyObjectByType<AnimFacade>();
-
-            if (cachedAnimFacade != null)
-            {
-                // 0 = Single Target, 1 = AOE
-                cachedAnimFacade.SetStance(singleTargetMode ? 0 : 1);
-            }
 
             OnStanceChanged?.Invoke();
         }
@@ -85,38 +75,40 @@ namespace Utilities.Combat
         {
             isGuarding = true;
             Debug.Log("Player is now guarding. Parry window open");
-
-            // Update AnimFacade to guard stance (2)
-            if (cachedAnimFacade == null)
-                cachedAnimFacade = FindAnyObjectByType<AnimFacade>();
-
-            if (cachedAnimFacade != null)
-            {
-                cachedAnimFacade.SetStance(2); // 2 = Guard
-            }
-
             // Start parry window
             isParrying = true;
-            Instance.StartCoroutine(ParryWindowCoroutine());
+            RestartParryWindow();
         }
 
         public static void ExitGuard()
         {
+            if (!isGuarding)
+                return;
+
             isGuarding = false;
             Debug.Log("Player has stopped guarding.");
 
-            // Restore previous stance
-            if (cachedAnimFacade == null)
-                cachedAnimFacade = FindAnyObjectByType<AnimFacade>();
-
-            if (cachedAnimFacade != null)
+            if (parryWindowRoutine != null && Instance != null)
             {
-                cachedAnimFacade.SetStance(singleTargetMode ? 0 : 1); // Back to Single/AOE
+                Instance.StopCoroutine(parryWindowRoutine);
+                parryWindowRoutine = null;
             }
 
-            // Stop parry window if still active
-            if (isParrying)
-                Instance.StopCoroutine(ParryWindowCoroutine());
+            isParrying = false;
+        }
+
+        private static void RestartParryWindow()
+        {
+            if (Instance == null)
+                return;
+
+            if (parryWindowRoutine != null)
+            {
+                Instance.StopCoroutine(parryWindowRoutine);
+                parryWindowRoutine = null;
+            }
+
+            parryWindowRoutine = Instance.StartCoroutine(ParryWindowCoroutine());
         }
 
         // Coroutine to handle parry window timing
@@ -125,6 +117,7 @@ namespace Utilities.Combat
             yield return new WaitForSeconds(Instance._parryWindow);
 
             isParrying = false;
+            parryWindowRoutine = null;
             Debug.Log("Parry window closed.");
         }
 
