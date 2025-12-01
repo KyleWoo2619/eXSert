@@ -19,6 +19,8 @@ public class SubMenuManager : MonoBehaviour
     //Will change if the player is on the settings menu or not
     [SerializeField] internal bool isOnSettingsMenu = false;
 
+    [SerializeField] internal GameObject settingsMenu = null;
+
 
     void Awake()
     {
@@ -26,6 +28,7 @@ public class SubMenuManager : MonoBehaviour
         currentSettingsMenu = null;
         isOnSettingsMenu = false;
         lastActivatedSubMenu = null;
+        settingsMenu = this.gameObject;
     }
 
     //When the settings button is clicked, this function is called
