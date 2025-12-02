@@ -4,10 +4,9 @@ using Utilities.Combat;
 namespace EnemyBehavior.Boss
 {
     /// <summary>
-    /// Attach to arm hitbox colliders. Enable/disable via Animation Events during attack sequences.
-    /// Call EnableHitbox() at start of active frames, DisableHitbox() at start of recovery.
+    /// Attach to arm hitbox root. Supports multiple collider segments (shoulder/elbow/hand).
+    /// Enable/disable via Animation Events during attack sequences.
     /// </summary>
-    [RequireComponent(typeof(Collider))]
     public sealed class BossArmHitbox : MonoBehaviour
     {
         [SerializeField, Tooltip("Damage dealt by this hitbox")]
@@ -18,16 +17,33 @@ namespace EnemyBehavior.Boss
 
         [SerializeField, Tooltip("Which arm is this")]
         private ArmSide armSide = ArmSide.Left;
+        
+        [SerializeField, Tooltip("Root transform to search for colliders. If null, uses this GameObject. Use this for complex arm hierarchies where colliders are spread across multiple bones.")]
+        private Transform colliderSearchRoot;
 
-        private Collider hitboxCollider;
+        private Collider[] hitboxColliders;
         private bool isActive;
+        private bool hasHitThisActivation;
 
         public enum ArmSide { Left, Right, Center }
 
         private void Awake()
         {
-            hitboxCollider = GetComponent<Collider>();
-            hitboxCollider.isTrigger = true;
+            // If no search root specified, search from this GameObject
+            Transform root = colliderSearchRoot != null ? colliderSearchRoot : transform;
+            
+            // Get all colliders on the root and its children (multi-segment arms)
+            hitboxColliders = root.GetComponentsInChildren<Collider>(true);
+            
+            if (hitboxColliders.Length == 0)
+            {
+                Debug.LogWarning($"[BossArmHitbox] No colliders found under '{root.name}'! Hitbox will not work. Make sure colliders exist as children of the specified root.");
+            }
+            
+            foreach (var col in hitboxColliders)
+            {
+                col.isTrigger = true;
+            }
             
             if (bossBrain == null)
             {
@@ -39,31 +55,35 @@ namespace EnemyBehavior.Boss
 
         public void EnableHitbox()
         {
-            if (hitboxCollider != null)
+            foreach (var col in hitboxColliders)
             {
-                hitboxCollider.enabled = true;
-                isActive = true;
-                Debug.Log($"[BossArmHitbox] {armSide} arm hitbox ENABLED");
+                if (col != null) col.enabled = true;
             }
+            isActive = true;
+            hasHitThisActivation = false;
+            Debug.Log($"[BossArmHitbox] {armSide} arm hitbox ENABLED ({hitboxColliders.Length} segments)");
         }
 
         public void DisableHitbox()
         {
-            if (hitboxCollider != null)
+            foreach (var col in hitboxColliders)
             {
-                hitboxCollider.enabled = false;
-                isActive = false;
-                Debug.Log($"[BossArmHitbox] {armSide} arm hitbox DISABLED");
+                if (col != null) col.enabled = false;
             }
+            isActive = false;
+            hasHitThisActivation = false;
+            Debug.Log($"[BossArmHitbox] {armSide} arm hitbox DISABLED");
         }
 
         private void OnTriggerEnter(Collider other)
         {
             if (!isActive) return;
+            if (hasHitThisActivation) return;
 
             if (other.CompareTag("Player"))
             {
                 ApplyDamageToPlayer(other.gameObject);
+                hasHitThisActivation = true;
             }
         }
 
@@ -79,6 +99,7 @@ namespace EnemyBehavior.Boss
                     {
                         CombatManager.ParrySuccessful();
                         Debug.Log($"Player parried {currentAttack.Id}");
+                        DisableHitbox();
                         return;
                     }
                 }
@@ -104,22 +125,28 @@ namespace EnemyBehavior.Boss
 
         private void OnDrawGizmos()
         {
-            if (hitboxCollider == null) hitboxCollider = GetComponent<Collider>();
+            if (hitboxColliders == null || hitboxColliders.Length == 0)
+                hitboxColliders = GetComponentsInChildren<Collider>(true);
 
             Gizmos.color = isActive ? Color.red : Color.gray;
             
-            if (hitboxCollider is BoxCollider box)
+            foreach (var col in hitboxColliders)
             {
-                Gizmos.matrix = transform.localToWorldMatrix;
-                Gizmos.DrawWireCube(box.center, box.size);
-            }
-            else if (hitboxCollider is SphereCollider sphere)
-            {
-                Gizmos.DrawWireSphere(transform.position + sphere.center, sphere.radius);
-            }
-            else if (hitboxCollider is CapsuleCollider capsule)
-            {
-                Gizmos.DrawWireSphere(transform.position + capsule.center, capsule.radius);
+                if (col == null) continue;
+                
+                if (col is BoxCollider box)
+                {
+                    Gizmos.matrix = col.transform.localToWorldMatrix;
+                    Gizmos.DrawWireCube(box.center, box.size);
+                }
+                else if (col is SphereCollider sphere)
+                {
+                    Gizmos.DrawWireSphere(col.transform.position + sphere.center, sphere.radius);
+                }
+                else if (col is CapsuleCollider capsule)
+                {
+                    Gizmos.DrawWireSphere(col.transform.position + capsule.center, capsule.radius);
+                }
             }
         }
     }

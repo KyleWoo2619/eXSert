@@ -25,12 +25,24 @@ namespace EnemyBehavior.Boss
         [SerializeField, Tooltip("Hitbox for charge attacks (body-based)")]
         private BossArmHitbox chargeHitbox;
 
+        [Header("Boss Brain Reference")]
+        [SerializeField, Tooltip("Boss brain for arm deploy/retract callbacks (auto-found if null)")]
+        private BossRoombaBrain bossBrain;
+
         [Header("Audio (Optional)")]
         [SerializeField] private AudioSource audioSource;
         [SerializeField] private AudioClip windupSound;
         [SerializeField] private AudioClip swingSound;
         [SerializeField] private AudioClip hitSound;
         [SerializeField] private AudioClip recoverySound;
+
+        private void Awake()
+        {
+            if (bossBrain == null)
+            {
+                bossBrain = GetComponentInParent<BossRoombaBrain>();
+            }
+        }
 
         private void OnValidate()
         {
@@ -55,6 +67,9 @@ namespace EnemyBehavior.Boss
 
             if (audioSource == null)
                 audioSource = GetComponent<AudioSource>();
+            
+            if (bossBrain == null)
+                bossBrain = GetComponentInParent<BossRoombaBrain>();
         }
 
         #region Left Arm Events
@@ -185,6 +200,42 @@ namespace EnemyBehavior.Boss
             {
                 chargeHitbox.DisableHitbox();
                 Debug.Log("[AnimMediator] Charge hitbox disabled");
+            }
+        }
+        #endregion
+
+        #region Arms Deploy/Retract Events
+        /// <summary>
+        /// Called by Animation Event at end of Arms_Deploy clip.
+        /// Forwards to BossRoombaBrain.
+        /// </summary>
+        public void OnArmsDeployComplete()
+        {
+            if (bossBrain != null)
+            {
+                bossBrain.OnArmsDeployComplete();
+                Debug.Log("[AnimMediator] Arms deployment complete - forwarded to brain");
+            }
+            else
+            {
+                Debug.LogWarning("[AnimMediator] Boss brain not found! Cannot forward OnArmsDeployComplete");
+            }
+        }
+
+        /// <summary>
+        /// Called by Animation Event at end of Arms_Retract clip.
+        /// Forwards to BossRoombaBrain.
+        /// </summary>
+        public void OnArmsRetractComplete()
+        {
+            if (bossBrain != null)
+            {
+                bossBrain.OnArmsRetractComplete();
+                Debug.Log("[AnimMediator] Arms retract complete - forwarded to brain");
+            }
+            else
+            {
+                Debug.LogWarning("[AnimMediator] Boss brain not found! Cannot forward OnArmsRetractComplete");
             }
         }
         #endregion
