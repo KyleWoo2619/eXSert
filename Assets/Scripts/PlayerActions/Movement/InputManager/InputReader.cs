@@ -131,18 +131,31 @@ public class InputReader : Singleton<InputReader>
     {
         base.Awake();
 
+        // If a different InputReader instance already exists, destroy this one to
+        // avoid duplicate singletons and conflicting PlayerInput bindings.
+        if (Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         SceneManager.sceneLoaded += HandleSceneLoaded;
 
-        if (_playerControls == null)
+        // Use the serialized InputActionAsset if assigned. Do not auto-create
+        // a runtime copy if one already exists; that caused duplicate assets
+        // when moving from main menu to gameplay.
+        if (_playerControls != null)
         {
+            playerControls = _playerControls;
+        }
+        else if (playerControls == null)
+        {
+            // As a last resort (e.g., first scene missing a reference), create
+            // a single runtime controls asset that will be reused.
             runtimeGeneratedControls = new PlayerControls();
             _playerControls = runtimeGeneratedControls.asset;
             playerControls = _playerControls;
             Debug.LogWarning("Player Controls Input Action asset not assigned on InputReader; creating a runtime copy so gameplay actions remain available.");
-        }
-        else
-        {
-            playerControls = _playerControls;
         }
 
         if (_playerInput != null)
@@ -227,7 +240,7 @@ public class InputReader : Singleton<InputReader>
                 continue;
 
             bool likelyPlayer = candidate.gameObject.CompareTag("Player")
-                || candidate.GetComponentInParent<PlayerPersistence>() != null;
+                || candidate.GetComponentInParent<PlayerMovement>() != null;
 
             if (likelyPlayer)
             {

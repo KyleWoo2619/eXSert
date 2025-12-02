@@ -90,6 +90,10 @@ public class SaveSlotsMenu : Menu
         { 
             // NEW GAME - Create fresh save data
             DataPersistenceManager.instance.NewGame();
+            if (CheckpointSystem.Instance != null)
+            {
+                CheckpointSystem.Instance.ResetProgress();
+            }
 
             string configuredGameplay = string.IsNullOrWhiteSpace(SceneName) ? "PlayerScene" : SceneName;
             string configuredDefault = string.IsNullOrWhiteSpace(DefaultSceneName) ? configuredGameplay : DefaultSceneName;
@@ -102,8 +106,17 @@ public class SaveSlotsMenu : Menu
                 secondaryScene = null;
             }
 
+            string spawnId = CheckpointSystem.Instance != null
+                ? CheckpointSystem.Instance.GetCurrentSpawnPointID()
+                : "default";
+
             // Pause gameplay while the default scene loads first, then the gameplay scene second
-            SceneLoader.Instance.LoadInitialGameScene(primaryScene, secondaryScene, pauseUntilLoaded: true);
+            SceneLoader.Instance.LoadInitialGameScene(
+                primaryScene,
+                secondaryScene,
+                pauseUntilLoaded: true,
+                spawnPointIdOverride: spawnId,
+                updateCheckpointAfterLoad: true);
         }
         else
         {
@@ -124,9 +137,20 @@ public class SaveSlotsMenu : Menu
                     savedScene = loadedData.currentSceneName;
                 }
             }
+
+            string savedSpawnPoint = loadedData != null && !string.IsNullOrWhiteSpace(loadedData.currentSpawnPointID)
+                ? loadedData.currentSpawnPointID
+                : CheckpointSystem.Instance != null
+                    ? CheckpointSystem.Instance.GetCurrentSpawnPointID()
+                    : "default";
             
             // Load the saved checkpoint scene
-            SceneLoader.Instance.LoadInitialGameScene(savedScene);
+            SceneLoader.Instance.LoadInitialGameScene(
+                savedScene,
+                additiveSceneName: null,
+                pauseUntilLoaded: true,
+                spawnPointIdOverride: savedSpawnPoint,
+                updateCheckpointAfterLoad: false);
         }
     }
 

@@ -80,6 +80,7 @@ public class PlayerAnimationController : MonoBehaviour
         {
             internal const string Flinch = "Flinch";
             internal const string Knockback = "Knockback";
+            internal const string Death = "Death";
         }
 
         internal static class Specials
@@ -181,6 +182,9 @@ public class PlayerAnimationController : MonoBehaviour
 
     public void PlayHit() => CrossFade(PlayerAnim.Reactions.Flinch, 0.02f, true);
     public void PlayHeavyHit() => CrossFade(PlayerAnim.Reactions.Knockback, 0.05f, true);
+    public void PlayDeath() => CrossFade(PlayerAnim.Reactions.Death, 0.02f, true);
+
+    public bool IsPlayingDeath(out float normalizedTime) => IsPlaying(PlayerAnim.Reactions.Death, out normalizedTime);
 
     /// <summary>
     /// Generic attack playback. Pass the actual animator state name (e.g. "SX1", "AY3", "Launcher").

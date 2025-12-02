@@ -100,7 +100,8 @@ namespace UI.Loading
             if (pauseGame)
                 Time.timeScale = 0f;
 
-            EnableLoadingInput();
+            // Loading input (spin/zoom) disabled – we only show the prefab now.
+            // EnableLoadingInput();
 
             bool enforceMinimum = minimumDisplayDuration > 0f;
             float minDisplayEndTime = 0f;
@@ -134,7 +135,8 @@ namespace UI.Loading
 
             yield return FadeOutAndResume(pauseGame);
 
-            DisableLoadingInput();
+            // Loading input (spin/zoom) disabled – we only show the prefab now.
+            // DisableLoadingInput();
             activeRoutine = null;
         }
 

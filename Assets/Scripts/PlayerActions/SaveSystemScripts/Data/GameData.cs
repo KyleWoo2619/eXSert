@@ -42,7 +42,7 @@ public class GameData
         playerPos = Vector3.zero;
         
         // Default checkpoint is the first level
-        currentSceneName = "FP_Elevator";
+        currentSceneName = "VS_Elevator";
         currentSpawnPointID = "default";
         // default last saved scene matches the current scene name on new games
         lastSavedScene = currentSceneName;

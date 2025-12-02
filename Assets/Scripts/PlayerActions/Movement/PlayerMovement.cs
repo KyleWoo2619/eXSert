@@ -132,6 +132,10 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField]
     private float dashCoolDown = 0.6f;
 
+    [Header("External Reactions")]
+    [SerializeField, Range(0.05f, 1.5f)]
+    private float defaultExternalStunDuration = 0.35f;
+
     [Header("Launcher Settings")]
     [SerializeField, Range(1f, 25f)]
     private float launcherJumpVelocity = 12f;
@@ -180,6 +184,9 @@ public class PlayerMovement : MonoBehaviour
     private bool locomotionAnimationSuppressed;
     private bool movementSpeedOverrideActive;
     private float movementSpeedOverride;
+    private Coroutine externalStunRoutine;
+    private bool externalStunOwnsInput;
+    private bool disabledByDeath;
 
     private Transform ResolveCameraTransform()
     {
@@ -643,6 +650,96 @@ public class PlayerMovement : MonoBehaviour
         fallingAnimationPlaying = false;
 
         return true;
+    }
+
+    public void ApplyExternalStun(float duration)
+    {
+        if (duration <= 0f)
+            duration = defaultExternalStunDuration;
+
+        if (externalStunRoutine != null)
+        {
+            StopCoroutine(externalStunRoutine);
+            externalStunRoutine = null;
+            ReleaseExternalStunInputLock();
+        }
+
+        externalStunRoutine = StartCoroutine(ExternalStunRoutine(duration));
+    }
+
+    private IEnumerator ExternalStunRoutine(float duration)
+    {
+        ForceStopDashImmediate(relinquishInputLock: true);
+        isDashing = false;
+        dashVelocity = Vector3.zero;
+        currentMovement.x = 0f;
+        currentMovement.z = 0f;
+
+        bool alreadyBusy = InputReader.inputBusy;
+        if (!alreadyBusy)
+        {
+            InputReader.inputBusy = true;
+            externalStunOwnsInput = true;
+        }
+        else
+        {
+            externalStunOwnsInput = false;
+        }
+
+        float timer = duration;
+        while (timer > 0f)
+        {
+            timer -= Time.deltaTime;
+            yield return null;
+        }
+
+        ReleaseExternalStunInputLock();
+        externalStunRoutine = null;
+    }
+
+    private void ReleaseExternalStunInputLock()
+    {
+        if (!externalStunOwnsInput)
+            return;
+
+        InputReader.inputBusy = false;
+        externalStunOwnsInput = false;
+    }
+
+    public void EnterDeathState()
+    {
+        ForceStopDashImmediate(relinquishInputLock: true);
+
+        if (externalStunRoutine != null)
+        {
+            StopCoroutine(externalStunRoutine);
+            externalStunRoutine = null;
+        }
+
+        ReleaseExternalStunInputLock();
+
+        currentMovement = Vector3.zero;
+        dashVelocity = Vector3.zero;
+        isDashing = false;
+
+        if (enabled)
+        {
+            disabledByDeath = true;
+            enabled = false;
+        }
+        else
+        {
+            disabledByDeath = false;
+        }
+    }
+
+    public void ExitDeathState()
+    {
+        if (!disabledByDeath)
+            return;
+
+        disabledByDeath = false;
+        enabled = true;
     }
 
     private void AerialAttackHop(PlayerAttack attack)
