@@ -13,7 +13,7 @@ namespace EnemyBehavior.Boss
     {
         [Tooltip("Unique name for this attack (used for logs/analytics/parry id).")]
         public string Id;
-        [Tooltip("If true, the attack can be parried during its window.")]
+        [Tooltip("If true, the attack can be parried any time the hitbox is active.")]
         public bool Parryable;
         [Tooltip("Minimum seconds between uses of this attack.")]
         public float Cooldown;
@@ -21,25 +21,28 @@ namespace EnemyBehavior.Boss
         public float RangeMin;
         [Tooltip("Max distance to the player at which this attack is eligible.")]
         public float RangeMax;
-        [Tooltip("Seconds from start until the hit becomes active (wind-up/telegraph).")]
-        public float Windup;
-        [Tooltip("Seconds when the hit is active (damage window).")]
-        public float Active;
-        [Tooltip("Seconds after active ends before boss can chain next action.")]
-        public float Recovery;
-        [Tooltip("Seconds from windup start when the parry window opens (relative time).")]
-        public float ParryWindowStart;
-        [Tooltip("Seconds from windup start when the parry window closes (relative time).")]
-        public float ParryWindowEnd;
+        
+        [Header("Animation Timing")]
+        [Tooltip("Reference clip name for windup phase (used to read actual length).")]
+        public string WindupClipName;
+        [Tooltip("Reference clip name for active phase (used to read actual length).")]
+        public string ActiveClipName;
+        [Tooltip("Reference clip name for recovery phase (used to read actual length).")]
+        public string RecoveryClipName;
+        [Tooltip("Speed multiplier for windup animation (1.0 = normal speed).")]
+        public float WindupSpeedMultiplier = 1.0f;
+        [Tooltip("Speed multiplier for active animation (1.0 = normal speed).")]
+        public float ActiveSpeedMultiplier = 1.0f;
+        [Tooltip("Speed multiplier for recovery animation (1.0 = normal speed).")]
+        public float RecoverySpeedMultiplier = 1.0f;
+        
         [Header("Animation Hooks")]
-        [Tooltip("Fired when an attack starts winding up (telegraph). Use it to start anticipation animations, glow, or pose.")]
+        [Tooltip("Fired when an attack starts winding up (telegraph).")]
         public string AnimatorTriggerOnWindup;
-        [Tooltip("Fired at the start of the damage-active frames. Use it to play the hit/dash/sweep animation.")]
+        [Tooltip("Fired at the start of the damage-active frames.")]
         public string AnimatorTriggerOnActive;
-        [Tooltip("Fired when the damage window ends. Use it for easing out or returning to idle/move loops.")]
+        [Tooltip("Fired when the damage window ends.")]
         public string AnimatorTriggerOnRecovery;
-        [Tooltip("Trigger fired when this attack is parried (transition from Active to Parry state). Optional.")]
-        public string AnimatorTriggerOnParry;
         [Tooltip("Set true if this attack requires arms to be deployed before windup.")]
         public bool RequiresArms;
     }
@@ -57,22 +60,25 @@ namespace EnemyBehavior.Boss
 
     public interface IParrySink { void OnParry(string attackId, GameObject player); }
 
-    [RequireComponent(typeof(BossRoombaController))]
-    [RequireComponent(typeof(NavMeshAgent))]
+    [RequireComponent(typeof(BossRoombaController))
+    , RequireComponent(typeof(NavMeshAgent))]
     public sealed class BossRoombaBrain : MonoBehaviour, IParrySink
     {
         [Header("Component Help")]
         [SerializeField, TextArea(3, 6)] private string inspectorHelp =
             "BossRoombaBrain: high-level boss behavior and attack sequencing.\n" +
-            "Supports arm deploy/retract, per-attack parry triggers, and randomized left/right lunges.";
+            "Attack timings are driven by animation clip lengths × speed multipliers.\n" +
+            "Use Animation Events in clips for precise phase transitions.";
 
         public RoombaForm StartForm = RoombaForm.DuelistSummoner;
 
         [Header("Attacks")]
-        public BossAttackDescriptor BasicSwipe;
+        // Base variants are unused - only Left/Right variants are selected
+        [HideInInspector] public BossAttackDescriptor BasicSwipe;
+        [HideInInspector] public BossAttackDescriptor ArmSweep;
+        
         public BossAttackDescriptor BasicSwipeLeft;
         public BossAttackDescriptor BasicSwipeRight;
-        public BossAttackDescriptor ArmSweep;
         public BossAttackDescriptor ArmSweepLeft;
         public BossAttackDescriptor ArmSweepRight;
         public BossAttackDescriptor DashLungeLeft;
@@ -82,14 +88,28 @@ namespace EnemyBehavior.Boss
         public BossAttackDescriptor KnockOffSpin;
         public BossAttackDescriptor VacuumSuction;
         public BossAttackDescriptor StaticCharge;
+        public BossAttackDescriptor StaticChargeLeft;
+        public BossAttackDescriptor StaticChargeRight;
         public BossAttackDescriptor TargetedCharge;
 
         [Header("Arms Deploy/ Retract")]
         public string ArmsDeployTrigger = "Arms_Deploy";
         public string ArmsRetractTrigger = "Arms_Retract";
-        public float ArmsDeployDuration = 0.4f;
-        public float ArmsRetractDuration = 0.4f;
+        [Tooltip("Set by animation event on Arms_Deploy clip end, or fallback timeout.")]
+        public float ArmsDeployTimeoutSeconds = 1.0f;
+        [Tooltip("Duration to wait for arms retract animation to complete (increase if animation is getting cut off)")]
+        public float ArmsRetractDuration = 0.6f;
         public float ArmsAutoRetractCooldown = 3.0f;
+
+        [Header("Horns Deploy/Retract")]
+        [Tooltip("Trigger for raising horns (faceplate lower)")]
+        public string HornsRaiseTrigger = "Horns_Raise";
+        [Tooltip("Trigger for lowering horns (faceplate raise)")]
+        public string HornsLowerTrigger = "Horns_Lower";
+        [Tooltip("Duration to wait for horns raise animation to complete")]
+        public float HornsRaiseDuration = 0.8f;
+        [Tooltip("Duration to wait for horns lower animation to complete")]
+        public float HornsLowerDuration = 0.8f;
 
         [Header("Windows")]
         public float ParryStaggerSeconds = 3.0f;
@@ -114,6 +134,8 @@ namespace EnemyBehavior.Boss
         [Tooltip("Center bounds for checking player is inside arena before raising walls")]
         public Collider ArenaCenterBounds;
         public BossArenaManager ArenaManager;
+        [Tooltip("Manages player lifecycle (claims/releases from DontDestroyOnLoad)")]
+        public BossScenePlayerManager PlayerManager;
 
         [Header("Cage Bull Charges")]
         [Tooltip("Speed multiplier during charges")]
@@ -134,6 +156,27 @@ namespace EnemyBehavior.Boss
         [Header("Side Panels")]
         public List<SidePanel> SidePanels = new List<SidePanel>();
 
+        [Header("Animator Integration")]
+        [SerializeField] private string ParamIdleIntensity = "IdleIntensity";
+        [SerializeField] private string TriggerStunWindup = "Stun_Windup";
+        [SerializeField] private string TriggerStunActive = "Stun_Active";
+        [SerializeField] private string TriggerStunRecovery = "Stun_Recovery";
+        [SerializeField] private string TriggerHornsRaise = "Horns_Raise";
+        [SerializeField] private string TriggerHornsLower = "Horns_Lower";
+        [SerializeField] private string TriggerDamagedV1 = "Damaged_v1";
+        [SerializeField] private string TriggerDamagedV2 = "Damaged_v2";
+        [SerializeField] private string TriggerDamagedV3 = "Damaged_v3";
+        [Tooltip("Animator layers by name (must match Animator)")]
+        [SerializeField] private string LayerNameHitReact = "HitReact";
+        [SerializeField] private string LayerNameStun = "Stun";
+        [SerializeField] private string LayerNameAttacks = "Attacks";
+        [SerializeField] private string LayerNameIdleAdditive = "Idle";
+
+        [Header("Idle Overlay Intensity")]
+        public float IdleIntensityMin = 0.9f;
+        public float IdleIntensityMax = 1.5f;
+        public float MaxIdleSpeedForIntensity = 10f;
+
         private BossRoombaController ctrl;
         private NavMeshAgent agent;
         private Transform player;
@@ -141,10 +184,19 @@ namespace EnemyBehavior.Boss
         private Coroutine loop;
         private bool alarmDestroyed;
         private Animator animator;
+        private BossAnimationEventMediator animMediator;
+
         private bool playerOnTop;
 
         private bool armsDeployed;
+        private bool armsDeployInProgress;
+        private bool armsRetractInProgress;
         private Coroutine armsRetractRoutine;
+        private bool cancelArmsRetract; // Flag to cancel retraction in progress
+
+        private bool hornsRaised; // Track if horns are currently raised
+        private bool hornsRaiseInProgress;
+        private bool hornsLowerInProgress;
 
         private BossAttackDescriptor currentAttack;
         private Coroutine currentAttackRoutine;
@@ -162,6 +214,11 @@ namespace EnemyBehavior.Boss
 
         private bool isStunned;
         private StunType currentStunType = StunType.None;
+
+        private int hitReactLayer = -1;
+        private int stunLayer = -1;
+        private int attacksLayer = -1;
+        private int idleAdditiveLayer = -1;
 
         private bool IsPlayerMounted()
         {
@@ -186,10 +243,15 @@ namespace EnemyBehavior.Boss
         {
             ctrl = GetComponent<BossRoombaController>();
             agent = GetComponent<NavMeshAgent>();
+            // GetComponentInChildren searches this GameObject and all children
             animator = GetComponentInChildren<Animator>();
+            // Mediator must be on same GameObject as Animator (or child of it) for Animation Events
+            animMediator = GetComponentInChildren<BossAnimationEventMediator>(true);
             player = GameObject.FindWithTag("Player")?.transform;
             lastMountedTime = -999f;
             hasEverMounted = false;
+
+            CacheAnimatorLayerIndices();
 
             attackThresholdForVacuum = Random.Range(AttackCountForVacuumRange.x, AttackCountForVacuumRange.y + 1);
 
@@ -202,106 +264,136 @@ namespace EnemyBehavior.Boss
             InitializeAttackDescriptors();
         }
 
+        private void CacheAnimatorLayerIndices()
+        {
+            if (animator == null) return;
+            
+            // CRITICAL FIX: Base Layer should ALWAYS be layer 0, but your setup has it at layer 3
+            // Force correct layer configuration
+            int baseLayerIndex = animator.GetLayerIndex("Base Layer");
+            if (baseLayerIndex != 0)
+            {
+                Debug.LogError($"[BossRoombaBrain] CRITICAL: Base Layer is at index {baseLayerIndex} instead of 0! Animator Controller layer order is wrong. Applying workaround...");
+                
+                // Emergency workaround: Disable the misplaced Base Layer and ensure layer 0 is active
+                if (baseLayerIndex > 0)
+                {
+                    animator.SetLayerWeight(baseLayerIndex, 0f); // Disable misplaced base layer
+                    Debug.LogWarning($"[BossRoombaBrain] Disabled Base Layer at index {baseLayerIndex}");
+                }
+                
+                // Ensure layer 0 (whatever it's called) is enabled
+                animator.SetLayerWeight(0, 1f);
+                Debug.Log($"[BossRoombaBrain] Enabled layer 0: {animator.GetLayerName(0)}");
+            }
+            
+            hitReactLayer = !string.IsNullOrEmpty(LayerNameHitReact) ? animator.GetLayerIndex(LayerNameHitReact) : -1;
+            stunLayer = !string.IsNullOrEmpty(LayerNameStun) ? animator.GetLayerIndex(LayerNameStun) : -1;
+            attacksLayer = !string.IsNullOrEmpty(LayerNameAttacks) ? animator.GetLayerIndex(LayerNameAttacks) : -1;
+            idleAdditiveLayer = !string.IsNullOrEmpty(LayerNameIdleAdditive) ? animator.GetLayerIndex(LayerNameIdleAdditive) : -1;
+            
+            // Log final layer configuration
+            Debug.Log($"[BossRoombaBrain] Layer indices - HitReact: {hitReactLayer}, Stun: {stunLayer}, Attacks: {attacksLayer}, Idle: {idleAdditiveLayer}");
+        }
+
         private void InitializeAttackDescriptors()
         {
+            // Initialize all attack descriptors with animation data.
+            // RequiresArms can be overridden in Inspector after initialization.
+            
             BasicSwipe = new BossAttackDescriptor {
                 Id = "BasicSwipe", Parryable = false, Cooldown = 1.2f,
                 RangeMin = 0.0f, RangeMax = 3.0f,
-                Windup = 0.35f, Active = 0.25f, Recovery = 0.5f,
-                AnimatorTriggerOnWindup = "Swipe_Windup", AnimatorTriggerOnActive = "Swipe_Active", 
+                WindupClipName = "Roomba_Swipe_Windup", ActiveClipName = "Roomba_Swipe_Active", RecoveryClipName = "Roomba_Swipe_Recovery",
+                AnimatorTriggerOnWindup = "Swipe_Windup", AnimatorTriggerOnActive = "Swipe_Active",
                 AnimatorTriggerOnRecovery = "Swipe_Recovery", RequiresArms = true
             };
 
             BasicSwipeLeft = new BossAttackDescriptor {
                 Id = "BasicSwipeLeft", Parryable = false, Cooldown = 1.2f,
                 RangeMin = 0.0f, RangeMax = 3.0f,
-                Windup = 0.35f, Active = 0.25f, Recovery = 0.5f,
-                AnimatorTriggerOnWindup = "SwipeLeft_Windup", AnimatorTriggerOnActive = "SwipeLeft_Active",
-                AnimatorTriggerOnRecovery = "SwipeLeft_Recovery", RequiresArms = true
+                WindupClipName = "Roomba_Swipe_L_Windup", ActiveClipName = "Roomba_Swipe_L_Active", RecoveryClipName = "Roomba_Swipe_L_Recovery",
+                AnimatorTriggerOnWindup = "Swipe_L_Windup", AnimatorTriggerOnActive = "Swipe_L_Active",
+                AnimatorTriggerOnRecovery = "Swipe_L_Recovery", RequiresArms = true
             };
 
             BasicSwipeRight = new BossAttackDescriptor {
                 Id = "BasicSwipeRight", Parryable = false, Cooldown = 1.2f,
                 RangeMin = 0.0f, RangeMax = 3.0f,
-                Windup = 0.35f, Active = 0.25f, Recovery = 0.5f,
-                AnimatorTriggerOnWindup = "SwipeRight_Windup", AnimatorTriggerOnActive = "SwipeRight_Active",
-                AnimatorTriggerOnRecovery = "SwipeRight_Recovery", RequiresArms = true
+                WindupClipName = "Roomba_Swipe_R_Windup", ActiveClipName = "Roomba_Swipe_R_Active", RecoveryClipName = "Roomba_Swipe_R_Recovery",
+                AnimatorTriggerOnWindup = "Swipe_R_Windup", AnimatorTriggerOnActive = "Swipe_R_Active",
+                AnimatorTriggerOnRecovery = "Swipe_R_Recovery", RequiresArms = true
             };
 
             ArmSweep = new BossAttackDescriptor {
                 Id = "ArmSweep", Parryable = true, Cooldown = 2.0f,
                 RangeMin = 0.5f, RangeMax = 3.5f,
-                Windup = 0.6f, Active = 0.4f, Recovery = 0.6f,
-                ParryWindowStart = 0.45f, ParryWindowEnd = 0.55f,
+                WindupClipName = "Roomba_Sweep_Windup", ActiveClipName = "Roomba_Sweep_Active", RecoveryClipName = "Roomba_Sweep_Recovery",
                 AnimatorTriggerOnWindup = "Sweep_Windup", AnimatorTriggerOnActive = "Sweep_Active",
-                AnimatorTriggerOnRecovery = "Sweep_Recovery", AnimatorTriggerOnParry = "Sweep_Parry", RequiresArms = true
+                AnimatorTriggerOnRecovery = "Sweep_Recovery", RequiresArms = true
             };
 
             ArmSweepLeft = new BossAttackDescriptor {
                 Id = "ArmSweepLeft", Parryable = true, Cooldown = 2.0f,
                 RangeMin = 0.5f, RangeMax = 3.5f,
-                Windup = 0.6f, Active = 0.4f, Recovery = 0.6f,
-                ParryWindowStart = 0.45f, ParryWindowEnd = 0.55f,
-                AnimatorTriggerOnWindup = "SweepLeft_Windup", AnimatorTriggerOnActive = "SweepLeft_Active",
-                AnimatorTriggerOnRecovery = "SweepLeft_Recovery", AnimatorTriggerOnParry = "SweepLeft_Parry", RequiresArms = true
+                WindupClipName = "Roomba_Sweep_L_Windup", ActiveClipName = "Roomba_Sweep_L_Active", RecoveryClipName = "Roomba_Sweep_L_Recovery",
+                AnimatorTriggerOnWindup = "Sweep_L_Windup", AnimatorTriggerOnActive = "Sweep_L_Active",
+                AnimatorTriggerOnRecovery = "Sweep_L_Recovery", RequiresArms = true
             };
 
             ArmSweepRight = new BossAttackDescriptor {
                 Id = "ArmSweepRight", Parryable = true, Cooldown = 2.0f,
                 RangeMin = 0.5f, RangeMax = 3.5f,
-                Windup = 0.6f, Active = 0.4f, Recovery = 0.6f,
-                ParryWindowStart = 0.45f, ParryWindowEnd = 0.55f,
-                AnimatorTriggerOnWindup = "SweepRight_Windup", AnimatorTriggerOnActive = "SweepRight_Active",
-                AnimatorTriggerOnRecovery = "SweepRight_Recovery", AnimatorTriggerOnParry = "SweepRight_Parry", RequiresArms = true
+                WindupClipName = "Roomba_Sweep_R_Windup", ActiveClipName = "Roomba_Sweep_R_Active", RecoveryClipName = "Roomba_Sweep_R_Recovery",
+                AnimatorTriggerOnWindup = "Sweep_R_Windup", AnimatorTriggerOnActive = "Sweep_R_Active",
+                AnimatorTriggerOnRecovery = "Sweep_R_Recovery", RequiresArms = true
             };
 
+            // ALL DASH ATTACKS: Set RequiresArms = false (no arms needed)
             DashLungeLeft = new BossAttackDescriptor {
                 Id = "DashLungeLeft", Parryable = true, Cooldown = 3.0f,
                 RangeMin = 6.0f, RangeMax = 25.0f,
-                Windup = 0.25f, Active = 0.4f, Recovery = 0.35f,
-                ParryWindowStart = 0.30f, ParryWindowEnd = 0.45f,
-                AnimatorTriggerOnWindup = "LungeLeft_Windup", AnimatorTriggerOnActive = "LungeLeft_Active",
-                AnimatorTriggerOnRecovery = "LungeLeft_Recovery", AnimatorTriggerOnParry = "LungeLeft_Parry", RequiresArms = true
+                WindupClipName = "Roomba_Dash_L_Windup", ActiveClipName = "Roomba_Dash_L_Active", RecoveryClipName = "Roomba_Dash_L_Recovery",
+                AnimatorTriggerOnWindup = "Dash_L_Windup", AnimatorTriggerOnActive = "Dash_L_Active",
+                AnimatorTriggerOnRecovery = "Dash_L_Recovery", RequiresArms = false // NO ARMS FOR DASH
             };
 
             DashLungeRight = new BossAttackDescriptor {
                 Id = "DashLungeRight", Parryable = true, Cooldown = 3.0f,
                 RangeMin = 6.0f, RangeMax = 25.0f,
-                Windup = 0.25f, Active = 0.4f, Recovery = 0.35f,
-                ParryWindowStart = 0.30f, ParryWindowEnd = 0.45f,
-                AnimatorTriggerOnWindup = "LungeRight_Windup", AnimatorTriggerOnActive = "LungeRight_Active",
-                AnimatorTriggerOnRecovery = "LungeRight_Recovery", AnimatorTriggerOnParry = "LungeRight_Parry", RequiresArms = true
+                WindupClipName = "Roomba_Dash_R_Windup", ActiveClipName = "Roomba_Dash_R_Active", RecoveryClipName = "Roomba_Dash_R_Recovery",
+                AnimatorTriggerOnWindup = "Dash_R_Windup", AnimatorTriggerOnActive = "Dash_R_Active",
+                AnimatorTriggerOnRecovery = "Dash_R_Recovery", RequiresArms = false // NO ARMS FOR DASH
             };
 
             DashLungeNoArms = new BossAttackDescriptor {
                 Id = "DashLungeNoArms", Parryable = false, Cooldown = 2.5f,
                 RangeMin = 6.0f, RangeMax = 25.0f,
-                Windup = 0.2f, Active = 0.4f, Recovery = 0.35f,
-                AnimatorTriggerOnWindup = "LungeNoArms_Windup", AnimatorTriggerOnActive = "LungeNoArms_Active",
-                AnimatorTriggerOnRecovery = "LungeNoArms_Recovery", RequiresArms = false
+                WindupClipName = "Roomba_Dash_N_Windup", ActiveClipName = "Roomba_Dash_N_Active", RecoveryClipName = "Roomba_Dash_N_Recovery",
+                AnimatorTriggerOnWindup = "Dash_N_Windup", AnimatorTriggerOnActive = "Dash_N_Active",
+                AnimatorTriggerOnRecovery = "Dash_N_Recovery", RequiresArms = false // NO ARMS FOR DASH
             };
 
             ArmPoke = new BossAttackDescriptor {
                 Id = "ArmPoke", Parryable = true, Cooldown = 0.8f,
                 RangeMin = 0.0f, RangeMax = 999f,
-                Windup = 0.25f, Active = 0.2f, Recovery = 0.25f,
-                ParryWindowStart = 0.15f, ParryWindowEnd = 0.20f,
+                WindupClipName = "Roomba_Poke_Windup", ActiveClipName = "Roomba_Poke_Active", RecoveryClipName = "Roomba_Poke_Recovery",
                 AnimatorTriggerOnWindup = "Poke_Windup", AnimatorTriggerOnActive = "Poke_Active",
-                AnimatorTriggerOnRecovery = "Poke_Recovery", AnimatorTriggerOnParry = "Poke_Parry", RequiresArms = true
+                AnimatorTriggerOnRecovery = "Poke_Recovery", RequiresArms = true
             };
 
             KnockOffSpin = new BossAttackDescriptor {
                 Id = "KnockOffSpin", Parryable = false, Cooldown = 12.0f,
                 RangeMin = 0.0f, RangeMax = 2.0f,
-                Windup = 0.3f, Active = 0.6f, Recovery = 0.6f,
-                AnimatorTriggerOnWindup = "Spin_Windup", AnimatorTriggerOnActive = "Spin_Active",
-                AnimatorTriggerOnRecovery = "Spin_Recovery", RequiresArms = true
+                WindupClipName = "Roomba_Knockoff_Windup", ActiveClipName = "Roomba_Knockoff_Active", RecoveryClipName = "Roomba_Knockoff_Recovery",
+                AnimatorTriggerOnWindup = "Knockoff_Windup", AnimatorTriggerOnActive = "Knockoff_Active",
+                AnimatorTriggerOnRecovery = "Knockoff_Recovery", RequiresArms = true
             };
 
             VacuumSuction = new BossAttackDescriptor {
                 Id = "VacuumSuction", Parryable = false, Cooldown = 12.0f,
                 RangeMin = 3.0f, RangeMax = 10.0f,
-                Windup = 0.6f, Active = 2.5f, Recovery = 0.8f,
+                WindupClipName = "Roomba_Vacuum_Windup", ActiveClipName = "Roomba_Vacuum_Active", RecoveryClipName = "Roomba_Vacuum_Recovery",
                 AnimatorTriggerOnWindup = "Vacuum_Windup", AnimatorTriggerOnActive = "Vacuum_Active",
                 AnimatorTriggerOnRecovery = "Vacuum_Recovery", RequiresArms = false
             };
@@ -309,17 +401,33 @@ namespace EnemyBehavior.Boss
             StaticCharge = new BossAttackDescriptor {
                 Id = "StaticCharge", Parryable = false, Cooldown = 1.5f,
                 RangeMin = 0.0f, RangeMax = 999f,
-                Windup = 0.5f, Active = 1.2f, Recovery = 0.6f,
-                AnimatorTriggerOnWindup = "Charge_Windup", AnimatorTriggerOnActive = "Charge_Active",
-                AnimatorTriggerOnRecovery = "Charge_Recovery", RequiresArms = false
+                WindupClipName = "Roomba_Charge_N_Windup", ActiveClipName = "Roomba_Charge_N_Active", RecoveryClipName = "Roomba_Charge_N_Recovery",
+                AnimatorTriggerOnWindup = "Charge_N_Windup", AnimatorTriggerOnActive = "Charge_N_Active",
+                AnimatorTriggerOnRecovery = "Charge_N_Recovery", RequiresArms = false
+            };
+
+            StaticChargeLeft = new BossAttackDescriptor {
+                Id = "StaticChargeLeft", Parryable = false, Cooldown = 1.5f,
+                RangeMin = 0.0f, RangeMax = 999f,
+                WindupClipName = "Roomba_Charge_L_Windup", ActiveClipName = "Roomba_Charge_L_Active", RecoveryClipName = "Roomba_Charge_L_Recovery",
+                AnimatorTriggerOnWindup = "Charge_L_Windup", AnimatorTriggerOnActive = "Charge_L_Active",
+                AnimatorTriggerOnRecovery = "Charge_L_Recovery", RequiresArms = false
+            };
+
+            StaticChargeRight = new BossAttackDescriptor {
+                Id = "StaticChargeRight", Parryable = false, Cooldown = 1.5f,
+                RangeMin = 0.0f, RangeMax = 999f,
+                WindupClipName = "Roomba_Charge_R_Windup", ActiveClipName = "Roomba_Charge_R_Active", RecoveryClipName = "Roomba_Charge_R_Recovery",
+                AnimatorTriggerOnWindup = "Charge_R_Windup", AnimatorTriggerOnActive = "Charge_R_Active",
+                AnimatorTriggerOnRecovery = "Charge_R_Recovery", RequiresArms = false
             };
 
             TargetedCharge = new BossAttackDescriptor {
                 Id = "TargetedCharge", Parryable = false, Cooldown = 3.0f,
                 RangeMin = 0.0f, RangeMax = 999f,
-                Windup = 0.35f, Active = 1.0f, Recovery = 0.8f,
-                AnimatorTriggerOnWindup = "Target_Windup", AnimatorTriggerOnActive = "Target_Active",
-                AnimatorTriggerOnRecovery = "Target_Recovery", RequiresArms = false
+                WindupClipName = "Roomba_Charge_N_Windup", ActiveClipName = "Roomba_Charge_N_Active", RecoveryClipName = "Roomba_Charge_N_Recovery",
+                AnimatorTriggerOnWindup = "Charge_N_Windup", AnimatorTriggerOnActive = "Charge_N_Active",
+                AnimatorTriggerOnRecovery = "Charge_N_Recovery", RequiresArms = false
             };
         }
 
@@ -336,6 +444,23 @@ namespace EnemyBehavior.Boss
             if (loop != null) { StopCoroutine(loop); loop = null; }
             if (currentAttackRoutine != null) { StopCoroutine(currentAttackRoutine); currentAttackRoutine = null; }
             if (armsRetractRoutine != null) { StopCoroutine(armsRetractRoutine); armsRetractRoutine = null; }
+            
+            // Clear in-progress flags
+            armsDeployInProgress = false;
+            armsRetractInProgress = false;
+            hornsRaiseInProgress = false;
+            hornsLowerInProgress = false;
+        }
+
+        void Update()
+        {
+            if (animator != null && agent != null && !string.IsNullOrEmpty(ParamIdleIntensity))
+            {
+                float speed = agent.velocity.magnitude;
+                float t = Mathf.InverseLerp(0f, Mathf.Max(0.01f, MaxIdleSpeedForIntensity), speed);
+                float intensity = Mathf.Lerp(IdleIntensityMin, IdleIntensityMax, t);
+                animator.SetFloat(ParamIdleIntensity, intensity);
+            }
         }
 
         private void PushAction(string s)
@@ -371,19 +496,22 @@ namespace EnemyBehavior.Boss
         {
             var options = new List<BossAttackDescriptor>();
             
-            // Only select from Left/Right variants, not the base versions
-            if (dist >= BasicSwipe.RangeMin && dist <= BasicSwipe.RangeMax)
+            // Account for stopping distance to prevent getting too close
+            // Increased from 2.0f to 3.5f to ensure arm swings hit at the sweet spot
+            float effectiveDist = dist - Mathf.Max(agent.stoppingDistance, 3.5f);
+
+            if (effectiveDist >= BasicSwipe.RangeMin && effectiveDist <= BasicSwipe.RangeMax)
             {
                 if (IsOffCooldown(BasicSwipeLeft)) options.Add(BasicSwipeLeft);
                 if (IsOffCooldown(BasicSwipeRight)) options.Add(BasicSwipeRight);
             }
-            
-            if (dist >= ArmSweep.RangeMin && dist <= ArmSweep.RangeMax)
+
+            if (effectiveDist >= ArmSweep.RangeMin && effectiveDist <= ArmSweep.RangeMax)
             {
                 if (IsOffCooldown(ArmSweepLeft)) options.Add(ArmSweepLeft);
                 if (IsOffCooldown(ArmSweepRight)) options.Add(ArmSweepRight);
             }
-            
+
             if (options.Count == 0) return null;
             return options[Random.Range(0, options.Count)];
         }
@@ -425,7 +553,8 @@ namespace EnemyBehavior.Boss
 
                 if (player == null) yield break;
 
-                if (attackCounter >= attackThresholdForVacuum)
+                // Check vacuum threshold ONLY when not in special states
+                if (attackCounter >= attackThresholdForVacuum && !IsMountedWithGrace())
                 {
                     yield return ExecuteVacuumSequence();
                     continue;
@@ -455,17 +584,13 @@ namespace EnemyBehavior.Boss
                     else
                         yield return MoveTowardPlayer(0.35f);
                 }
-
-                if (dist >= VacuumSuction.RangeMin && dist <= VacuumSuction.RangeMax && 
-                    IsOffCooldown(VacuumSuction) && Random.value < 0.08f)
-                    yield return ExecuteAttackChain(VacuumSuction);
             }
         }
 
         private IEnumerator ExecuteVacuumSequence()
         {
             PushAction("Vacuum sequence START");
-            
+
             if (VacuumPosition != null)
             {
                 agent.SetDestination(VacuumPosition.position);
@@ -475,7 +600,9 @@ namespace EnemyBehavior.Boss
                 }
             }
 
-            yield return ExecuteAttackChain(VacuumSuction);
+            // Execute vacuum attack WITHOUT incrementing the attack counter
+            // (it's a special transition attack, not part of the regular attack cycle)
+            yield return ExecuteVacuumAttackWithoutCounter();
 
             bool playerInCenter = false;
             if (player != null && ArenaCenterBounds != null)
@@ -494,6 +621,10 @@ namespace EnemyBehavior.Boss
                 form = RoombaForm.CageBull;
                 PushAction("Form changed to CAGE BULL");
 
+                // Duelist → CageBull: Raise horns (if not already raised from vacuum)
+                // This is safe because RaiseHornsIfNeeded() has guards
+                StartCoroutine(RaiseHornsIfNeeded());
+
                 if (!alarmDestroyed)
                 {
                     ctrl.DeactivateAlarm();
@@ -505,6 +636,48 @@ namespace EnemyBehavior.Boss
                 attackCounter = 0;
                 attackThresholdForVacuum = Random.Range(AttackCountForVacuumRange.x, AttackCountForVacuumRange.y + 1);
             }
+        }
+
+        private IEnumerator ExecuteVacuumAttackWithoutCounter()
+        {
+            var a = VacuumSuction;
+            currentAttack = a;
+            PushAction($"Attack: {a.Id}");
+
+            // NO IncrementAttackCounter() here - vacuum is a transition attack
+
+            // CRITICAL: Cancel pending retract routine if running
+            if (armsRetractRoutine != null)
+            {
+                cancelArmsRetract = true;
+                StopCoroutine(armsRetractRoutine);
+                armsRetractRoutine = null;
+                PushAction("Arms retraction routine STOPPED by vacuum attack");
+            }
+
+            // Vacuum doesn't use arms - retract if currently deployed
+            if (armsDeployed)
+            {
+                PushAction("Vacuum attack - retracting arms...");
+                yield return RetractArmsIfNeeded();
+                PushAction("Arms retract complete, continuing vacuum setup");
+            }
+
+            // PROPERLY HANDLED: Raise horns BEFORE vacuum attack (just like arms deploy/retract)
+            yield return RaiseHornsIfNeeded();
+
+            Debug.Log($"[Boss] Starting vacuum attack animations - Windup trigger: {a.AnimatorTriggerOnWindup}");
+            if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnWindup)) animator.SetTrigger(a.AnimatorTriggerOnWindup);
+            yield return new WaitForSeconds(a.WindupSpeedMultiplier * GetClipLength(animator, a.WindupClipName));
+            if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnActive)) animator.SetTrigger(a.AnimatorTriggerOnActive);
+            yield return new WaitForSeconds(a.ActiveSpeedMultiplier * GetClipLength(animator, a.ActiveClipName));
+            if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnRecovery)) animator.SetTrigger(a.AnimatorTriggerOnRecovery);
+            yield return new WaitForSeconds(a.RecoverySpeedMultiplier * GetClipLength(animator, a.RecoveryClipName));
+
+            // PROPERLY HANDLED: Lower horns AFTER vacuum attack (just like arms deploy/retract)
+            yield return LowerHornsIfNeeded();
+
+            MarkCooldown(a);
         }
 
         private IEnumerator CageBullLoop()
@@ -562,10 +735,10 @@ namespace EnemyBehavior.Boss
             PushAction("Targeted charge START");
             currentAttack = TargetedCharge;
 
-            if (animator != null && !string.IsNullOrEmpty(TargetedCharge.AnimatorTriggerOnWindup)) 
+            if (animator != null && !string.IsNullOrEmpty(TargetedCharge.AnimatorTriggerOnWindup))
                 animator.SetTrigger(TargetedCharge.AnimatorTriggerOnWindup);
-            
-            yield return new WaitForSeconds(TargetedCharge.Windup);
+
+            yield return new WaitForSeconds(TargetedCharge.WindupSpeedMultiplier * GetClipLength(animator, TargetedCharge.WindupClipName));
 
             Vector3 dirToPlayer = (player.position - transform.position).normalized;
             Vector3 overshootTarget = player.position + dirToPlayer * ChargeOvershootDistance;
@@ -579,7 +752,7 @@ namespace EnemyBehavior.Boss
             agent.SetDestination(overshootTarget);
 
             float chargeTime = 0f;
-            while (chargeTime < TargetedCharge.Active && !isStunned)
+            while (chargeTime < (TargetedCharge.ActiveSpeedMultiplier * GetClipLength(animator, TargetedCharge.ActiveClipName)) && !isStunned)
             {
                 chargeTime += Time.deltaTime;
                 yield return null;
@@ -590,7 +763,7 @@ namespace EnemyBehavior.Boss
             if (animator != null && !string.IsNullOrEmpty(TargetedCharge.AnimatorTriggerOnRecovery))
                 animator.SetTrigger(TargetedCharge.AnimatorTriggerOnRecovery);
 
-            yield return new WaitForSeconds(TargetedCharge.Recovery);
+            yield return new WaitForSeconds(TargetedCharge.RecoverySpeedMultiplier * GetClipLength(animator, TargetedCharge.RecoveryClipName));
             MarkCooldown(TargetedCharge);
         }
 
@@ -636,6 +809,9 @@ namespace EnemyBehavior.Boss
             attackThresholdForVacuum = Random.Range(AttackCountForVacuumRange.x, AttackCountForVacuumRange.y + 1);
             PushAction("Form changed to DUELIST/SUMMONER");
 
+            // CageBull → Duelist: Lower horns
+            StartCoroutine(LowerHornsIfNeeded());
+
             ctrl.ActivateAlarm();
         }
 
@@ -643,7 +819,7 @@ namespace EnemyBehavior.Boss
         {
             if (topPokeCount == 0)
             {
-                requiredPokesForSpin = requiredPokesForSpin <= 0 ? 
+                requiredPokesForSpin = requiredPokesForSpin <= 0 ?
                     Random.Range(PokeCountRange.x, PokeCountRange.y + 1) : requiredPokesForSpin;
             }
 
@@ -714,26 +890,48 @@ namespace EnemyBehavior.Boss
                 IncrementAttackCounter();
             }
 
-            if (a.RequiresArms && !armsDeployed)
+            // ALWAYS cancel pending retraction when ANY attack starts
+            if (armsRetractRoutine != null)
             {
-                DeployArms();
-                yield return new WaitForSeconds(ArmsDeployDuration);
+                cancelArmsRetract = true;
+                StopCoroutine(armsRetractRoutine);
+                armsRetractRoutine = null;
+                PushAction("Arms retraction routine STOPPED by new attack");
             }
 
-            if (armsRetractRoutine != null) { StopCoroutine(armsRetractRoutine); armsRetractRoutine = null; }
+            // Handle arms state based on attack requirements
+            if (a.RequiresArms)
+            {
+                // Attack needs arms deployed - deploy if not already
+                PushAction("Waiting for arms deploy animation...");
+                yield return DeployArmsIfNeeded();
+                PushAction("Arms deploy complete, starting attack");
+            }
+            else
+            {
+                // Attack doesn't use arms - retract if currently deployed
+                if (armsDeployed)
+                {
+                    PushAction("Waiting for arms retract animation...");
+                    yield return RetractArmsIfNeeded();
+                    PushAction("Arms retract complete, starting attack");
+                }
+            }
 
+            // Horns deployment/retraction handled within attack timings
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnWindup)) animator.SetTrigger(a.AnimatorTriggerOnWindup);
-            yield return new WaitForSeconds(a.Windup);
+            yield return new WaitForSeconds(a.WindupSpeedMultiplier * GetClipLength(animator, a.WindupClipName));
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnActive)) animator.SetTrigger(a.AnimatorTriggerOnActive);
-            yield return new WaitForSeconds(a.Active);
+            yield return new WaitForSeconds(a.ActiveSpeedMultiplier * GetClipLength(animator, a.ActiveClipName));
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnRecovery)) animator.SetTrigger(a.AnimatorTriggerOnRecovery);
-            yield return new WaitForSeconds(a.Recovery);
+            yield return new WaitForSeconds(a.RecoverySpeedMultiplier * GetClipLength(animator, a.RecoveryClipName));
 
             ApplyBossDamageIfPlayerPresent(1.0f);
 
             MarkCooldown(a);
 
-            if (a.RequiresArms)
+            // Only schedule auto-retract if arms are currently deployed
+            if (armsDeployed)
                 ScheduleArmsAutoRetract();
         }
 
@@ -758,15 +956,33 @@ namespace EnemyBehavior.Boss
 
             IncrementAttackCounter();
 
-            if (a.RequiresArms && !armsDeployed)
+            // ALWAYS cancel pending retraction when ANY attack starts
+            if (armsRetractRoutine != null)
             {
-                DeployArms();
-                yield return new WaitForSeconds(ArmsDeployDuration);
+                cancelArmsRetract = true;
+                StopCoroutine(armsRetractRoutine);
+                armsRetractRoutine = null;
+                PushAction("Arms retraction routine STOPPED by dash attack");
             }
-            if (armsRetractRoutine != null) { StopCoroutine(armsRetractRoutine); armsRetractRoutine = null; }
+
+            // Handle arms state based on attack requirements
+            if (a.RequiresArms)
+            {
+                // Dash needs arms deployed
+                yield return DeployArmsIfNeeded();
+            }
+            else
+            {
+                // Dash doesn't use arms - retract if currently deployed
+                if (armsDeployed)
+                {
+                    PushAction("Dash attack - retracting arms...");
+                    yield return RetractArmsIfNeeded();
+                }
+            }
 
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnWindup)) animator.SetTrigger(a.AnimatorTriggerOnWindup);
-            yield return new WaitForSeconds(a.Windup);
+            yield return new WaitForSeconds(a.WindupSpeedMultiplier * GetClipLength(animator, a.WindupClipName));
 
             Vector3 dirToPlayer = (player.position - transform.position).normalized;
             Vector3 overshootTarget = player.position + dirToPlayer * DashOvershootDistance;
@@ -778,16 +994,17 @@ namespace EnemyBehavior.Boss
 
             agent.SetDestination(overshootTarget);
 
-            yield return new WaitForSeconds(a.Active);
-            
+            yield return new WaitForSeconds(a.ActiveSpeedMultiplier * GetClipLength(animator, a.ActiveClipName));
+
             agent.speed = baseSpeed;
 
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnRecovery)) animator.SetTrigger(a.AnimatorTriggerOnRecovery);
-            yield return new WaitForSeconds(a.Recovery);
+            yield return new WaitForSeconds(a.RecoverySpeedMultiplier * GetClipLength(animator, a.RecoveryClipName));
 
             MarkCooldown(a);
 
-            if (a.RequiresArms)
+            // Only schedule auto-retract if arms are currently deployed
+            if (armsDeployed)
                 ScheduleArmsAutoRetract();
         }
 
@@ -796,16 +1013,23 @@ namespace EnemyBehavior.Boss
             currentAttack = KnockOffSpin;
             PushAction("Attack: KnockOffSpin");
 
-            if (KnockOffSpin.RequiresArms && !armsDeployed)
+            // ALWAYS cancel pending retraction
+            if (armsRetractRoutine != null)
             {
-                DeployArms();
-                yield return new WaitForSeconds(ArmsDeployDuration);
+                cancelArmsRetract = true;
+                StopCoroutine(armsRetractRoutine);
+                armsRetractRoutine = null;
+                PushAction("Arms retraction routine STOPPED by knock-off spin");
             }
-            if (armsRetractRoutine != null) { StopCoroutine(armsRetractRoutine); armsRetractRoutine = null; }
 
+            if (KnockOffSpin.RequiresArms)
+            {
+                yield return DeployArmsIfNeeded();
+            }
+            
             var a = KnockOffSpin;
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnWindup)) animator.SetTrigger(a.AnimatorTriggerOnWindup);
-            yield return new WaitForSeconds(a.Windup);
+            yield return new WaitForSeconds(a.WindupSpeedMultiplier * GetClipLength(animator, a.WindupClipName));
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnActive)) animator.SetTrigger(a.AnimatorTriggerOnActive);
 
             if (player != null && IsPlayerMounted())
@@ -813,11 +1037,11 @@ namespace EnemyBehavior.Boss
                 FlingPlayer();
             }
 
-            yield return new WaitForSeconds(a.Active);
+            yield return new WaitForSeconds(a.ActiveSpeedMultiplier * GetClipLength(animator, a.ActiveClipName));
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnRecovery)) animator.SetTrigger(a.AnimatorTriggerOnRecovery);
-            yield return new WaitForSeconds(a.Recovery);
+            yield return new WaitForSeconds(a.RecoverySpeedMultiplier * GetClipLength(animator, a.RecoveryClipName));
             MarkCooldown(a);
-            if (a.RequiresArms)
+            if (armsDeployed)
                 ScheduleArmsAutoRetract();
         }
 
@@ -830,10 +1054,10 @@ namespace EnemyBehavior.Boss
             {
                 Vector2 randomDir = Random.insideUnitCircle.normalized;
                 Vector3 flingDir = new Vector3(randomDir.x, 1f, randomDir.y).normalized;
-                
+
                 float force = Random.Range(FlingForceRange.x, FlingForceRange.y);
                 rb.AddForce(flingDir * force, ForceMode.Impulse);
-                
+
                 PushAction($"Player flung with force {force}");
             }
         }
@@ -842,19 +1066,69 @@ namespace EnemyBehavior.Boss
         {
             isStunned = true;
             currentStunType = stunType;
-            
+
+            // Animator: trigger stun windup
+            if (animator != null && !string.IsNullOrEmpty(TriggerStunWindup))
+            {
+                animator.SetTrigger(TriggerStunWindup);
+                PushAction($"Stun animation: Windup triggered");
+            }
+
+            // Immediately disable all hitboxes (safety)
+            if (animMediator == null) animMediator = GetComponentInChildren<BossAnimationEventMediator>(true);
+            animMediator?.DisableAllHitboxes();
+
+            // Optional: temporarily zero attacks layer; keep HitReact visible
+            SetLayerWeightSafe(attacksLayer, 0f);
+            // Idle additive off for stillness beneath stun
+            SetLayerWeightSafe(idleAdditiveLayer, 0f);
+
             agent.isStopped = true;
             PushAction($"Stunned ({stunType}) for {duration}s");
 
-            yield return new WaitForSeconds(duration);
+            // Wait a bit for windup animation, then trigger active phase
+            float windupDuration = duration * 0.2f; // 20% of stun time for windup
+            float activeDuration = duration * 0.6f; // 60% of stun time for active (main stun)
+            float recoveryDuration = duration * 0.2f; // 20% of stun time for recovery
+
+            yield return new WaitForSeconds(windupDuration);
+            
+            // Trigger stun active phase
+            if (animator != null && !string.IsNullOrEmpty(TriggerStunActive))
+            {
+                animator.SetTrigger(TriggerStunActive);
+                PushAction($"Stun animation: Active triggered");
+            }
+
+            yield return new WaitForSeconds(activeDuration);
+            
+            // Trigger stun recovery phase
+            if (animator != null && !string.IsNullOrEmpty(TriggerStunRecovery))
+            {
+                animator.SetTrigger(TriggerStunRecovery);
+                PushAction($"Stun animation: Recovery triggered");
+            }
+
+            yield return new WaitForSeconds(recoveryDuration);
 
             agent.isStopped = false;
             isStunned = false;
             currentStunType = StunType.None;
             PushAction("Stun ended");
 
+            // Restore layer weights
+            SetLayerWeightSafe(attacksLayer, 1f);
+            SetLayerWeightSafe(idleAdditiveLayer, 1f);
+
             if (armsDeployed)
                 ScheduleArmsAutoRetract();
+        }
+
+        private void SetLayerWeightSafe(int layerIndex, float weight)
+        {
+            if (animator == null) return;
+            if (layerIndex >= 0 && layerIndex < animator.layerCount)
+                animator.SetLayerWeight(layerIndex, Mathf.Clamp01(weight));
         }
 
         public void DamageSidePanel(int panelIndex, float damage)
@@ -865,12 +1139,14 @@ namespace EnemyBehavior.Boss
             if (panel.isDestroyed) return;
 
             panel.currentHealth -= damage;
-            
+
+            TriggerRandomHitReact();
+
             if (panel.currentHealth <= 0)
             {
                 panel.isDestroyed = true;
                 PushAction($"Side panel {panelIndex} destroyed!");
-                
+
                 if (panel.panelObject != null)
                 {
                     panel.panelObject.transform.SetParent(null);
@@ -882,12 +1158,31 @@ namespace EnemyBehavior.Boss
             }
         }
 
+        private void TriggerRandomHitReact()
+        {
+            if (animator == null) return;
+            int roll = Random.Range(0, 3);
+            switch (roll)
+            {
+                case 0:
+                    if (!string.IsNullOrEmpty(TriggerDamagedV1)) animator.SetTrigger(TriggerDamagedV1);
+                    break;
+                case 1:
+                    if (!string.IsNullOrEmpty(TriggerDamagedV2)) animator.SetTrigger(TriggerDamagedV2);
+                    break;
+                default:
+                    if (!string.IsNullOrEmpty(TriggerDamagedV3)) animator.SetTrigger(TriggerDamagedV3);
+                    break;
+            }
+        }
+
         public float GetDamageMultiplierForPanel(int panelIndex)
         {
             if (panelIndex < 0 || panelIndex >= SidePanels.Count) return 1f;
             return SidePanels[panelIndex].isDestroyed ? SidePanels[panelIndex].vulnerabilityMultiplier : 1f;
         }
 
+        [ContextMenu("Debug: Trigger Vacuum Sequence")]
         public void DebugTriggerVacuumSequence()
         {
             if (form == RoombaForm.DuelistSummoner)
@@ -897,6 +1192,7 @@ namespace EnemyBehavior.Boss
             }
         }
 
+        [ContextMenu("Debug: Return to Duelist Form")]
         public void DebugReturnToDuelistForm()
         {
             if (form == RoombaForm.CageBull)
@@ -909,24 +1205,251 @@ namespace EnemyBehavior.Boss
                 attackCounter = 0;
                 attackThresholdForVacuum = Random.Range(AttackCountForVacuumRange.x, AttackCountForVacuumRange.y + 1);
                 ctrl.ActivateAlarm();
+                StartCoroutine(LowerHornsIfNeeded());
                 PushAction("DEBUG: Returned to Duelist form");
             }
         }
 
+        [ContextMenu("Debug: Apply Parry Stun")]
         public void DebugApplyParryStun()
         {
             StartCoroutine(ApplyStun(StunType.Parry, ParryStaggerSeconds));
         }
 
+        [ContextMenu("Debug: Apply Pillar Stun")]
         public void DebugApplyPillarStun()
         {
             StartCoroutine(ApplyStun(StunType.PillarCollision, PillarStunSeconds));
         }
 
+        [ContextMenu("Debug: Take 50 Damage")]
+        public void DebugTake50Damage()
+        {
+            var health = GetComponent<BossHealth>();
+            if (health != null)
+            {
+                health.TakeDamage(50f);
+                TriggerRandomHitReact(); // Trigger hit reaction animation
+                PushAction("DEBUG: Took 50 damage");
+            }
+            else
+            {
+                Debug.LogError("[BossRoombaBrain] BossHealth component not found! Cannot test damage.");
+            }
+        }
+
+        [ContextMenu("Debug: Take 100 Damage")]
+        public void DebugTake100Damage()
+        {
+            var health = GetComponent<BossHealth>();
+            if (health != null)
+            {
+                health.TakeDamage(100f);
+                TriggerRandomHitReact(); // Trigger hit reaction animation
+                PushAction("DEBUG: Took 100 damage");
+            }
+            else
+            {
+                Debug.LogError("[BossRoombaBrain] BossHealth component not found! Cannot test damage.");
+            }
+        }
+
+        [ContextMenu("Debug: Take 250 Damage (Heavy)")]
+        public void DebugTake250Damage()
+        {
+            var health = GetComponent<BossHealth>();
+            if (health != null)
+            {
+                health.TakeDamage(250f);
+                TriggerRandomHitReact(); // Trigger hit reaction animation
+                PushAction("DEBUG: Took 250 heavy damage");
+            }
+            else
+            {
+                Debug.LogError("[BossRoombaBrain] BossHealth component not found! Cannot test damage.");
+            }
+        }
+
+        private IEnumerator DeployArmsIfNeeded()
+        {
+            // Guard: Already deployed
+            if (armsDeployed)
+            {
+                Debug.Log($"[Boss] DeployArmsIfNeeded() - arms already deployed, skipping");
+                yield break;
+            }
+
+            // Guard: Deploy already in progress
+            if (armsDeployInProgress)
+            {
+                Debug.Log($"[Boss] DeployArmsIfNeeded() - deploy already in progress, waiting...");
+                yield return new WaitUntil(() => !armsDeployInProgress);
+                yield break;
+            }
+
+            // Guard: Wait for any retract in progress to finish first
+            if (armsRetractInProgress)
+            {
+                Debug.Log($"[Boss] DeployArmsIfNeeded() - retract in progress, waiting for it to finish...");
+                yield return new WaitUntil(() => !armsRetractInProgress);
+            }
+
+            armsDeployInProgress = true;
+            armsDeployed = true;
+            Debug.Log($"[Boss] DeployArms() started - setting armsDeployed=true, triggering animator: {ArmsDeployTrigger}");
+            
+            if (animator != null && !string.IsNullOrEmpty(ArmsDeployTrigger)) 
+            {
+                animator.SetTrigger(ArmsDeployTrigger);
+                Debug.Log($"[Boss] Animator trigger '{ArmsDeployTrigger}' SET");
+            }
+
+            // Wait for deploy animation to complete
+            yield return new WaitForSeconds(ArmsDeployTimeoutSeconds);
+            
+            armsDeployInProgress = false;
+            Debug.Log($"[Boss] DeployArms() complete");
+        }
+
+        private IEnumerator RetractArmsIfNeeded()
+        {
+            // Guard: Already retracted
+            if (!armsDeployed)
+            {
+                Debug.Log($"[Boss] RetractArmsIfNeeded() - arms already retracted, skipping");
+                yield break;
+            }
+
+            // Guard: Retract already in progress
+            if (armsRetractInProgress)
+            {
+                Debug.Log($"[Boss] RetractArmsIfNeeded() - retract already in progress, waiting...");
+                yield return new WaitUntil(() => !armsRetractInProgress);
+                yield break;
+            }
+
+            // Guard: Wait for any deploy in progress to finish first
+            if (armsDeployInProgress)
+            {
+                Debug.Log($"[Boss] RetractArmsIfNeeded() - deploy in progress, waiting for it to finish...");
+                yield return new WaitUntil(() => !armsDeployInProgress);
+            }
+
+            armsRetractInProgress = true;
+            armsDeployed = false;
+            Debug.Log($"[Boss] RetractArms() started - setting armsDeployed=false, triggering animator: {ArmsRetractTrigger}");
+            
+            if (animator != null && !string.IsNullOrEmpty(ArmsRetractTrigger)) 
+            {
+                animator.SetTrigger(ArmsRetractTrigger);
+                Debug.Log($"[Boss] Animator trigger '{ArmsRetractTrigger}' SET");
+            }
+
+            // CRITICAL: Wait for the FULL retract animation to complete
+            // This ensures arms are fully retracted before starting unarmed attacks
+            float waitTime = ArmsRetractDuration;
+            Debug.Log($"[Boss] RetractArms() - waiting {waitTime}s for animation to complete");
+            yield return new WaitForSeconds(waitTime);
+            
+            armsRetractInProgress = false;
+            Debug.Log($"[Boss] RetractArms() complete");
+        }
+
+        private IEnumerator RaiseHornsIfNeeded()
+        {
+            // Guard: Already raised
+            if (hornsRaised)
+            {
+                Debug.Log($"[Boss] RaiseHornsIfNeeded() - horns already raised, skipping");
+                yield break;
+            }
+
+            // Guard: Raise already in progress
+            if (hornsRaiseInProgress)
+            {
+                Debug.Log($"[Boss] RaiseHornsIfNeeded() - raise already in progress, waiting...");
+                yield return new WaitUntil(() => !hornsRaiseInProgress);
+                yield break;
+            }
+
+            // Guard: Wait for any lower in progress to finish first
+            if (hornsLowerInProgress)
+            {
+                Debug.Log($"[Boss] RaiseHornsIfNeeded() - lower in progress, waiting for it to finish...");
+                yield return new WaitUntil(() => !hornsLowerInProgress);
+            }
+
+            hornsRaiseInProgress = true;
+            hornsRaised = true;
+            PushAction("Raising horns (lowering faceplate)...");
+            Debug.Log($"[Boss] RaiseHorns() started - setting hornsRaised=true, triggering animator: {HornsRaiseTrigger}");
+            
+            if (animator != null && !string.IsNullOrEmpty(HornsRaiseTrigger)) 
+            {
+                animator.SetTrigger(HornsRaiseTrigger);
+                Debug.Log($"[Boss] Animator trigger '{HornsRaiseTrigger}' SET");
+            }
+
+            // Wait for horn raise animation to complete
+            float waitTime = HornsRaiseDuration;
+            Debug.Log($"[Boss] RaiseHorns() - waiting {waitTime}s for animation to complete");
+            yield return new WaitForSeconds(waitTime);
+            
+            hornsRaiseInProgress = false;
+            PushAction("Horns raised (faceplate lowered)");
+            Debug.Log($"[Boss] RaiseHorns() complete");
+        }
+
+        private IEnumerator LowerHornsIfNeeded()
+        {
+            // Guard: Already lowered
+            if (!hornsRaised)
+            {
+                Debug.Log($"[Boss] LowerHornsIfNeeded() - horns already lowered, skipping");
+                yield break;
+            }
+
+            // Guard: Lower already in progress
+            if (hornsLowerInProgress)
+            {
+                Debug.Log($"[Boss] LowerHornsIfNeeded() - lower already in progress, waiting...");
+                yield return new WaitUntil(() => !hornsLowerInProgress);
+                yield break;
+            }
+
+            // Guard: Wait for any raise in progress to finish first
+            if (hornsRaiseInProgress)
+            {
+                Debug.Log($"[Boss] LowerHornsIfNeeded() - raise in progress, waiting for it to finish...");
+                yield return new WaitUntil(() => !hornsRaiseInProgress);
+            }
+
+            hornsLowerInProgress = true;
+            hornsRaised = false;
+            PushAction("Lowering horns (raising faceplate)...");
+            Debug.Log($"[Boss] LowerHorns() started - setting hornsRaised=false, triggering animator: {HornsLowerTrigger}");
+            
+            if (animator != null && !string.IsNullOrEmpty(HornsLowerTrigger)) 
+            {
+                animator.SetTrigger(HornsLowerTrigger);
+                Debug.Log($"[Boss] Animator trigger '{HornsLowerTrigger}' SET");
+            }
+
+            // Wait for horn lower animation to complete
+            float waitTime = HornsLowerDuration;
+            Debug.Log($"[Boss] LowerHorns() - waiting {waitTime}s for animation to complete");
+            yield return new WaitForSeconds(waitTime);
+            
+            hornsLowerInProgress = false;
+            PushAction("Horns lowered (faceplate raised)");
+            Debug.Log($"[Boss] LowerHorns() complete");
+        }
+
         private void DeployArms()
         {
-            armsDeployed = true;
-            if (animator != null && !string.IsNullOrEmpty(ArmsDeployTrigger)) animator.SetTrigger(ArmsDeployTrigger);
+            if (armsDeployInProgress) return;
+            armsDeployInProgress = true;
+            StartCoroutine(DeployArmsIfNeeded());
         }
 
         private void ScheduleArmsAutoRetract()
@@ -937,32 +1460,62 @@ namespace EnemyBehavior.Boss
 
         private IEnumerator ArmsRetractAfterCooldown()
         {
+            Debug.Log($"[Boss] ArmsRetractAfterCooldown() started - waiting {ArmsAutoRetractCooldown}s");
+            cancelArmsRetract = false; // Reset cancel flag
             float t = 0f;
             while (t < ArmsAutoRetractCooldown)
             {
+                // Check if retraction was canceled (new attack started)
+                if (cancelArmsRetract)
+                {
+                    PushAction("Arms retraction CANCELED - new attack starting");
+                    armsRetractRoutine = null;
+                    yield break;
+                }
+                
                 t += Time.deltaTime;
                 yield return null;
             }
-            if (armsDeployed)
+            
+            // Final check before actually retracting
+            if (cancelArmsRetract)
             {
-                armsDeployed = false;
-                if (animator != null && !string.IsNullOrEmpty(ArmsRetractTrigger)) animator.SetTrigger(ArmsRetractTrigger);
+                Debug.Log($"[Boss] ArmsRetractAfterCooldown() aborted - cancelArmsRetract={cancelArmsRetract}");
+                armsRetractRoutine = null;
+                yield break;
             }
+
+            // Don't retract if already retracting or deploying
+            if (armsRetractInProgress || armsDeployInProgress)
+            {
+                Debug.Log($"[Boss] ArmsRetractAfterCooldown() aborted - animation already in progress (retract={armsRetractInProgress}, deploy={armsDeployInProgress})");
+                armsRetractRoutine = null;
+                yield break;
+            }
+
+            // Use the guarded retract helper
+            PushAction("Arms auto-retracting after cooldown...");
+            yield return RetractArmsIfNeeded();
+            PushAction("Arms auto-retraction complete");
+            
             armsRetractRoutine = null;
         }
 
         public void SetPlayerOnTop(bool value)
         {
+            Debug.Log($"[BossRoombaBrain] SetPlayerOnTop called: {value}, playerOnTop was: {playerOnTop}");
             playerOnTop = value;
             if (value)
             {
                 lastMountedTime = Time.time;
                 hasEverMounted = true;
+                Debug.Log("[BossRoombaBrain] Player mounted! Starting top wander.");
                 ctrl.StartTopWander();
             }
             else
             {
                 if (hasEverMounted) lastMountedTime = Time.time;
+                Debug.Log("[BossRoombaBrain] Player dismounted! Stopping top wander.");
                 ctrl.StopTopWander();
             }
         }
@@ -982,17 +1535,72 @@ namespace EnemyBehavior.Boss
         {
             if (currentAttack != null && currentAttack.Id == attackId && currentAttack.Parryable)
             {
-                if (animator != null && !string.IsNullOrEmpty(currentAttack.AnimatorTriggerOnParry))
-                {
-                    animator.SetTrigger(currentAttack.AnimatorTriggerOnParry);
-                }
+                // Stop current attack execution
                 if (currentAttackRoutine != null) { StopCoroutine(currentAttackRoutine); currentAttackRoutine = null; }
+                // Apply parry stun (which triggers Stun_Windup animator trigger)
                 StartCoroutine(ApplyStun(StunType.Parry, ParryStaggerSeconds));
                 PushAction($"Parried: {attackId}");
             }
         }
 
         public void OnAlarmDestroyed() { alarmDestroyed = true; }
+
+        /// <summary>
+        /// Called when the boss is defeated. Handles cleanup and player release.
+        /// </summary>
+        public void OnBossDefeated()
+        {
+            PushAction("BOSS DEFEATED!");
+            
+            // Stop all coroutines
+            if (loop != null) { StopCoroutine(loop); loop = null; }
+            if (currentAttackRoutine != null) { StopCoroutine(currentAttackRoutine); currentAttackRoutine = null; }
+            if (armsRetractRoutine != null) { StopCoroutine(armsRetractRoutine); armsRetractRoutine = null; }
+            
+            // Stop movement
+            if (agent != null) agent.isStopped = true;
+            
+            // Release player back to DontDestroyOnLoad
+            if (PlayerManager != null)
+            {
+                PlayerManager.OnBossDefeated();
+            }
+            else
+            {
+                Debug.LogWarning("[BossRoombaBrain] PlayerManager not assigned! Player will not be released to DontDestroyOnLoad.");
+            }
+            
+            // Optional: Play death animation, spawn loot, etc.
+            // You can add that logic here or trigger it via events
+        }
+
+        public void OnArmsDeployComplete()
+        {
+            armsDeployInProgress = false;
+            PushAction("Arms deployment complete (via animation event)");
+            Debug.Log($"[Boss] OnArmsDeployComplete() - armsDeployInProgress cleared");
+        }
+
+        public void OnArmsRetractComplete()
+        {
+            armsRetractInProgress = false;
+            PushAction("Arms retraction complete (via animation event)");
+            Debug.Log($"[Boss] OnArmsRetractComplete() - armsRetractInProgress cleared");
+        }
+
+        public void OnHornsRaiseComplete()
+        {
+            hornsRaiseInProgress = false;
+            PushAction("Horns raise complete (via animation event)");
+            Debug.Log($"[Boss] OnHornsRaiseComplete() - hornsRaiseInProgress cleared");
+        }
+
+        public void OnHornsLowerComplete()
+        {
+            hornsLowerInProgress = false;
+            PushAction("Horns lower complete (via animation event)");
+            Debug.Log($"[Boss] OnHornsLowerComplete() - hornsLowerInProgress cleared");
+        }
 
         private void ApplyBossDamageIfPlayerPresent(float damage)
         {
@@ -1015,6 +1623,16 @@ namespace EnemyBehavior.Boss
             {
                 hs.LoseHP(damage);
             }
+        }
+
+        private float GetClipLength(Animator anim, string clipName)
+        {
+            if (anim == null) return 0f;
+            foreach (var clip in anim.runtimeAnimatorController.animationClips)
+            {
+                if (clip.name == clipName) return clip.length;
+            }
+            return 0f;
         }
     }
 }

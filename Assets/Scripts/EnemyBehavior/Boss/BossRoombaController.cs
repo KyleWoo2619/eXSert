@@ -54,10 +54,17 @@ public class BossRoombaController : MonoBehaviour
     public float MinStoppingDistance = 2.0f;
     [Tooltip("Ensure a kinematic Rigidbody for stable collisions and platform carry.")]
     public bool EnsureKinematicRigidbody = true;
+    [Tooltip("Skip automatic collider setup - user will configure colliders manually.")]
+    public bool ManualColliderSetup = false;
     [Tooltip("Extra buffer to re-enable movement after stopping; prevents jitter.")]
     public float ApproachHysteresis = 0.75f;
     [Tooltip("Max distance to adjust ring target to a nearby NavMesh point.")]
     public float ApproachSampleMaxDistance = 1.0f;
+
+    [Header("Animator Parameters")]
+    [SerializeField] private string ParamSpeed = "Speed";
+    [SerializeField] private string ParamIsMoving = "IsMoving";
+    [SerializeField] private string ParamTurn = "Turn";
 
     [Header("Top-Wander (Player On Top)")]
     [Tooltip("Speed multiplier during top-wander movement.")]
@@ -94,6 +101,38 @@ public class BossRoombaController : MonoBehaviour
             if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
             rb.isKinematic = true;
             rb.interpolation = RigidbodyInterpolation.Interpolate;
+            
+            // Only add collider if not doing manual setup
+            if (!ManualColliderSetup)
+            {
+                // ADD: Ensure there's a physical (non-trigger) collider for standing on top
+                var physicalCollider = GetComponent<CapsuleCollider>();
+                if (physicalCollider == null)
+                {
+                    // Check if there's any non-trigger collider
+                    var existingColliders = GetComponents<Collider>();
+                    bool hasPhysicalCollider = false;
+                    foreach (var col in existingColliders)
+                    {
+                        if (!col.isTrigger)
+                        {
+                            hasPhysicalCollider = true;
+                            break;
+                        }
+                    }
+                    
+                    // If no physical collider exists, add one
+                    if (!hasPhysicalCollider)
+                    {
+                        physicalCollider = gameObject.AddComponent<CapsuleCollider>();
+                        physicalCollider.isTrigger = false;
+                        physicalCollider.radius = 1.5f; // Adjust to match boss size
+                        physicalCollider.height = 2f;   // Adjust to match boss height
+                        physicalCollider.center = new Vector3(0, 1f, 0); // Center at half-height
+                        Debug.Log("[BossRoombaController] Added physical CapsuleCollider for player collision/standing");
+                    }
+                }
+            }
         }
 
         agent = GetComponent<NavMeshAgent>();
@@ -141,8 +180,28 @@ public class BossRoombaController : MonoBehaviour
         while (true)
         {
             float spd = (agent != null && agent.enabled) ? agent.velocity.magnitude : 0f;
-            animator.SetFloat("Speed", spd);
-            animator.SetBool("IsMoving", spd > 0.1f);
+            
+            if (!string.IsNullOrEmpty(ParamSpeed))
+                animator.SetFloat(ParamSpeed, spd);
+            
+            if (!string.IsNullOrEmpty(ParamIsMoving))
+                animator.SetBool(ParamIsMoving, spd > 0.1f);
+
+            if (!string.IsNullOrEmpty(ParamTurn) && agent != null && agent.enabled)
+            {
+                Vector3 desired = agent.desiredVelocity;
+                if (desired.sqrMagnitude > 0.01f)
+                {
+                    float angle = Vector3.SignedAngle(transform.forward, desired, Vector3.up);
+                    float turn = Mathf.Clamp(angle / 45f, -1f, 1f);
+                    animator.SetFloat(ParamTurn, turn);
+                }
+                else
+                {
+                    animator.SetFloat(ParamTurn, 0f);
+                }
+            }
+
             yield return wait;
         }
     }

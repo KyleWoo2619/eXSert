@@ -36,5 +36,23 @@ public class BossRoombaBrainEditor : Editor
         {
             brain.DebugApplyPillarStun();
         }
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Damage Testing", EditorStyles.boldLabel);
+
+        if (GUILayout.Button("Take 50 Damage"))
+        {
+            brain.DebugTake50Damage();
+        }
+
+        if (GUILayout.Button("Take 100 Damage"))
+        {
+            brain.DebugTake100Damage();
+        }
+
+        if (GUILayout.Button("Take 250 Damage (Heavy)"))
+        {
+            brain.DebugTake250Damage();
+        }
     }
 }

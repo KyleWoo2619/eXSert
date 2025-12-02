@@ -1,0 +1,586 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3308009278746904747
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8773002588802439141}
+  - component: {fileID: 7631148118547818447}
+  - component: {fileID: 4930849861261429573}
+  - component: {fileID: 2753735861455747003}
+  m_Layer: 8
+  m_Name: Boss_Roomba
+  m_TagString: Enemy
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8773002588802439141
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3308009278746904747}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 8.9, y: -4.82, z: 5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 8574952128632627036}
+  - {fileID: 9110870473529243030}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!195 &7631148118547818447
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3308009278746904747}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 2.28
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 0.92
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!114 &4930849861261429573
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3308009278746904747}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c18f97d7b2aee34b98cbaeecfa5e77a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossRoombaController
+  profile: {fileID: 11400000, guid: bde38455278affd49a4c71866bc59335, type: 2}
+  alarm: {fileID: 0}
+  AlarmAutoActivateTime: 15
+  droneSpawnPoints:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  crawlerSpawnPoints:
+  - {fileID: 0}
+  - {fileID: 0}
+  pocketSpawnPoints: []
+  dronePrefab: {fileID: 2011934936876396235, guid: 29cb0f12faa4ec84ebf5afaa93a1598b, type: 3}
+  crawlerPrefab: {fileID: 2757122947255948302, guid: e1b11366c95442f489e8e074c928f67c, type: 3}
+  maxDrones: 4
+  maxCrawlers: 2
+  dronesPerSpawn: 4
+  crawlersPerSpawn: 2
+  suctionRadius: 5
+  suctionStrength: 10
+  dashSpeedMultiplier: 3
+  MinStoppingDistance: 2.5
+  EnsureKinematicRigidbody: 1
+  ApproachHysteresis: 0.75
+  ApproachSampleMaxDistance: 1
+  ParamSpeed: Speed
+  ParamIsMoving: IsMoving
+  ParamTurn: Turn
+  TopWanderSpeedMultiplier: 1.1
+  TopWanderRadiusRange: {x: 4, y: 10}
+  TopWanderRepathTimeRange: {x: 0.7, y: 1.4}
+  initialPoolSize: 8
+--- !u!114 &2753735861455747003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3308009278746904747}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 92bcf2fa9b345134592b30f9aff40f9b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Boss.BossRoombaBrain
+  inspectorHelp: 'BossRoombaBrain: high-level boss behavior and attack sequencing.
+
+    Configure
+    forms and attack descriptors. Optional animator triggers per phase (Windup/Active/Recovery).'
+  StartForm: 0
+  BasicSwipe:
+    Id: BasicSwipe
+    Parryable: 0
+    Cooldown: 0.5
+    RangeMin: 0
+    RangeMax: 5
+    WindupClipName: 
+    ActiveClipName: 
+    RecoveryClipName: 
+    WindupSpeedMultiplier: 1
+    ActiveSpeedMultiplier: 1
+    RecoverySpeedMultiplier: 1
+    AnimatorTriggerOnWindup: Swipe_Windup
+    AnimatorTriggerOnActive: Swipe_Active
+    AnimatorTriggerOnRecovery: Swipe_Recovery
+    RequiresArms: 1
+  BasicSwipeLeft:
+    Id: BasicSwipeLeft
+    Parryable: 0
+    Cooldown: 0.5
+    RangeMin: 0
+    RangeMax: 5
+    WindupClipName: 
+    ActiveClipName: 
+    RecoveryClipName: 
+    WindupSpeedMultiplier: 1
+    ActiveSpeedMultiplier: 1
+    RecoverySpeedMultiplier: 1
+    AnimatorTriggerOnWindup: Swipe_Windup
+    AnimatorTriggerOnActive: Swipe_Active
+    AnimatorTriggerOnRecovery: Swipe_Recovery
+    RequiresArms: 1
+  BasicSwipeRight:
+    Id: BasicSwipeRight
+    Parryable: 0
+    Cooldown: 0.5
+    RangeMin: 0
+    RangeMax: 5
+    WindupClipName: 
+    ActiveClipName: 
+    RecoveryClipName: 
+    WindupSpeedMultiplier: 1
+    ActiveSpeedMultiplier: 1
+    RecoverySpeedMultiplier: 1
+    AnimatorTriggerOnWindup: Swipe_Windup
+    AnimatorTriggerOnActive: Swipe_Active
+    AnimatorTriggerOnRecovery: Swipe_Recovery
+    RequiresArms: 1
+  ArmSweep:
+    Id: ArmSweep
+    Parryable: 1
+    Cooldown: 1.5
+    RangeMin: 0.5
+    RangeMax: 5
+    WindupClipName: 
+    ActiveClipName: 
+    RecoveryClipName: 
+    WindupSpeedMultiplier: 1
+    ActiveSpeedMultiplier: 1
+    RecoverySpeedMultiplier: 1
+    AnimatorTriggerOnWindup: Sweep_Windup
+    AnimatorTriggerOnActive: Sweep_Active
+    AnimatorTriggerOnRecovery: Sweep_Recovery
+    RequiresArms: 1
+  ArmSweepLeft:
+    Id: ArmSweepLeft
+    Parryable: 1
+    Cooldown: 1.5
+    RangeMin: 0.5
+    RangeMax: 5
+    WindupClipName: 
+    ActiveClipName: 
+    RecoveryClipName: 
+    WindupSpeedMultiplier: 1
+    ActiveSpeedMultiplier: 1
+    RecoverySpeedMultiplier: 1
+    AnimatorTriggerOnWindup: Sweep_Windup
+    AnimatorTriggerOnActive: Sweep_Active
+    AnimatorTriggerOnRecovery: Sweep_Recovery
+    RequiresArms: 1
+  ArmSweepRight:
+    Id: ArmSweepRight
+    Parryable: 1
+    Cooldown: 1.5
+    RangeMin: 0.5
+    RangeMax: 5
+    WindupClipName: 
+    ActiveClipName: 
+    RecoveryClipName: 
+    WindupSpeedMultiplier: 1
+    ActiveSpeedMultiplier: 1
+    RecoverySpeedMultiplier: 1
+    AnimatorTriggerOnWindup: Sweep_Windup
+    AnimatorTriggerOnActive: Sweep_Active
+    AnimatorTriggerOnRecovery: Sweep_Recovery
+    RequiresArms: 1
+  DashLungeLeft:
+    Id: DashLungeLeft
+    Parryable: 1
+    Cooldown: 5
+    RangeMin: 15
+    RangeMax: 50
+    WindupClipName: 
+    ActiveClipName: 
+    RecoveryClipName: 
+    WindupSpeedMultiplier: 1
+    ActiveSpeedMultiplier: 1
+    RecoverySpeedMultiplier: 1
+    AnimatorTriggerOnWindup: LungeLeft_Windup
+    AnimatorTriggerOnActive: LungeLeft_Active
+    AnimatorTriggerOnRecovery: LungeLeft_Recovery
+    RequiresArms: 1
+  DashLungeRight:
+    Id: DashLungeRight
+    Parryable: 1
+    Cooldown: 5
+    RangeMin: 15
+    RangeMax: 50
+    WindupClipName: 
+    ActiveClipName: 
+    RecoveryClipName: 
+    WindupSpeedMultiplier: 1
+    ActiveSpeedMultiplier: 1
+    RecoverySpeedMultiplier: 1
+    AnimatorTriggerOnWindup: LungeRight_Windup
+    AnimatorTriggerOnActive: LungeRight_Active
+    AnimatorTriggerOnRecovery: LungeRight_Recovery
+    RequiresArms: 1
+  DashLungeNoArms:
+    Id: DashLungeNoArms
+    Parryable: 0
+    Cooldown: 5
+    RangeMin: 15
+    RangeMax: 50
+    WindupClipName: 
+    ActiveClipName: 
+    RecoveryClipName: 
+    WindupSpeedMultiplier: 1
+    ActiveSpeedMultiplier: 1
+    RecoverySpeedMultiplier: 1
+    AnimatorTriggerOnWindup: LungeNoArms_Windup
+    AnimatorTriggerOnActive: LungeNoArms_Active
+    AnimatorTriggerOnRecovery: LungeNoArms_Recovery
+    RequiresArms: 0
+  ArmPoke:
+    Id: ArmPoke
+    Parryable: 1
+    Cooldown: 4
+    RangeMin: 0
+    RangeMax: 999
+    WindupClipName: 
+    ActiveClipName: 
+    RecoveryClipName: 
+    WindupSpeedMultiplier: 1
+    ActiveSpeedMultiplier: 1
+    RecoverySpeedMultiplier: 1
+    AnimatorTriggerOnWindup: Poke_Windup
+    AnimatorTriggerOnActive: Poke_Active
+    AnimatorTriggerOnRecovery: Poke_Recovery
+    RequiresArms: 1
+  KnockOffSpin:
+    Id: KnockOffSpin
+    Parryable: 0
+    Cooldown: 12
+    RangeMin: 0
+    RangeMax: 0
+    WindupClipName: 
+    ActiveClipName: 
+    RecoveryClipName: 
+    WindupSpeedMultiplier: 1
+    ActiveSpeedMultiplier: 1
+    RecoverySpeedMultiplier: 1
+    AnimatorTriggerOnWindup: Spin_Windup
+    AnimatorTriggerOnActive: Spin_Active
+    AnimatorTriggerOnRecovery: Spin_Recovery
+    RequiresArms: 1
+  VacuumSuction:
+    Id: Vacuum
+    Parryable: 0
+    Cooldown: 12
+    RangeMin: 10
+    RangeMax: 25
+    WindupClipName: 
+    ActiveClipName: 
+    RecoveryClipName: 
+    WindupSpeedMultiplier: 1
+    ActiveSpeedMultiplier: 1
+    RecoverySpeedMultiplier: 1
+    AnimatorTriggerOnWindup: Vacuum_Windup
+    AnimatorTriggerOnActive: Vacuum_Active
+    AnimatorTriggerOnRecovery: Vacuum_Recovery
+    RequiresArms: 0
+  StaticCharge:
+    Id: StaticCharge
+    Parryable: 0
+    Cooldown: 0
+    RangeMin: 0
+    RangeMax: 0
+    WindupClipName: 
+    ActiveClipName: 
+    RecoveryClipName: 
+    WindupSpeedMultiplier: 1
+    ActiveSpeedMultiplier: 1
+    RecoverySpeedMultiplier: 1
+    AnimatorTriggerOnWindup: Charge_Windup
+    AnimatorTriggerOnActive: Charge_Active
+    AnimatorTriggerOnRecovery: 
+    RequiresArms: 0
+  TargetedCharge:
+    Id: TargetedCharge
+    Parryable: 0
+    Cooldown: 0
+    RangeMin: 0
+    RangeMax: 0
+    WindupClipName: 
+    ActiveClipName: 
+    RecoveryClipName: 
+    WindupSpeedMultiplier: 1
+    ActiveSpeedMultiplier: 1
+    RecoverySpeedMultiplier: 1
+    AnimatorTriggerOnWindup: Target_Windup
+    AnimatorTriggerOnActive: Target_Active
+    AnimatorTriggerOnRecovery: 
+    RequiresArms: 0
+  ArmsDeployTrigger: Arms_Deploy
+  ArmsRetractTrigger: Arms_Retract
+  ArmsDeployTimeoutSeconds: 1
+  ArmsRetractDuration: 0.4
+  ArmsAutoRetractCooldown: 3
+  ParryStaggerSeconds: 3
+  PillarStunSeconds: 2
+  DefensesDownMultiplier: 1.2
+  RequirePlayerOnTopForSpin: 1
+  PokeCountRange: {x: 3, y: 6}
+  SpinAfterLastPokeDelay: 0.75
+  MountedGraceSeconds: 0.35
+  FlingForceRange: {x: 800, y: 1200}
+  AttackCountForVacuumRange: {x: 8, y: 12}
+  VacuumPosition: {fileID: 0}
+  ArenaCenterBounds: {fileID: 0}
+  ArenaManager: {fileID: 0}
+  ChargeSpeedMultiplier: 2.5
+  ChargeOvershootDistance: 5
+  ChargeRestDuration: 1.5
+  StaticChargeCount: 3
+  DashSpeed: 15
+  DashOvershootDistance: 3
+  SidePanels: []
+  ParamIdleIntensity: IdleIntensity
+  TriggerStunWindup: Stun_Windup
+  TriggerHornsRaise: Horns_Raise
+  TriggerHornsLower: Horns_Lower
+  TriggerDamagedV1: Damaged_v1
+  TriggerDamagedV2: Damaged_v2
+  TriggerDamagedV3: Damaged_v3
+  LayerNameHitReact: HitReact
+  LayerNameStun: Stun
+  LayerNameAttacks: Attacks
+  LayerNameIdleAdditive: Idle
+  IdleIntensityMin: 0.9
+  IdleIntensityMax: 1.5
+  MaxIdleSpeedForIntensity: 10
+--- !u!1001 &1043077589487962785
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 8773002588802439141}
+    m_Modifications:
+    - target: {fileID: -7072974478498009679, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6930323592560427987, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7201197112724282711, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+      propertyPath: m_Name
+      value: RoombaTopZone
+      objectReference: {fileID: 0}
+    - target: {fileID: 7201197112724282711, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 8753194536193840637, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 4.584905
+      objectReference: {fileID: 0}
+    - target: {fileID: 8753194536193840637, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.27309105
+      objectReference: {fileID: 0}
+    - target: {fileID: 8753194536193840637, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 4.584905
+      objectReference: {fileID: 0}
+    - target: {fileID: 8753194536193840637, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8753194536193840637, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.54
+      objectReference: {fileID: 0}
+    - target: {fileID: 8753194536193840637, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8753194536193840637, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8753194536193840637, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8753194536193840637, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8753194536193840637, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8753194536193840637, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8753194536193840637, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8753194536193840637, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7201197112724282711, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1524318827999720156}
+  m_SourcePrefab: {fileID: 100100000, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+--- !u!1 &7896511178776909814 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7201197112724282711, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+  m_PrefabInstance: {fileID: 1043077589487962785}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1524318827999720156
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7896511178776909814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c96252768efe9644eaa6cf0fd1710aae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Boss.BossTopZone
+  inspectorHelp: 'BossTopZone: trigger volume over the boss top surface.
+
+    When
+    the Player enters, the boss can perform knock-off spin. Resize the collider to
+    account for the boss model.
+
+    Optional: parent the player to carry on movement.'
+  brain: {fileID: 2753735861455747003}
+  parentPlayerWhileOnTop: 1
+  monitorHz: 20
+  exitGraceSeconds: 0.35
+  requireTopContactForParenting: 1
+  topContactMaxVerticalDelta: 1
+  verticalClearMargin: 0.3
+--- !u!4 &8574952128632627036 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8753194536193840637, guid: d1b0799b050bcfb4cb8288a2531c563f, type: 3}
+  m_PrefabInstance: {fileID: 1043077589487962785}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &8789593885882143357
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 8773002588802439141}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 54e6f08af0997f847ade0e38dff564bc, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54e6f08af0997f847ade0e38dff564bc, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.82
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54e6f08af0997f847ade0e38dff564bc, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54e6f08af0997f847ade0e38dff564bc, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54e6f08af0997f847ade0e38dff564bc, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54e6f08af0997f847ade0e38dff564bc, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54e6f08af0997f847ade0e38dff564bc, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54e6f08af0997f847ade0e38dff564bc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54e6f08af0997f847ade0e38dff564bc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 54e6f08af0997f847ade0e38dff564bc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 54e6f08af0997f847ade0e38dff564bc, type: 3}
+      propertyPath: m_Name
+      value: Roomba_Model
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 54e6f08af0997f847ade0e38dff564bc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4925063500513811931}
+  m_SourcePrefab: {fileID: 100100000, guid: 54e6f08af0997f847ade0e38dff564bc, type: 3}
+--- !u!1 &8447487088252579628 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 54e6f08af0997f847ade0e38dff564bc, type: 3}
+  m_PrefabInstance: {fileID: 8789593885882143357}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4925063500513811931
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8447487088252579628}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a39badb1ee76ee4c94e92bb2f00844a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Boss.BossAnimationHooks
+  brainComponent: {fileID: 4930849861261429573}
+--- !u!4 &9110870473529243030 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 54e6f08af0997f847ade0e38dff564bc, type: 3}
+  m_PrefabInstance: {fileID: 8789593885882143357}
+  m_PrefabAsset: {fileID: 0}

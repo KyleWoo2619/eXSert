@@ -56,11 +56,14 @@ namespace EnemyBehavior.Boss
 
         private void OnTriggerEnter(Collider other)
         {
+            Debug.Log($"[BossTopZone] OnTriggerEnter: {other.name}, tag: {other.tag}, has Player tag: {other.CompareTag("Player")}");
+            
             if (!other.CompareTag("Player")) return;
             if (brain == null) brain = GetComponentInParent<BossRoombaBrain>();
 
             if (playerTransform == null)
             {
+                Debug.Log($"[BossTopZone] Player detected for first time: {other.name}");
                 playerTransform = other.transform;
                 playerCollider = other;
                 overlapCount = 0;
@@ -72,6 +75,7 @@ namespace EnemyBehavior.Boss
             {
                 overlapCount++;
                 lastInsideTime = Time.time;
+                Debug.Log($"[BossTopZone] Player overlap count: {overlapCount}");
                 // Do NOT parent here; we only parent in Stay when eligibility is verified.
             }
         }
@@ -170,6 +174,8 @@ namespace EnemyBehavior.Boss
 
         private void EnsureParented()
         {
+            Debug.Log($"[BossTopZone] EnsureParented called - parentPlayerWhileOnTop: {parentPlayerWhileOnTop}, playerTransform: {(playerTransform != null ? playerTransform.name : "null")}, isParented: {isParented}");
+            
             if (!parentPlayerWhileOnTop || playerTransform == null) return;
             if (!isParented)
             {
@@ -177,16 +183,20 @@ namespace EnemyBehavior.Boss
                 originalParent = playerTransform.parent;
                 playerTransform.SetParent(brain != null ? brain.transform : transform.root, true);
                 isParented = true;
+                Debug.Log($"[BossTopZone] Player parented to boss!");
                 if (brain != null) brain.SetPlayerOnTop(true);
             }
         }
 
         private void EnsureUnparented()
         {
+            Debug.Log($"[BossTopZone] EnsureUnparented called - isParented: {isParented}, playerTransform: {(playerTransform != null ? playerTransform.name : "null")}");
+            
             if (isParented && playerTransform != null)
             {
                 playerTransform.SetParent(originalParent, true);
                 isParented = false;
+                Debug.Log($"[BossTopZone] Player unparented from boss!");
                 if (brain == null) brain = GetComponentInParent<BossRoombaBrain>();
                 if (brain != null) brain.SetPlayerOnTop(false);
             }
