@@ -10,6 +10,7 @@ public class RotatingThrobber : MonoBehaviour
     {
         // Rotate clockwise around the Z-axis (for UI elements)
         // Negative rotation = clockwise in Unity's UI coordinate system
-        transform.Rotate(0f, 0f, -rotationSpeed * Time.deltaTime);
+        float delta = Time.unscaledDeltaTime;
+        transform.Rotate(0f, 0f, -rotationSpeed * delta);
     }
 }

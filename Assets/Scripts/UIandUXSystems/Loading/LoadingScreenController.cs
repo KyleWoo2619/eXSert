@@ -26,16 +26,13 @@ namespace UI.Loading
         [SerializeField, Range(0.05f, 2f)] private float fadeDuration = 0.35f;
         [SerializeField] private AnimationCurve fadeCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
         [SerializeField, Range(0f, 60f)] private float minimumDisplaySeconds = 10f;
-
-        [Header("Input")]
-        [SerializeField, Tooltip("If true, the player's PlayerInput will switch to the Loading action map while the screen is visible.")]
-        private bool handOffPlayerInputMap = true;
         [SerializeField, Tooltip("Time (0-1 normalized) into the fade-out at which gameplay should resume so the player never sees a frozen scene.")]
         [Range(0.1f, 0.95f)] private float resumeThresholdNormalized = 0.3f;
 
-        private PlayerControls loadingControls;
-        private string previousActionMap;
-        private bool playerInputMapSwitched;
+        private InputAction loadingLookAction;
+        private InputAction loadingZoomAction;
+        private bool usingFallbackControls;
+        private PlayerControls fallbackLoadingControls;
         private Coroutine activeRoutine;
         private float previousTimeScale = 1f;
 
@@ -104,7 +101,6 @@ namespace UI.Loading
                 Time.timeScale = 0f;
 
             EnableLoadingInput();
-            SwitchPlayerInputToLoading();
 
             bool enforceMinimum = minimumDisplayDuration > 0f;
             float minDisplayEndTime = 0f;
@@ -139,7 +135,6 @@ namespace UI.Loading
             yield return FadeOutAndResume(pauseGame);
 
             DisableLoadingInput();
-            RestorePlayerInputMap();
             activeRoutine = null;
         }
 
@@ -198,28 +193,28 @@ namespace UI.Loading
 
         private void EnableLoadingInput()
         {
-            if (loadingControls == null)
-            {
-                loadingControls = new PlayerControls();
-            }
+            if (TryBindPlayerInputLoadingActions())
+                return;
 
-            loadingControls.Loading.Enable();
-            loadingControls.Loading.Look.performed += HandleLookPerformed;
-            loadingControls.Loading.Look.canceled += HandleLookPerformed;
-            loadingControls.Loading.Zoom.performed += HandleZoomPerformed;
-            loadingControls.Loading.Zoom.canceled += HandleZoomPerformed;
+            if (TryBindFallbackLoadingActions())
+                return;
+
+            Debug.LogWarning("[LoadingScreen] LoadingLook/LoadingZoom actions not found; prop rotation disabled during loading.");
         }
 
         private void DisableLoadingInput()
         {
-            if (loadingControls == null)
-                return;
+            UnhookPlayerInputAction(loadingLookAction, HandleLookPerformed);
+            UnhookPlayerInputAction(loadingZoomAction, HandleZoomPerformed);
+            loadingLookAction = null;
+            loadingZoomAction = null;
 
-            loadingControls.Loading.Look.performed -= HandleLookPerformed;
-            loadingControls.Loading.Look.canceled -= HandleLookPerformed;
-            loadingControls.Loading.Zoom.performed -= HandleZoomPerformed;
-            loadingControls.Loading.Zoom.canceled -= HandleZoomPerformed;
-            loadingControls.Loading.Disable();
+            if (usingFallbackControls && fallbackLoadingControls != null)
+            {
+                fallbackLoadingControls.UI.Disable();
+                usingFallbackControls = false;
+            }
+
             propManager?.SetLookInput(Vector2.zero);
             propManager?.SetZoomInput(0f);
         }
@@ -234,70 +229,60 @@ namespace UI.Loading
             propManager?.SetZoomInput(context.ReadValue<float>());
         }
 
-        private void SwitchPlayerInputToLoading()
+        private bool TryBindPlayerInputLoadingActions()
         {
-            if (!handOffPlayerInputMap || InputReader.playerInput == null)
-                return;
+            if (InputReader.Instance == null)
+                return false;
 
-            try
-            {
-                previousActionMap = InputReader.playerInput.currentActionMap != null
-                    ? InputReader.playerInput.currentActionMap.name
-                    : "Gameplay";
-                InputReader.playerInput.SwitchCurrentActionMap("Loading");
-                playerInputMapSwitched = true;
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"[LoadingScreen] Failed to switch PlayerInput to Loading map: {ex.Message}");
-                playerInputMapSwitched = false;
-            }
+            loadingLookAction = InputReader.Instance.LoadingLookAction;
+            loadingZoomAction = InputReader.Instance.LoadingZoomAction;
+
+            if (loadingLookAction == null && loadingZoomAction == null)
+                return false;
+
+            HookPlayerInputAction(loadingLookAction, HandleLookPerformed);
+            HookPlayerInputAction(loadingZoomAction, HandleZoomPerformed);
+            return true;
         }
 
-        private void RestorePlayerInputMap()
+        private bool TryBindFallbackLoadingActions()
         {
-            if (!handOffPlayerInputMap || InputReader.playerInput == null)
+            if (fallbackLoadingControls == null)
             {
-                previousActionMap = string.Empty;
-                playerInputMapSwitched = false;
+                fallbackLoadingControls = new PlayerControls();
+            }
+
+            loadingLookAction = fallbackLoadingControls.UI.LoadingLook;
+            loadingZoomAction = fallbackLoadingControls.UI.LoadingZoom;
+
+            if (loadingLookAction == null && loadingZoomAction == null)
+                return false;
+
+            fallbackLoadingControls.UI.Enable();
+            HookPlayerInputAction(loadingLookAction, HandleLookPerformed);
+            HookPlayerInputAction(loadingZoomAction, HandleZoomPerformed);
+            usingFallbackControls = true;
+            return true;
+        }
+
+        private static void HookPlayerInputAction(InputAction action, Action<InputAction.CallbackContext> callback)
+        {
+            if (action == null || callback == null)
                 return;
-            }
 
-            string fallback = string.IsNullOrEmpty(previousActionMap) ? "Gameplay" : previousActionMap;
-            bool switched = false;
+            action.performed += callback;
+            action.canceled += callback;
+            if (!action.enabled)
+                action.Enable();
+        }
 
-            if (playerInputMapSwitched)
-            {
-                switched = TrySwitchActionMap(fallback);
-            }
+        private static void UnhookPlayerInputAction(InputAction action, Action<InputAction.CallbackContext> callback)
+        {
+            if (action == null || callback == null)
+                return;
 
-            if (!switched && !string.Equals(fallback, "Gameplay", StringComparison.OrdinalIgnoreCase))
-            {
-                switched = TrySwitchActionMap("Gameplay");
-            }
-
-            if (!switched)
-            {
-                Debug.LogWarning("[LoadingScreen] Unable to restore previous PlayerInput map; forcing Gameplay via InputReader rebind.");
-            }
-
-            InputReader.Instance?.RebindTo(InputReader.playerInput, switchToGameplay: true);
-            previousActionMap = string.Empty;
-            playerInputMapSwitched = false;
-
-            bool TrySwitchActionMap(string mapName)
-            {
-                try
-                {
-                    InputReader.playerInput.SwitchCurrentActionMap(mapName);
-                    return true;
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogWarning($"[LoadingScreen] Failed to switch PlayerInput map to '{mapName}': {ex.Message}");
-                    return false;
-                }
-            }
+            action.performed -= callback;
+            action.canceled -= callback;
         }
 
 

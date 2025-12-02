@@ -39,23 +39,29 @@ public class ElevatorWalls : MonoBehaviour
         {
             if(elevatorWall != null)
             {
-                elevatorWall.transform.position -= new Vector3(0, elevatorSpeed * Time.deltaTime, 0);
+                Vector3 position = elevatorWall.transform.position;
+                position.y -= elevatorSpeed * Time.deltaTime;
+                position.z = -2.47f;
+                elevatorWall.transform.position = position;
 
-            if(elevatorWall.transform.position.y <= yBounds)
-            {
-                // Reset positions
-                elevatorWall.transform.position = new Vector3(elevatorWall.transform.position.x, restartPoint, 0f);
-            }
+                if(elevatorWall.transform.position.y <= yBounds)
+                {
+                    // Reset positions
+                    elevatorWall.transform.position = new Vector3(elevatorWall.transform.position.x, restartPoint, -2.47f);
+                }
             
             } 
 
             if(wallBelow != null)
             {
-                wallBelow.transform.position -= new Vector3(0, elevatorSpeed * Time.deltaTime, 0);
+                Vector3 position = wallBelow.transform.position;
+                position.y -= elevatorSpeed * Time.deltaTime;
+                position.z = -2.47f;
+                wallBelow.transform.position = position;
 
                 if(wallBelow.transform.position.y <= yBounds)
                 {
-                    wallBelow.transform.position = new Vector3(wallBelow.transform.position.x, restartPoint, 0f);
+                    wallBelow.transform.position = new Vector3(wallBelow.transform.position.x, restartPoint, -2.47f);
                 }
             }
         } 

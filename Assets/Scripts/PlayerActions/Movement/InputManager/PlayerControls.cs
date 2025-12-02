@@ -756,186 +756,6 @@ namespace eXsert
             ]
         },
         {
-            ""name"": ""Loading"",
-            ""id"": ""36d8c935-695b-4f41-a595-fdb76dbd9e8f"",
-            ""actions"": [
-                {
-                    ""name"": ""Look"",
-                    ""type"": ""Value"",
-                    ""id"": ""7838aa17-657b-4711-a76b-066306692aa2"",
-                    ""expectedControlType"": ""Vector2"",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": true
-                },
-                {
-                    ""name"": ""Zoom"",
-                    ""type"": ""Button"",
-                    ""id"": ""01fbd693-2ef9-48dc-8256-98e4c48da0aa"",
-                    ""expectedControlType"": """",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": false
-                }
-            ],
-            ""bindings"": [
-                {
-                    ""name"": ""Gamepad"",
-                    ""id"": ""3fb8b07b-d405-4ea3-b475-34ed74329270"",
-                    ""path"": ""2DVector"",
-                    ""interactions"": """",
-                    ""processors"": ""StickDeadzone(max=0.925)"",
-                    ""groups"": """",
-                    ""action"": ""Look"",
-                    ""isComposite"": true,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": ""up"",
-                    ""id"": ""07433f66-a44b-4239-970d-5d53c938cf2e"",
-                    ""path"": ""<Gamepad>/leftStick/up"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Gamepad"",
-                    ""action"": ""Look"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": ""down"",
-                    ""id"": ""e8e87199-30bd-40ea-89c3-ddb16a12d10d"",
-                    ""path"": ""<Gamepad>/leftStick/down"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Gamepad"",
-                    ""action"": ""Look"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": ""left"",
-                    ""id"": ""7c85b58c-ff47-402e-baf1-30250b09adbb"",
-                    ""path"": ""<Gamepad>/leftStick/left"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Gamepad"",
-                    ""action"": ""Look"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": ""right"",
-                    ""id"": ""32764af2-9c80-4dca-8295-58f7fc5f8959"",
-                    ""path"": ""<Gamepad>/leftStick/right"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Gamepad"",
-                    ""action"": ""Look"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""55a08eec-8111-4031-8b51-8cebd35d5afe"",
-                    ""path"": ""<Mouse>/delta"",
-                    ""interactions"": """",
-                    ""processors"": ""ScaleVector2(x=0.35,y=0.35)"",
-                    ""groups"": "";Keyboard&Mouse"",
-                    ""action"": ""Look"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""8a87eee7-f4ec-4ea8-8047-ca7dbf6269e4"",
-                    ""path"": ""<Gamepad>/leftStick"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Gamepad"",
-                    ""action"": ""Look"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""56f95d5d-7a37-438c-9549-fba14666e095"",
-                    ""path"": ""<Gamepad>/rightStick"",
-                    ""interactions"": """",
-                    ""processors"": ""StickDeadzone,ScaleVector2(x=0.7,y=0.7)"",
-                    ""groups"": "";Gamepad"",
-                    ""action"": ""Look"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": ""1D Axis"",
-                    ""id"": ""2bb53318-6218-45ab-b212-8740360ae48b"",
-                    ""path"": ""1DAxis"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""Zoom"",
-                    ""isComposite"": true,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": ""negative"",
-                    ""id"": ""ac5559b4-e2aa-4e53-b0c1-084b8cbdada9"",
-                    ""path"": ""<Gamepad>/leftTrigger"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Gamepad"",
-                    ""action"": ""Zoom"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": ""positive"",
-                    ""id"": ""0aeedd75-5c40-4770-9773-aa755a28e580"",
-                    ""path"": ""<Gamepad>/rightTrigger"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Gamepad"",
-                    ""action"": ""Zoom"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": ""1D Axis"",
-                    ""id"": ""84a37ac5-15bc-45bc-8651-1b2c65c4e7db"",
-                    ""path"": ""1DAxis"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""Zoom"",
-                    ""isComposite"": true,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": ""negative"",
-                    ""id"": ""7ab72f8f-4357-4b2c-a1c8-d54798e8f875"",
-                    ""path"": ""<Mouse>/scroll/down"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
-                    ""action"": ""Zoom"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": ""positive"",
-                    ""id"": ""a41d86f5-5313-436d-b3c0-aa6449f2ee7a"",
-                    ""path"": ""<Mouse>/scroll/up"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
-                    ""action"": ""Zoom"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                }
-            ]
-        },
-        {
             ""name"": ""UI"",
             ""id"": ""caa73b14-2189-4780-addc-58a54de1ff42"",
             ""actions"": [
@@ -979,6 +799,24 @@ namespace eXsert
                     ""name"": ""Swap"",
                     ""type"": ""Button"",
                     ""id"": ""7b75d88c-4fe1-4579-a8b2-6fcee161eb6e"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""LoadingLook"",
+                    ""type"": ""Value"",
+                    ""id"": ""66a35a7f-4564-4adb-aa45-1ce3364cd258"",
+                    ""expectedControlType"": ""Vector2"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""LoadingZoom"",
+                    ""type"": ""Button"",
+                    ""id"": ""3873b17a-4431-43a3-8e09-5cf0fbec79cc"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
@@ -1227,6 +1065,160 @@ namespace eXsert
                     ""action"": ""Swap"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""Gamepad"",
+                    ""id"": ""e1923cfd-2d22-4edd-90e4-bb99a0c52bc8"",
+                    ""path"": ""2DVector"",
+                    ""interactions"": """",
+                    ""processors"": ""StickDeadzone(max=0.925)"",
+                    ""groups"": """",
+                    ""action"": ""LoadingLook"",
+                    ""isComposite"": true,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""up"",
+                    ""id"": ""7a52b462-d670-40bd-a6d8-46dc6e1228ce"",
+                    ""path"": ""<Gamepad>/leftStick/up"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""LoadingLook"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""down"",
+                    ""id"": ""3bf30652-4fb9-4c5f-a372-73228171b3d3"",
+                    ""path"": ""<Gamepad>/leftStick/down"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""LoadingLook"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""left"",
+                    ""id"": ""03f57b64-b1a2-4580-965c-10c89d9f75b7"",
+                    ""path"": ""<Gamepad>/leftStick/left"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""LoadingLook"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""right"",
+                    ""id"": ""85d0c330-6e14-4f91-b67d-5c37961febc5"",
+                    ""path"": ""<Gamepad>/leftStick/right"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""LoadingLook"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""2546a56c-2892-4464-a7fd-78caf6f2333d"",
+                    ""path"": ""<Mouse>/delta"",
+                    ""interactions"": """",
+                    ""processors"": ""ScaleVector2(x=0.35,y=0.35)"",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""LoadingLook"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""d7f7d8a8-1d84-4574-af4e-68f40d23df0a"",
+                    ""path"": ""<Gamepad>/leftStick"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""LoadingLook"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""3d97fe35-0227-483e-bf9a-2ecbedbb310c"",
+                    ""path"": ""<Gamepad>/rightStick"",
+                    ""interactions"": """",
+                    ""processors"": ""StickDeadzone,ScaleVector2(x=0.7,y=0.7)"",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""LoadingLook"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""1D Axis"",
+                    ""id"": ""e9a96331-bb3e-48a0-bc41-60980307a758"",
+                    ""path"": ""1DAxis"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""LoadingZoom"",
+                    ""isComposite"": true,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""negative"",
+                    ""id"": ""27b7559a-3536-4942-a357-e0ae8b184fd7"",
+                    ""path"": ""<Gamepad>/leftTrigger"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""LoadingZoom"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""positive"",
+                    ""id"": ""a2f0b36d-829b-4a4e-a368-1506ab46eccf"",
+                    ""path"": ""<Gamepad>/rightTrigger"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""LoadingZoom"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""1D Axis"",
+                    ""id"": ""fa633b0d-beca-4355-a71e-c2d9a9f538a3"",
+                    ""path"": ""1DAxis"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""LoadingZoom"",
+                    ""isComposite"": true,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""negative"",
+                    ""id"": ""4bfc60d2-6314-4f58-b38a-ec5948dcf26c"",
+                    ""path"": ""<Mouse>/scroll/down"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""LoadingZoom"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""positive"",
+                    ""id"": ""ac2cc78f-f4f0-4b3f-b795-0dea9bbbd8e4"",
+                    ""path"": ""<Mouse>/scroll/up"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""LoadingZoom"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
                 }
             ]
         },
@@ -1346,10 +1338,6 @@ namespace eXsert
             m_Gameplay_LockOn = m_Gameplay.FindAction("LockOn", throwIfNotFound: true);
             m_Gameplay_LeftTarget = m_Gameplay.FindAction("LeftTarget", throwIfNotFound: true);
             m_Gameplay_RightTarget = m_Gameplay.FindAction("RightTarget", throwIfNotFound: true);
-            // Loading
-            m_Loading = asset.FindActionMap("Loading", throwIfNotFound: true);
-            m_Loading_Look = m_Loading.FindAction("Look", throwIfNotFound: true);
-            m_Loading_Zoom = m_Loading.FindAction("Zoom", throwIfNotFound: true);
             // UI
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
             m_UI_Navigation = m_UI.FindAction("Navigation", throwIfNotFound: true);
@@ -1357,6 +1345,8 @@ namespace eXsert
             m_UI_Select = m_UI.FindAction("Select", throwIfNotFound: true);
             m_UI_Resume = m_UI.FindAction("Resume", throwIfNotFound: true);
             m_UI_Swap = m_UI.FindAction("Swap", throwIfNotFound: true);
+            m_UI_LoadingLook = m_UI.FindAction("LoadingLook", throwIfNotFound: true);
+            m_UI_LoadingZoom = m_UI.FindAction("LoadingZoom", throwIfNotFound: true);
             // CameraControls
             m_CameraControls = asset.FindActionMap("CameraControls", throwIfNotFound: true);
             m_CameraControls_MouseZoom = m_CameraControls.FindAction("MouseZoom", throwIfNotFound: true);
@@ -1366,7 +1356,6 @@ namespace eXsert
         ~@PlayerControls()
         {
             UnityEngine.Debug.Assert(!m_Gameplay.enabled, "This will cause a leak and performance issues, PlayerControls.Gameplay.Disable() has not been called.");
-            UnityEngine.Debug.Assert(!m_Loading.enabled, "This will cause a leak and performance issues, PlayerControls.Loading.Disable() has not been called.");
             UnityEngine.Debug.Assert(!m_UI.enabled, "This will cause a leak and performance issues, PlayerControls.UI.Disable() has not been called.");
             UnityEngine.Debug.Assert(!m_CameraControls.enabled, "This will cause a leak and performance issues, PlayerControls.CameraControls.Disable() has not been called.");
         }
@@ -1724,113 +1713,6 @@ namespace eXsert
         /// </summary>
         public GameplayActions @Gameplay => new GameplayActions(this);
 
-        // Loading
-        private readonly InputActionMap m_Loading;
-        private List<ILoadingActions> m_LoadingActionsCallbackInterfaces = new List<ILoadingActions>();
-        private readonly InputAction m_Loading_Look;
-        private readonly InputAction m_Loading_Zoom;
-        /// <summary>
-        /// Provides access to input actions defined in input action map "Loading".
-        /// </summary>
-        public struct LoadingActions
-        {
-            private @PlayerControls m_Wrapper;
-
-            /// <summary>
-            /// Construct a new instance of the input action map wrapper class.
-            /// </summary>
-            public LoadingActions(@PlayerControls wrapper) { m_Wrapper = wrapper; }
-            /// <summary>
-            /// Provides access to the underlying input action "Loading/Look".
-            /// </summary>
-            public InputAction @Look => m_Wrapper.m_Loading_Look;
-            /// <summary>
-            /// Provides access to the underlying input action "Loading/Zoom".
-            /// </summary>
-            public InputAction @Zoom => m_Wrapper.m_Loading_Zoom;
-            /// <summary>
-            /// Provides access to the underlying input action map instance.
-            /// </summary>
-            public InputActionMap Get() { return m_Wrapper.m_Loading; }
-            /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.Enable()" />
-            public void Enable() { Get().Enable(); }
-            /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.Disable()" />
-            public void Disable() { Get().Disable(); }
-            /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.enabled" />
-            public bool enabled => Get().enabled;
-            /// <summary>
-            /// Implicitly converts an <see ref="LoadingActions" /> to an <see ref="InputActionMap" /> instance.
-            /// </summary>
-            public static implicit operator InputActionMap(LoadingActions set) { return set.Get(); }
-            /// <summary>
-            /// Adds <see cref="InputAction.started"/>, <see cref="InputAction.performed"/> and <see cref="InputAction.canceled"/> callbacks provided via <param cref="instance" /> on all input actions contained in this map.
-            /// </summary>
-            /// <param name="instance">Callback instance.</param>
-            /// <remarks>
-            /// If <paramref name="instance" /> is <c>null</c> or <paramref name="instance"/> have already been added this method does nothing.
-            /// </remarks>
-            /// <seealso cref="LoadingActions" />
-            public void AddCallbacks(ILoadingActions instance)
-            {
-                if (instance == null || m_Wrapper.m_LoadingActionsCallbackInterfaces.Contains(instance)) return;
-                m_Wrapper.m_LoadingActionsCallbackInterfaces.Add(instance);
-                @Look.started += instance.OnLook;
-                @Look.performed += instance.OnLook;
-                @Look.canceled += instance.OnLook;
-                @Zoom.started += instance.OnZoom;
-                @Zoom.performed += instance.OnZoom;
-                @Zoom.canceled += instance.OnZoom;
-            }
-
-            /// <summary>
-            /// Removes <see cref="InputAction.started"/>, <see cref="InputAction.performed"/> and <see cref="InputAction.canceled"/> callbacks provided via <param cref="instance" /> on all input actions contained in this map.
-            /// </summary>
-            /// <remarks>
-            /// Calling this method when <paramref name="instance" /> have not previously been registered has no side-effects.
-            /// </remarks>
-            /// <seealso cref="LoadingActions" />
-            private void UnregisterCallbacks(ILoadingActions instance)
-            {
-                @Look.started -= instance.OnLook;
-                @Look.performed -= instance.OnLook;
-                @Look.canceled -= instance.OnLook;
-                @Zoom.started -= instance.OnZoom;
-                @Zoom.performed -= instance.OnZoom;
-                @Zoom.canceled -= instance.OnZoom;
-            }
-
-            /// <summary>
-            /// Unregisters <param cref="instance" /> and unregisters all input action callbacks via <see cref="LoadingActions.UnregisterCallbacks(ILoadingActions)" />.
-            /// </summary>
-            /// <seealso cref="LoadingActions.UnregisterCallbacks(ILoadingActions)" />
-            public void RemoveCallbacks(ILoadingActions instance)
-            {
-                if (m_Wrapper.m_LoadingActionsCallbackInterfaces.Remove(instance))
-                    UnregisterCallbacks(instance);
-            }
-
-            /// <summary>
-            /// Replaces all existing callback instances and previously registered input action callbacks associated with them with callbacks provided via <param cref="instance" />.
-            /// </summary>
-            /// <remarks>
-            /// If <paramref name="instance" /> is <c>null</c>, calling this method will only unregister all existing callbacks but not register any new callbacks.
-            /// </remarks>
-            /// <seealso cref="LoadingActions.AddCallbacks(ILoadingActions)" />
-            /// <seealso cref="LoadingActions.RemoveCallbacks(ILoadingActions)" />
-            /// <seealso cref="LoadingActions.UnregisterCallbacks(ILoadingActions)" />
-            public void SetCallbacks(ILoadingActions instance)
-            {
-                foreach (var item in m_Wrapper.m_LoadingActionsCallbackInterfaces)
-                    UnregisterCallbacks(item);
-                m_Wrapper.m_LoadingActionsCallbackInterfaces.Clear();
-                AddCallbacks(instance);
-            }
-        }
-        /// <summary>
-        /// Provides a new <see cref="LoadingActions" /> instance referencing this action map.
-        /// </summary>
-        public LoadingActions @Loading => new LoadingActions(this);
-
         // UI
         private readonly InputActionMap m_UI;
         private List<IUIActions> m_UIActionsCallbackInterfaces = new List<IUIActions>();
@@ -1839,6 +1721,8 @@ namespace eXsert
         private readonly InputAction m_UI_Select;
         private readonly InputAction m_UI_Resume;
         private readonly InputAction m_UI_Swap;
+        private readonly InputAction m_UI_LoadingLook;
+        private readonly InputAction m_UI_LoadingZoom;
         /// <summary>
         /// Provides access to input actions defined in input action map "UI".
         /// </summary>
@@ -1870,6 +1754,14 @@ namespace eXsert
             /// Provides access to the underlying input action "UI/Swap".
             /// </summary>
             public InputAction @Swap => m_Wrapper.m_UI_Swap;
+            /// <summary>
+            /// Provides access to the underlying input action "UI/LoadingLook".
+            /// </summary>
+            public InputAction @LoadingLook => m_Wrapper.m_UI_LoadingLook;
+            /// <summary>
+            /// Provides access to the underlying input action "UI/LoadingZoom".
+            /// </summary>
+            public InputAction @LoadingZoom => m_Wrapper.m_UI_LoadingZoom;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
@@ -1911,6 +1803,12 @@ namespace eXsert
                 @Swap.started += instance.OnSwap;
                 @Swap.performed += instance.OnSwap;
                 @Swap.canceled += instance.OnSwap;
+                @LoadingLook.started += instance.OnLoadingLook;
+                @LoadingLook.performed += instance.OnLoadingLook;
+                @LoadingLook.canceled += instance.OnLoadingLook;
+                @LoadingZoom.started += instance.OnLoadingZoom;
+                @LoadingZoom.performed += instance.OnLoadingZoom;
+                @LoadingZoom.canceled += instance.OnLoadingZoom;
             }
 
             /// <summary>
@@ -1937,6 +1835,12 @@ namespace eXsert
                 @Swap.started -= instance.OnSwap;
                 @Swap.performed -= instance.OnSwap;
                 @Swap.canceled -= instance.OnSwap;
+                @LoadingLook.started -= instance.OnLoadingLook;
+                @LoadingLook.performed -= instance.OnLoadingLook;
+                @LoadingLook.canceled -= instance.OnLoadingLook;
+                @LoadingZoom.started -= instance.OnLoadingZoom;
+                @LoadingZoom.performed -= instance.OnLoadingZoom;
+                @LoadingZoom.canceled -= instance.OnLoadingZoom;
             }
 
             /// <summary>
@@ -2238,28 +2142,6 @@ namespace eXsert
             void OnRightTarget(InputAction.CallbackContext context);
         }
         /// <summary>
-        /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "Loading" which allows adding and removing callbacks.
-        /// </summary>
-        /// <seealso cref="LoadingActions.AddCallbacks(ILoadingActions)" />
-        /// <seealso cref="LoadingActions.RemoveCallbacks(ILoadingActions)" />
-        public interface ILoadingActions
-        {
-            /// <summary>
-            /// Method invoked when associated input action "Look" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
-            /// </summary>
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnLook(InputAction.CallbackContext context);
-            /// <summary>
-            /// Method invoked when associated input action "Zoom" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
-            /// </summary>
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnZoom(InputAction.CallbackContext context);
-        }
-        /// <summary>
         /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.
         /// </summary>
         /// <seealso cref="UIActions.AddCallbacks(IUIActions)" />
@@ -2301,6 +2183,20 @@ namespace eXsert
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnSwap(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "LoadingLook" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnLoadingLook(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "LoadingZoom" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnLoadingZoom(InputAction.CallbackContext context);
         }
         /// <summary>
         /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "CameraControls" which allows adding and removing callbacks.

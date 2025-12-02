@@ -4079,6 +4079,10 @@ PrefabInstance:
       propertyPath: _playerControls
       value: 
       objectReference: {fileID: -944628639613478452, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
+    - target: {fileID: 8233409301193786098, guid: bd4d8eaac56332440b873bea490d2306, type: 3}
+      propertyPath: activeControlScheme
+      value: Gamepad
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -7422,7 +7426,7 @@ MonoBehaviour:
   m_ActionEvents: []
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
-  m_DefaultActionMap: 
+  m_DefaultActionMap: caa73b14-2189-4780-addc-58a54de1ff42
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
 --- !u!4 &1294391169 stripped
@@ -8419,9 +8423,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b66dea7fe0ad3b4388b71f18325bb1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SceneLoader
-  mainMenuSceneName: FP_MainMenu
-  playerPrefab: {fileID: 0}
-  hudPrefab: {fileID: 0}
+  mainMenuSceneName: VS_MainMenu
+  playerPrefab: {fileID: 2964100175291877921, guid: 2f4b04b127b00fe4ba1e0aee5e2c8ddb, type: 3}
+  hudPrefab: {fileID: 7505712438738526374, guid: 330e03318a0ab4444a1870d373f30aa9, type: 3}
+  usePersistentPlayer: 0
+  loadingSceneName: LoadingScene
+  preloadLoadingScene: 1
+  minimumLoadingScreenSeconds: 10
   showDebugLogs: 1
 --- !u!1 &1603697547
 GameObject:

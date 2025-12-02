@@ -45,6 +45,8 @@ public class InputReader : Singleton<InputReader>
     private InputAction lockOnAction;
     private InputAction leftTargetAction;
     private InputAction rightTargetAction;
+    private InputAction loadingLookAction;
+    private InputAction loadingZoomAction;
 
     private bool callbacksRegistered = false;
     [SerializeField, Range(0f, 0.5f)] private float lockOnDashSuppressionWindow = 0.18f;
@@ -63,6 +65,9 @@ public class InputReader : Singleton<InputReader>
     // Gets the input and sets the variable
     public static Vector2 MoveInput { get; private set; }
     public static Vector2 LookInput { get; private set; }
+
+    public InputAction LoadingLookAction => loadingLookAction;
+    public InputAction LoadingZoomAction => loadingZoomAction;
 
     // Centralized action accessors so gameplay scripts never touch InputActions directly
     public static bool JumpTriggered =>
@@ -295,6 +300,8 @@ public class InputReader : Singleton<InputReader>
         if (lockOnAction != null) lockOnAction.Enable();
         if (leftTargetAction != null) leftTargetAction.Enable();
         if (rightTargetAction != null) rightTargetAction.Enable();
+        if (loadingLookAction != null) loadingLookAction.Enable();
+        if (loadingZoomAction != null) loadingZoomAction.Enable();
     }
 
     private void OnDisable()
@@ -313,6 +320,8 @@ public class InputReader : Singleton<InputReader>
         if (lockOnAction != null) lockOnAction.Disable();
         if (leftTargetAction != null) leftTargetAction.Disable();
         if (rightTargetAction != null) rightTargetAction.Disable();
+        if (loadingLookAction != null) loadingLookAction.Disable();
+        if (loadingZoomAction != null) loadingZoomAction.Disable();
     }
 
     /// <summary>
@@ -416,6 +425,12 @@ public class InputReader : Singleton<InputReader>
 
             try { navigationMenuAction = playerInput.actions["NavigationMenu"]; }
             catch { navigationMenuAction = null; }
+
+            try { loadingLookAction = playerInput.actions["LoadingLook"]; }
+            catch { loadingLookAction = null; }
+
+            try { loadingZoomAction = playerInput.actions["LoadingZoom"]; }
+            catch { loadingZoomAction = null; }
 
             RegisterActionCallbacks();
         }
