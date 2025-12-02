@@ -28,6 +28,8 @@ public class GameActionHandler : MonoBehaviour
     public void RestartFromCheckpoint()
     {
         Debug.Log("[GameActionHandler] Restarting from checkpoint...");
+
+        PrepareForSceneLoad(resumeImmediately: false);
         
         // Use SceneLoader to restart from checkpoint
         if (SceneLoader.Instance != null)
@@ -51,19 +53,7 @@ public class GameActionHandler : MonoBehaviour
     {
         Debug.Log("[GameActionHandler] Returning to main menu...");
         
-        // Ensure game is fully resumed and pause UI closed
-        if (pauseManager == null)
-            pauseManager = PauseManager.Instance;
-
-        if (pauseManager != null)
-        {
-            pauseManager.ResumeGame();
-        }
-        else
-        {
-            // Fallback resume
-            Time.timeScale = 1f;
-        }
+        PrepareForSceneLoad(resumeImmediately: false);
         
         // Use SceneLoader to properly clean up and load main menu
         if (SceneLoader.Instance != null)
@@ -85,13 +75,13 @@ public class GameActionHandler : MonoBehaviour
     {
         Debug.Log("[GameActionHandler] Quitting game...");
         
-        #if UNITY_EDITOR
+    #if UNITY_EDITOR
         // Stop playing in editor
         UnityEditor.EditorApplication.isPlaying = false;
-        #else
+    #else
         // Quit the application
         Application.Quit();
-        #endif
+    #endif
     }
 
     /// <summary>
@@ -101,5 +91,23 @@ public class GameActionHandler : MonoBehaviour
     {
         Debug.Log("[GameActionHandler] Dialog canceled");
         // Nothing to do, just logging
+    }
+
+    private void PrepareForSceneLoad(bool resumeImmediately)
+    {
+        if (pauseManager == null)
+            pauseManager = PauseManager.Instance;
+
+        if (pauseManager != null)
+        {
+            if (resumeImmediately)
+                pauseManager.ResumeGame();
+            else
+                pauseManager.HideMenusForSceneTransition();
+        }
+        else if (resumeImmediately)
+        {
+            Time.timeScale = 1f;
+        }
     }
 }

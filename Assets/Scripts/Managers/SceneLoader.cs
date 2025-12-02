@@ -28,7 +28,7 @@ public class SceneLoader : Singleton<SceneLoader>
     [SerializeField, Tooltip("Automatically load the loading scene when the main menu boots so the overlay is ready.")]
     private bool preloadLoadingScene = true;
     [SerializeField, Range(0f, 60f), Tooltip("Minimum number of seconds the loading screen should remain visible once the prop showcase appears.")]
-    private float minimumLoadingScreenSeconds = 10f;
+    private float minimumLoadingScreenSeconds = 1.5f;
     
     [Header("Debug")]
     [SerializeField] private bool showDebugLogs = true;
@@ -57,8 +57,11 @@ public class SceneLoader : Singleton<SceneLoader>
         if (isLoadingScene) return;
         
         Log("Loading Main Menu - Cleaning up persistent objects...");
-        
-        StartCoroutine(LoadMainMenuCoroutine());
+
+        RunSceneRoutine(
+            LoadMainMenuCoroutine(),
+            pauseDuringLoading: true,
+            minimumDisplayOverride: minimumLoadingScreenSeconds);
     }
 
     /// <summary>

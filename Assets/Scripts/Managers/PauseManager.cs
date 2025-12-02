@@ -7,6 +7,16 @@ public class PauseManager : Singletons.Singleton<PauseManager>
     [SerializeField] private GameObject pauseMenuHolder;
     [SerializeField] private GameObject navigationMenuHolder;
     [SerializeField] private GameObject settingsMenuContainer;
+    [SerializeField, Tooltip("Root canvas or parent that contains the in-game HUD (hide when menus are open).")]
+    private GameObject playerHUDRoot;
+
+    [Header("Back Button Blockers")]
+    [SerializeField, Tooltip("If any of these are active while the pause menu is up, Back should not resume the game.")]
+    private GameObject[] pauseMenuBlockingChildren;
+    [SerializeField, Tooltip("If any of these are active while the navigation menu is up, Back should not close the menus.")]
+    private GameObject[] navigationMenuBlockingChildren;
+    [SerializeField, Tooltip("Global UI that should block Back from resuming (e.g., warning popups, overlays).")]
+    private GameObject[] globalBackButtonBlockers;
 
     [Header("Input Actions")]
     [SerializeField] private InputActionReference _pauseActionReference;
@@ -24,6 +34,12 @@ public class PauseManager : Singletons.Singleton<PauseManager>
     }
     
     private ActiveMenu currentActiveMenu = ActiveMenu.None;
+    private bool settingsMenuOpen = false;
+
+    private void Awake()
+    {
+        HideAllMenus();
+    }
 
     private void OnEnable()
     {
@@ -119,12 +135,16 @@ public class PauseManager : Singletons.Singleton<PauseManager>
             return;
         }
         Debug.Log($"[PauseManager] OnBackButton called - Current menu: {currentActiveMenu}");
-        
-        // Check if settings menu is open
-        if (settingsMenuContainer != null && settingsMenuContainer.activeSelf)
+
+        if (settingsMenuOpen)
         {
-            // Close settings and return to pause menu
             CloseSettingsMenu();
+            return;
+        }
+
+        if (HasBlockingSubmenuActive())
+        {
+            Debug.Log("[PauseManager] OnBackButton ignored - submenu or popup still active");
             return;
         }
         
@@ -141,19 +161,10 @@ public class PauseManager : Singletons.Singleton<PauseManager>
     /// </summary>
     public void CloseSettingsMenu()
     {
-        if (settingsMenuContainer != null)
-        {
-            settingsMenuContainer.SetActive(false);
-            Debug.Log("[PauseManager] Settings menu closed, returning to pause menu");
-        }
-        
-        // Make sure pause menu is visible
-        if (pauseMenuHolder != null)
-        {
-            pauseMenuHolder.SetActive(true);
-        }
-        
+        settingsMenuOpen = false;
+        SetMenuStates(showPause: true, showNavigation: false, showSettings: false);
         currentActiveMenu = ActiveMenu.PauseMenu;
+        Debug.Log("[PauseManager] Settings menu closed, returning to pause menu");
     }
 
     /// <summary>
@@ -162,17 +173,8 @@ public class PauseManager : Singletons.Singleton<PauseManager>
     /// </summary>
     public void OpenSettingsMenu()
     {
-        if (settingsMenuContainer != null)
-        {
-            settingsMenuContainer.SetActive(true);
-            Debug.Log("[PauseManager] Settings menu opened");
-        }
-        
-        // Optionally hide pause menu holder when settings is open
-        if (pauseMenuHolder != null)
-        {
-            pauseMenuHolder.SetActive(false);
-        }
+        SetMenuStates(showPause: false, showNavigation: false, showSettings: true);
+        Debug.Log("[PauseManager] Settings menu opened");
     }
 
     private void OnSwapMenu(InputAction.CallbackContext context)
@@ -204,11 +206,7 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         IsPaused = true;
         currentActiveMenu = ActiveMenu.PauseMenu;
 
-        if (pauseMenuHolder != null)
-            pauseMenuHolder.SetActive(true);
-        
-        if (navigationMenuHolder != null)
-            navigationMenuHolder.SetActive(false);
+        SetMenuStates(showPause: true, showNavigation: false, showSettings: false);
 
         Debug.Log("Pause Menu Opened");
         
@@ -225,11 +223,7 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         IsPaused = true;
         currentActiveMenu = ActiveMenu.NavigationMenu;
 
-        if (navigationMenuHolder != null)
-            navigationMenuHolder.SetActive(true);
-        
-        if (pauseMenuHolder != null)
-            pauseMenuHolder.SetActive(false);
+        SetMenuStates(showPause: false, showNavigation: true, showSettings: false);
 
         Debug.Log("Navigation Menu Opened");
         
@@ -244,11 +238,7 @@ public class PauseManager : Singletons.Singleton<PauseManager>
     {
         currentActiveMenu = ActiveMenu.PauseMenu;
 
-        if (pauseMenuHolder != null)
-            pauseMenuHolder.SetActive(true);
-        
-        if (navigationMenuHolder != null)
-            navigationMenuHolder.SetActive(false);
+        SetMenuStates(showPause: true, showNavigation: false, showSettings: false);
 
         Debug.Log("Swapped to Pause Menu");
     }
@@ -257,11 +247,7 @@ public class PauseManager : Singletons.Singleton<PauseManager>
     {
         currentActiveMenu = ActiveMenu.NavigationMenu;
 
-        if (navigationMenuHolder != null)
-            navigationMenuHolder.SetActive(true);
-        
-        if (pauseMenuHolder != null)
-            pauseMenuHolder.SetActive(false);
+        SetMenuStates(showPause: false, showNavigation: true, showSettings: false);
 
         Debug.Log("Swapped to Navigation Menu");
     }
@@ -272,15 +258,27 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         IsPaused = false;
         currentActiveMenu = ActiveMenu.None;
 
-        if (pauseMenuHolder != null)
-            pauseMenuHolder.SetActive(false);
-        
-        if (navigationMenuHolder != null)
-            navigationMenuHolder.SetActive(false);
+        HideAllMenus();
 
         Debug.Log("Game Resumed");
         
         // Switch back to Gameplay input
+        if (InputReader.playerInput != null)
+        {
+            InputReader.playerInput.SwitchCurrentActionMap("Gameplay");
+        }
+    }
+
+    /// <summary>
+    /// Hides all pause UI in preparation for a scene load while leaving the timescale unchanged.
+    /// Use this when a loading screen will manage pausing/resuming (e.g., restart checkpoint).
+    /// </summary>
+    public void HideMenusForSceneTransition()
+    {
+        IsPaused = false;
+        currentActiveMenu = ActiveMenu.None;
+        HideAllMenus();
+
         if (InputReader.playerInput != null)
         {
             InputReader.playerInput.SwitchCurrentActionMap("Gameplay");
@@ -296,6 +294,67 @@ public class PauseManager : Singletons.Singleton<PauseManager>
     public void OnSwapMenuButtonClicked()
     {
         OnSwapMenu(new InputAction.CallbackContext());
+    }
+
+    private void HideAllMenus()
+    {
+        settingsMenuOpen = false;
+        SetMenuStates(false, false, false);
+    }
+
+    private void SetMenuStates(bool showPause, bool showNavigation, bool showSettings)
+    {
+        settingsMenuOpen = showSettings;
+
+        if (pauseMenuHolder != null)
+            pauseMenuHolder.SetActive(showPause);
+
+        if (navigationMenuHolder != null)
+            navigationMenuHolder.SetActive(showNavigation);
+
+        if (settingsMenuContainer != null)
+            settingsMenuContainer.SetActive(showSettings);
+
+        bool showHUD = !(showPause || showNavigation || showSettings);
+        SetHUDVisible(showHUD);
+    }
+
+    private void SetHUDVisible(bool visible)
+    {
+        if (playerHUDRoot == null)
+            return;
+
+        playerHUDRoot.SetActive(visible);
+    }
+
+    private bool HasBlockingSubmenuActive()
+    {
+        if (IsAnyActive(globalBackButtonBlockers))
+            return true;
+
+        if (settingsMenuOpen)
+            return true;
+
+        return currentActiveMenu switch
+        {
+            ActiveMenu.PauseMenu => IsAnyActive(pauseMenuBlockingChildren),
+            ActiveMenu.NavigationMenu => IsAnyActive(navigationMenuBlockingChildren),
+            _ => false
+        };
+    }
+
+    private static bool IsAnyActive(GameObject[] targets)
+    {
+        if (targets == null || targets.Length == 0)
+            return false;
+
+        foreach (var target in targets)
+        {
+            if (target != null && target.activeInHierarchy)
+                return true;
+        }
+
+        return false;
     }
 }
 

@@ -23,9 +23,9 @@ namespace UI.Loading
         private List<GameObject> additionalPersistentRoots = new();
 
         [Header("Timings")]
-        [SerializeField, Range(0.05f, 2f)] private float fadeDuration = 0.35f;
+        [SerializeField, Range(0.05f, 2f)] private float fadeDuration = 2f;
         [SerializeField] private AnimationCurve fadeCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
-        [SerializeField, Range(0f, 60f)] private float minimumDisplaySeconds = 10f;
+        [SerializeField, Range(0f, 60f)] private float minimumDisplaySeconds = 1.5f;
         [SerializeField, Tooltip("Time (0-1 normalized) into the fade-out at which gameplay should resume so the player never sees a frozen scene.")]
         [Range(0.1f, 0.95f)] private float resumeThresholdNormalized = 0.3f;
 
@@ -34,7 +34,7 @@ namespace UI.Loading
         private bool usingFallbackControls;
         private PlayerControls fallbackLoadingControls;
         private Coroutine activeRoutine;
-        private float previousTimeScale = 1f;
+        private float resumeTimeScale = 1f;
 
         private void Awake()
         {
@@ -96,7 +96,7 @@ namespace UI.Loading
 
         private IEnumerator RunLoadingSequence(IEnumerator loadSteps, bool pauseGame, float minimumDisplayDuration)
         {
-            previousTimeScale = Time.timeScale;
+            resumeTimeScale = Mathf.Approximately(Time.timeScale, 0f) ? 1f : Time.timeScale;
             if (pauseGame)
                 Time.timeScale = 0f;
 
@@ -163,7 +163,7 @@ namespace UI.Loading
             if (blackoutCanvasGroup == null)
             {
                 if (pauseGame)
-                    Time.timeScale = previousTimeScale;
+                    Time.timeScale = resumeTimeScale;
                 yield break;
             }
 
@@ -180,7 +180,7 @@ namespace UI.Loading
 
                 if (!resumed && t >= resumeThreshold)
                 {
-                    Time.timeScale = previousTimeScale;
+                    Time.timeScale = resumeTimeScale;
                     resumed = true;
                 }
 
@@ -190,7 +190,7 @@ namespace UI.Loading
             blackoutCanvasGroup.alpha = 0f;
 
             if (!resumed)
-                Time.timeScale = previousTimeScale;
+                Time.timeScale = resumeTimeScale;
         }
 
         private void EnableLoadingInput()
