@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &138489833779330081
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6859794718792077639}
+  m_Layer: 8
+  m_Name: HPTarget
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6859794718792077639
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 138489833779330081}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.204, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 621985785902187941}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6761067687240216882
 GameObject:
   m_ObjectHideFlags: 0
@@ -409,6 +440,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 87c9d8cab7647524d98ad7921b83a701, type: 3}
       insertIndex: 0
       addedObject: {fileID: 1608771335641898105}
+    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 87c9d8cab7647524d98ad7921b83a701, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6859794718792077639}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 87c9d8cab7647524d98ad7921b83a701, type: 3}
       insertIndex: -1
@@ -486,8 +520,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DroneEnemy
   agent: {fileID: 0}
   currentState: 0
-  maxHealth: 100
-  currentHealth: 100
+  maxHealth: 25
+  currentHealth: 2
   lowHealthThresholdPercent: 0.25
   handleLowHealth: 1
   currentZone: {fileID: 0}
@@ -501,7 +535,8 @@ MonoBehaviour:
   attackInterval: 1
   attackActiveDuration: 0.5
   showAttackGizmo: 1
-  healthBarPrefab: {fileID: 0}
+  healthBarPrefab: {fileID: 5126943973119965438, guid: 07e119a181a9f3b48be33765f2c7cca7, type: 3}
+  healthBarAnchor: {fileID: 6859794718792077639}
   healthBarInstance: {fileID: 0}
   attackCollider: {fileID: 0}
   isAttackBoxActive: 0
@@ -524,7 +559,7 @@ MonoBehaviour:
   attackRange: 15
   fireCooldown: 1.5
   projectilePrefab: {fileID: 12072098264220021, guid: 3c6aa83579720ef4e935921bc30330ce, type: 3}
-  projectileSpeed: 20
+  projectileSpeed: 35
   firePoint: {fileID: 1608771335641898105}
   chaseRange: 30
   projectilePoolSize: 20

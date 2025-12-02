@@ -90,13 +90,20 @@ public class SaveSlotsMenu : Menu
         { 
             // NEW GAME - Create fresh save data
             DataPersistenceManager.instance.NewGame();
-            
-            // Don't access CheckpointSystem here - it doesn't exist yet in MainMenu!
-            // GameData will initialize with default values (FP_Elevator, default spawn)
-            
-            // Load first scene - player will be spawned normally in the scene
-            SceneLoader.Instance.LoadInitialGameScene("PlayerScene");
-            SceneLoader.Instance.LoadSceneAdditive(SceneName);
+
+            string configuredGameplay = string.IsNullOrWhiteSpace(SceneName) ? "PlayerScene" : SceneName;
+            string configuredDefault = string.IsNullOrWhiteSpace(DefaultSceneName) ? configuredGameplay : DefaultSceneName;
+
+            string primaryScene = configuredDefault;
+            string secondaryScene = configuredGameplay;
+
+            if (string.Equals(primaryScene, secondaryScene))
+            {
+                secondaryScene = null;
+            }
+
+            // Pause gameplay while the default scene loads first, then the gameplay scene second
+            SceneLoader.Instance.LoadInitialGameScene(primaryScene, secondaryScene, pauseUntilLoaded: true);
         }
         else
         {
@@ -225,3 +232,6 @@ public class SaveSlotsMenu : Menu
         this.gameObject.SetActive(false);
     }
 }
+
+
+

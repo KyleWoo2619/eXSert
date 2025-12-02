@@ -20,6 +20,51 @@ public enum AlarmCarrierState
     Death
 }
 
+[DisallowMultipleComponent]
+internal sealed class AlarmCarrierDetectionTrigger : MonoBehaviour
+{
+    private AlarmCarrierEnemy owner;
+    private SphereCollider sphere;
+
+    internal void Initialize(AlarmCarrierEnemy alarmOwner, float radius)
+    {
+        owner = alarmOwner;
+        if (sphere == null)
+        {
+            sphere = GetComponent<SphereCollider>();
+            if (sphere == null)
+                sphere = gameObject.AddComponent<SphereCollider>();
+        }
+
+        sphere.isTrigger = true;
+        SetRadius(radius);
+
+        if (transform.parent != owner.transform)
+        {
+            transform.SetParent(owner.transform);
+            transform.localPosition = Vector3.zero;
+            transform.localRotation = Quaternion.identity;
+            transform.localScale = Vector3.one;
+        }
+    }
+
+    internal void SetRadius(float radius)
+    {
+        if (sphere == null)
+            sphere = GetComponent<SphereCollider>();
+
+        if (sphere != null)
+        {
+            sphere.radius = Mathf.Max(0.1f, radius);
+        }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        owner?.HandleDetectionTriggerEnter(other);
+    }
+}
+
 public enum AlarmCarrierTrigger
 {
     SeePlayer,
@@ -67,6 +112,10 @@ public class AlarmCarrierEnemy : BaseEnemy<AlarmCarrierState, AlarmCarrierTrigge
     // Track the number of active crawlers spawned by the alarm
     private int activeAlarmSpawnedCrawlers = 0;
 
+    [Header("Detection Trigger")]
+    [SerializeField, Tooltip("Optional override object that hosts the alarm detection trigger. If null, one is auto-created.")]
+    private AlarmCarrierDetectionTrigger detectionTrigger;
+
     // Behaviors
     private IEnemyStateBehavior<AlarmCarrierState, AlarmCarrierTrigger> idleBehavior, relocateBehavior, deathBehavior;
 
@@ -84,9 +133,7 @@ public class AlarmCarrierEnemy : BaseEnemy<AlarmCarrierState, AlarmCarrierTrigge
         relocateBehavior = new RelocateBehavior<AlarmCarrierState, AlarmCarrierTrigger>();
         deathBehavior = new DeathBehavior<AlarmCarrierState, AlarmCarrierTrigger>();
 
-        var alarmTrigger = gameObject.AddComponent<SphereCollider>();
-        alarmTrigger.isTrigger = true;
-        alarmTrigger.radius = alarmRange;
+        EnsureDetectionTrigger();
 
         // Assign currentZone if not set
         if (currentZone == null)
@@ -107,13 +154,50 @@ public class AlarmCarrierEnemy : BaseEnemy<AlarmCarrierState, AlarmCarrierTrigge
             idleBehavior.OnEnter(this);
         }
 
-        if (healthBarPrefab != null)
+        EnsureHealthBarBinding();
+    }
+
+    private void EnsureDetectionTrigger()
+    {
+        if (detectionTrigger == null)
         {
-            healthBarInstance = EnemyHealthBar.SetupHealthBar(healthBarPrefab, this);
+            detectionTrigger = GetComponentInChildren<AlarmCarrierDetectionTrigger>();
         }
-        else
+
+        if (detectionTrigger == null)
         {
-            Debug.LogError($"{gameObject.name}: healthBarPrefab is not assigned in the Inspector.");
+            var triggerGO = new GameObject("AlarmDetectionTrigger");
+            triggerGO.transform.SetParent(transform);
+            triggerGO.transform.localPosition = Vector3.zero;
+            triggerGO.transform.localRotation = Quaternion.identity;
+            triggerGO.transform.localScale = Vector3.one;
+            triggerGO.tag = "Untagged";
+            triggerGO.layer = gameObject.layer;
+
+            detectionTrigger = triggerGO.AddComponent<AlarmCarrierDetectionTrigger>();
+        }
+
+        detectionTrigger.Initialize(this, alarmRange);
+    }
+
+    internal void HandleDetectionTriggerEnter(Collider other)
+    {
+        if (!isActiveAndEnabled)
+            return;
+
+        if ((enemyAI.State.Equals(AlarmCarrierState.Idle) || enemyAI.State.Equals(AlarmCarrierState.Roaming)) && other.CompareTag("Player"))
+        {
+            PlayerTarget = other.transform;
+            enemyAI.Fire(AlarmCarrierTrigger.PlayerInRange);
+        }
+    }
+
+    protected override void OnValidate()
+    {
+        base.OnValidate();
+        if (detectionTrigger != null)
+        {
+            detectionTrigger.SetRadius(alarmRange);
         }
     }
 
@@ -176,20 +260,6 @@ public class AlarmCarrierEnemy : BaseEnemy<AlarmCarrierState, AlarmCarrierTrigge
                     alarmFleeCoroutine = null;
                 }
             });
-    }
-
-    protected override void OnTriggerEnter(Collider other)
-    {
-        if ((enemyAI.State.Equals(AlarmCarrierState.Idle) || enemyAI.State.Equals(AlarmCarrierState.Roaming)) && other.CompareTag("Player"))
-        {
-            PlayerTarget = other.transform;
-            enemyAI.Fire(AlarmCarrierTrigger.PlayerInRange);
-        }
-    }
-
-    protected override void OnTriggerStay(Collider other)
-    {
-        // Do nothing or implement custom logic if needed.
     }
 
     private void StartAlarm()

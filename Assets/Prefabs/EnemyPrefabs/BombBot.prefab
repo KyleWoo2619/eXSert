@@ -800,6 +800,37 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 8
   isStepping: 0
+--- !u!1 &4767850486857350082
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1893232151971059494}
+  m_Layer: 8
+  m_Name: HPTarget
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1893232151971059494
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4767850486857350082}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.52, z: 0.08}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5288671311747283773}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5476810122730003883
 GameObject:
   m_ObjectHideFlags: 0
@@ -2108,6 +2139,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 8
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: d9cdcb53e3bb9cb469929c025e3cdbe8, type: 3}
+      propertyPath: m_TagString
+      value: Enemy
+      objectReference: {fileID: 0}
     - target: {fileID: 934956794911867799, guid: d9cdcb53e3bb9cb469929c025e3cdbe8, type: 3}
       propertyPath: m_Layer
       value: 8
@@ -2388,6 +2423,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: d9cdcb53e3bb9cb469929c025e3cdbe8, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8804569708830695057}
+    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: d9cdcb53e3bb9cb469929c025e3cdbe8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1893232151971059494}
     - targetCorrespondingSourceObject: {fileID: -1019855395760606327, guid: d9cdcb53e3bb9cb469929c025e3cdbe8, type: 3}
       insertIndex: 0
       addedObject: {fileID: 1046707760149852516}
@@ -2643,7 +2681,8 @@ MonoBehaviour:
   attackInterval: 1
   attackActiveDuration: 0.5
   showAttackGizmo: 1
-  healthBarPrefab: {fileID: 2629286879049192775, guid: 9345af66964a7d64489a46ae511c793b, type: 3}
+  healthBarPrefab: {fileID: 5126943973119965438, guid: 07e119a181a9f3b48be33765f2c7cca7, type: 3}
+  healthBarAnchor: {fileID: 1893232151971059494}
   healthBarInstance: {fileID: 0}
   attackCollider: {fileID: 0}
   isAttackBoxActive: 0

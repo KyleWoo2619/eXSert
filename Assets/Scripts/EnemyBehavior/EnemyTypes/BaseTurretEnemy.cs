@@ -4,6 +4,7 @@
 
 using System.Collections;
 using System.Collections.Generic;
+using Behaviors;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -70,6 +71,8 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
     private Coroutine detectLoop;
     private Coroutine animationRestoreRoutine;
 
+    private IEnemyStateBehavior<EnemyState, EnemyTrigger> deathBehavior;
+
     // Cache own colliders to ignore self-collision on fired projectiles
     private Collider[] ownColliders;
 
@@ -117,11 +120,15 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
         poolObj.transform.localPosition = Vector3.zero;
         projectilePoolParent = poolObj.transform;
 
+        deathBehavior = new DeathBehavior<EnemyState, EnemyTrigger>();
+
         InitializeProjectilePool();
 
         // Start state machine
         InitializeStateMachine(EnemyState.Idle);
         ConfigureStateMachine();
+
+        EnsureHealthBarBinding();
 
         // Detection loop with hysteresis/debounce
         detectLoop = StartCoroutine(DetectionLoop());
@@ -183,6 +190,16 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
                 isTargetEngaged = false;
                 PlayDieAnim();
                 StopAttackLoop();
+                if (detectLoop != null)
+                {
+                    StopCoroutine(detectLoop);
+                    detectLoop = null;
+                }
+                deathBehavior?.OnEnter(this);
+            })
+            .OnExit(() =>
+            {
+                deathBehavior?.OnExit(this);
             })
             .Ignore(EnemyTrigger.SeePlayer)
             .Ignore(EnemyTrigger.LosePlayer)

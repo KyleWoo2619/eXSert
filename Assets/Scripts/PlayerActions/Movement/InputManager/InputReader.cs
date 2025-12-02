@@ -14,7 +14,9 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using Singletons;
+using eXsert;
 
 public class InputReader : Singleton<InputReader>
 {
@@ -24,6 +26,7 @@ public class InputReader : Singleton<InputReader>
     [SerializeField] internal string activeControlScheme;
 
     private static InputActionAsset playerControls;
+    private PlayerControls runtimeGeneratedControls;
     public static PlayerInput playerInput {get; private set; }
     
     internal float mouseSens;
@@ -117,94 +120,129 @@ public class InputReader : Singleton<InputReader>
         && Instance.navigationMenuAction != null
         && Instance.navigationMenuAction.triggered;
 
+    #region Unity Lifecycle
+
     protected override void Awake()
     {
-        base.Awake(); // Call singleton Awake first
+        base.Awake();
 
-        if (_playerInput == null)
-        {
-            Debug.LogError("Player Input component not found. Input won't work.");
-            return; // Exit early if no PlayerInput
-        }
-        else
-            playerInput = _playerInput;
-
-        // Initialize activeControlScheme immediately so other scripts can read it during Awake/Start
-        try
-        {
-            activeControlScheme = playerInput != null ? playerInput.currentControlScheme : string.Empty;
-        }
-        catch
-        {
-            activeControlScheme = string.Empty;
-        }
-
+        SceneManager.sceneLoaded += HandleSceneLoaded;
 
         if (_playerControls == null)
         {
-            Debug.LogError("Player Controls Input Action component not found. Input won't work.");
-            return; // Exit early if no controls
+            runtimeGeneratedControls = new PlayerControls();
+            _playerControls = runtimeGeneratedControls.asset;
+            playerControls = _playerControls;
+            Debug.LogWarning("Player Controls Input Action asset not assigned on InputReader; creating a runtime copy so gameplay actions remain available.");
         }
         else
+        {
             playerControls = _playerControls;
-
-        // Make sure PlayerInput is enabled before accessing actions
-        if (!playerInput.enabled)
-        {
-            Debug.LogWarning("PlayerInput is not enabled. Enabling now...");
-            playerInput.enabled = true;
         }
 
-        // Switch to Gameplay action map only (disable UI to prevent errors)
-        try
+        if (_playerInput != null)
         {
-            playerInput.SwitchCurrentActionMap("Gameplay");
-            Debug.Log("Switched to Gameplay action map");
+            RebindTo(_playerInput, switchToGameplay: true);
         }
-        catch (System.Exception e)
+        else if (!TryAutoBindFromLoadedScenes())
         {
-            Debug.LogWarning($"Could not switch to Gameplay action map: {e.Message}");
-        }
-
-        // Assigns the input action variables to the action in the action map
-        try
-        {
-            moveAction = playerInput.actions["Move"];
-            jumpAction = playerInput.actions["Jump"];
-            lookAction = playerInput.actions["Look"];
-            changeStanceAction = playerInput.actions["ChangeStance"];
-            guardAction = playerInput.actions["Guard"];
-            lightAttackAction = playerInput.actions["LightAttack"];
-            heavyAttackAction = playerInput.actions["HeavyAttack"];
-            dashAction = playerInput.actions["Dash"];
-            interactAction = playerInput.actions["Interact"];
-            escapePuzzleAction = playerInput.actions["EscapePuzzle"];
-            lockOnAction = playerInput.actions["LockOn"];
-            leftTargetAction = playerInput.actions["LeftTarget"];
-            rightTargetAction = playerInput.actions["RightTarget"];
-            
-            // Try to get NavigationMenu, but don't fail if it doesn't exist
-            try
-            {
-                navigationMenuAction = playerInput.actions["NavigationMenu"];
-            }
-            catch
-            {
-                Debug.LogWarning("NavigationMenu action not found - continuing without it");
-            }
-
-            RegisterActionCallbacks();
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"Failed to assign input actions: {e.Message}");
-            return;
+            Debug.Log("[InputReader] No PlayerInput assigned; waiting for a Player scene to bind automatically.");
+            StartCoroutine(WaitForPlayerInputRoutine());
         }
 
-        //RegisterInputAction();
-
-        // Sets a conservative global deadzone so even blended inputs respect drift filtering
         InputSystem.settings.defaultDeadzoneMin = Mathf.Min(leftStickDeadzoneValue, rightStickDeadzoneValue);
+    }
+
+    private void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
+        UnregisterActionCallbacks();
+        if (runtimeGeneratedControls != null)
+        {
+            runtimeGeneratedControls.Dispose();
+            runtimeGeneratedControls = null;
+        }
+    }
+
+    private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (playerInput != null)
+            return;
+
+        if (scene.isLoaded && TryBindFromScene(scene))
+            return;
+
+        // If the specific scene didn't contain a player, try a broader search (e.g., additive load order differences)
+        TryAutoBindFromLoadedScenes();
+    }
+
+    private System.Collections.IEnumerator WaitForPlayerInputRoutine()
+    {
+        const float timeout = 10f;
+        float elapsed = 0f;
+        while (playerInput == null && elapsed < timeout)
+        {
+            if (TryAutoBindFromLoadedScenes())
+                yield break;
+            elapsed += Time.unscaledDeltaTime;
+            yield return null;
+        }
+    }
+
+    private bool TryAutoBindFromLoadedScenes()
+    {
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            Scene scene = SceneManager.GetSceneAt(i);
+            if (!scene.isLoaded || scene.name == "DontDestroyOnLoad")
+                continue;
+
+            if (TryBindFromScene(scene))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool TryBindFromScene(Scene scene)
+    {
+        if (!scene.IsValid())
+            return false;
+
+        GameObject[] roots = scene.GetRootGameObjects();
+        PlayerInput fallback = null;
+
+        for (int i = 0; i < roots.Length; i++)
+        {
+            var candidate = roots[i].GetComponentInChildren<PlayerInput>(true);
+            if (candidate == null)
+                continue;
+
+            if (candidate.GetComponent<InputReader>() != null)
+                continue;
+
+            bool likelyPlayer = candidate.gameObject.CompareTag("Player")
+                || candidate.GetComponentInParent<PlayerPersistence>() != null;
+
+            if (likelyPlayer)
+            {
+                Debug.Log($"[InputReader] Auto-binding to PlayerInput '{candidate.name}' in scene '{scene.name}'.");
+                RebindTo(candidate, switchToGameplay: true);
+                return true;
+            }
+
+            if (fallback == null)
+                fallback = candidate;
+        }
+
+        if (fallback != null)
+        {
+            Debug.Log($"[InputReader] Fallback binding to PlayerInput '{fallback.name}' in scene '{scene.name}'.");
+            RebindTo(fallback, switchToGameplay: true);
+            return true;
+        }
+
+        return false;
     }
 
     private void Update()
@@ -220,8 +258,24 @@ public class InputReader : Singleton<InputReader>
         else
             LookInput = Vector2.zero;
 
-        activeControlScheme = playerInput.currentControlScheme;
+        if (playerInput != null)
+        {
+            try
+            {
+                activeControlScheme = playerInput.currentControlScheme;
+            }
+            catch
+            {
+                activeControlScheme = string.Empty;
+            }
+        }
+        else
+        {
+            activeControlScheme = string.Empty;
+        }
     }
+
+    #endregion
 
 
     //Turns the actions on
@@ -259,11 +313,6 @@ public class InputReader : Singleton<InputReader>
         if (lockOnAction != null) lockOnAction.Disable();
         if (leftTargetAction != null) leftTargetAction.Disable();
         if (rightTargetAction != null) rightTargetAction.Disable();
-    }
-
-    private void OnDestroy()
-    {
-        UnregisterActionCallbacks();
     }
 
     /// <summary>
@@ -324,8 +373,23 @@ public class InputReader : Singleton<InputReader>
         _playerInput = newPlayerInput;
         playerInput = newPlayerInput;
 
+        if (playerInput.actions == null)
+        {
+            if (playerControls != null)
+            {
+                playerInput.actions = Instantiate(playerControls);
+            }
+            else
+            {
+                Debug.LogError("[InputReader] PlayerInput has no action asset and no fallback is available.");
+                return;
+            }
+        }
+
         if (!playerInput.enabled)
             playerInput.enabled = true;
+
+        playerInput.neverAutoSwitchControlSchemes = false;
 
         // Optionally set the correct map first so action lookups succeed
         if (switchToGameplay)
@@ -377,6 +441,15 @@ public class InputReader : Singleton<InputReader>
             if (lockOnAction != null) lockOnAction.Enable();
             if (leftTargetAction != null) leftTargetAction.Enable();
             if (rightTargetAction != null) rightTargetAction.Enable();
+        }
+
+        try
+        {
+            activeControlScheme = playerInput.currentControlScheme;
+        }
+        catch
+        {
+            activeControlScheme = string.Empty;
         }
 
         Debug.Log("[InputReader] Rebound to new PlayerInput and actions re-enabled.");

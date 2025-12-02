@@ -3100,6 +3100,14 @@ PrefabInstance:
       propertyPath: profileId
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 2775766508472265987, guid: 19bccafaa791be849859fb18885c1021, type: 3}
+      propertyPath: noDataContent
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 2775766508472265987, guid: 19bccafaa791be849859fb18885c1021, type: 3}
+      propertyPath: healthCountText
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 2873663288384843086, guid: 19bccafaa791be849859fb18885c1021, type: 3}
       propertyPath: m_Name
       value: DeleteText
@@ -3318,7 +3326,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 4431509480853054451, guid: 19bccafaa791be849859fb18885c1021, type: 3}
-    - {fileID: 2775766508472265987, guid: 19bccafaa791be849859fb18885c1021, type: 3}
     m_RemovedGameObjects:
     - {fileID: 1028186552938461752, guid: 19bccafaa791be849859fb18885c1021, type: 3}
     - {fileID: 873322708237841072, guid: 19bccafaa791be849859fb18885c1021, type: 3}
@@ -6560,6 +6567,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2775766508472265987, guid: 19bccafaa791be849859fb18885c1021, type: 3}
+      propertyPath: saveSlotsMenu
+      value: 
+      objectReference: {fileID: 1298613728}
+    - target: {fileID: 2775766508472265987, guid: 19bccafaa791be849859fb18885c1021, type: 3}
       propertyPath: healthCountText
       value: 
       objectReference: {fileID: 0}
@@ -6815,8 +6826,7 @@ PrefabInstance:
       propertyPath: m_hasFontAssetChanged
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 2775766508472265987, guid: 19bccafaa791be849859fb18885c1021, type: 3}
+    m_RemovedComponents: []
     m_RemovedGameObjects:
     - {fileID: 873322708237841072, guid: 19bccafaa791be849859fb18885c1021, type: 3}
     m_AddedGameObjects:
@@ -7522,6 +7532,8 @@ MonoBehaviour:
   mainMenu: {fileID: 891868599}
   backButton: {fileID: 215540247}
   currentSaveSlotSelected: {fileID: 0}
+  SceneName: PlayerScene
+  DefaultSceneName: VS_Elevator
 --- !u!1 &1301121033 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 232045061184027707, guid: 19bccafaa791be849859fb18885c1021, type: 3}
@@ -9310,7 +9322,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2070214615
 RectTransform:
   m_ObjectHideFlags: 0

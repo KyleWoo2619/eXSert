@@ -44,18 +44,7 @@ public class BoxerEnemy : BaseEnemy<EnemyState, EnemyTrigger>
         // Initialize health system - ensure current health is set to max health
         currentHealth = maxHealth;
         
-        // Initialize health bar using existing Canvas on this enemy
-        healthBarInstance = GetComponentInChildren<EnemyHealthBar>();
-        if (healthBarInstance != null)
-        {
-            // Use BaseEnemy's IHealthSystem implementation directly
-            healthBarInstance.SetEnemy(this);
-            Debug.Log($"{gameObject.name}: Health bar initialized with BaseEnemy IHealthSystem. Health: {currentHealth}/{maxHealth}");
-        }
-        else
-        {
-            Debug.LogWarning($"{gameObject.name}: No EnemyHealthBar component found in children. Make sure there's a Canvas with EnemyHealthBar script attached.");
-        }
+        EnsureHealthBarBinding();
     }
 
     protected override void ConfigureStateMachine()
@@ -134,4 +123,5 @@ public class BoxerEnemy : BaseEnemy<EnemyState, EnemyTrigger>
             .Ignore(EnemyTrigger.LowHealth);
     }
 }
+
 

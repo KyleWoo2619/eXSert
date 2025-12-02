@@ -92,14 +92,7 @@ public class BaseCrawlerEnemy : BaseEnemy<CrawlerEnemyState, CrawlerEnemyTrigger
             ambushBehavior.OnEnter(this);
         }
 
-        if (healthBarPrefab != null)
-        {
-            healthBarInstance = EnemyHealthBar.SetupHealthBar(healthBarPrefab, this);
-        }
-        else
-        {
-            Debug.LogError($"{gameObject.name}: healthBarPrefab is not assigned in the Inspector.");
-        }
+        EnsureHealthBarBinding();
 
         if (bombAvoidanceBurstCoroutine != null)
             StopCoroutine(bombAvoidanceBurstCoroutine);

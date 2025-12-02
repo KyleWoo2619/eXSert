@@ -58,6 +58,8 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     [Header("Enemy Health Bar")]
     [SerializeField, Tooltip("Prefab for the enemy's health bar UI.")]
     public GameObject healthBarPrefab;
+    [SerializeField, Tooltip("Optional anchor transform for the health bar instance. Defaults to this enemy's transform.")]
+    private Transform healthBarAnchor;
 
     // Non-serialized fields
     [HideInInspector]
@@ -78,6 +80,9 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
 
     protected Renderer enemyRenderer;
     protected Animator animator;
+
+    private bool deathSequenceTriggered;
+    private Coroutine deathFallbackRoutine;
 
     [Header("External Helper Roots")]
     [SerializeField, Tooltip("Any helper GameObjects that live outside this enemy's hierarchy (IK targets, FX anchors, etc.). They will be destroyed automatically when this enemy is destroyed.")]
@@ -116,6 +121,34 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     {
         get => playerTarget;
         set => playerTarget = value;
+    }
+
+    /// <summary>
+    /// Ensures an EnemyHealthBar exists and is bound to this enemy's IHealthSystem implementation.
+    /// Prefers an already-assigned instance (e.g., from the prefab hierarchy) before instantiating a new one.
+    /// </summary>
+    protected void EnsureHealthBarBinding()
+    {
+        if (healthBarInstance == null && healthBarPrefab != null)
+        {
+            Transform parent = healthBarAnchor != null ? healthBarAnchor : transform;
+            GameObject instance = Instantiate(healthBarPrefab, parent);
+            healthBarInstance = instance.GetComponent<EnemyHealthBar>();
+            if (healthBarInstance == null)
+            {
+                Debug.LogWarning($"[{name}] Health bar prefab is missing the EnemyHealthBar component.");
+                Destroy(instance);
+            }
+        }
+
+        if (healthBarInstance != null)
+        {
+            healthBarInstance.BindToHealthSystem(this);
+        }
+        else if (healthBarPrefab == null)
+        {
+            Debug.LogWarning($"[{name}] No healthBarPrefab assigned; enemy health will not be displayed.");
+        }
     }
 
     // Awake is called when the script instance is being loaded
@@ -362,15 +395,32 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     public virtual void SetHealth(float value)
     {
         currentHealth = Mathf.Clamp(value, 0, maxHealth);
+        if (currentHealth > 0f && deathSequenceTriggered)
+        {
+            deathSequenceTriggered = false;
+            if (deathFallbackRoutine != null)
+            {
+                StopCoroutine(deathFallbackRoutine);
+                deathFallbackRoutine = null;
+            }
+        }
         CheckHealthThreshold();
     }
 
     public virtual void CheckHealthThreshold()
     {
-        // Fire Die trigger if health reaches zero
-        if (currentHealth <= 0)
+        if (currentHealth <= 0f)
         {
-            TryFireTriggerByName("Die");
+            if (!deathSequenceTriggered)
+            {
+                deathSequenceTriggered = true;
+                bool fired = TryFireTriggerByName("Die");
+                if (!fired)
+                {
+                    BeginDeathFallback();
+                }
+            }
+            return;
         }
 
         if (!handleLowHealth)
@@ -410,6 +460,36 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
             Debug.LogWarning($"{typeof(TTrigger).Name} does not contain a '{triggerName}' trigger. Check your enum definition.");
             return false;
         }
+    }
+
+    private void BeginDeathFallback()
+    {
+        if (deathFallbackRoutine != null)
+            return;
+
+        deathFallbackRoutine = StartCoroutine(DeathFallbackRoutine());
+    }
+
+    private IEnumerator DeathFallbackRoutine()
+    {
+        PlayDieAnim();
+        if (agent != null)
+        {
+            agent.ResetPath();
+            agent.enabled = false;
+        }
+
+        yield return new WaitForSeconds(3f);
+
+        if (healthBarInstance != null)
+        {
+            Destroy(healthBarInstance.gameObject);
+            healthBarInstance = null;
+        }
+
+        CleanupExternalHelpers();
+        deathFallbackRoutine = null;
+        Destroy(gameObject);
     }
 
     protected virtual void OnTriggerEnter(Collider other)

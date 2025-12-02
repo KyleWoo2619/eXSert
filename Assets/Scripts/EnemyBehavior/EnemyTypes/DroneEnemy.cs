@@ -250,6 +250,8 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
             idleBehavior.OnEnter(this);
         }
 
+        EnsureHealthBarBinding();
+
         StartIdleTimer();
     }
 

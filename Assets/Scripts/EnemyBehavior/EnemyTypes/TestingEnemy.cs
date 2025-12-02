@@ -75,14 +75,7 @@ public class TestingEnemy : BaseEnemy<EnemyState, EnemyTrigger>
             idleBehavior.OnEnter(this);
         }
 
-        if (healthBarPrefab != null)
-        {
-            healthBarInstance = EnemyHealthBar.SetupHealthBar(healthBarPrefab, this);
-        }
-        else
-        {
-            Debug.LogError($"{gameObject.name}: healthBarPrefab is not assigned in the Inspector.");
-        }
+        EnsureHealthBarBinding();
     }
 
     protected override void ConfigureStateMachine()
@@ -136,3 +129,4 @@ public class TestingEnemy : BaseEnemy<EnemyState, EnemyTrigger>
         base.Update();
     }
 }
+
