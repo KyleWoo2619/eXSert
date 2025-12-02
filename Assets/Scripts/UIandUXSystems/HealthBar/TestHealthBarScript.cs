@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 using TMPro;
 //Written By Brandon
@@ -9,28 +8,36 @@ public class PlayerHealthBar : MonoBehaviour
 
     private void Update()
     {
-        var health = GameObject.FindWithTag("Player").GetComponent<PlayerHealthBarManager>();
+        var health = FindPlayerHealth();
+        if (health == null || healthText == null)
+            return;
 
-        healthText.text = health.health.ToString();
+        healthText.text = Mathf.RoundToInt(health.CurrentHealth).ToString();
     }
 
     //Tests script to show healthbar functionality
     public void TakeDamage()
     {
-        var health = GameObject.FindWithTag("Player").GetComponent<PlayerHealthBarManager>();
-
+        var health = FindPlayerHealth();
+        if (health == null) return;
         health.LoseHP(amountOfHPEffected);
-
-        Debug.Log(health.health);
+        Debug.Log(health.CurrentHealth);
     }
 
     public void Heal()
     {
-        var health = GameObject.FindWithTag("Player").GetComponent<PlayerHealthBarManager>();
-
+        var health = FindPlayerHealth();
+        if (health == null) return;
         health.HealHP(amountOfHPEffected);
+        Debug.Log(health.CurrentHealth);
+    }
 
-        Debug.Log(health.health);
+    private PlayerHealthBarManager FindPlayerHealth()
+    {
+        var player = GameObject.FindWithTag("Player");
+        if (player == null)
+            return null;
 
+        return player.GetComponent<PlayerHealthBarManager>();
     }
 }

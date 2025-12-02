@@ -993,23 +993,21 @@ public class PlayerMovement : MonoBehaviour
     {
         Transform root = transform;
 
-        if (characterController != null)
+        if (characterController == null)
+        {
+            root.SetPositionAndRotation(worldPosition, desiredRotation);
+        }
+        else
         {
             bool wasEnabled = characterController.enabled;
             characterController.enabled = false;
             root.SetPositionAndRotation(worldPosition, desiredRotation);
             characterController.enabled = wasEnabled;
-        }
-        else
-        {
-            root.SetPositionAndRotation(worldPosition, desiredRotation);
+            currentMovement.y = Mathf.Min(currentMovement.y, 0f);
         }
 
         currentMovement.x = 0f;
         currentMovement.z = 0f;
-
-        if (characterController != null && characterController.isGrounded)
-            currentMovement.y = -1f;
 
         return true;
     }

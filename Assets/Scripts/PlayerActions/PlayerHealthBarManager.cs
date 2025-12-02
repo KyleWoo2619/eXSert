@@ -5,172 +5,216 @@ Uses the health interfaces to increase or decreae hp amount and sets the healthb
 
 */
 
-using UnityEngine;
-using UnityEngine.UI;
-using Unity.VisualScripting;
-using UnityEngine.SceneManagement;
 using System;
+using UnityEngine;
+using UnityEngine.Events;
 
+[DisallowMultipleComponent]
 public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersistenceManager
-
 {
-    public float maxHealth;
-    public float health;
+    [Serializable]
+    public readonly struct HealthSnapshot
+    {
+        public readonly float current;
+        public readonly float max;
+
+        public float Normalized => max <= 0f ? 0f : current / max;
+
+        public HealthSnapshot(float current, float max)
+        {
+            this.current = Mathf.Max(0f, current);
+            this.max = Mathf.Max(0f, max);
+        }
+    }
 
     public static event Action<float> OnPlayerDamaged;
-    
-    [Header("UI References")]
-    [SerializeField] private Slider slider; // Old slider system (optional)
-    [SerializeField] private HealthBar healthBar; // New fill-based health bar
+    public static event Action<float> OnPlayerHealed;
+    public static event Action<HealthSnapshot> OnPlayerHealthChanged;
+    public static event Action OnPlayerDied;
+    public static event Action<PlayerHealthBarManager> OnPlayerHealthRegistered;
 
-    //Temporary ways to reset the scene the player is currently in for demonstration
-    Scene scene;
-    string sceneName;
+    [Header("Health Settings")]
+    [SerializeField, Min(1f)] private float maxHealth = 500f;
+    [SerializeField] private float currentHealth = -1f;
+    [SerializeField, Range(0f, 1f)] private float startingHealthPercent = 1f;
+    [SerializeField, Tooltip("When true, all incoming damage is ignored.")] private bool invulnerable = false;
 
-    //Assigns the variables from the health interfaces to variables in this class
-    float IHealthSystem.currentHP => health; 
-    float IHealthSystem.maxHP => maxHealth;
+    [Header("Death Handling")]
+    [SerializeField, Tooltip("Automatically restart from the active checkpoint when the player dies.")]
+    private bool restartFromCheckpointOnDeath = true;
+    [SerializeField, Tooltip("Destroy the player GameObject after death once cleanup logic runs.")]
+    private bool destroyPlayerOnDeath = false;
 
-    void Start()
+    [Header("Events")]
+    [SerializeField] private UnityEvent onDeath;
+    [SerializeField] private UnityEvent<float> onHealthChanged;
+    [SerializeField] private UnityEvent onTakeDamage;
+
+    public static PlayerHealthBarManager Instance { get; private set; }
+
+    float IHealthSystem.currentHP => CurrentHealth;
+    float IHealthSystem.maxHP => MaxHealth;
+
+    public float CurrentHealth => currentHealth;
+    public float MaxHealth => maxHealth;
+    public float NormalizedHealth => maxHealth <= 0f ? 0f : currentHealth / maxHealth;
+    public bool IsDead => isDead;
+
+    private bool isDead;
+
+    private void Awake()
     {
-        scene = SceneManager.GetActiveScene();
-        sceneName = scene.name;
-        
-        // Initialize health bar
-        if (healthBar != null)
+        if (Instance != null && Instance != this)
         {
-            healthBar.SetHealth(health, maxHealth);
+            Debug.LogWarning($"Duplicate {nameof(PlayerHealthBarManager)} detected on {name}. Destroying duplicate component.");
+            Destroy(this);
+            return;
         }
-        
-        // Initialize slider if assigned (backwards compatibility)
-        if (slider != null)
+
+        Instance = this;
+
+        if (currentHealth < 0f)
         {
-            slider.maxValue = maxHealth;
-            slider.value = health;
+            currentHealth = Mathf.Clamp(maxHealth * Mathf.Clamp01(startingHealthPercent), 0f, maxHealth);
         }
-        
-        if (!slider && !healthBar)
+
+        NotifyHealthChanged();
+        OnPlayerHealthRegistered?.Invoke(this);
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
         {
-            Debug.LogWarning($"{gameObject.name}: No health bar UI assigned!");
+            Instance = null;
+            OnPlayerHealthRegistered?.Invoke(null);
         }
     }
 
-    void Update()
-    {
-        Death();
-    }
-
-    //Grabs the function from the health interface, updates the health count, and updates the health bar
     public void HealHP(float hp)
     {
-        health += hp;
+        if (isDead || hp <= 0f)
+            return;
 
-        SetHealth();
+        float previous = currentHealth;
+        currentHealth = Mathf.Min(maxHealth, currentHealth + hp);
+        float actual = currentHealth - previous;
+        if (actual <= 0f)
+            return;
 
-        //prevents going over max health
-        if (health > maxHealth)
-        {
-            health = maxHealth;
-        }
+        OnPlayerHealed?.Invoke(actual);
+        NotifyHealthChanged();
     }
 
-    //Grabs the function from the health interface, updates the health count, and updates the health bar
     public void LoseHP(float damage)
     {
-        health -= damage;
-        
-        SetHealth();
+        if (isDead || invulnerable || damage <= 0f)
+            return;
 
-        if (damage > 0f)
-            OnPlayerDamaged?.Invoke(damage);
+        float previous = currentHealth;
+        currentHealth = Mathf.Max(0f, currentHealth - damage);
+        float actual = previous - currentHealth;
+        if (actual <= 0f)
+            return;
 
-        //detects if the gameobject has gone below their health count
-       
+        onTakeDamage?.Invoke();
+        OnPlayerDamaged?.Invoke(actual);
+        NotifyHealthChanged();
+
+        if (currentHealth <= 0f)
+        {
+            HandleDeath();
+        }
     }
 
-    //On death, if this is assigned to the player it will trigger game over. If it is on any other object however, they will be destroyed.
-    public void Death()
+    public void ForceFullHeal(bool notifyListeners = true)
     {
-        if (this.health <= 0)
+        isDead = false;
+        currentHealth = maxHealth;
+        if (notifyListeners)
         {
-            if (this.gameObject.tag == "Player")
-            {
-                // Don't reload the scene here! This causes infinite loading.
-                // Instead, trigger a game over state or use SceneLoader.RestartFromCheckpoint()
-                // For now, just log it and let the game over screen handle it
-                Debug.Log("[PlayerHealthBarManager] Player died! (Removed auto scene reload to prevent infinite loading)");
-                
-                // TODO: Trigger game over UI or call SceneLoader.Instance.RestartFromCheckpoint() once
-                // Make sure this only happens ONCE, not every frame!
-            }
-            else
-            {
-                Destroy(gameObject);
-            }
+            NotifyHealthChanged();
         }
     }
 
-    //sets the healthbar according to which function is done
-    public void SetHealth()
+    public void Revive(float percentOfMax = 1f)
     {
-        // Update new HealthBar (fillAmount based)
-        if (healthBar != null)
+        isDead = false;
+        currentHealth = Mathf.Clamp(maxHealth * Mathf.Clamp01(percentOfMax), 0f, maxHealth);
+        NotifyHealthChanged();
+    }
+
+    public void SetMaxHealth(float newMaxHealth)
+    {
+        maxHealth = Mathf.Max(1f, newMaxHealth);
+        currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
+        NotifyHealthChanged();
+    }
+    
+    public void SetCurrentHealth(float newCurrentHealth)
+    {
+        currentHealth = Mathf.Clamp(newCurrentHealth, 0f, maxHealth);
+        NotifyHealthChanged();
+
+        if (currentHealth <= 0f)
         {
-            healthBar.SetHealth(health, maxHealth);
-        }
-        
-        // Update old slider (backwards compatibility)
-        if (slider != null)
-        {
-            slider.value = health;
+            HandleDeath();
         }
     }
 
-    //saves and loads data from this script
     public void LoadData(GameData data)
     {
-        // Restore health from save
         maxHealth = data.maxHealth > 0 ? data.maxHealth : maxHealth;
-        health = Mathf.Clamp(data.health, 0, maxHealth);
-
-        // Push to UI safely
-        if (healthBar == null)
-        {
-            // Try to auto-bind if not wired in prefab
-            healthBar = FindAnyObjectByType<HealthBar>();
-        }
-        if (healthBar != null)
-        {
-            healthBar.SetHealth(health, maxHealth);
-        }
-        if (slider != null)
-        {
-            slider.maxValue = maxHealth;
-            slider.value = health;
-        }
+        currentHealth = Mathf.Clamp(data.health, 0f, maxHealth);
+        isDead = currentHealth <= 0f;
+        NotifyHealthChanged();
     }
 
     public void SaveData(GameData data)
     {
-        // Persist current health (prefer slider if present, else field)
         data.maxHealth = maxHealth;
-        data.health = slider != null ? slider.value : health;
+        data.health = currentHealth;
     }
 
-    //If the player collides with a trigger tagged with enemy, it'll gather it's hitbox damage amount and apply it to the player
-    private void OnTriggerEnter(Collider other)
+    private void HandleDeath()
     {
-        var hitbox = other.GetComponent<HitboxDamageManager>();
+        if (isDead)
+            return;
 
-        if(other.tag == "Enemy")
+        isDead = true;
+        currentHealth = 0f;
+
+        onDeath?.Invoke();
+        OnPlayerDied?.Invoke();
+
+        if (restartFromCheckpointOnDeath && SceneLoader.Instance != null)
         {
-            LoseHP(hitbox.damageAmount);
+            SceneLoader.Instance.RestartFromCheckpoint();
+        }
 
-            if(this.health <= 0)
-            {
-                Death();
-            }
+        if (destroyPlayerOnDeath)
+        {
+            Destroy(gameObject);
         }
     }
 
+    private void NotifyHealthChanged()
+    {
+        var snapshot = new HealthSnapshot(currentHealth, maxHealth);
+        onHealthChanged?.Invoke(snapshot.Normalized);
+        OnPlayerHealthChanged?.Invoke(snapshot);
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (!other.CompareTag("Enemy"))
+            return;
+
+        if (!other.TryGetComponent(out HitboxDamageManager hitbox))
+            return;
+
+        LoseHP(hitbox.damageAmount);
+    }
+
+    public void SetInvulnerable(bool value) => invulnerable = value;
 }

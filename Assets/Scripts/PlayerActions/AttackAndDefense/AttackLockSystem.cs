@@ -525,15 +525,9 @@ public class AttackLockSystem : MonoBehaviour
             return;
 
         float desiredYaw = Mathf.Atan2(flat.x, flat.z) * Mathf.Rad2Deg;
-        float desiredPitch = Mathf.Atan2(toTarget.y, flat.magnitude) * Mathf.Rad2Deg;
-
         float lerpFactor = instant ? 1f : Time.deltaTime / Mathf.Max(0.001f, cameraSnapTime);
-
         float nextYaw = Mathf.LerpAngle(orbital.HorizontalAxis.Value, desiredYaw, lerpFactor);
         orbital.HorizontalAxis.Value = nextYaw;
-
-        float nextPitch = Mathf.Lerp(orbital.VerticalAxis.Value, desiredPitch, lerpFactor);
-        orbital.VerticalAxis.Value = nextPitch;
     }
 
     private void FaceTargetImmediately(Transform target)

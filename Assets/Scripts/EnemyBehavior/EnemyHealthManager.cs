@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using Behaviors;
 using Stateless;
-using System.Diagnostics.Tracing;
+using System.Collections;
 
 public class EnemyHealthManager : MonoBehaviour, IHealthSystem
 {
@@ -30,6 +30,8 @@ public class EnemyHealthManager : MonoBehaviour, IHealthSystem
 
     private bool isDead = false;
     private BaseEnemy<EnemyState, EnemyTrigger> enemyScript;
+    private bool subscribedToStateMachine;
+    private Coroutine deathFallbackRoutine;
 
     // IHealthSystem implementation
     public float currentHP => currentHealth;
@@ -43,36 +45,19 @@ public class EnemyHealthManager : MonoBehaviour, IHealthSystem
         // Get reference to the enemy script on this GameObject
         enemyScript = GetComponent<BaseEnemy<EnemyState, EnemyTrigger>>();
 
-        
-        // If the enemy has a state machine, listen for transitions so we can react to the
-        // Death state when it is entered by the AI (for example external triggers like AlarmCarrier)
-        if (enemyScript != null && enemyScript.enemyAI != null)
-        {
-            try
-            {
-                enemyScript.enemyAI.OnTransitioned(t => {
-                    // When the state machine transitions to Death, invoke the death flow here.
-                    if (t.Destination.Equals(EnemyState.Death))
-                    {
-                        // Ensure we only run death logic once
-                        if (!isDead)
-                        {
-                            HandleStateMachineDeath();
-                        }
-                    }
-                });
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogWarning($"EnemyHealthManager: Failed to subscribe to enemy state transitions: {ex}");
-            }
-        }
+        TrySubscribeToEnemyStateMachine();
     }
 
     void Start()
     {
         // Notify listeners of initial health
         onHealthChanged?.Invoke(currentHealth / maxHealth);
+
+        // Some enemies hydrate their AI in Start/Awake order we don't control, so poll briefly.
+        if (!subscribedToStateMachine && enemyScript != null)
+        {
+            StartCoroutine(WaitForStateMachineAndSubscribe());
+        }
     }
 
     public void HealHP(float healAmount)
@@ -113,6 +98,10 @@ public class EnemyHealthManager : MonoBehaviour, IHealthSystem
                     // If we couldn't fire the trigger, fall back to immediate death handling
                     HandleStateMachineDeath();
                 }
+                else
+                {
+                    ScheduleDeathFallback();
+                }
             }
             else
             {
@@ -135,6 +124,12 @@ public class EnemyHealthManager : MonoBehaviour, IHealthSystem
     {
         if (isDead) return;
         isDead = true;
+
+        if (deathFallbackRoutine != null)
+        {
+            StopCoroutine(deathFallbackRoutine);
+            deathFallbackRoutine = null;
+        }
 
         Debug.Log($"{gameObject.name} entering death flow (handled by EnemyHealthManager)");
 
@@ -186,8 +181,62 @@ public class EnemyHealthManager : MonoBehaviour, IHealthSystem
         
         if (currentHealth <= 0f && !isDead)
         {
-
             Die();
         }
+    }
+
+    private void TrySubscribeToEnemyStateMachine()
+    {
+        if (subscribedToStateMachine || enemyScript == null)
+            return;
+
+        if (enemyScript.enemyAI == null)
+            return;
+
+        try
+        {
+            enemyScript.enemyAI.OnTransitioned(t =>
+            {
+                if (t.Destination.Equals(EnemyState.Death))
+                {
+                    HandleStateMachineDeath();
+                }
+            });
+            subscribedToStateMachine = true;
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogWarning($"EnemyHealthManager: Failed to subscribe to enemy state transitions: {ex}");
+        }
+    }
+
+    private IEnumerator WaitForStateMachineAndSubscribe()
+    {
+        const float timeout = 3f;
+        float elapsed = 0f;
+
+        while (!subscribedToStateMachine && enemyScript != null && enemyScript.enemyAI == null && elapsed < timeout)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        TrySubscribeToEnemyStateMachine();
+    }
+
+    private void ScheduleDeathFallback()
+    {
+        if (deathFallbackRoutine != null || isDead)
+            return;
+
+        deathFallbackRoutine = StartCoroutine(DeathFallbackRoutine());
+    }
+
+    private IEnumerator DeathFallbackRoutine()
+    {
+        // Allow time for the state machine to play its death animation before forcing a cleanup.
+        yield return new WaitForSeconds(4f);
+        deathFallbackRoutine = null;
+        HandleStateMachineDeath();
     }
 }
