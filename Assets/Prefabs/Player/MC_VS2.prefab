@@ -30,7 +30,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6654903344869591}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.00064486195, y: 0.99752456, z: -0.0697088, w: 0.009227896}
+  m_LocalRotation: {x: 0.00064486294, y: 0.9975245, z: -0.069708794, w: 0.009227911}
   m_LocalPosition: {x: -0.0071308613, y: 1.908, z: 3.6674573}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -6120,7 +6120,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2805375354941860047}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.08085531, y: 0.0000000010334033, z: -1.0727478e-10, w: 0.9967259}
+  m_LocalRotation: {x: 0.08085531, y: -3.122854e-11, z: 2.6331376e-12, w: 0.99672586}
   m_LocalPosition: {x: 0.054999948, y: 2.0579998, z: -3.872}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -6587,6 +6587,7 @@ GameObject:
   m_Component:
   - component: {fileID: 267604357236693129}
   - component: {fileID: 2401124706254803099}
+  - component: {fileID: 2443857838182241153}
   - component: {fileID: 2902241325345077673}
   - component: {fileID: 7264502727658182964}
   - component: {fileID: 8763132823076942836}
@@ -6642,6 +6643,29 @@ CharacterController:
   m_StepOffset: 0.3
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!136 &2443857838182241153
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2964100175291877921}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &2902241325345077673
 MonoBehaviour:
@@ -6771,9 +6795,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealthBarManager
   maxHealth: 100
-  health: 100
-  slider: {fileID: 0}
-  healthBar: {fileID: 0}
+  currentHealth: 100
+  startingHealthPercent: 1
+  invulnerable: 0
+  restartFromCheckpointOnDeath: 1
+  destroyPlayerOnDeath: 0
+  onDeath:
+    m_PersistentCalls:
+      m_Calls: []
+  onHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  onTakeDamage:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &2979153722578331197
 GameObject:
   m_ObjectHideFlags: 0
@@ -10880,8 +10915,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5221259598584668621}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.0006448617, y: 0.9975245, z: -0.069708794, w: 0.009227895}
-  m_LocalPosition: {x: -0.0071308613, y: 1.9080002, z: 3.6674652}
+  m_LocalRotation: {x: 0.0006448629, y: 0.9975245, z: -0.0697088, w: 0.009227911}
+  m_LocalPosition: {x: -0.0071310997, y: 1.9080002, z: 3.6674576}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

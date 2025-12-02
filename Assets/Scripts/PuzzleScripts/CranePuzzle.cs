@@ -224,8 +224,9 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
             // Skip if no part object assigned
             if (part.partObject == null) continue;
 
-            // Get current position
-            Vector3 currentPos = part.partObject.transform.position;
+            // Work entirely in local space so designer-entered limits are relative to the crane hierarchy
+            Transform partTransform = part.partObject.transform;
+            Vector3 currentPos = partTransform.localPosition;
             Vector3 newPos = currentPos;
 
             // Determine input mapping depending on swap controls bool
@@ -256,11 +257,11 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
             if (useLerp)
             {
                 float t = Mathf.Clamp01(lerpSpeed * Time.deltaTime);
-                part.partObject.transform.position = Vector3.Lerp(currentPos, newPos, t);
+                partTransform.localPosition = Vector3.Lerp(currentPos, newPos, t);
             }
             else
             {
-                part.partObject.transform.position = newPos;
+                partTransform.localPosition = newPos;
             }
         }
 
