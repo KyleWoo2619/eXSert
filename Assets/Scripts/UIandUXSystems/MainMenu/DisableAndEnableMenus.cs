@@ -39,7 +39,7 @@ public class DisableAndEnableMenus : MonoBehaviour
     [SerializeField] private FooterManager footer = null;
     [SerializeField] private bool isInGame;
 
-    
+    [InGameMenu]
     [SerializeField] private GameObject masterMenu;
 
     [IsCanvasAttached]
@@ -158,9 +158,9 @@ public class DisableAndEnableMenus : MonoBehaviour
                 Debug.LogWarning($"{nameof(DisableAndEnableMenus)}: pauseMenuUI is not assigned on '{name}'. Cannot return to pause menu.");
             }
         }
-        else
+        if (menuType == MenuType.SettingsBackButton && !isInGame)
         {
-            disableThisGameobject = subMenuManager.gameObject;
+            disableThisGameobject = subMenuManager.settingsMenu;
             SafeSetActive(disableThisGameobject, false);
 
             Debug.Log("Enabled Main Menu UI");

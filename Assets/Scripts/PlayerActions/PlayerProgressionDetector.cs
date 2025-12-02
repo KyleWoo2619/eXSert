@@ -13,7 +13,6 @@ public class PlayerProgressionDetector : Singleton<PlayerProgressionDetector>
         { 4, false }
     };
 
-
     protected override void Awake()
     {
         base.Awake();

@@ -1,6 +1,8 @@
 using UnityEngine;
 using TMPro;
 using System.ComponentModel;
+using Unity.VisualScripting;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -11,7 +13,7 @@ public class ShowIfNavigation : PropertyAttribute {}
 
 public class FooterManager : MonoBehaviour
 {
-    public enum footerTypes { Pause, Navigation, Settings }
+    public enum footerTypes { Pause, Navigation, Settings} 
 
     public footerTypes currentFooterType;
 
@@ -48,8 +50,6 @@ public class FooterManager : MonoBehaviour
     [ShowIfPause]
     [SerializeField] internal GameObject pauseUI;
 
-    [SerializeField] internal GameObject masterMenu;
-
     public void CheckForFooterUpdate()
     {
         if (logHolderUI.activeSelf)
@@ -81,7 +81,13 @@ public class FooterManager : MonoBehaviour
 
     private void Update()
     {
-        CheckForFooterUpdate();
+        if(currentFooterType != footerTypes.Settings){
+            CheckForFooterUpdate();
+        }
+        else 
+        {
+            return;
+        }
     }
 
 }
