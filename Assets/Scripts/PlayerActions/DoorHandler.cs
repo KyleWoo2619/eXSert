@@ -32,6 +32,7 @@ public class DoorHandler : MonoBehaviour
     private Quaternion targetDoorRot;
     private Vector3 targetPos;
 
+    [SerializeField] private float doorUpTarget;
     [SerializeField] private float openSpeed = 2f;
 
     private bool isOpening = false;
@@ -211,7 +212,7 @@ public class DoorHandler : MonoBehaviour
     // Coroutines for opening and closing the door upwards
     private IEnumerator OpenUpCoroutine()
     {
-        targetDoorPos = doorPosOrigin + new Vector3(0f, 2.2f, 0f);
+        targetDoorPos = doorPosOrigin + new Vector3(0f, doorUpTarget, 0f);
 
         if(this.transform.position == targetDoorPos)
         {
