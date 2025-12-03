@@ -26,6 +26,7 @@ public class SpawnPoint : MonoBehaviour
     private static readonly Dictionary<string, SpawnPoint> registry = new();
     private static readonly List<string> registryRemovals = new();
     private bool triggerConsumed;
+    private static string lastHealedCheckpointKey;
 
     public string SceneName => string.IsNullOrWhiteSpace(sceneNameOverride)
         ? gameObject.scene.name
@@ -114,6 +115,8 @@ public class SpawnPoint : MonoBehaviour
 
     private void ApplyCheckpointFromTrigger()
     {
+        TryHealPlayerAtCheckpoint();
+
         if (CheckpointSystem.Instance != null)
         {
             CheckpointSystem.Instance.SetCheckpoint(SceneName, spawnPointID);
@@ -124,6 +127,32 @@ public class SpawnPoint : MonoBehaviour
         }
 
         SpawnPoint.LogCheckpointSelection(name, spawnPointID, SceneName);
+    }
+
+    private void TryHealPlayerAtCheckpoint()
+    {
+        if (PlayerHealthBarManager.Instance == null)
+            return;
+
+        string key = GetCheckpointKey();
+        if (string.IsNullOrEmpty(key))
+            return;
+
+        if (key == lastHealedCheckpointKey)
+            return;
+
+        lastHealedCheckpointKey = key;
+        PlayerHealthBarManager.Instance.ForceFullHeal();
+        Debug.Log($"[SpawnPoint] Player healed to full at checkpoint '{spawnPointID}'.");
+    }
+
+    private string GetCheckpointKey()
+    {
+        if (string.IsNullOrWhiteSpace(spawnPointID))
+            return null;
+
+        string scenePart = string.IsNullOrWhiteSpace(SceneName) ? "<scene>" : SceneName;
+        return $"{scenePart}::{spawnPointID}";
     }
 
     private void EnsureColliderSetup()
