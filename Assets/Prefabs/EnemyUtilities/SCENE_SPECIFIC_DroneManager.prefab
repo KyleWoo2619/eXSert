@@ -44,7 +44,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 306b6b01f45f89c4ca69686ad1e48497, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DroneSwarmManager
-  spawningEnabled: 1
+  inspectorHelp: 'DroneSwarmManager: spawns clusters of DroneEnemy around given spawn
+    points.
+
+    Assign dronePrefab, clusterSpawnPoints, and tune dronesPerCluster/spawnRadius.
+
+    Integrates
+    with CrowdController and FlowFieldService for movement guidance.'
+  spawningEnabled: 0
   dronePrefab: {fileID: 2011934936876396235, guid: 29cb0f12faa4ec84ebf5afaa93a1598b, type: 3}
   dronesPerCluster: 4
   spawnRadius: 10

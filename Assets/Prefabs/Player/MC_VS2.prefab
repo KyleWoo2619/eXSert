@@ -6745,6 +6745,7 @@ MonoBehaviour:
   dashDistance: 6
   dashDuration: 0.5
   dashCoolDown: 0.5
+  defaultExternalStunDuration: 0.35
   launcherJumpVelocity: 12
   launcherForwardVelocity: 2.5
   invertYAxis: 0
@@ -6765,7 +6766,7 @@ MonoBehaviour:
   lockOnAngle: 30
   lockOnDistance: 10
   player: {fileID: 2964100175291877921}
-  playerMovement: {fileID: 0}
+  playerMovement: {fileID: 7264502727658182964}
   enemyLayers:
     serializedVersion: 2
     m_Bits: 256
@@ -6800,15 +6801,15 @@ MonoBehaviour:
   invulnerable: 0
   restartFromCheckpointOnDeath: 1
   destroyPlayerOnDeath: 0
-  onDeath:
-    m_PersistentCalls:
-      m_Calls: []
-  onHealthChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  onTakeDamage:
-    m_PersistentCalls:
-      m_Calls: []
+  deathFadeDelaySeconds: 3.5
+  deathFadeNormalizedThreshold: 0.95
+  flinchChance: 0.2
+  flinchLockSeconds: 0.35
+  animationController: {fileID: 2785025275053764537}
+  playerMovement: {fileID: 7264502727658182964}
+  attackManager: {fileID: 2399395865534960612}
+  healthBar: {fileID: 0}
+  debugDamageAmount: 100
 --- !u!1 &2979153722578331197
 GameObject:
   m_ObjectHideFlags: 0

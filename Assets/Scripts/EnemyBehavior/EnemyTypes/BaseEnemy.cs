@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Stateless;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.SceneManagement;
 
 // BaseEnemy is generic so derived classes can define their own states and triggers
 public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
@@ -67,6 +68,12 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     protected SphereCollider detectionCollider;
     [HideInInspector]
     public BoxCollider attackCollider;
+
+    [Header("Trigger Overrides")]
+    [SerializeField, Tooltip("Optional detection trigger. Leave empty to auto-create a trigger that matches Detection Range.")]
+    private SphereCollider detectionColliderOverride;
+    [SerializeField, Tooltip("Optional melee attack trigger. Leave empty to auto-create a trigger that matches Attack Box settings.")]
+    private BoxCollider attackColliderOverride;
     [HideInInspector]
     public bool isAttackBoxActive = false;
     [HideInInspector]
@@ -154,28 +161,15 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     // Awake is called when the script instance is being loaded
     protected virtual void Awake()
     {
-        // Ensure the GameObject has a NavMeshAgent component
-        // if (this.gameObject.GetComponent<NavMeshAgent>() == null)
-        // {
-        //     this.gameObject.AddComponent<NavMeshAgent>();
-        // }
+        SceneManager.sceneLoaded += HandleSceneLoaded;
+
         agent = this.gameObject.GetComponent<NavMeshAgent>();
-        // enemyAI and currentState should be initialized in the derived class
 
-        // Detection collider
-        // detectionCollider = gameObject.AddComponent<SphereCollider>();
-        // detectionCollider.isTrigger = true;
-        // detectionCollider.radius = detectionRange;
+        EnsureRigidBodyForTriggers();
+        EnsureDetectionCollider();
+        EnsureAttackCollider();
+        EnsurePlayerTargetReference();
 
-        // Attack collider
-        // attackCollider = gameObject.AddComponent<BoxCollider>();
-        // attackCollider.isTrigger = true;
-        // attackCollider.size = attackBoxSize;
-        // attackCollider.center = new Vector3(0f, attackBoxHeightOffset, attackBoxDistance);
-        // attackCollider.enabled = false; // Default off
-
-        // Automatically assign the capsule's MeshRenderer
-        // enemyRenderer = GetComponent<MeshRenderer>();
         animator = GetComponentInChildren<Animator>();
         if (animator == null)
         {
@@ -246,11 +240,111 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
             if (helper != null)
                 Destroy(helper);
         }
+
         externalHelperRoots.Clear();
+    }
+
+    private void EnsureRigidBodyForTriggers()
+    {
+        var rb = GetComponent<Rigidbody>();
+        if (rb == null)
+        {
+            rb = gameObject.AddComponent<Rigidbody>();
+            rb.useGravity = false;
+            rb.constraints = RigidbodyConstraints.FreezeRotation;
+        }
+
+        rb.isKinematic = true;
+    }
+
+    private void EnsureDetectionCollider()
+    {
+        detectionCollider = detectionColliderOverride ?? detectionCollider;
+
+        if (detectionCollider == null)
+        {
+            // Prefer an existing trigger sphere on this GameObject
+            detectionCollider = GetComponent<SphereCollider>();
+            if (detectionCollider != null && !detectionCollider.isTrigger)
+            {
+                detectionCollider = null;
+            }
+        }
+
+        if (detectionCollider == null)
+        {
+            var detectionRoot = new GameObject("DetectionTrigger");
+            detectionRoot.transform.SetParent(transform);
+            detectionRoot.transform.localPosition = Vector3.zero;
+            detectionRoot.transform.localRotation = Quaternion.identity;
+            detectionRoot.transform.localScale = Vector3.one;
+            detectionRoot.layer = gameObject.layer;
+            detectionCollider = detectionRoot.AddComponent<SphereCollider>();
+            detectionColliderOverride = detectionCollider;
+        }
+
+        detectionCollider.isTrigger = true;
+        detectionCollider.radius = detectionRange;
+    }
+
+    private void EnsureAttackCollider()
+    {
+        attackCollider = attackColliderOverride ?? attackCollider;
+
+        if (attackCollider == null)
+        {
+            // Prefer an existing trigger box on this GameObject
+            attackCollider = GetComponent<BoxCollider>();
+            if (attackCollider != null && !attackCollider.isTrigger)
+            {
+                attackCollider = null;
+            }
+        }
+
+        if (attackCollider == null)
+        {
+            var attackRoot = new GameObject("AttackTrigger");
+            attackRoot.transform.SetParent(transform);
+            attackRoot.transform.localPosition = Vector3.zero;
+            attackRoot.transform.localRotation = Quaternion.identity;
+            attackRoot.transform.localScale = Vector3.one;
+            attackRoot.layer = gameObject.layer;
+            attackCollider = attackRoot.AddComponent<BoxCollider>();
+            attackColliderOverride = attackCollider;
+        }
+
+        attackCollider.isTrigger = true;
+        attackCollider.size = attackBoxSize;
+        attackCollider.center = new Vector3(0f, attackBoxHeightOffset, attackBoxDistance);
+        attackCollider.enabled = false;
+    }
+
+    private void EnsurePlayerTargetReference()
+    {
+        if (playerTarget != null && playerTarget.gameObject != null)
+            return;
+
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj != null)
+        {
+            playerTarget = playerObj.transform;
+        }
+    }
+
+    private void EnsurePlayerTargetReference(Transform candidate)
+    {
+        if (candidate == null)
+            return;
+
+        if (playerTarget == null || playerTarget.gameObject == null || !playerTarget.gameObject.activeInHierarchy)
+        {
+            playerTarget = candidate;
+        }
     }
 
     protected virtual void OnDestroy()
     {
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
         CleanupExternalHelpers();
     }
 
@@ -499,6 +593,7 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
 
         if (other.CompareTag("Player"))
         {
+            EnsurePlayerTargetReference(other.transform);
             Debug.Log($"{gameObject.name} OnTriggerEnter with Player! Collider: {other.name}");
             
             // Check which collider is currently triggering this event
@@ -538,6 +633,7 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     {
         if (other.CompareTag("Player"))
         {
+            EnsurePlayerTargetReference(other.transform);
             if (detectionCollider != null && detectionCollider.enabled && detectionCollider.bounds.Contains(other.transform.position))
             {
                 // Only fire SeePlayer if not already in Chase
@@ -581,13 +677,21 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
 
     protected virtual void OnValidate()
     {
-        if (detectionCollider != null)
-            detectionCollider.radius = detectionRange;
-        if (attackCollider != null)
+        var detectionRef = detectionCollider != null ? detectionCollider : detectionColliderOverride;
+        if (detectionRef != null)
+            detectionRef.radius = detectionRange;
+
+        var attackRef = attackCollider != null ? attackCollider : attackColliderOverride;
+        if (attackRef != null)
         {
-            attackCollider.size = attackBoxSize;
-            attackCollider.center = new Vector3(0f, attackBoxHeightOffset, attackBoxDistance);
+            attackRef.size = attackBoxSize;
+            attackRef.center = new Vector3(0f, attackBoxHeightOffset, attackBoxDistance);
         }
+    }
+
+    private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        EnsurePlayerTargetReference();
     }
 }
 

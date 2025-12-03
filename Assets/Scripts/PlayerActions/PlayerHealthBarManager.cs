@@ -84,6 +84,7 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
     private Coroutine flinchRoutine;
     private Coroutine deathSequenceRoutine;
     private bool deathInputLockOwned;
+    private bool suppressNextFlinch;
 
     private void Awake()
     {
@@ -150,7 +151,10 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
         OnPlayerDamaged?.Invoke(actual);
         NotifyHealthChanged();
 
-        if (currentHealth > 0f)
+        bool skipFlinchThisHit = suppressNextFlinch;
+        suppressNextFlinch = false;
+
+        if (currentHealth > 0f && !skipFlinchThisHit)
         {
             TryTriggerFlinch();
         }
@@ -196,6 +200,11 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
         {
             HandleDeath();
         }
+    }
+
+    public void SuppressNextFlinch()
+    {
+        suppressNextFlinch = true;
     }
 
     public void LoadData(GameData data)

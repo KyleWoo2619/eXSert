@@ -9,6 +9,10 @@ public class EnemyProjectile : MonoBehaviour
 {
     [SerializeField] private float lifetime = 5f; // seconds
     [SerializeField] private float damage = 10f;  // default damage, can be set on spawn
+    [SerializeField, Tooltip("Optional: additional layers that should receive projectile damage.")]
+    private LayerMask damageLayers = 0;
+    [SerializeField, Tooltip("Tag that represents the player. Used as a fallback if layer masks are broad.")]
+    private string playerTag = "Player";
 
     // Optional: owner for drone-side pooling
     private DroneEnemy owner;
@@ -63,12 +67,57 @@ public class EnemyProjectile : MonoBehaviour
 
     private void HandleHit(Collider col)
     {
-        // Only react to the player for now; other collisions are ignored (lifetime handles cleanup)
-        if (col != null && col.CompareTag("Player"))
+        if (col == null)
+            return;
+
+        bool matchesTag = col.CompareTag(playerTag);
+        bool matchesLayer = damageLayers != 0 && IsDamageLayer(col.gameObject.layer);
+        if (!matchesTag && !matchesLayer)
+            return;
+
+        if (TryApplyDamage(col))
         {
-            Debug.Log($"[EnemyProjectile] Player hit by projectile: {name}");
+            Debug.Log($"[EnemyProjectile] Applied {damage} damage to {col.name}");
             DeactivateToPool();
         }
+    }
+
+    private bool TryApplyDamage(Collider col)
+    {
+        if (col.TryGetComponent<IHealthSystem>(out var healthSystem))
+        {
+            if (healthSystem is PlayerHealthBarManager playerHealth)
+            {
+                playerHealth.SuppressNextFlinch();
+            }
+            healthSystem.LoseHP(damage);
+            return true;
+        }
+
+        var healthParent = col.GetComponentInParent<IHealthSystem>();
+        if (healthParent != null)
+        {
+            if (healthParent is PlayerHealthBarManager parentPlayerHealth)
+            {
+                parentPlayerHealth.SuppressNextFlinch();
+            }
+            healthParent.LoseHP(damage);
+            return true;
+        }
+
+        if (col.CompareTag(playerTag) && PlayerHealthBarManager.Instance != null)
+        {
+            PlayerHealthBarManager.Instance.SuppressNextFlinch();
+            PlayerHealthBarManager.Instance.LoseHP(damage);
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool IsDamageLayer(int layer)
+    {
+        return (damageLayers.value & (1 << layer)) != 0;
     }
 
     private void DeactivateToPool()
