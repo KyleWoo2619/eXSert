@@ -1706,6 +1706,8 @@ MonoBehaviour:
   healthBarAnchor: {fileID: 0}
   healthBarInstance: {fileID: 0}
   attackCollider: {fileID: 0}
+  detectionColliderOverride: {fileID: 0}
+  attackColliderOverride: {fileID: 0}
   isAttackBoxActive: 0
   hasFiredLowHealth: 0
   externalHelperRoots: []
@@ -1931,6 +1933,8 @@ MonoBehaviour:
   healthBarAnchor: {fileID: 0}
   healthBarInstance: {fileID: 0}
   attackCollider: {fileID: 0}
+  detectionColliderOverride: {fileID: 0}
+  attackColliderOverride: {fileID: 0}
   isAttackBoxActive: 0
   hasFiredLowHealth: 0
   externalHelperRoots: []
@@ -4494,6 +4498,8 @@ MonoBehaviour:
   healthBarAnchor: {fileID: 0}
   healthBarInstance: {fileID: 0}
   attackCollider: {fileID: 0}
+  detectionColliderOverride: {fileID: 0}
+  attackColliderOverride: {fileID: 0}
   isAttackBoxActive: 0
   hasFiredLowHealth: 0
   externalHelperRoots: []
@@ -5067,6 +5073,8 @@ MonoBehaviour:
   healthBarAnchor: {fileID: 0}
   healthBarInstance: {fileID: 0}
   attackCollider: {fileID: 0}
+  detectionColliderOverride: {fileID: 0}
+  attackColliderOverride: {fileID: 0}
   isAttackBoxActive: 0
   hasFiredLowHealth: 0
   externalHelperRoots: []
@@ -9260,6 +9268,8 @@ MonoBehaviour:
   healthBarAnchor: {fileID: 0}
   healthBarInstance: {fileID: 0}
   attackCollider: {fileID: 0}
+  detectionColliderOverride: {fileID: 0}
+  attackColliderOverride: {fileID: 0}
   isAttackBoxActive: 0
   hasFiredLowHealth: 0
   externalHelperRoots: []
@@ -11860,7 +11870,7 @@ Transform:
   m_GameObject: {fileID: 650992520}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.6956, y: -0.96996, z: 97.18681}
+  m_LocalPosition: {x: 0.6956, y: -0.96996, z: 96.93287}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -14351,6 +14361,8 @@ MonoBehaviour:
   healthBarAnchor: {fileID: 0}
   healthBarInstance: {fileID: 0}
   attackCollider: {fileID: 0}
+  detectionColliderOverride: {fileID: 0}
+  attackColliderOverride: {fileID: 0}
   isAttackBoxActive: 0
   hasFiredLowHealth: 0
   externalHelperRoots: []
@@ -16229,6 +16241,8 @@ MonoBehaviour:
   healthBarAnchor: {fileID: 0}
   healthBarInstance: {fileID: 0}
   attackCollider: {fileID: 0}
+  detectionColliderOverride: {fileID: 0}
+  attackColliderOverride: {fileID: 0}
   isAttackBoxActive: 0
   hasFiredLowHealth: 0
   externalHelperRoots: []
@@ -17617,11 +17631,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 22338ac9022336243861f30a2b836c26, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.966
+      value: -1.07
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 22338ac9022336243861f30a2b836c26, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 84.93
+      value: 84.676056
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 22338ac9022336243861f30a2b836c26, type: 3}
       propertyPath: m_LocalRotation.w
@@ -21418,7 +21432,7 @@ Transform:
   m_GameObject: {fileID: 1098012263}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -9.67643, y: 4.4107, z: 87.80615}
+  m_LocalPosition: {x: -9.67643, y: 4.4107, z: 87.55221}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -22444,6 +22458,8 @@ MonoBehaviour:
   healthBarAnchor: {fileID: 0}
   healthBarInstance: {fileID: 0}
   attackCollider: {fileID: 0}
+  detectionColliderOverride: {fileID: 0}
+  attackColliderOverride: {fileID: 0}
   isAttackBoxActive: 0
   hasFiredLowHealth: 0
   externalHelperRoots: []
@@ -27539,6 +27555,8 @@ MonoBehaviour:
   healthBarAnchor: {fileID: 0}
   healthBarInstance: {fileID: 0}
   attackCollider: {fileID: 0}
+  detectionColliderOverride: {fileID: 0}
+  attackColliderOverride: {fileID: 0}
   isAttackBoxActive: 0
   hasFiredLowHealth: 0
   externalHelperRoots: []
@@ -27901,6 +27919,8 @@ MonoBehaviour:
   healthBarAnchor: {fileID: 0}
   healthBarInstance: {fileID: 0}
   attackCollider: {fileID: 0}
+  detectionColliderOverride: {fileID: 0}
+  attackColliderOverride: {fileID: 0}
   isAttackBoxActive: 0
   hasFiredLowHealth: 0
   externalHelperRoots: []
@@ -28842,88 +28862,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: ff6de3cdc6c377041a290ab057f6d8c7, type: 3}
   m_PrefabInstance: {fileID: 1508303327}
   m_PrefabAsset: {fileID: 0}
---- !u!1001 &1510558745
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 2106294509}
-    m_Modifications:
-    - target: {fileID: -8679921383154817045, guid: e5b032b197bd9174db88f813f6438a0b, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 0.98232
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e5b032b197bd9174db88f813f6438a0b, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 1.3266479
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e5b032b197bd9174db88f813f6438a0b, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 0.8572399
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e5b032b197bd9174db88f813f6438a0b, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -13.799461
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e5b032b197bd9174db88f813f6438a0b, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -5.468031
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e5b032b197bd9174db88f813f6438a0b, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 11.100021
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e5b032b197bd9174db88f813f6438a0b, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 0.70710665
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e5b032b197bd9174db88f813f6438a0b, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 5.494612e-14
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e5b032b197bd9174db88f813f6438a0b, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0.707107
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e5b032b197bd9174db88f813f6438a0b, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -1.8972968e-15
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e5b032b197bd9174db88f813f6438a0b, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e5b032b197bd9174db88f813f6438a0b, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: -90
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e5b032b197bd9174db88f813f6438a0b, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -7511558181221131132, guid: e5b032b197bd9174db88f813f6438a0b, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: f623cc053a516de4c9ea81b38e95a7af, type: 2}
-    - target: {fileID: 919132149155446097, guid: e5b032b197bd9174db88f813f6438a0b, type: 3}
-      propertyPath: m_Name
-      value: garage door arch
-      objectReference: {fileID: 0}
-    - target: {fileID: 919132149155446097, guid: e5b032b197bd9174db88f813f6438a0b, type: 3}
-      propertyPath: m_StaticEditorFlags
-      value: 65
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: e5b032b197bd9174db88f813f6438a0b, type: 3}
---- !u!4 &1510558746 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: e5b032b197bd9174db88f813f6438a0b, type: 3}
-  m_PrefabInstance: {fileID: 1510558745}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1512817654
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -29763,11 +29701,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 22338ac9022336243861f30a2b836c26, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.966
+      value: -1.07
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 22338ac9022336243861f30a2b836c26, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 54.1
+      value: 53.846054
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 22338ac9022336243861f30a2b836c26, type: 3}
       propertyPath: m_LocalRotation.w
@@ -31983,6 +31921,8 @@ MonoBehaviour:
   healthBarAnchor: {fileID: 0}
   healthBarInstance: {fileID: 0}
   attackCollider: {fileID: 0}
+  detectionColliderOverride: {fileID: 0}
+  attackColliderOverride: {fileID: 0}
   isAttackBoxActive: 0
   hasFiredLowHealth: 0
   externalHelperRoots: []
@@ -32777,7 +32717,7 @@ Transform:
   m_GameObject: {fileID: 1769901554}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.0694666, y: -1.0100508, z: 33.603455}
+  m_LocalPosition: {x: -2.0694666, y: -1.07, z: 33.34951}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -37887,63 +37827,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1357911731733883350, guid: 24dfe058bf31c0f419fe6e1dbef78c54, type: 3}
   m_PrefabInstance: {fileID: 1941420897}
   m_PrefabAsset: {fileID: 0}
---- !u!1001 &1948543486
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 267604357236693129, guid: 2f4b04b127b00fe4ba1e0aee5e2c8ddb, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 16.71
-      objectReference: {fileID: 0}
-    - target: {fileID: 267604357236693129, guid: 2f4b04b127b00fe4ba1e0aee5e2c8ddb, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.016
-      objectReference: {fileID: 0}
-    - target: {fileID: 267604357236693129, guid: 2f4b04b127b00fe4ba1e0aee5e2c8ddb, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 48.68
-      objectReference: {fileID: 0}
-    - target: {fileID: 267604357236693129, guid: 2f4b04b127b00fe4ba1e0aee5e2c8ddb, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 267604357236693129, guid: 2f4b04b127b00fe4ba1e0aee5e2c8ddb, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 267604357236693129, guid: 2f4b04b127b00fe4ba1e0aee5e2c8ddb, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 267604357236693129, guid: 2f4b04b127b00fe4ba1e0aee5e2c8ddb, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 267604357236693129, guid: 2f4b04b127b00fe4ba1e0aee5e2c8ddb, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 267604357236693129, guid: 2f4b04b127b00fe4ba1e0aee5e2c8ddb, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 267604357236693129, guid: 2f4b04b127b00fe4ba1e0aee5e2c8ddb, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2964100175291877921, guid: 2f4b04b127b00fe4ba1e0aee5e2c8ddb, type: 3}
-      propertyPath: m_Name
-      value: MC_VS2
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 2f4b04b127b00fe4ba1e0aee5e2c8ddb, type: 3}
 --- !u!1001 &1949016196
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -38968,6 +38851,8 @@ MonoBehaviour:
   healthBarAnchor: {fileID: 0}
   healthBarInstance: {fileID: 0}
   attackCollider: {fileID: 0}
+  detectionColliderOverride: {fileID: 0}
+  attackColliderOverride: {fileID: 0}
   isAttackBoxActive: 0
   hasFiredLowHealth: 0
   externalHelperRoots: []
@@ -40359,7 +40244,6 @@ Transform:
   - {fileID: 193485216}
   - {fileID: 1028178324}
   - {fileID: 972281774}
-  - {fileID: 1510558746}
   m_Father: {fileID: 119620136}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2111103438
@@ -40387,7 +40271,7 @@ Transform:
   m_GameObject: {fileID: 2111103438}
   serializedVersion: 2
   m_LocalRotation: {x: -0.0000004799417, y: 0.00000086426735, z: -0.00000018335332, w: 1}
-  m_LocalPosition: {x: -15.300192, y: 4.685806, z: 87.253944}
+  m_LocalPosition: {x: -15.300192, y: 4.61, z: 87}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -41472,4 +41356,3 @@ SceneRoots:
   - {fileID: 1098012264}
   - {fileID: 1583948775}
   - {fileID: 891445336}
-  - {fileID: 1948543486}
