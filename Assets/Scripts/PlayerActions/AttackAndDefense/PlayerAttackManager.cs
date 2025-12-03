@@ -14,6 +14,8 @@ public class PlayerAttackManager : MonoBehaviour
     [SerializeField] private AttackDatabase attackDatabase;
     [SerializeField] private CharacterController characterController;
     [SerializeField] private PlayerMovement playerMovement;
+    [SerializeField, Tooltip("Registry of VFX anchor points on the player rig.")]
+    private PlayerVfxAnchorRegistry vfxAnchorRegistry;
 
     [Header("Special Attacks")]
     [SerializeField] private PlayerAttack guardAttackOverride;
@@ -65,6 +67,7 @@ public class PlayerAttackManager : MonoBehaviour
         aerialComboManager ??= GetComponent<AerialComboManager>() ?? GetComponentInChildren<AerialComboManager>() ?? GetComponentInParent<AerialComboManager>();
         characterController ??= GetComponent<CharacterController>();
         playerMovement ??= GetComponent<PlayerMovement>() ?? GetComponentInChildren<PlayerMovement>() ?? GetComponentInParent<PlayerMovement>();
+        vfxAnchorRegistry ??= GetComponent<PlayerVfxAnchorRegistry>() ?? GetComponentInChildren<PlayerVfxAnchorRegistry>() ?? GetComponentInParent<PlayerVfxAnchorRegistry>();
 
         if (attackDatabase == null)
         {
@@ -414,9 +417,12 @@ public class PlayerAttackManager : MonoBehaviour
     {
         ClearHitbox();
 
-        activeHitbox = attack.createHitBox(transform.position, transform.forward);
+        attack.GetHitboxPose(transform.position, transform.forward, out var spawnPosition, out var spawnRotation);
+        activeHitbox = attack.CreateHitBoxAt(spawnPosition, spawnRotation);
         if (activeHitbox != null)
             activeHitbox.transform.SetParent(transform, worldPositionStays: true);
+
+        PlayAttackVfx(attack, spawnPosition, spawnRotation);
     }
 
     public void SpawnOneShotHitbox(string attackId, float activeDuration)
@@ -429,6 +435,56 @@ public class PlayerAttackManager : MonoBehaviour
         }
 
         TriggerHitboxWindow(attackData, Mathf.Max(0f, activeDuration));
+    }
+
+    private void PlayAttackVfx(PlayerAttack attack, Vector3 fallbackPosition, Quaternion fallbackRotation)
+    {
+        if (attack == null)
+            return;
+
+        bool spawnedAny = false;
+        foreach (var entry in attack.EnumerateAllVfx())
+        {
+            if (entry.Prefab == null)
+                continue;
+
+            spawnedAny = true;
+            SpawnVfxInstance(entry, fallbackPosition, fallbackRotation);
+        }
+
+        if (!spawnedAny && attack.hitVfxPrefab != null)
+        {
+            // Defensive fallback for legacy data if enumeration filtered everything out
+            SpawnVfxInstance(new PlayerAttack.VfxEntry(attack.hitVfxPrefab, attack.vfxAnchorId, attack.vfxLifetime), fallbackPosition, fallbackRotation);
+        }
+    }
+
+    private void SpawnVfxInstance(PlayerAttack.VfxEntry entry, Vector3 fallbackPosition, Quaternion fallbackRotation)
+    {
+        if (entry.Prefab == null)
+            return;
+
+        Transform anchor = vfxAnchorRegistry != null && !string.IsNullOrEmpty(entry.AnchorId)
+            ? vfxAnchorRegistry.ResolveAnchor(entry.AnchorId)
+            : null;
+
+        Vector3 spawnPosition = anchor != null ? anchor.position : fallbackPosition;
+        Quaternion spawnRotation = anchor != null ? anchor.rotation : fallbackRotation;
+
+        GameObject vfxInstance = Instantiate(entry.Prefab, spawnPosition, spawnRotation);
+        if (anchor != null)
+            vfxInstance.transform.SetParent(anchor, worldPositionStays: true);
+        else
+            vfxInstance.transform.SetParent(transform, worldPositionStays: true);
+
+        float lifetime = entry.Lifetime;
+        if (lifetime >= 0f)
+        {
+            if (lifetime == 0f)
+                Destroy(vfxInstance);
+            else
+                Destroy(vfxInstance, lifetime);
+        }
     }
 
     private void TriggerHitboxWindow(PlayerAttack attack, float overrideDuration)

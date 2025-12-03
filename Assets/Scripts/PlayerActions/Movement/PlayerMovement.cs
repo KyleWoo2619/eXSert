@@ -31,6 +31,9 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private PlayerAnimationController animationController;
     [SerializeField] private PlayerAttackManager attackManager;
 
+    public event Action DoubleJumpPerformed;
+    public event Action AirDashPerformed;
+
     [Header("Input")]
     [SerializeField] private InputActionReference _jumpAction;
     [SerializeField] private InputActionReference _dashAction;
@@ -459,6 +462,7 @@ public class PlayerMovement : MonoBehaviour
             fallingAnimationPlaying = false;
             highFallActive = true;
             animationController?.PlayAirJumpStart();
+            DoubleJumpPerformed?.Invoke();
         }
     }
 
@@ -492,6 +496,7 @@ public class PlayerMovement : MonoBehaviour
             airDashAvailable = false;
             aerialComboManager?.TryAirDash();
             attackManager?.TriggerAirDashAttack();
+            AirDashPerformed?.Invoke();
         }
 
         if (dashDirection.sqrMagnitude > 0.0001f)

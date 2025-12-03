@@ -389,13 +389,14 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
 
     private void OnTriggerEnter(Collider other)
     {
+        // Only react to colliders that are both enemies and expose attack data
         if (!other.CompareTag("Enemy"))
             return;
 
-        if (!other.TryGetComponent(out HitboxDamageManager hitbox))
+        if (!other.TryGetComponent<IAttackSystem>(out var attack))
             return;
 
-        LoseHP(hitbox.damageAmount);
+        LoseHP(attack.damageAmount);
     }
 
     public void SetInvulnerable(bool value) => invulnerable = value;

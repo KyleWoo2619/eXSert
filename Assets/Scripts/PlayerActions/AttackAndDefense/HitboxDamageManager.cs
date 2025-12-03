@@ -13,13 +13,22 @@ using UnityEngine;
 [RequireComponent(typeof(BoxCollider))]
 public class HitboxDamageManager : MonoBehaviour, IAttackSystem
 {
-    [SerializeField] internal string weaponName = "";
-    [SerializeField] internal float damageAmount;
+    [SerializeField] private string weaponName = "";
+    [SerializeField] private float damageAmount;
+    [SerializeField, Tooltip("Maximum unique enemies this hitbox may damage per activation. 0 = unlimited.")]
+    private int maxTargetsPerActivation;
 
     private BoxCollider boxCollider;
     private HashSet<int> hitThisActivation = new HashSet<int>(); // Track which enemies were hit during this activation
     float IAttackSystem.damageAmount => damageAmount;
     string IAttackSystem.weaponName => weaponName;
+    public void Configure(string weapon, float damage, int maxTargets)
+    {
+        weaponName = weapon;
+        damageAmount = damage;
+        maxTargetsPerActivation = Mathf.Max(0, maxTargets);
+    }
+
 
     void Awake()
     {
@@ -101,6 +110,11 @@ public class HitboxDamageManager : MonoBehaviour, IAttackSystem
             return;
         }
         
+        if (maxTargetsPerActivation > 0 && hitThisActivation.Count >= maxTargetsPerActivation)
+        {
+            return;
+        }
+
         // Additional safety: Don't hit the player even if they somehow have "Enemy" tag
         if (other.CompareTag("Player") || other.transform.root.CompareTag("Player"))
         {

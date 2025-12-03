@@ -53,6 +53,7 @@ public class PlayerCombatIdleController : MonoBehaviour
     private string lastStateName = string.Empty;
     private IdlePose currentPose = IdlePose.Breathing;
     private bool inputBusyLastFrame;
+    private bool guardActiveLastFrame;
 
     private void Awake()
     {
@@ -110,6 +111,23 @@ public class PlayerCombatIdleController : MonoBehaviour
     {
         if (animationController == null)
             return;
+
+        bool guardActive = CombatManager.isGuarding;
+        if (guardActive)
+        {
+            guardActiveLastFrame = true;
+            ResetBreathingTimer();
+            if (weaponCheckActive)
+                CancelWeaponCheck(false);
+            return;
+        }
+
+        if (guardActiveLastFrame)
+        {
+            guardActiveLastFrame = false;
+            lastIdleKey = string.Empty;
+            lastStateName = string.Empty;
+        }
 
         bool inputBusy = InputReader.inputBusy;
         if (inputBusy)
