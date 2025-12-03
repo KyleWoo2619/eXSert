@@ -128,6 +128,7 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
             craneUI[0].SetActive(true);
         }
 
+        _escapePuzzleAction.action.Enable(); // Make sure enabled
         puzzleActive = true;
 
         // Prevent player input reads (used across movement, dash, etc.); Jump still wont deactivate idk why
@@ -267,6 +268,7 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
 
         if(isCompleted || _escapePuzzleAction != null && _escapePuzzleAction.action != null && _escapePuzzleAction.action.triggered)
         {
+            Debug.Log("Escape triggered");
             EndPuzzle();
         }
     }
