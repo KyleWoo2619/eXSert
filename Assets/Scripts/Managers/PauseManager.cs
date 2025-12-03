@@ -36,8 +36,9 @@ public class PauseManager : Singletons.Singleton<PauseManager>
     private ActiveMenu currentActiveMenu = ActiveMenu.None;
     private bool settingsMenuOpen = false;
 
-    private void Awake()
+    protected override void Awake()
     {
+        base.Awake();
         HideAllMenus();
     }
 

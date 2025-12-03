@@ -39,15 +39,12 @@ public class DataPersistenceManager : Singletons.Singleton<DataPersistenceManage
 
     
 
-    private void Awake()
+    protected override void Awake()
     {
-        //If a DataPersistenceManager already exists in the scene and error is returned
-        if(instance != null)
-        {
-            Debug.LogError("Found another manager in the scene");
-            Destroy(this.gameObject);
+        base.Awake();
+
+        if (Instance != this)
             return;
-        }
 
         if (disableDataPersistence)
         {
@@ -55,8 +52,6 @@ public class DataPersistenceManager : Singletons.Singleton<DataPersistenceManage
         }
 
         instance = this;
-
-        DontDestroyOnLoad(this.gameObject);
 
         //Defines the save file
         this.fileDataHandler = new FileDataHandler(Application.persistentDataPath, fileName);

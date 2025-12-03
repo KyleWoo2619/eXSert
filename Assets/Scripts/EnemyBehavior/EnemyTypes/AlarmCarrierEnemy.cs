@@ -401,8 +401,10 @@ public class AlarmCarrierEnemy : BaseEnemy<AlarmCarrierState, AlarmCarrierTrigge
         }
     }
 
-    private void OnDestroy()
+    protected override void OnDestroy()
     {
+        base.OnDestroy();
+
         if (spawnCoroutine != null)
             StopCoroutine(spawnCoroutine);
         if (alarmCountdownCoroutine != null)
