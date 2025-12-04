@@ -42,7 +42,10 @@ public class PlayerAttackManager : MonoBehaviour
     [SerializeField, Tooltip("Cross-fade duration when exiting a plunge into combat idle.")]
     [Range(0f, 1f)] private float plungeIdleBlendTime = 0.25f;
 
-    private AudioSource sfxSource;
+    [Header("Audio")]
+    [SerializeField, Tooltip("Primary AudioSource for attack and stance SFX. Defaults to SoundManager's SFX source when unset.")]
+    private AudioSource attackAudioSource;
+    private AudioSource fallbackSfxSource;
     private Coroutine stanceCooldownRoutine;
     private GameObject activeHitbox;
     private PlayerAttack currentAttack;
@@ -79,7 +82,14 @@ public class PlayerAttackManager : MonoBehaviour
 
     private void Start()
     {
-        sfxSource = SoundManager.Instance != null ? SoundManager.Instance.sfxSource : null;
+        fallbackSfxSource = SoundManager.Instance != null ? SoundManager.Instance.sfxSource : null;
+
+        if (attackAudioSource == null)
+        {
+            attackAudioSource = GetComponent<AudioSource>()
+                ?? GetComponentInChildren<AudioSource>()
+                ?? fallbackSfxSource;
+        }
     }
 
     private void OnDisable()
@@ -213,8 +223,7 @@ public class PlayerAttackManager : MonoBehaviour
 
         CombatManager.ChangeStance();
 
-        if (changeStanceAudio != null && sfxSource != null)
-            sfxSource.PlayOneShot(changeStanceAudio);
+        PlaySfx(changeStanceAudio);
 
         stanceCooldownRoutine = StartCoroutine(StanceChangeCooldown());
     }
@@ -373,12 +382,7 @@ public class PlayerAttackManager : MonoBehaviour
         currentAttack = attackData;
         InputReader.inputBusy = true;
 
-        if (attackData.attackSFX != null)
-        {
-            AudioSource attackSource = attackData._sfxSource;
-            if (attackSource != null)
-                attackSource.PlayOneShot(attackData.attackSFX);
-        }
+        PlaySfx(attackData.attackSFX);
 
         if (animationOverride != null)
             animationOverride(animationController);
@@ -396,6 +400,18 @@ public class PlayerAttackManager : MonoBehaviour
             return characterController.isGrounded;
 
         return PlayerMovement.isGrounded;
+    }
+
+    private void PlaySfx(AudioClip clip)
+    {
+        if (clip == null)
+            return;
+
+        var source = attackAudioSource != null ? attackAudioSource : fallbackSfxSource;
+        if (source == null)
+            return;
+
+        source.PlayOneShot(clip);
     }
 
     private void ClearHitbox()

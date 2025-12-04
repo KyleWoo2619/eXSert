@@ -1,14 +1,19 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 public class PauseManager : Singletons.Singleton<PauseManager>
 {
+    protected override bool ShouldPersistAcrossScenes => false;
+
     [Header("UI GameObjects")]
     [SerializeField] private GameObject pauseMenuHolder;
     [SerializeField] private GameObject navigationMenuHolder;
     [SerializeField] private GameObject settingsMenuContainer;
     [SerializeField, Tooltip("Root canvas or parent that contains the in-game HUD (hide when menus are open).")]
     private GameObject playerHUDRoot;
+    [SerializeField, Tooltip("Optional fallback name used to rebind the HUD root after scene reloads. Leave blank to capture from the initial reference.")]
+    private string playerHUDRootNameHint;
 
     [Header("Back Button Blockers")]
     [SerializeField, Tooltip("If any of these are active while the pause menu is up, Back should not resume the game.")]
@@ -39,6 +44,7 @@ public class PauseManager : Singletons.Singleton<PauseManager>
     protected override void Awake()
     {
         base.Awake();
+        CacheHudRootName();
         HideAllMenus();
     }
 
@@ -67,6 +73,8 @@ public class PauseManager : Singletons.Singleton<PauseManager>
             Debug.LogWarning($"Back Input Action Reference is not set in the inspector. UI/Back won't work properly");
         else
             _backActionReference.action.performed += OnBackButton;
+
+        SceneManager.sceneLoaded += HandleSceneLoaded;
     }
 
     private void OnDisable()
@@ -82,6 +90,14 @@ public class PauseManager : Singletons.Singleton<PauseManager>
 
         if (_backActionReference != null && _backActionReference.action != null)
             _backActionReference.action.performed -= OnBackButton;
+
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
+    }
+
+    private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        TryResolveHudRoot();
+        HideAllMenus();
     }
 
     private void OnPause(InputAction.CallbackContext context)
@@ -322,11 +338,43 @@ public class PauseManager : Singletons.Singleton<PauseManager>
 
     private void SetHUDVisible(bool visible)
     {
-        if (playerHUDRoot == null)
+        if (!TryResolveHudRoot())
             return;
 
-        playerHUDRoot.SetActive(visible);
+        if (playerHUDRoot.activeSelf != visible)
+            playerHUDRoot.SetActive(visible);
     }
+
+    private bool TryResolveHudRoot()
+    {
+        if (playerHUDRoot != null)
+            return true;
+
+        if (string.IsNullOrEmpty(playerHUDRootNameHint))
+            return false;
+
+        var candidate = GameObject.Find(playerHUDRootNameHint);
+        if (candidate == null)
+            return false;
+
+        playerHUDRoot = candidate;
+        CacheHudRootName();
+        return true;
+    }
+
+    private void CacheHudRootName()
+    {
+        if (playerHUDRoot != null && string.IsNullOrEmpty(playerHUDRootNameHint))
+            playerHUDRootNameHint = playerHUDRoot.name;
+    }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        if (!Application.isPlaying)
+            CacheHudRootName();
+    }
+#endif
 
     private bool HasBlockingSubmenuActive()
     {

@@ -240,8 +240,6 @@ namespace Utilities.Combat.Attacks
         private AudioClip _hitSFX;
         public AudioClip hitSFX { get => _hitSFX; }
 
-        internal AudioSource _sfxSource { get => SoundManager.Instance.sfxSource; }
-
         // ---------------------------------------------------------------------------------------------
 
         // Creates and returns a hitbox GameObject for this attack at the specified position and forward direction

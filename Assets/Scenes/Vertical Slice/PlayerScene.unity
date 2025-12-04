@@ -773,17 +773,17 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 206061413}
-  m_LocalRotation: {x: -0.00000036174706, y: 0.00000009692565, z: 0.25881952, w: -0.96592575}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: 0.00000037450704, y: 3.858247e-12, z: -0.0000009536743, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -0.000020129}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 953008037}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -30}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 20.200012, y: 17}
-  m_SizeDelta: {x: 30.518616, y: 113.55902}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0.0000076293945, y: 0}
+  m_SizeDelta: {x: 1, y: 1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &206061415
 MonoBehaviour:
@@ -805,7 +805,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 2ef957fa54aa41f4f94b568e644630b1, type: 3}
+  m_Sprite: {fileID: -338674022, guid: a5eb0c9f5fb5c2343bc55bda65b7a2d2, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -2211,10 +2211,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 953008037}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 20.2, y: 17}
-  m_SizeDelta: {x: 67.07483, y: 94.21753}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: -0.000011444092, y: 0}
+  m_SizeDelta: {x: 1, y: 1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &546223674
 MonoBehaviour:
@@ -2236,7 +2236,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 15f06fe360b0857489dc5d4c13a31d7c, type: 3}
+  m_Sprite: {fileID: -1420440062, guid: a5eb0c9f5fb5c2343bc55bda65b7a2d2, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -3312,7 +3312,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 377.7, y: 182.3}
-  m_SizeDelta: {x: 103.792, y: 126.3508}
+  m_SizeDelta: {x: 125, y: 125}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &953008038
 MonoBehaviour:
@@ -7227,6 +7227,10 @@ PrefabInstance:
       propertyPath: m_TagString
       value: Untagged
       objectReference: {fileID: 0}
+    - target: {fileID: 2399395865534960612, guid: 2f4b04b127b00fe4ba1e0aee5e2c8ddb, type: 3}
+      propertyPath: attackAudioSource
+      value: 
+      objectReference: {fileID: 1891374769}
     - target: {fileID: 2447881676726433363, guid: 2f4b04b127b00fe4ba1e0aee5e2c8ddb, type: 3}
       propertyPath: m_Layer
       value: 0
@@ -8907,6 +8911,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c34e62e92a160484aa309c223b8a1e94, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
+--- !u!82 &1891374769 stripped
+AudioSource:
+  m_CorrespondingSourceObject: {fileID: 7795024838701006850, guid: 2f4b04b127b00fe4ba1e0aee5e2c8ddb, type: 3}
+  m_PrefabInstance: {fileID: 1891374767}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1942838196
 GameObject:
   m_ObjectHideFlags: 0
