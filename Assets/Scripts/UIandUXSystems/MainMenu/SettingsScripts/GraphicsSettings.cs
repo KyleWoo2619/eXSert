@@ -26,6 +26,7 @@ public class GraphicsSettings : MonoBehaviour
     [SerializeField] private Image uiBrightnessOverlay;
     private float brightnessLevel;
     internal ColorAdjustments colorAdjustments;
+    [SerializeField] private Slider staticSlider = null;
     
 
     [Header("Display Mode Settings")]
@@ -85,6 +86,7 @@ public class GraphicsSettings : MonoBehaviour
     {
         brightnessLevel = brightness;
         
+        // Defer updating the static/read-only brightness slider until Apply is pressed.
         // Set post-processing brightness
         colorAdjustments.postExposure.value = (brightness - defaultBrightness) * 2f;
         
@@ -214,6 +216,10 @@ public class GraphicsSettings : MonoBehaviour
     public void GraphicsApply()
     {
         PlayerPrefs.SetFloat("masterBrightness", brightnessLevel);
+
+        // Update static/read-only brightness slider to reflect the applied value
+        if (staticSlider != null)
+            staticSlider.value = brightnessLevel;
 
         PlayerPrefs.SetInt("masterFPS", fpsLevel);
         Application.targetFrameRate = fpsLevel;
