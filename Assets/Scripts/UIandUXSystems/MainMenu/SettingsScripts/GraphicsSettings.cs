@@ -22,7 +22,11 @@ public class GraphicsSettings : MonoBehaviour
     [Header("Brightness Settings")]
     [SerializeField] private Slider brightnessSlider = null;
     [SerializeField] private float defaultBrightness = .75f;
+    
+    [CriticalReference]
     [SerializeField] internal Volume postProcessVolume;
+    
+    [CriticalReference]
     [SerializeField] private Image uiBrightnessOverlay;
     private float brightnessLevel;
     internal ColorAdjustments colorAdjustments;

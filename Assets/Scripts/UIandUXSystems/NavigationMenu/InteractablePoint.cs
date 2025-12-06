@@ -43,21 +43,24 @@ public class InteractablePoint : MonoBehaviour
     [SerializeField] private ScriptableObject collectibleInfo; // Only shows when InteractType is Log or Diary
 
     [SerializeField] private InputActionReference _interactAction;
+
+    [CriticalReference]
     [SerializeField] private TextMeshProUGUI interractableText;
 
+    [CriticalReference]
     [SerializeField] private Image interactGamePadIcon;
     
     [ShowIfPuzzle]
     [SerializeField] private AnimationClip interactAnimation; // Only shows when InteractType is Puzzle
 
-    [ShowIfPuzzle]
+    [ShowIfPuzzle] [CriticalReference]
     [SerializeField] private GameObject puzzleHandler; // Only shows when InteractType is Puzzle
     private bool playerIsNear = false;
     
     [ShowIfCollectible]
     [SerializeField] private string collectibleId;
 
-    [ShowIfDoor]
+    [ShowIfDoor] [CriticalReference]
     [SerializeField] private GameObject doorComponent; // Only shows when InteractType is Door
     // Mark that this interactable has already been used to prevent re-showing
     private bool interacted = false;
