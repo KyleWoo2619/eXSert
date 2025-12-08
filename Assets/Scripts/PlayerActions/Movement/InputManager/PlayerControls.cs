@@ -821,6 +821,24 @@ namespace eXsert
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Increase"",
+                    ""type"": ""Button"",
+                    ""id"": ""5f09808d-e12c-4679-9223-a7f14bcf62f1"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Decrease"",
+                    ""type"": ""Button"",
+                    ""id"": ""6d320aa9-9476-41fc-a918-a5bc99f3a422"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -1219,6 +1237,50 @@ namespace eXsert
                     ""action"": ""LoadingZoom"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""7f8fe8a9-a01c-46d7-ba04-c4a6b8fa6b88"",
+                    ""path"": ""<Gamepad>/leftStick/right"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Increase"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""a2bbcbe4-bb31-4093-9d41-da05eb713c6b"",
+                    ""path"": ""<Gamepad>/dpad/right"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Increase"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""8fee142f-81b7-473b-8e21-e916114f1726"",
+                    ""path"": ""<Gamepad>/leftStick/left"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Decrease"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""76b58b7a-de1a-46f6-9c8a-709952e23108"",
+                    ""path"": ""<Gamepad>/dpad/left"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Decrease"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         },
@@ -1347,6 +1409,8 @@ namespace eXsert
             m_UI_Swap = m_UI.FindAction("Swap", throwIfNotFound: true);
             m_UI_LoadingLook = m_UI.FindAction("LoadingLook", throwIfNotFound: true);
             m_UI_LoadingZoom = m_UI.FindAction("LoadingZoom", throwIfNotFound: true);
+            m_UI_Increase = m_UI.FindAction("Increase", throwIfNotFound: true);
+            m_UI_Decrease = m_UI.FindAction("Decrease", throwIfNotFound: true);
             // CameraControls
             m_CameraControls = asset.FindActionMap("CameraControls", throwIfNotFound: true);
             m_CameraControls_MouseZoom = m_CameraControls.FindAction("MouseZoom", throwIfNotFound: true);
@@ -1723,6 +1787,8 @@ namespace eXsert
         private readonly InputAction m_UI_Swap;
         private readonly InputAction m_UI_LoadingLook;
         private readonly InputAction m_UI_LoadingZoom;
+        private readonly InputAction m_UI_Increase;
+        private readonly InputAction m_UI_Decrease;
         /// <summary>
         /// Provides access to input actions defined in input action map "UI".
         /// </summary>
@@ -1762,6 +1828,14 @@ namespace eXsert
             /// Provides access to the underlying input action "UI/LoadingZoom".
             /// </summary>
             public InputAction @LoadingZoom => m_Wrapper.m_UI_LoadingZoom;
+            /// <summary>
+            /// Provides access to the underlying input action "UI/Increase".
+            /// </summary>
+            public InputAction @Increase => m_Wrapper.m_UI_Increase;
+            /// <summary>
+            /// Provides access to the underlying input action "UI/Decrease".
+            /// </summary>
+            public InputAction @Decrease => m_Wrapper.m_UI_Decrease;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
@@ -1809,6 +1883,12 @@ namespace eXsert
                 @LoadingZoom.started += instance.OnLoadingZoom;
                 @LoadingZoom.performed += instance.OnLoadingZoom;
                 @LoadingZoom.canceled += instance.OnLoadingZoom;
+                @Increase.started += instance.OnIncrease;
+                @Increase.performed += instance.OnIncrease;
+                @Increase.canceled += instance.OnIncrease;
+                @Decrease.started += instance.OnDecrease;
+                @Decrease.performed += instance.OnDecrease;
+                @Decrease.canceled += instance.OnDecrease;
             }
 
             /// <summary>
@@ -1841,6 +1921,12 @@ namespace eXsert
                 @LoadingZoom.started -= instance.OnLoadingZoom;
                 @LoadingZoom.performed -= instance.OnLoadingZoom;
                 @LoadingZoom.canceled -= instance.OnLoadingZoom;
+                @Increase.started -= instance.OnIncrease;
+                @Increase.performed -= instance.OnIncrease;
+                @Increase.canceled -= instance.OnIncrease;
+                @Decrease.started -= instance.OnDecrease;
+                @Decrease.performed -= instance.OnDecrease;
+                @Decrease.canceled -= instance.OnDecrease;
             }
 
             /// <summary>
@@ -2197,6 +2283,20 @@ namespace eXsert
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnLoadingZoom(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "Increase" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnIncrease(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "Decrease" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnDecrease(InputAction.CallbackContext context);
         }
         /// <summary>
         /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "CameraControls" which allows adding and removing callbacks.

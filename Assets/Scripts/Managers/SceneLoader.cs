@@ -16,7 +16,7 @@ using Utilities.Combat;
 public class SceneLoader : Singleton<SceneLoader>
 {
     [Header("Scene Names")]
-    [SerializeField] private string mainMenuSceneName = "VS_MainMenu";
+    [SerializeField] private string mainMenuSceneName = "MainMenu";
     
     [Header("Player Scene")]
     [SerializeField, Tooltip("Scene that contains the player prefab, UI, and related managers. This scene stays loaded during gameplay.")]
