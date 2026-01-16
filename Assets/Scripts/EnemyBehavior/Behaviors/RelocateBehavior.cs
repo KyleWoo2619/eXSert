@@ -48,6 +48,13 @@ namespace Behaviors
         public virtual void Tick(BaseEnemy<TState, TTrigger> enemy) { }
         private Zone[] GetOtherZones()
         {
+            // Use ZoneManager if available for cached zones (avoids FindObjectsByType allocation)
+            if (ZoneManager.Instance != null)
+            {
+                return ZoneManager.Instance.GetOtherZones(enemy.currentZone);
+            }
+            
+            // Fallback to FindObjectsByType if ZoneManager not present
             Zone[] allZones = Object.FindObjectsByType<Zone>(FindObjectsSortMode.None);
             if (enemy.currentZone == null)
                 return allZones;

@@ -295,11 +295,11 @@ public class BombCarrierEnemy : BaseEnemy<BombStates, BombTriggers>, IPocketSpaw
                     agent.isStopped = true;
                     // Wait for a random delay before leaping
                     float delay = Random.Range(stopBeforeLeapDelayRange.x, stopBeforeLeapDelayRange.y);
-                    yield return new WaitForSeconds(delay);
+                    yield return WaitForSecondsCache.Get(delay);
 
                     Vector3 leapDir = (PlayerTarget.position - transform.position).normalized;
                     agent.velocity = leapDir * leapForce;
-                    yield return new WaitForSeconds(0.3f);
+                    yield return WaitForSecondsCache.Get(0.3f);
                     break;
                 }
             }
@@ -363,7 +363,7 @@ public class BombCarrierEnemy : BaseEnemy<BombStates, BombTriggers>, IPocketSpaw
 
     private IEnumerator EnableExplosionAfterCooldown()
     {
-        yield return new WaitForSeconds(postPocketExplodeCooldown);
+        yield return WaitForSecondsCache.Get(postPocketExplodeCooldown);
         canExplode = true;
     }
     private void Explode()
@@ -407,7 +407,7 @@ public class BombCarrierEnemy : BaseEnemy<BombStates, BombTriggers>, IPocketSpaw
         }
         // Optionally disable NavMeshAgent, scripts, etc.
 
-        yield return new WaitForSeconds(delay);
+        yield return WaitForSecondsCache.Get(delay);
 
         Destroy(gameObject);
     }

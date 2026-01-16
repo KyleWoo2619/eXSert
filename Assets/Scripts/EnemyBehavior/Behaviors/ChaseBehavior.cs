@@ -16,10 +16,16 @@ namespace Behaviors
         private BaseEnemy<TState, TTrigger> enemy;
         private Transform playerTarget;
 
+        // Cache the state value once (add at class level)
+        private TState chaseStateValue;
+
         public virtual void OnEnter(BaseEnemy<TState, TTrigger> enemy)
         {
             this.enemy = enemy;
             playerTarget = enemy.PlayerTarget;
+
+            // Cache the Chase state value for this enum type
+            chaseStateValue = (TState)System.Enum.Parse(typeof(TState), "Chase");
 
             // Special handling for BaseCrawlerEnemy with ForceChasePlayer
             if (enemy is BaseCrawlerEnemy crawler && crawler.ForceChasePlayer)
@@ -114,17 +120,18 @@ namespace Behaviors
                 }
                 // else: do NOT fire Flee, keep swarming/chasing
 
-                yield return new WaitForSeconds(0.05f);
+                yield return WaitForSecondsCache.Get(0.1f);
             }
         }
 
         // Chase logic for non-crawlers
         private IEnumerator DefaultChasePlayerLoop()
         {
-            // A generous threshold to leave chase if the player is far (fallback when no explicit detection range available here)
             const float losePlayerDistance = 25f;
+            const float updateInterval = 0.1f; // Don't update every frame!
+            var wait = WaitForSecondsCache.Get(updateInterval);
 
-            while (enemy.enemyAI.State.ToString().Equals("Chase") && playerTarget != null)
+            while (enemy.enemyAI.State.Equals(chaseStateValue) && playerTarget != null)
             {
                 if (enemy.agent != null && enemy.agent.enabled)
                 {
@@ -146,7 +153,7 @@ namespace Behaviors
                     yield break;
                 }
 
-                yield return null;
+                yield return wait; // Throttle to ~10 updates/second instead of 60+
             }
         }
 

@@ -23,7 +23,10 @@ public class DroneRelocateBehavior<TState, TTrigger> : RelocateBehavior<TState, 
         {
             // Pick a new zone different from currentZone
             Zone newZone = null;
-            var zones = UnityEngine.Object.FindObjectsByType<Zone>(FindObjectsSortMode.None);
+            // Use ZoneManager if available
+            var zones = ZoneManager.Instance != null 
+                ? ZoneManager.Instance.GetAllZones() 
+                : UnityEngine.Object.FindObjectsByType<Zone>(FindObjectsSortMode.None);
             if (zones.Length > 1)
             {
                 var candidates = new List<Zone>(zones);
@@ -94,7 +97,9 @@ public class DroneRelocateBehavior<TState, TTrigger> : RelocateBehavior<TState, 
                 foreach (var member in drone.Cluster.drones)
                 {
                     bool fired = member.TryFireTriggerByName("RelocateComplete");
+#if UNITY_EDITOR
                     Debug.Log($"Drone {member.name} in cluster transitioned to Idle (RelocateComplete fired: {fired})");
+#endif
                 }
                 yield break;
             }
@@ -113,10 +118,16 @@ public class DroneRelocateBehavior<TState, TTrigger> : RelocateBehavior<TState, 
                 // If the majority of drones are stuck, trigger failsafe
                 if (stuckCount >= Mathf.CeilToInt(total / 2f))
                 {
+#if UNITY_EDITOR
                     Debug.LogWarning($"[Failsafe] Cluster appears stuck in Relocate. {stuckCount}/{total} drones moved less than {stuckThreshold} units in {stuckCheckInterval} seconds. Forcing Idle in nearest zone.");
+#endif
                     Zone nearest = null;
                     float minDist = float.MaxValue;
-                    foreach (var z in UnityEngine.Object.FindObjectsByType<Zone>(FindObjectsSortMode.None))
+                    // Use ZoneManager if available
+                    var failsafeZones = ZoneManager.Instance != null 
+                        ? ZoneManager.Instance.GetAllZones() 
+                        : UnityEngine.Object.FindObjectsByType<Zone>(FindObjectsSortMode.None);
+                    foreach (var z in failsafeZones)
                     {
                         float dist = Vector3.Distance(drone.transform.position, z.transform.position);
                         if (dist < minDist)
@@ -129,7 +140,9 @@ public class DroneRelocateBehavior<TState, TTrigger> : RelocateBehavior<TState, 
                     {
                         member.currentZone = nearest;
                         bool fired = member.TryFireTriggerByName("RelocateComplete");
+#if UNITY_EDITOR
                         Debug.Log($"[Failsafe] Drone {member.name} forced to Idle in nearest zone (RelocateComplete fired: {fired})");
+#endif
                     }
                     yield break;
                 }

@@ -40,8 +40,8 @@ public class ProjectileTurretEnemy : BaseTurretEnemy
 
     private IEnumerator BurstFireLoop()
     {
-        WaitForSeconds shotDelay = new WaitForSeconds(Mathf.Max(0.01f, burstShotInterval));
-        WaitForSeconds reloadDelay = new WaitForSeconds(Mathf.Max(0f, reloadDuration));
+        WaitForSeconds shotDelay = WaitForSecondsCache.Get(Mathf.Max(0.01f, burstShotInterval));
+        WaitForSeconds reloadDelay = WaitForSecondsCache.Get(Mathf.Max(0f, reloadDuration));
 
         while (enemyAI != null && enemyAI.State.Equals(EnemyState.Attack))
         {

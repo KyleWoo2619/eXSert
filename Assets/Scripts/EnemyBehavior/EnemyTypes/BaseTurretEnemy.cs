@@ -221,7 +221,7 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
                 var found = GameObject.FindGameObjectWithTag("Player");
                 player = found != null ? found.transform : null;
                 PlayerTarget = player;
-                yield return new WaitForSeconds(interval);
+                yield return WaitForSecondsCache.Get(interval);
                 continue;
             }
 
@@ -276,7 +276,7 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
                 }
             }
 
-            yield return new WaitForSeconds(interval);
+            yield return WaitForSecondsCache.Get(interval);
         }
     }
 
@@ -528,7 +528,7 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
     private IEnumerator RestoreAnimationAfterHit()
     {
         if (hitAnimationRecoveryDelay > 0f)
-            yield return new WaitForSeconds(hitAnimationRecoveryDelay);
+            yield return WaitForSecondsCache.Get(hitAnimationRecoveryDelay);
 
         if (enemyAI == null)
             yield break;

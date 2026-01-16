@@ -139,7 +139,9 @@ public class AlarmCarrierEnemy : BaseEnemy<AlarmCarrierState, AlarmCarrierTrigge
         if (currentZone == null)
         {
             currentZone = FindNearestZone();
+#if UNITY_EDITOR
             Debug.Log($"{gameObject.name} assigned to zone: {currentZone?.gameObject.name}");
+#endif
         }
     }
 
@@ -147,10 +149,14 @@ public class AlarmCarrierEnemy : BaseEnemy<AlarmCarrierState, AlarmCarrierTrigge
     {
         InitializeStateMachine(AlarmCarrierState.Idle);
         ConfigureStateMachine();
+#if UNITY_EDITOR
         Debug.Log($"{gameObject.name} State machine initialized");
+#endif
         if (enemyAI.State.Equals(AlarmCarrierState.Idle))
         {
+#if UNITY_EDITOR
             Debug.Log($"{gameObject.name} Manually calling OnEnterIdle for initial Idle state");
+#endif
             idleBehavior.OnEnter(this);
         }
 
@@ -274,9 +280,13 @@ public class AlarmCarrierEnemy : BaseEnemy<AlarmCarrierState, AlarmCarrierTrigge
 
     private IEnumerator AlarmCountdown()
     {
+#if UNITY_EDITOR
         Debug.Log($"{gameObject.name} AlarmCountdown started for {alarmDuration} seconds");
-        yield return new WaitForSeconds(alarmDuration);
+#endif
+        yield return WaitForSecondsCache.Get(alarmDuration);
+#if UNITY_EDITOR
         Debug.Log($"{gameObject.name} AlarmCountdown finished, firing AlarmEnd");
+#endif
         enemyAI.Fire(AlarmCarrierTrigger.AlarmEnd);
         alarmCountdownCoroutine = null;
     }
@@ -320,7 +330,7 @@ public class AlarmCarrierEnemy : BaseEnemy<AlarmCarrierState, AlarmCarrierTrigge
 
             currentDynamicSpawnInterval = dynamicInterval; // Expose in Inspector
 
-            yield return new WaitForSeconds(dynamicInterval);
+            yield return WaitForSecondsCache.Get(dynamicInterval);
         }
     }
 
@@ -397,7 +407,7 @@ public class AlarmCarrierEnemy : BaseEnemy<AlarmCarrierState, AlarmCarrierTrigge
                     }
                 }
             }
-            yield return new WaitForSeconds(fleeCheckInterval);
+            yield return WaitForSecondsCache.Get(fleeCheckInterval);
         }
     }
 
@@ -421,7 +431,10 @@ public class AlarmCarrierEnemy : BaseEnemy<AlarmCarrierState, AlarmCarrierTrigge
 
     private Zone FindNearestZone()
     {
-        var zones = FindObjectsByType<Zone>(FindObjectsSortMode.None);
+        // Use ZoneManager if available
+        var zones = ZoneManager.Instance != null 
+            ? ZoneManager.Instance.GetAllZones() 
+            : FindObjectsByType<Zone>(FindObjectsSortMode.None);
         if (zones.Length == 0) return null;
         return zones.OrderBy(z => Vector3.Distance(transform.position, z.transform.position)).FirstOrDefault();
     }

@@ -279,7 +279,7 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
 
     private IEnumerator IdleTimerRoutine()
     {
-        yield return new WaitForSeconds(idleTimerDuration);
+        yield return WaitForSecondsCache.Get(idleTimerDuration);
         enemyAI.Fire(DroneTrigger.LosePlayer);
     }
 
@@ -462,7 +462,10 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
 
     private Zone FindNearestZone(Vector3 position)
     {
-        var zones = FindObjectsByType<Zone>(FindObjectsSortMode.None);
+        // Use ZoneManager if available for cached zones
+        var zones = ZoneManager.Instance != null 
+            ? ZoneManager.Instance.GetAllZones() 
+            : FindObjectsByType<Zone>(FindObjectsSortMode.None);
         Zone nearest = null;
         float minDist = float.MaxValue;
         foreach (var zone in zones)
@@ -497,7 +500,7 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
         while (true)
         {
             tickAction?.Invoke();
-            yield return interval > 0f ? new WaitForSeconds(interval) : null;
+            yield return interval > 0f ? WaitForSecondsCache.Get(interval) : null;
         }
     }
 

@@ -261,29 +261,20 @@ public class LockedAttributeDrawer : PropertyDrawer
 {
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        // Only enable editing when the door is actually in the Locked state
+        // Only show and enable editing when the door is actually in the Locked state
         var parent = property.serializedObject.targetObject as DoorHandler;
-        bool disabled = true;
-        if (parent != null)
+        if (parent != null && parent.currentDoorState == DoorHandler.DoorState.Locked)
         {
-            disabled = parent.currentDoorState != DoorHandler.DoorState.Locked;
+            EditorGUI.PropertyField(position, property, label);
         }
-
-        EditorGUI.BeginDisabledGroup(disabled);
-        EditorGUI.PropertyField(position, property, label);
-        EditorGUI.EndDisabledGroup();
     }
 
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
         var parent = property.serializedObject.targetObject as DoorHandler;
-        if (parent != null)
+        if (parent != null && parent.currentDoorState == DoorHandler.DoorState.Locked)
         {
-            var stateField = property.serializedObject.FindProperty("currentDoorState");
-            if (stateField != null && stateField.enumValueIndex == (int)DoorHandler.DoorState.Locked)
-            {
-                return EditorGUI.GetPropertyHeight(property);
-            }
+            return EditorGUI.GetPropertyHeight(property);
         }
         return 0;
     }

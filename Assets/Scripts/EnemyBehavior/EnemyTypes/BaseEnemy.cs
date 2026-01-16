@@ -143,7 +143,9 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
             healthBarInstance = instance.GetComponent<EnemyHealthBar>();
             if (healthBarInstance == null)
             {
+#if UNITY_EDITOR
                 Debug.LogWarning($"[{name}] Health bar prefab is missing the EnemyHealthBar component.");
+#endif
                 Destroy(instance);
             }
         }
@@ -154,7 +156,9 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         }
         else if (healthBarPrefab == null)
         {
+#if UNITY_EDITOR
             Debug.LogWarning($"[{name}] No healthBarPrefab assigned; enemy health will not be displayed.");
+#endif
         }
     }
 
@@ -443,8 +447,13 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
 
     public virtual void UpdateCurrentZone()
     {
+#if UNITY_EDITOR
         Debug.Log($"{gameObject.name} Updating current zone.");
-        Zone[] zones = Object.FindObjectsByType<Zone>(FindObjectsSortMode.None);
+#endif
+        // Use ZoneManager if available for cached zones (avoids FindObjectsByType allocation)
+        Zone[] zones = ZoneManager.Instance != null 
+            ? ZoneManager.Instance.GetAllZones() 
+            : Object.FindObjectsByType<Zone>(FindObjectsSortMode.None);
         foreach (var zone in zones)
         {
             if (zone.Contains(transform.position))
@@ -537,7 +546,9 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         }
         else
         {
+#if UNITY_EDITOR
             Debug.LogWarning($"Cannot fire trigger {trigger} from state {enemyAI.State}");
+#endif
             return false;
         }
     }
@@ -551,7 +562,9 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         }
         else
         {
+#if UNITY_EDITOR
             Debug.LogWarning($"{typeof(TTrigger).Name} does not contain a '{triggerName}' trigger. Check your enum definition.");
+#endif
             return false;
         }
     }
@@ -570,10 +583,10 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         if (agent != null)
         {
             agent.ResetPath();
-            agent.enabled = false;
+        agent.enabled = false;
         }
 
-        yield return new WaitForSeconds(3f);
+        yield return WaitForSecondsCache.Get(3f);
 
         if (healthBarInstance != null)
         {
@@ -588,59 +601,40 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
 
     protected virtual void OnTriggerEnter(Collider other)
     {
-        if (enemyAI == null)
-            return;
+        if (enemyAI == null) return;
+        
+        // Skip if not Player layer (avoid checking enemy-to-enemy collisions)
+        if (!other.CompareTag("Player")) return;
 
-        if (other.CompareTag("Player"))
+        EnsurePlayerTargetReference(other.transform);
+
+        // Check detection collider
+        if (detectionCollider != null && detectionCollider.enabled)
         {
-            EnsurePlayerTargetReference(other.transform);
-            Debug.Log($"{gameObject.name} OnTriggerEnter with Player! Collider: {other.name}");
+            // Use sqrMagnitude for faster distance check instead of bounds.Contains
+            float sqrDist = (other.transform.position - transform.position).sqrMagnitude;
+            float sqrRange = detectionRange * detectionRange;
             
-            // Check which collider is currently triggering this event
-            // This works because OnTriggerEnter is called for each trigger collider on the GameObject
-            // Use Physics.OverlapSphere or OverlapBox if you need to check proximity
-
-            // Check if this is the detection collider
-            if (detectionCollider != null && detectionCollider.enabled && detectionCollider.bounds.Contains(other.transform.position))
+            if (sqrDist <= sqrRange)
             {
-                Debug.Log($"{gameObject.name} Player is inside detection bounds! Trying to fire SeePlayer trigger...");
-                if (TryFireTriggerByName("SeePlayer"))
-                {
-                    Debug.Log($"{gameObject.name} detected player (detection collider) - State should change to Chase!");
-                }
-                else
-                {
-                    Debug.LogWarning($"{gameObject.name} FAILED to fire SeePlayer trigger! Current state: {enemyAI.State}");
-                }
-            }
-            else
-            {
-                Debug.LogWarning($"{gameObject.name} Player entered trigger but NOT in detection bounds. Detection enabled: {detectionCollider?.enabled}, Player pos: {other.transform.position}");
-            }
-            
-            // Check if this is the attack collider
-            if (attackCollider != null && attackCollider.enabled && attackCollider.bounds.Contains(other.transform.position))
-            {
-                if (TryFireTriggerByName("InAttackRange"))
-                {
-                    Debug.Log($"{gameObject.name} detected player (attack collider).");
-                }
+                TryFireTriggerByName("SeePlayer");
             }
         }
     }
 
+    // Simplify OnTriggerStay
     protected virtual void OnTriggerStay(Collider other)
     {
-        if (other.CompareTag("Player"))
+        if (!other.CompareTag("Player")) return;
+        
+        EnsurePlayerTargetReference(other.transform);
+        
+        if (detectionCollider != null && detectionCollider.enabled)
         {
-            EnsurePlayerTargetReference(other.transform);
-            if (detectionCollider != null && detectionCollider.enabled && detectionCollider.bounds.Contains(other.transform.position))
+            // Only parse enum once, cache it
+            if (!enemyAI.State.ToString().Contains("Chase")) // Or better: cache the Chase state
             {
-                // Only fire SeePlayer if not already in Chase
-                if (!enemyAI.State.Equals((TState)System.Enum.Parse(typeof(TState), "Chase")))
-                {
-                    TryFireTriggerByName("SeePlayer");
-                }
+                TryFireTriggerByName("SeePlayer");
             }
         }
     }
