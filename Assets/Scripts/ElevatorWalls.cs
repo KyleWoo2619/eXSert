@@ -1,7 +1,12 @@
+/*
+    Written by Brandon Wahl
+    This Script manages the continuous movement of elevator walls to create an infinite elevator effect.
+    It moves the walls downward at a specified speed and resets their position when they go below a certain point.
+
+*/
+
 using UnityEngine;
 using UnityEngine.Events;
-using System.Collections;
-using Unity.Burst.CompilerServices;
 
 /// <summary>
 /// Manages the continuous movement of elevator walls.
@@ -28,9 +33,14 @@ public class ElevatorWalls : MonoBehaviour
     [SerializeField] [Range(0f, 50f)] internal float elevatorSpeed = 0f;
 
     [Tooltip("The y position where walls start after reset")]
-    [SerializeField] [Range(0f, 50f)] internal float restartPoint = 28f;
+    [SerializeField] [Range(0f, 100f)] internal float restartPoint = 28f;
 
-    internal float endYPos = -1.32817f;
+    internal float endYPos = 0.6072998f;
+
+    private void Start()
+    {
+        wallWithDoor.gameObject.SetActive(false);
+    } 
 
     private void Update()
     {

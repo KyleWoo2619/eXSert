@@ -1,4 +1,4 @@
-/*
+ /*
  * CameraManager.cs
  * 
  * Centralized camera state management for gameplay, guard, ultimates, cutscenes, etc.

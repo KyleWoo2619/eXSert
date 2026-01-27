@@ -214,7 +214,13 @@ public class BombCarrierEnemy : BaseEnemy<BombStates, BombTriggers>, IPocketSpaw
     {
         // Immediately see player and start approaching
         if (PlayerTarget == null)
-            PlayerTarget = GameObject.FindGameObjectWithTag("Player")?.transform;
+        {
+            // Use PlayerPresenceManager if available
+            if (PlayerPresenceManager.IsPlayerPresent)
+                PlayerTarget = PlayerPresenceManager.PlayerTransform;
+            else
+                PlayerTarget = GameObject.FindGameObjectWithTag("Player")?.transform;
+        }
 
         if (PlayerTarget != null)
             enemyAI.Fire(BombTriggers.SeePlayer);

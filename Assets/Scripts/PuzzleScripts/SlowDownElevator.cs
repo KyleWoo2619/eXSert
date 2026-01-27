@@ -1,10 +1,15 @@
+/* 
+    Written by Brandon Wahl
+    This Script handles the slowing down of an elevator after the player uses the keycard on the elevator console.
+    It smoothly decelerates the elevator walls, swaps in the wall with the door at the appropriate time,
+    and then triggers the rail drop and platform extension animations in sequence.
+
+    Use CoPilot to help write the function for wrapping the elevator walls and the use of out cubic easing.
+
+*/
+
 using System.Collections;
 using UnityEngine;
-
-/// <summary>
-/// Handles elevator deceleration puzzle mechanics.
-/// Smoothly slows down the elevator, then triggers rail and platform animations.
-/// </summary>
 public class SlowDownElevator : MonoBehaviour, IPuzzleInterface
 {
     [Header("Required References")]
@@ -33,8 +38,14 @@ public class SlowDownElevator : MonoBehaviour, IPuzzleInterface
     private float _actualDecelerationDuration = 0f;
     private float _totalDecelerationDistance = 0f;
     private float _initialDoorWallY = 0f;
+    private float _initialElevatorWallY = 0f;
     private float _initialBelowWallY = 0f;
+    private float _doorWallYAtSwap = 0f;
+    private float _distanceToSwap = 0f;
     private bool _soundFadeStarted = false;
+    private bool _swapped = false;
+
+    [SerializeField] private float _pointToSwitchWallsY;
     
     public bool isCompleted { get; set; } = false;
 
@@ -43,6 +54,7 @@ public class SlowDownElevator : MonoBehaviour, IPuzzleInterface
         // Ensure the puzzle starts idle until explicitly triggered
         _isDecelerating = false;
         _soundFadeStarted = false;
+        _swapped = false;
         _decelerationTimer = 0f;
         _initialSpeed = 0f;
     }
@@ -66,33 +78,54 @@ public class SlowDownElevator : MonoBehaviour, IPuzzleInterface
             Debug.LogError("[SlowDownElevator] ElevatorWalls reference is missing!");
             return;
         }
-        
+
         _soundFadeStarted = false;
         _decelerationTimer = 0f;
         _isDecelerating = true;
+        _swapped = false;
         _initialSpeed = _elevatorWalls.elevatorSpeed;
         
-        // Store initial wall positions
+        // Stop ElevatorWalls script from moving the walls immediately
+        _elevatorWalls.elevatorSpeed = 0f;
+        
+        // Ensure proper initial wall states
+        if(_elevatorWalls.elevatorWall != null)
+        {
+            _elevatorWalls.elevatorWall.SetActive(true);
+            _initialElevatorWallY = _elevatorWalls.elevatorWall.transform.position.y;
+        }
         if(_elevatorWalls.wallWithDoor != null)
         {
+            _elevatorWalls.wallWithDoor.SetActive(false); // Only show at swap
             _initialDoorWallY = _elevatorWalls.wallWithDoor.transform.position.y;
         }
         if(_elevatorWalls.wallBelow != null)
         {
             _initialBelowWallY = _elevatorWalls.wallBelow.transform.position.y;
         }
+        
+        Debug.Log($"[SlowDownElevator] Starting puzzle. ElevatorWall Y: {_initialElevatorWallY}, SwitchPoint: {_pointToSwitchWallsY}, EndYPos: {_elevatorWalls.endYPos}");
+        
+        // Compute distances along the wrapped path: start -> swap -> end (wrapping past yBounds to restartPoint)
+        _distanceToSwap = Mathf.Abs(_initialElevatorWallY - _pointToSwitchWallsY);
 
-        // Calculate deceleration duration based on wall Y distance to endYPos
-        // Account for wrapping if wall is already below endYPos
-        _totalDecelerationDistance = _elevatorWalls.endYPos - _initialDoorWallY;
-        if(_totalDecelerationDistance < 0)
+        float distanceSwapToEnd;
+        if (_elevatorWalls.endYPos >= _pointToSwitchWallsY)
         {
-            // Wall is below endYPos, calculate wrap-around distance
-            // Distance = distance to bottom + distance from top to target
-            float distanceToBottom = Mathf.Abs(_initialDoorWallY - _elevatorWalls.yBounds);
-            float distanceFromTopToTarget = _elevatorWalls.restartPoint - _elevatorWalls.endYPos;
-            _totalDecelerationDistance = distanceToBottom + distanceFromTopToTarget;
+            // End is above swap: go down to yBounds, wrap to restartPoint, then down to endYPos
+            float toBottom = Mathf.Abs(_pointToSwitchWallsY - _elevatorWalls.yBounds);
+            float fromTopToEnd = Mathf.Abs(_elevatorWalls.restartPoint - _elevatorWalls.endYPos);
+            distanceSwapToEnd = toBottom + fromTopToEnd;
         }
+        else
+        {
+            // End is below swap: straight distance
+            distanceSwapToEnd = Mathf.Abs(_pointToSwitchWallsY - _elevatorWalls.endYPos);
+        }
+
+        _totalDecelerationDistance = _distanceToSwap + distanceSwapToEnd;
+
+        Debug.Log($"[SlowDownElevator] Dist to swap: {_distanceToSwap}, swap->end: {distanceSwapToEnd}, Total: {_totalDecelerationDistance}");
         _actualDecelerationDuration = (_initialSpeed > 0.01f) ? (2f * _totalDecelerationDistance / _initialSpeed) : decelerationDuration;
     }
 
@@ -102,6 +135,42 @@ public class SlowDownElevator : MonoBehaviour, IPuzzleInterface
     public void EndPuzzle()
     {
         // Puzzle end logic (if needed in future)
+    }
+
+    private void SwapWalls(){
+
+        if(_elevatorWalls.elevatorWall == null)
+        {
+            Debug.LogWarning("[SlowDownElevator] elevatorWall is null, cannot swap!");
+            return;
+        }
+
+        float currentY = _elevatorWalls.elevatorWall.transform.position.y;
+        
+        
+        if(currentY <= _pointToSwitchWallsY && !_swapped)
+        {
+            Debug.Log($"[SlowDownElevator] Swapping elevator walls now. CurrentY: {currentY}, SwitchPoint: {_pointToSwitchWallsY}");
+            _swapped = true;
+            
+            if(_elevatorWalls.wallWithDoor != null && _elevatorWalls.elevatorWall != null)
+            {
+                // Position wallWithDoor at the same location as elevatorWall before swapping
+                Vector3 swapPosition = _elevatorWalls.elevatorWall.transform.position;
+                _elevatorWalls.wallWithDoor.transform.position = swapPosition;
+                
+                // Ensure wallWithDoor is active BEFORE we disable elevatorWall
+                _elevatorWalls.wallWithDoor.SetActive(true);
+                
+                // Store the position where door becomes active to use for remaining movement
+                _doorWallYAtSwap = _elevatorWalls.wallWithDoor.transform.position.y;
+                
+                Debug.Log($"[SlowDownElevator] Wall swap complete. DoorWall at Y: {_doorWallYAtSwap}, ElevatorWall disabled.");
+            }
+            
+            if(_elevatorWalls.elevatorWall != null)
+                _elevatorWalls.elevatorWall.SetActive(false);
+        }
     }
 
     /// <summary>
@@ -120,7 +189,7 @@ public class SlowDownElevator : MonoBehaviour, IPuzzleInterface
         _decelerationTimer += Time.deltaTime;
         float decelerationProgress = Mathf.Clamp01(_decelerationTimer / _actualDecelerationDuration);
         
-        // Apply ease-out quadratic curve for smooth deceleration (starts fast, ends slow)
+        // Apply ease-out quadratic curve for smooth deceleration
         float easedProgress = 1f - (1f - decelerationProgress) * (1f - decelerationProgress);
         
         if(_elevatorWalls != null)
@@ -130,32 +199,44 @@ public class SlowDownElevator : MonoBehaviour, IPuzzleInterface
             
             // Calculate distance traveled based on eased deceleration progress
             float distanceTraveled = _totalDecelerationDistance * easedProgress;
-            
-            // Move wallWithDoor downward by distance traveled, handling wrap-around
-            if(_elevatorWalls.wallWithDoor != null)
+            float loopHeight = _elevatorWalls.restartPoint - _elevatorWalls.yBounds;
+            float rawY = _initialElevatorWallY - distanceTraveled; // moving downward along virtual track
+            float currentY = WrapY(rawY, loopHeight);
+
+            // Before swap: move elevatorWall manually
+            if(!_swapped && _elevatorWalls.elevatorWall != null)
+            {
+                Vector3 elevatorPos = _elevatorWalls.elevatorWall.transform.position;
+                elevatorPos.y = currentY;  // wrapped movement
+                _elevatorWalls.elevatorWall.transform.position = elevatorPos;
+                
+                Debug.Log($"[BeforeSwap] Y: {currentY} (raw {rawY}), DistTraveled: {distanceTraveled}/{_totalDecelerationDistance}");
+            }
+
+            // Trigger swap the first time we pass the raw swap height (off-screen), before wrapping back
+            if(!_swapped && rawY <= _pointToSwitchWallsY)
+            {
+                _swapped = true;
+                if(_elevatorWalls.wallWithDoor != null && _elevatorWalls.elevatorWall != null)
+                {
+                    _elevatorWalls.wallWithDoor.transform.position = new Vector3(
+                        _elevatorWalls.elevatorWall.transform.position.x,
+                        currentY,
+                        _elevatorWalls.elevatorWall.transform.position.z);
+                    _elevatorWalls.wallWithDoor.SetActive(true);
+                    _doorWallYAtSwap = currentY;
+                }
+                if(_elevatorWalls.elevatorWall != null)
+                    _elevatorWalls.elevatorWall.SetActive(false);
+
+                Debug.Log($"[Swap] Triggered at distance {distanceTraveled}, Y={currentY}");
+            }
+
+            // Move wallWithDoor only after swap
+            if(_swapped && _elevatorWalls.wallWithDoor != null)
             {
                 Vector3 doorPos = _elevatorWalls.wallWithDoor.transform.position;
-                float targetY = _elevatorWalls.endYPos;
-                
-                // If fully complete, go to exact target
-                if(decelerationProgress >= 1f)
-                {
-                    doorPos.y = targetY;
-                }
-                else
-                {
-                    float newY = _initialDoorWallY - distanceTraveled;
-                    
-                    // Handle wrapping if we go below yBounds
-                    if(newY <= _elevatorWalls.yBounds)
-                    {
-                        float excessDistance = _elevatorWalls.yBounds - newY;
-                        newY = _elevatorWalls.restartPoint - excessDistance;
-                    }
-                    
-                    doorPos.y = newY;
-                }
-                
+                doorPos.y = currentY; // keep in sync after swap
                 _elevatorWalls.wallWithDoor.transform.position = doorPos;
             }
             
@@ -164,31 +245,12 @@ public class SlowDownElevator : MonoBehaviour, IPuzzleInterface
             {
                 Vector3 belowPos = _elevatorWalls.wallBelow.transform.position;
                 float wallHeight = _initialBelowWallY - _initialDoorWallY;
-                float targetY = _elevatorWalls.endYPos + wallHeight;
-                
-                // If fully complete, go to exact target
-                if(decelerationProgress >= 1f)
-                {
-                    belowPos.y = targetY;
-                }
-                else
-                {
-                    float newY = _initialBelowWallY - distanceTraveled;
-                    
-                    // Handle wrapping if we go below yBounds
-                    if(newY <= _elevatorWalls.yBounds)
-                    {
-                        float excessDistance = _elevatorWalls.yBounds - newY;
-                        newY = _elevatorWalls.restartPoint - excessDistance;
-                    }
-                    
-                    belowPos.y = newY;
-                }
-                
+                belowPos.y = WrapY(rawY + wallHeight, loopHeight);
                 _elevatorWalls.wallBelow.transform.position = belowPos;
             }
         }
         
+        // Complete when total distance traveled is done
         if(decelerationProgress >= 1f)
         {
             _isDecelerating = false;
@@ -242,5 +304,21 @@ public class SlowDownElevator : MonoBehaviour, IPuzzleInterface
     private static float EaseOutCubic(float t)
     {
         return 1f - Mathf.Pow(1f - t, 3f);
+    }
+
+    // Wrap a Y position into the looping range to preserve spacing when passing bounds
+    private float WrapY(float rawY, float loopHeight)
+    {
+        if(loopHeight <= 0.0001f)
+            return rawY;
+
+        float normalized = rawY - _elevatorWalls.yBounds;
+        float beforeRepeat = normalized;
+        normalized = Mathf.Repeat(normalized, loopHeight);
+        float result = _elevatorWalls.yBounds + normalized;
+        
+        Debug.Log($"[WrapY] RawY: {rawY}, yBounds: {_elevatorWalls.yBounds}, LoopHeight: {loopHeight}, Normalized: {beforeRepeat}, AfterRepeat: {normalized}, Result: {result}");
+        
+        return result;
     }
 }

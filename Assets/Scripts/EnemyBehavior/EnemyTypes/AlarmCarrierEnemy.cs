@@ -354,9 +354,15 @@ public class AlarmCarrierEnemy : BaseEnemy<AlarmCarrierState, AlarmCarrierTrigge
             crawler.AlarmSource = this;
             SwarmManager.Instance.AddToSwarm(crawler);
 
-            var playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null)
-                crawler.PlayerTarget = playerObj.transform;
+            // Use PlayerPresenceManager if available
+            if (PlayerPresenceManager.IsPlayerPresent)
+                crawler.PlayerTarget = PlayerPresenceManager.PlayerTransform;
+            else
+            {
+                var playerObj = GameObject.FindGameObjectWithTag("Player");
+                if (playerObj != null)
+                    crawler.PlayerTarget = playerObj.transform;
+            }
 
             // Track alarm-spawned crawlers
             activeAlarmSpawnedCrawlers++;

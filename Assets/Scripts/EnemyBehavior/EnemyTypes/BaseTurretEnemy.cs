@@ -106,9 +106,16 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
         // Turn off melee attack collider for turrets
         if (attackCollider != null) attackCollider.enabled = false;
 
-        // Cache player
-        var found = GameObject.FindGameObjectWithTag("Player");
-        player = found != null ? found.transform : null;
+        // Cache player - use PlayerPresenceManager if available
+        if (PlayerPresenceManager.IsPlayerPresent)
+        {
+            player = PlayerPresenceManager.PlayerTransform;
+        }
+        else
+        {
+            var found = GameObject.FindGameObjectWithTag("Player");
+            player = found != null ? found.transform : null;
+        }
         PlayerTarget = player;
 
         // Cache only the turret's own colliders BEFORE creating the pool (so pool colliders are excluded)
@@ -218,8 +225,16 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
         {
             if (player == null)
             {
-                var found = GameObject.FindGameObjectWithTag("Player");
-                player = found != null ? found.transform : null;
+                // Use PlayerPresenceManager if available
+                if (PlayerPresenceManager.IsPlayerPresent)
+                {
+                    player = PlayerPresenceManager.PlayerTransform;
+                }
+                else
+                {
+                    var found = GameObject.FindGameObjectWithTag("Player");
+                    player = found != null ? found.transform : null;
+                }
                 PlayerTarget = player;
                 yield return WaitForSecondsCache.Get(interval);
                 continue;
@@ -306,8 +321,16 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
         {
             if (player == null)
             {
-                var found = GameObject.FindGameObjectWithTag("Player");
-                player = found != null ? found.transform : null;
+                // Use PlayerPresenceManager if available
+                if (PlayerPresenceManager.IsPlayerPresent)
+                {
+                    player = PlayerPresenceManager.PlayerTransform;
+                }
+                else
+                {
+                    var found = GameObject.FindGameObjectWithTag("Player");
+                    player = found != null ? found.transform : null;
+                }
                 PlayerTarget = player;
                 yield return null;
                 continue;

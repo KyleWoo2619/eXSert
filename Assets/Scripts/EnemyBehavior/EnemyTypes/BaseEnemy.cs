@@ -88,8 +88,15 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     protected Renderer enemyRenderer;
     protected Animator animator;
 
+
     private bool deathSequenceTriggered;
     private Coroutine deathFallbackRoutine;
+
+    // Cached animator parameter checks to avoid allocations from repeated animator.parameters access
+    private bool _hasIsMovingParam;
+    private bool _hasMoveSpeedParam;
+    private bool _hasLocomotionState;
+    private bool _animatorParamsCached;
 
     [Header("External Helper Roots")]
     [SerializeField, Tooltip("Any helper GameObjects that live outside this enemy's hierarchy (IK targets, FX anchors, etc.). They will be destroyed automatically when this enemy is destroyed.")]
@@ -328,10 +335,18 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         if (playerTarget != null && playerTarget.gameObject != null)
             return;
 
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        if (playerObj != null)
+        // Use PlayerPresenceManager if available
+        if (PlayerPresenceManager.IsPlayerPresent)
         {
-            playerTarget = playerObj.transform;
+            playerTarget = PlayerPresenceManager.PlayerTransform;
+        }
+        else
+        {
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null)
+            {
+                playerTarget = playerObj.transform;
+            }
         }
     }
 
@@ -357,21 +372,32 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         if (animator == null)
             return;
 
+        // Cache animator parameter checks on first use to avoid allocations
+        if (!_animatorParamsCached)
+        {
+            _hasIsMovingParam = AnimatorHasParameter("IsMoving", AnimatorControllerParameterType.Bool);
+            _hasMoveSpeedParam = !string.IsNullOrEmpty(moveSpeedParameterName) && 
+                                 AnimatorHasParameter(moveSpeedParameterName, AnimatorControllerParameterType.Float);
+            _hasLocomotionState = AnimatorHasState(locomotionStateName);
+            _animatorParamsCached = true;
+        }
+
         // Drive additive locomotion overlays when the optional IsMoving bool exists
-        if (AnimatorHasParameter("IsMoving", AnimatorControllerParameterType.Bool))
+        if (_hasIsMovingParam)
         {
             bool isMoving = moveSpeed > 0.05f;
             animator.SetBool("IsMoving", isMoving);
         }
 
-        if (!string.IsNullOrEmpty(moveSpeedParameterName) && AnimatorHasParameter(moveSpeedParameterName, AnimatorControllerParameterType.Float))
+        if (_hasMoveSpeedParam)
         {
             animator.SetFloat(moveSpeedParameterName, moveSpeed);
         }
-        else
+        else if (_hasLocomotionState)
         {
             PlayState(locomotionStateName);
         }
+        // If neither parameter nor state exists, just skip locomotion animation
     }
 
     protected virtual void PlayAttackAnim()
@@ -422,6 +448,16 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
                 return true;
         }
         return false;
+    }
+
+    private bool AnimatorHasState(string stateName, int layerIndex = 0)
+    {
+        if (animator == null || string.IsNullOrEmpty(stateName))
+            return false;
+
+        // Check if the state exists by trying to get its hash
+        int stateHash = Animator.StringToHash(stateName);
+        return animator.HasState(layerIndex, stateHash);
     }
 
     private void PlayState(string stateName)

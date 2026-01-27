@@ -95,15 +95,6 @@ namespace eXsert
             ""id"": ""bf9004e5-aa37-49bc-bb17-057a76ca221b"",
             ""actions"": [
                 {
-                    ""name"": ""Move"",
-                    ""type"": ""Value"",
-                    ""id"": ""8cd63f55-2362-4b5a-9bee-7c2e40b216ed"",
-                    ""expectedControlType"": ""Vector2"",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": true
-                },
-                {
                     ""name"": ""Look"",
                     ""type"": ""Value"",
                     ""id"": ""e9152c79-9c3f-4bba-b9d6-639c2165d083"",
@@ -203,15 +194,6 @@ namespace eXsert
                     ""initialStateCheck"": false
                 },
                 {
-                    ""name"": ""EscapePuzzle"",
-                    ""type"": ""Button"",
-                    ""id"": ""83079eeb-c0e3-4074-a954-bfa174fec163"",
-                    ""expectedControlType"": """",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": false
-                },
-                {
                     ""name"": ""SwapMenus"",
                     ""type"": ""Button"",
                     ""id"": ""0c11f1e3-08aa-48e1-ac23-f3ca57779be7"",
@@ -258,127 +240,6 @@ namespace eXsert
                 }
             ],
             ""bindings"": [
-                {
-                    ""name"": ""WASD"",
-                    ""id"": ""e5f9a6c9-ef7e-43e7-ac2e-5173b4ca9527"",
-                    ""path"": ""2DVector"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""Move"",
-                    ""isComposite"": true,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": ""up"",
-                    ""id"": ""2cc9ca79-f536-418b-bee1-58c121ba86b8"",
-                    ""path"": ""<Keyboard>/w"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
-                    ""action"": ""Move"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": ""down"",
-                    ""id"": ""fdc65fe4-82cf-409a-bc04-6e0b3eb51794"",
-                    ""path"": ""<Keyboard>/s"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
-                    ""action"": ""Move"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": ""left"",
-                    ""id"": ""27bc4ef1-6f0d-44d3-874b-1a73c3ec24f4"",
-                    ""path"": ""<Keyboard>/a"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
-                    ""action"": ""Move"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": ""right"",
-                    ""id"": ""a876a158-e32b-40d6-91d0-97afbbbf7382"",
-                    ""path"": ""<Keyboard>/d"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Keyboard&Mouse"",
-                    ""action"": ""Move"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": ""Gamepad"",
-                    ""id"": ""f137dc38-49e3-46aa-8343-504dd9d13914"",
-                    ""path"": ""2DVector"",
-                    ""interactions"": """",
-                    ""processors"": ""StickDeadzone(max=0.925)"",
-                    ""groups"": """",
-                    ""action"": ""Move"",
-                    ""isComposite"": true,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": ""up"",
-                    ""id"": ""e7c1db83-aaa1-41b4-8892-0517a5e1fa9a"",
-                    ""path"": ""<Gamepad>/leftStick/up"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Gamepad"",
-                    ""action"": ""Move"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": ""down"",
-                    ""id"": ""06f04fee-35dd-4dfe-b4c3-06d153d95031"",
-                    ""path"": ""<Gamepad>/leftStick/down"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Gamepad"",
-                    ""action"": ""Move"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": ""left"",
-                    ""id"": ""f9909ae7-fb1d-4a9d-8063-ddc72bd426fb"",
-                    ""path"": ""<Gamepad>/leftStick/left"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Gamepad"",
-                    ""action"": ""Move"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": ""right"",
-                    ""id"": ""fc946ed2-02ff-413f-a1b4-6d90379e0c07"",
-                    ""path"": ""<Gamepad>/leftStick/right"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Gamepad"",
-                    ""action"": ""Move"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": true
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""9bcd5106-8c62-4602-8f2f-a1359562b696"",
-                    ""path"": ""<Gamepad>/leftStick"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": "";Gamepad"",
-                    ""action"": ""Move"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
                 {
                     ""name"": """",
                     ""id"": ""60051147-a7cc-460f-81a7-16cc1134d586"",
@@ -618,28 +479,6 @@ namespace eXsert
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""ApplySettings"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""0f5a4364-d6e2-4271-8d29-cf9f9adb46d6"",
-                    ""path"": ""<Keyboard>/z"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""EscapePuzzle"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""d5b7c1c9-bb3b-42af-944d-70ac967260a8"",
-                    ""path"": ""<Gamepad>/buttonSouth"",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""EscapePuzzle"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -1353,6 +1192,206 @@ namespace eXsert
                     ""isPartOfComposite"": true
                 }
             ]
+        },
+        {
+            ""name"": ""CranePuzzle"",
+            ""id"": ""70ff3f24-9377-40eb-8c42-fbf63a92d683"",
+            ""actions"": [
+                {
+                    ""name"": ""Confirm"",
+                    ""type"": ""Button"",
+                    ""id"": ""af6b2bb7-0fbd-4a51-9de6-2561c6ae67de"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Move"",
+                    ""type"": ""Value"",
+                    ""id"": ""514987d9-229e-427d-9bfe-b47ee8f2dbe8"",
+                    ""expectedControlType"": ""Vector2"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""EscapePuzzle"",
+                    ""type"": ""Button"",
+                    ""id"": ""d2341edb-1cd6-4cf6-89c0-99aa4c4b3f28"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                }
+            ],
+            ""bindings"": [
+                {
+                    ""name"": """",
+                    ""id"": ""12523385-5186-4949-abe8-69e6684db161"",
+                    ""path"": ""<Keyboard>/enter"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Confirm"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""50d84556-874b-4bc1-ab79-b3ac3933a084"",
+                    ""path"": ""<Gamepad>/buttonEast"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Confirm"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""WASD"",
+                    ""id"": ""86b2c8c0-182d-4c42-b1f6-2183d9a03be0"",
+                    ""path"": ""2DVector"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Move"",
+                    ""isComposite"": true,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""up"",
+                    ""id"": ""ab59b469-601c-4e9b-9237-b8b0ecf5b6ca"",
+                    ""path"": ""<Keyboard>/w"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Move"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""down"",
+                    ""id"": ""14f7a927-2dc8-4df6-981a-ac7b0a00f56e"",
+                    ""path"": ""<Keyboard>/s"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Move"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""left"",
+                    ""id"": ""5acecb82-41e3-4d3b-90c2-d55624b5f61e"",
+                    ""path"": ""<Keyboard>/a"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Move"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""right"",
+                    ""id"": ""43f58f87-e6ae-4bff-b2a2-9df010bf49ff"",
+                    ""path"": ""<Keyboard>/d"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Move"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""Gamepad"",
+                    ""id"": ""497e2b5f-c922-458d-90e8-51ec5ace1a46"",
+                    ""path"": ""2DVector"",
+                    ""interactions"": """",
+                    ""processors"": ""StickDeadzone(max=0.925)"",
+                    ""groups"": """",
+                    ""action"": ""Move"",
+                    ""isComposite"": true,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""up"",
+                    ""id"": ""48ccce7e-d2de-4f9c-b46f-6c45b7fb36ec"",
+                    ""path"": ""<Gamepad>/leftStick/up"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Move"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""down"",
+                    ""id"": ""4500055a-11db-438c-887d-9a3346f7fc06"",
+                    ""path"": ""<Gamepad>/leftStick/down"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Move"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""left"",
+                    ""id"": ""863ba716-2784-4c89-b9c9-9898e4e1ca01"",
+                    ""path"": ""<Gamepad>/leftStick/left"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Move"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""right"",
+                    ""id"": ""c93e33f9-df16-453b-bd4a-3708daa39d85"",
+                    ""path"": ""<Gamepad>/leftStick/right"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Move"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""2f22ab9e-a74b-40a7-9e45-7a9f41ddb6d2"",
+                    ""path"": ""<Gamepad>/leftStick"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Move"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""153f5ac5-8e10-409c-bba7-08aa9c592984"",
+                    ""path"": ""<Keyboard>/z"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""EscapePuzzle"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""75047cd4-c2ca-46c1-9eb0-2a9c376089b4"",
+                    ""path"": ""<Gamepad>/buttonSouth"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""EscapePuzzle"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                }
+            ]
         }
     ],
     ""controlSchemes"": [
@@ -1382,7 +1421,6 @@ namespace eXsert
 }");
             // Gameplay
             m_Gameplay = asset.FindActionMap("Gameplay", throwIfNotFound: true);
-            m_Gameplay_Move = m_Gameplay.FindAction("Move", throwIfNotFound: true);
             m_Gameplay_Look = m_Gameplay.FindAction("Look", throwIfNotFound: true);
             m_Gameplay_Jump = m_Gameplay.FindAction("Jump", throwIfNotFound: true);
             m_Gameplay_Guard = m_Gameplay.FindAction("Guard", throwIfNotFound: true);
@@ -1394,7 +1432,6 @@ namespace eXsert
             m_Gameplay_NavigationMenu = m_Gameplay.FindAction("NavigationMenu", throwIfNotFound: true);
             m_Gameplay_Interact = m_Gameplay.FindAction("Interact", throwIfNotFound: true);
             m_Gameplay_ApplySettings = m_Gameplay.FindAction("ApplySettings", throwIfNotFound: true);
-            m_Gameplay_EscapePuzzle = m_Gameplay.FindAction("EscapePuzzle", throwIfNotFound: true);
             m_Gameplay_SwapMenus = m_Gameplay.FindAction("SwapMenus", throwIfNotFound: true);
             m_Gameplay_EnterMenus = m_Gameplay.FindAction("EnterMenus", throwIfNotFound: true);
             m_Gameplay_LockOn = m_Gameplay.FindAction("LockOn", throwIfNotFound: true);
@@ -1415,6 +1452,11 @@ namespace eXsert
             m_CameraControls = asset.FindActionMap("CameraControls", throwIfNotFound: true);
             m_CameraControls_MouseZoom = m_CameraControls.FindAction("MouseZoom", throwIfNotFound: true);
             m_CameraControls_GamepadZoom = m_CameraControls.FindAction("GamepadZoom", throwIfNotFound: true);
+            // CranePuzzle
+            m_CranePuzzle = asset.FindActionMap("CranePuzzle", throwIfNotFound: true);
+            m_CranePuzzle_Confirm = m_CranePuzzle.FindAction("Confirm", throwIfNotFound: true);
+            m_CranePuzzle_Move = m_CranePuzzle.FindAction("Move", throwIfNotFound: true);
+            m_CranePuzzle_EscapePuzzle = m_CranePuzzle.FindAction("EscapePuzzle", throwIfNotFound: true);
         }
 
         ~@PlayerControls()
@@ -1422,6 +1464,7 @@ namespace eXsert
             UnityEngine.Debug.Assert(!m_Gameplay.enabled, "This will cause a leak and performance issues, PlayerControls.Gameplay.Disable() has not been called.");
             UnityEngine.Debug.Assert(!m_UI.enabled, "This will cause a leak and performance issues, PlayerControls.UI.Disable() has not been called.");
             UnityEngine.Debug.Assert(!m_CameraControls.enabled, "This will cause a leak and performance issues, PlayerControls.CameraControls.Disable() has not been called.");
+            UnityEngine.Debug.Assert(!m_CranePuzzle.enabled, "This will cause a leak and performance issues, PlayerControls.CranePuzzle.Disable() has not been called.");
         }
 
         /// <summary>
@@ -1497,7 +1540,6 @@ namespace eXsert
         // Gameplay
         private readonly InputActionMap m_Gameplay;
         private List<IGameplayActions> m_GameplayActionsCallbackInterfaces = new List<IGameplayActions>();
-        private readonly InputAction m_Gameplay_Move;
         private readonly InputAction m_Gameplay_Look;
         private readonly InputAction m_Gameplay_Jump;
         private readonly InputAction m_Gameplay_Guard;
@@ -1509,7 +1551,6 @@ namespace eXsert
         private readonly InputAction m_Gameplay_NavigationMenu;
         private readonly InputAction m_Gameplay_Interact;
         private readonly InputAction m_Gameplay_ApplySettings;
-        private readonly InputAction m_Gameplay_EscapePuzzle;
         private readonly InputAction m_Gameplay_SwapMenus;
         private readonly InputAction m_Gameplay_EnterMenus;
         private readonly InputAction m_Gameplay_LockOn;
@@ -1526,10 +1567,6 @@ namespace eXsert
             /// Construct a new instance of the input action map wrapper class.
             /// </summary>
             public GameplayActions(@PlayerControls wrapper) { m_Wrapper = wrapper; }
-            /// <summary>
-            /// Provides access to the underlying input action "Gameplay/Move".
-            /// </summary>
-            public InputAction @Move => m_Wrapper.m_Gameplay_Move;
             /// <summary>
             /// Provides access to the underlying input action "Gameplay/Look".
             /// </summary>
@@ -1574,10 +1611,6 @@ namespace eXsert
             /// Provides access to the underlying input action "Gameplay/ApplySettings".
             /// </summary>
             public InputAction @ApplySettings => m_Wrapper.m_Gameplay_ApplySettings;
-            /// <summary>
-            /// Provides access to the underlying input action "Gameplay/EscapePuzzle".
-            /// </summary>
-            public InputAction @EscapePuzzle => m_Wrapper.m_Gameplay_EscapePuzzle;
             /// <summary>
             /// Provides access to the underlying input action "Gameplay/SwapMenus".
             /// </summary>
@@ -1624,9 +1657,6 @@ namespace eXsert
             {
                 if (instance == null || m_Wrapper.m_GameplayActionsCallbackInterfaces.Contains(instance)) return;
                 m_Wrapper.m_GameplayActionsCallbackInterfaces.Add(instance);
-                @Move.started += instance.OnMove;
-                @Move.performed += instance.OnMove;
-                @Move.canceled += instance.OnMove;
                 @Look.started += instance.OnLook;
                 @Look.performed += instance.OnLook;
                 @Look.canceled += instance.OnLook;
@@ -1660,9 +1690,6 @@ namespace eXsert
                 @ApplySettings.started += instance.OnApplySettings;
                 @ApplySettings.performed += instance.OnApplySettings;
                 @ApplySettings.canceled += instance.OnApplySettings;
-                @EscapePuzzle.started += instance.OnEscapePuzzle;
-                @EscapePuzzle.performed += instance.OnEscapePuzzle;
-                @EscapePuzzle.canceled += instance.OnEscapePuzzle;
                 @SwapMenus.started += instance.OnSwapMenus;
                 @SwapMenus.performed += instance.OnSwapMenus;
                 @SwapMenus.canceled += instance.OnSwapMenus;
@@ -1689,9 +1716,6 @@ namespace eXsert
             /// <seealso cref="GameplayActions" />
             private void UnregisterCallbacks(IGameplayActions instance)
             {
-                @Move.started -= instance.OnMove;
-                @Move.performed -= instance.OnMove;
-                @Move.canceled -= instance.OnMove;
                 @Look.started -= instance.OnLook;
                 @Look.performed -= instance.OnLook;
                 @Look.canceled -= instance.OnLook;
@@ -1725,9 +1749,6 @@ namespace eXsert
                 @ApplySettings.started -= instance.OnApplySettings;
                 @ApplySettings.performed -= instance.OnApplySettings;
                 @ApplySettings.canceled -= instance.OnApplySettings;
-                @EscapePuzzle.started -= instance.OnEscapePuzzle;
-                @EscapePuzzle.performed -= instance.OnEscapePuzzle;
-                @EscapePuzzle.canceled -= instance.OnEscapePuzzle;
                 @SwapMenus.started -= instance.OnSwapMenus;
                 @SwapMenus.performed -= instance.OnSwapMenus;
                 @SwapMenus.canceled -= instance.OnSwapMenus;
@@ -2067,6 +2088,124 @@ namespace eXsert
         /// Provides a new <see cref="CameraControlsActions" /> instance referencing this action map.
         /// </summary>
         public CameraControlsActions @CameraControls => new CameraControlsActions(this);
+
+        // CranePuzzle
+        private readonly InputActionMap m_CranePuzzle;
+        private List<ICranePuzzleActions> m_CranePuzzleActionsCallbackInterfaces = new List<ICranePuzzleActions>();
+        private readonly InputAction m_CranePuzzle_Confirm;
+        private readonly InputAction m_CranePuzzle_Move;
+        private readonly InputAction m_CranePuzzle_EscapePuzzle;
+        /// <summary>
+        /// Provides access to input actions defined in input action map "CranePuzzle".
+        /// </summary>
+        public struct CranePuzzleActions
+        {
+            private @PlayerControls m_Wrapper;
+
+            /// <summary>
+            /// Construct a new instance of the input action map wrapper class.
+            /// </summary>
+            public CranePuzzleActions(@PlayerControls wrapper) { m_Wrapper = wrapper; }
+            /// <summary>
+            /// Provides access to the underlying input action "CranePuzzle/Confirm".
+            /// </summary>
+            public InputAction @Confirm => m_Wrapper.m_CranePuzzle_Confirm;
+            /// <summary>
+            /// Provides access to the underlying input action "CranePuzzle/Move".
+            /// </summary>
+            public InputAction @Move => m_Wrapper.m_CranePuzzle_Move;
+            /// <summary>
+            /// Provides access to the underlying input action "CranePuzzle/EscapePuzzle".
+            /// </summary>
+            public InputAction @EscapePuzzle => m_Wrapper.m_CranePuzzle_EscapePuzzle;
+            /// <summary>
+            /// Provides access to the underlying input action map instance.
+            /// </summary>
+            public InputActionMap Get() { return m_Wrapper.m_CranePuzzle; }
+            /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.Enable()" />
+            public void Enable() { Get().Enable(); }
+            /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.Disable()" />
+            public void Disable() { Get().Disable(); }
+            /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.enabled" />
+            public bool enabled => Get().enabled;
+            /// <summary>
+            /// Implicitly converts an <see ref="CranePuzzleActions" /> to an <see ref="InputActionMap" /> instance.
+            /// </summary>
+            public static implicit operator InputActionMap(CranePuzzleActions set) { return set.Get(); }
+            /// <summary>
+            /// Adds <see cref="InputAction.started"/>, <see cref="InputAction.performed"/> and <see cref="InputAction.canceled"/> callbacks provided via <param cref="instance" /> on all input actions contained in this map.
+            /// </summary>
+            /// <param name="instance">Callback instance.</param>
+            /// <remarks>
+            /// If <paramref name="instance" /> is <c>null</c> or <paramref name="instance"/> have already been added this method does nothing.
+            /// </remarks>
+            /// <seealso cref="CranePuzzleActions" />
+            public void AddCallbacks(ICranePuzzleActions instance)
+            {
+                if (instance == null || m_Wrapper.m_CranePuzzleActionsCallbackInterfaces.Contains(instance)) return;
+                m_Wrapper.m_CranePuzzleActionsCallbackInterfaces.Add(instance);
+                @Confirm.started += instance.OnConfirm;
+                @Confirm.performed += instance.OnConfirm;
+                @Confirm.canceled += instance.OnConfirm;
+                @Move.started += instance.OnMove;
+                @Move.performed += instance.OnMove;
+                @Move.canceled += instance.OnMove;
+                @EscapePuzzle.started += instance.OnEscapePuzzle;
+                @EscapePuzzle.performed += instance.OnEscapePuzzle;
+                @EscapePuzzle.canceled += instance.OnEscapePuzzle;
+            }
+
+            /// <summary>
+            /// Removes <see cref="InputAction.started"/>, <see cref="InputAction.performed"/> and <see cref="InputAction.canceled"/> callbacks provided via <param cref="instance" /> on all input actions contained in this map.
+            /// </summary>
+            /// <remarks>
+            /// Calling this method when <paramref name="instance" /> have not previously been registered has no side-effects.
+            /// </remarks>
+            /// <seealso cref="CranePuzzleActions" />
+            private void UnregisterCallbacks(ICranePuzzleActions instance)
+            {
+                @Confirm.started -= instance.OnConfirm;
+                @Confirm.performed -= instance.OnConfirm;
+                @Confirm.canceled -= instance.OnConfirm;
+                @Move.started -= instance.OnMove;
+                @Move.performed -= instance.OnMove;
+                @Move.canceled -= instance.OnMove;
+                @EscapePuzzle.started -= instance.OnEscapePuzzle;
+                @EscapePuzzle.performed -= instance.OnEscapePuzzle;
+                @EscapePuzzle.canceled -= instance.OnEscapePuzzle;
+            }
+
+            /// <summary>
+            /// Unregisters <param cref="instance" /> and unregisters all input action callbacks via <see cref="CranePuzzleActions.UnregisterCallbacks(ICranePuzzleActions)" />.
+            /// </summary>
+            /// <seealso cref="CranePuzzleActions.UnregisterCallbacks(ICranePuzzleActions)" />
+            public void RemoveCallbacks(ICranePuzzleActions instance)
+            {
+                if (m_Wrapper.m_CranePuzzleActionsCallbackInterfaces.Remove(instance))
+                    UnregisterCallbacks(instance);
+            }
+
+            /// <summary>
+            /// Replaces all existing callback instances and previously registered input action callbacks associated with them with callbacks provided via <param cref="instance" />.
+            /// </summary>
+            /// <remarks>
+            /// If <paramref name="instance" /> is <c>null</c>, calling this method will only unregister all existing callbacks but not register any new callbacks.
+            /// </remarks>
+            /// <seealso cref="CranePuzzleActions.AddCallbacks(ICranePuzzleActions)" />
+            /// <seealso cref="CranePuzzleActions.RemoveCallbacks(ICranePuzzleActions)" />
+            /// <seealso cref="CranePuzzleActions.UnregisterCallbacks(ICranePuzzleActions)" />
+            public void SetCallbacks(ICranePuzzleActions instance)
+            {
+                foreach (var item in m_Wrapper.m_CranePuzzleActionsCallbackInterfaces)
+                    UnregisterCallbacks(item);
+                m_Wrapper.m_CranePuzzleActionsCallbackInterfaces.Clear();
+                AddCallbacks(instance);
+            }
+        }
+        /// <summary>
+        /// Provides a new <see cref="CranePuzzleActions" /> instance referencing this action map.
+        /// </summary>
+        public CranePuzzleActions @CranePuzzle => new CranePuzzleActions(this);
         private int m_KeyboardMouseSchemeIndex = -1;
         /// <summary>
         /// Provides access to the input control scheme.
@@ -2100,13 +2239,6 @@ namespace eXsert
         /// <seealso cref="GameplayActions.RemoveCallbacks(IGameplayActions)" />
         public interface IGameplayActions
         {
-            /// <summary>
-            /// Method invoked when associated input action "Move" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
-            /// </summary>
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnMove(InputAction.CallbackContext context);
             /// <summary>
             /// Method invoked when associated input action "Look" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
             /// </summary>
@@ -2184,13 +2316,6 @@ namespace eXsert
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnApplySettings(InputAction.CallbackContext context);
-            /// <summary>
-            /// Method invoked when associated input action "EscapePuzzle" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
-            /// </summary>
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
-            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-            void OnEscapePuzzle(InputAction.CallbackContext context);
             /// <summary>
             /// Method invoked when associated input action "SwapMenus" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
             /// </summary>
@@ -2319,6 +2444,35 @@ namespace eXsert
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnGamepadZoom(InputAction.CallbackContext context);
+        }
+        /// <summary>
+        /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "CranePuzzle" which allows adding and removing callbacks.
+        /// </summary>
+        /// <seealso cref="CranePuzzleActions.AddCallbacks(ICranePuzzleActions)" />
+        /// <seealso cref="CranePuzzleActions.RemoveCallbacks(ICranePuzzleActions)" />
+        public interface ICranePuzzleActions
+        {
+            /// <summary>
+            /// Method invoked when associated input action "Confirm" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnConfirm(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "Move" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnMove(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "EscapePuzzle" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnEscapePuzzle(InputAction.CallbackContext context);
         }
     }
 }

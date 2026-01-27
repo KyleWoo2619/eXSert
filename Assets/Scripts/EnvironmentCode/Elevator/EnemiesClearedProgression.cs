@@ -17,9 +17,7 @@ public class EnemiesClearedProgression : MonoBehaviour
     [SerializeField, Tooltip("How often to poll remaining enemies (seconds)")]
     private float checkInterval = 0.2f;
 
-    [Header("What to flip when cleared")]
-    [SerializeField] private GameObject basicElevatorWall;
-    [SerializeField] private GameObject openedElevatorWall;
+    [Space(10)]
 
     [Header("What scene to load when cleared")]
     [SerializeField] private string nextSceneName = "DP_Bridge";   // make sure it's in Build Settings
@@ -108,8 +106,8 @@ public class EnemiesClearedProgression : MonoBehaviour
         if (_done) return;
         _done = true;
 
-        if (basicElevatorWall) basicElevatorWall.SetActive(false);
-        if (openedElevatorWall) openedElevatorWall.SetActive(true);
+        // if (basicElevatorWall) basicElevatorWall.SetActive(false);
+        // if (openedElevatorWall) openedElevatorWall.SetActive(true);
 
         // Load the next scene additively (or single if you prefer)
         if (!string.IsNullOrEmpty(nextSceneName))
@@ -118,7 +116,7 @@ public class EnemiesClearedProgression : MonoBehaviour
             string activeSceneName = SceneManager.GetActiveScene().name;
             if (nextSceneName == activeSceneName)
             {
-                Debug.LogError($"[ElevatorProgression] BLOCKED! Cannot load '{nextSceneName}' - it's the currently active scene! Please set a different scene in the inspector.");
+                Debug.LogError($"Progression BLOCKED! Cannot load '{nextSceneName}' - it's the currently active scene! Please set a different scene in the inspector.");
                 return;
             }
             
@@ -178,11 +176,11 @@ public class EnemiesClearedProgression : MonoBehaviour
             enemies.RemoveAll(e => e == null);
     }
 
-    [UnityEditor.MenuItem("GameObject/eXSert/Add Selected Enemies to Elevator Progression", false, 0)]
-    private static void AddSelectedEnemiesToElevator()
+    [UnityEditor.MenuItem("GameObject/eXSert/Add Selected Enemies to Progression", false, 0)]
+    private static void AddSelectedEnemiesToProgression()
     {
-        var elevatorProgression = FindFirstObjectByType<EnemiesClearedProgression>();
-        if (elevatorProgression == null)
+        var progression = FindFirstObjectByType<EnemiesClearedProgression>();
+        if (progression == null)
         {
             Debug.LogWarning("No EnemiesClearedProgression found in scene!");
             return;
@@ -196,9 +194,9 @@ public class EnemiesClearedProgression : MonoBehaviour
             // Check if it has a health system (likely an enemy)
             if (obj.GetComponentInChildren<IHealthSystem>() != null || obj.CompareTag("Enemy"))
             {
-                if (!elevatorProgression.enemies.Contains(obj))
+                if (!progression.enemies.Contains(obj))
                 {
-                    elevatorProgression.enemies.Add(obj);
+                    progression.enemies.Add(obj);
                     enemiesAdded++;
                 }
             }
@@ -206,8 +204,8 @@ public class EnemiesClearedProgression : MonoBehaviour
 
         if (enemiesAdded > 0)
         {
-            UnityEditor.EditorUtility.SetDirty(elevatorProgression);
-            Debug.Log($"Added {enemiesAdded} enemies to elevator progression.");
+            UnityEditor.EditorUtility.SetDirty(progression);
+            Debug.Log($"Added {enemiesAdded} enemies to progression.");
         }
         else
         {

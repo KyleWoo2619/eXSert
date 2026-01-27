@@ -37,13 +37,17 @@ public class DroneSwarmManager : MonoBehaviour
     {
         if (!spawningEnabled)
         {
+#if UNITY_EDITOR
             Debug.Log("[DroneSwarmManager] Spawning is disabled. No clusters will be created.");
+#endif
             return;
         }
 
         if (clusterSpawnPoints == null || clusterSpawnPoints.Count == 0)
         {
+#if UNITY_EDITOR
             Debug.LogWarning("[DroneSwarmManager] No cluster spawn points assigned.");
+#endif
             return;
         }
 
@@ -62,15 +66,49 @@ public class DroneSwarmManager : MonoBehaviour
                 // Optionally, raise spawnPos.y a bit to avoid ground clipping
                 spawnPos.y += 1.0f;
 
-                // Snap to NavMesh
+                // Snap to NavMesh - try progressively larger radii
                 UnityEngine.AI.NavMeshHit hit;
-                if (UnityEngine.AI.NavMesh.SamplePosition(spawnPos, out hit, 5f, UnityEngine.AI.NavMesh.AllAreas))
+                bool foundNavMesh = false;
+                float[] sampleRadii = { 5f, 10f, 20f, 50f }; // Try increasingly larger radii
+                
+                foreach (float radius in sampleRadii)
                 {
-                    spawnPos = hit.position;
+                    if (UnityEngine.AI.NavMesh.SamplePosition(spawnPos, out hit, radius, UnityEngine.AI.NavMesh.AllAreas))
+                    {
+                        spawnPos = hit.position;
+                        foundNavMesh = true;
+                        break;
+                    }
                 }
-                else
+                
+                if (!foundNavMesh)
                 {
-                    Debug.LogWarning($"[DroneSwarmManager] No NavMesh found near {spawnPos}, drone may not spawn correctly.");
+                    // Last resort: try sampling from the cluster spawn point itself
+                    if (UnityEngine.AI.NavMesh.SamplePosition(clusterSpawnPoints[c].position, out hit, 50f, UnityEngine.AI.NavMesh.AllAreas))
+                    {
+                        // Spawn at the NavMesh point with a small random offset
+                        Vector2 smallOffset = Random.insideUnitCircle * 2f;
+                        spawnPos = hit.position + new Vector3(smallOffset.x, 0, smallOffset.y);
+                        
+                        // Re-sample to make sure the offset position is also on NavMesh
+                        if (UnityEngine.AI.NavMesh.SamplePosition(spawnPos, out hit, 5f, UnityEngine.AI.NavMesh.AllAreas))
+                        {
+                            spawnPos = hit.position;
+                            foundNavMesh = true;
+                        }
+                        else
+                        {
+                            spawnPos = hit.position; // Use the original sampled position
+                            foundNavMesh = true;
+                        }
+                    }
+                }
+
+                if (!foundNavMesh)
+                {
+#if UNITY_EDITOR
+                    Debug.LogWarning($"[DroneSwarmManager] No NavMesh found near {spawnPos} even with extended search. Drone may not function correctly.");
+#endif
                 }
 
                 var droneGO = Instantiate(dronePrefab, spawnPos, Quaternion.identity, clusterGO.transform);
@@ -82,7 +120,9 @@ public class DroneSwarmManager : MonoBehaviour
                 }
                 else
                 {
+#if UNITY_EDITOR
                     Debug.LogWarning("[DroneSwarmManager] Spawned prefab does not contain a DroneEnemy component.");
+#endif
                 }
             }
         }

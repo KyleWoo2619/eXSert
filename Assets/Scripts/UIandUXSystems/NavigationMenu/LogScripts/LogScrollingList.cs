@@ -8,7 +8,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.EventSystems;
 
 public class LogScrollingList : MonoBehaviour
 {
@@ -31,18 +30,22 @@ public class LogScrollingList : MonoBehaviour
 
         if (log.info.isFound)
         {
+            Debug.Log($"Log {log.info.logID} is marked as found, checking if button exists...");
             if (!idToButtonMap.ContainsKey(log.info.logID))
             {
+                Debug.Log($"Creating button for log {log.info.logID}");
                 logButton = InstantiateLogButton(log, selectAction);
             }
             else
             {
+                Debug.Log($"Button for log {log.info.logID} already exists");
                 logButton = idToButtonMap[log.info.logID];
             }
             return logButton;
         }
         else
         {
+            Debug.Log($"Log {log.info.logID} is NOT marked as found (isFound={log.info.isFound}), skipping button creation");
             return logButton;
         }
     }

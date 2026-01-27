@@ -67,8 +67,16 @@ public class ProjectileTurretEnemy : BaseTurretEnemy
 
             if (player == null)
             {
-                var found = GameObject.FindGameObjectWithTag("Player");
-                player = found != null ? found.transform : null;
+                // Use PlayerPresenceManager if available
+                if (PlayerPresenceManager.IsPlayerPresent)
+                {
+                    player = PlayerPresenceManager.PlayerTransform;
+                }
+                else
+                {
+                    var found = GameObject.FindGameObjectWithTag("Player");
+                    player = found != null ? found.transform : null;
+                }
                 PlayerTarget = player;
             }
 

@@ -12,10 +12,27 @@ public class ZoneManager : MonoBehaviour
     private Zone[] cachedZones;
     private readonly List<Zone> tempZoneList = new List<Zone>(16);
 
+#if UNITY_EDITOR
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics()
+    {
+        Instance = null;
+    }
+#endif
+
     private void Awake()
     {
         Instance = this;
         RefreshZoneCache();
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+            cachedZones = null;
+        }
     }
 
     public void RefreshZoneCache()
@@ -23,10 +40,12 @@ public class ZoneManager : MonoBehaviour
         cachedZones = FindObjectsByType<Zone>(FindObjectsSortMode.None);
     }
 
-    public Zone[] GetAllZones() => cachedZones;
+    public Zone[] GetAllZones() => cachedZones ?? System.Array.Empty<Zone>();
 
     public Zone[] GetOtherZones(Zone currentZone)
     {
+        if (cachedZones == null) return System.Array.Empty<Zone>();
+        
         tempZoneList.Clear();
         foreach (var zone in cachedZones)
         {

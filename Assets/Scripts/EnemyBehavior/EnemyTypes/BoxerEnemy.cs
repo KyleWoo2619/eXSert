@@ -21,23 +21,34 @@ public class BoxerEnemy : BaseEnemy<EnemyState, EnemyTrigger>
         attackBehavior = new AttackBehavior<EnemyState, EnemyTrigger>();
         deathBehavior = new DeathBehavior<EnemyState, EnemyTrigger>();
 
+#if UNITY_EDITOR
         Debug.Log($"{gameObject.name} Awake called");
+#endif
 
-        // Find the player by tag (if not set elsewhere)
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        if (playerObj != null)
-            PlayerTarget = playerObj.transform;
+        // Find the player - use PlayerPresenceManager if available
+        if (PlayerPresenceManager.IsPlayerPresent)
+            PlayerTarget = PlayerPresenceManager.PlayerTransform;
+        else
+        {
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null)
+                PlayerTarget = playerObj.transform;
+        }
     }
 
     protected virtual void Start()
     {
         InitializeStateMachine(EnemyState.Idle);
         ConfigureStateMachine();
+#if UNITY_EDITOR
         Debug.Log($"{gameObject.name} State machine initialized");
+#endif
         
         if (enemyAI.State.Equals(EnemyState.Idle))
         {
+#if UNITY_EDITOR
             Debug.Log($"{gameObject.name} Manually calling OnEnterIdle for initial Idle state");
+#endif
             idleBehavior.OnEnter(this);
         }
 

@@ -9,7 +9,7 @@ public class ActsButtonActivator : MonoBehaviour
     {
         for(int i = 0; i < actsButton.Length; i++)
         {
-            if(PlayerProgressionDetector.Instance.actCompletionMap.TryGetValue(i, out bool isCompleted))
+            if(ActsManager.Instance.actCompletionMap.TryGetValue(i, out bool isCompleted))
             {
                 actsButton[i].interactable = isCompleted;
             }

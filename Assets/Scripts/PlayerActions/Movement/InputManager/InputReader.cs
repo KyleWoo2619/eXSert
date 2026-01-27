@@ -47,6 +47,7 @@ public class InputReader : Singleton<InputReader>
     private InputAction rightTargetAction;
     private InputAction loadingLookAction;
     private InputAction loadingZoomAction;
+    
 
     private bool callbacksRegistered = false;
     [SerializeField, Range(0f, 0.5f)] private float lockOnDashSuppressionWindow = 0.18f;

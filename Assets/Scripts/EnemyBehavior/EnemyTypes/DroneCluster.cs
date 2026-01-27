@@ -41,6 +41,7 @@ public class DroneCluster : MonoBehaviour
         center /= drones.Count;
         relocateCenter = center;
         relocateTargetPosition = relocateTarget;
+        _lastRelocateCenterSet = false; // Reset so first movement update will set destinations
     }
 
     // Call this when ending relocate
@@ -54,18 +55,25 @@ public class DroneCluster : MonoBehaviour
         if (drones.Count == 0 || relocateCenter == null) return;
 
         // Move center toward relocate target
-        relocateCenter = Vector3.MoveTowards(relocateCenter.Value, relocateTargetPosition, Time.deltaTime * centerMoveSpeed);
+        Vector3 oldCenter = relocateCenter.Value;
+        relocateCenter = Vector3.MoveTowards(oldCenter, relocateTargetPosition, Time.deltaTime * centerMoveSpeed);
 
-        // Each drone orbits the moving center
+        // Only update drone destinations if center has moved significantly (prevents excessive SetDestination calls)
+        if (Vector3.Distance(oldCenter, relocateCenter.Value) < 0.01f && _lastRelocateCenterSet)
+            return;
+        _lastRelocateCenterSet = true;
+
+        // Fixed formation around the moving center (no Time.time rotation to prevent constant destination changes)
         float angleStep = 360f / drones.Count;
         for (int i = 0; i < drones.Count; i++)
         {
-            float angle = Time.time * orbitSpeed + angleStep * i;
+            float angle = formationAngleOffset + angleStep * i;
             Vector3 offset = Quaternion.Euler(0, angle, 0) * (Vector3.right * orbitRadius);
             Vector3 desiredPos = relocateCenter.Value + offset + Vector3.up * drones[i].HoverHeight;
             drones[i].MoveTo(desiredPos);
         }
     }
+    private bool _lastRelocateCenterSet = false;
 
     // Call this when entering fire state
     public void RandomizeFormationOffset()
@@ -73,13 +81,21 @@ public class DroneCluster : MonoBehaviour
         formationAngleOffset = Random.Range(0f, 360f);
     }
 
+    // Throttle tracking for UpdateClusterMovement
+    private Vector3 _lastClusterTarget = Vector3.positiveInfinity;
+    private const float ClusterTargetChangeThreshold = 0.5f;
+
     // UpdateClusterMovement should use formationAngleOffset
     public void UpdateClusterMovement(Vector3? overrideTarget = null, float? customRadius = null, float? customSpeed = null)
     {
         if (drones.Count == 0) return;
         Vector3 center = overrideTarget ?? (target != null ? target.position : transform.position);
         float radius = customRadius ?? orbitRadius;
-        float speed = customSpeed ?? orbitSpeed;
+
+        // Throttle: only update if target has moved significantly
+        if (Vector3.Distance(center, _lastClusterTarget) < ClusterTargetChangeThreshold)
+            return;
+        _lastClusterTarget = center;
 
         int count = drones.Count;
         for (int i = 0; i < count; i++)

@@ -36,7 +36,7 @@ namespace EnemyBehavior
             {
                 Debug.LogWarning("[Bootstrap] CrowdController not found in scene.");
             }
-            if (RequirePlayerTag && GameObject.FindGameObjectWithTag("Player") == null)
+            if (RequirePlayerTag && !PlayerPresenceManager.IsPlayerPresent && GameObject.FindGameObjectWithTag("Player") == null)
             {
                 Debug.LogWarning("[Bootstrap] No GameObject tagged 'Player' found in scene.");
             }
