@@ -2,7 +2,7 @@
  * Tier-Based Combo Manager
  * 
  * Handles 3-tier combo progression with stance swapping support.
- * Works with AnimFacade to route attacks based on current tier and stance.
+ * Provides attack routing data for PlayerAttackManager without needing AnimFacade.
  * 
  * Tier Structure:
  * Single: SX1,SX2 | SX3,SX4 | SX5   and  SY1 | SY2 | SY3
@@ -16,6 +16,7 @@
 
 using UnityEngine;
 using System.Collections;
+using Utilities.Combat.Attacks;
 
 public class TierComboManager : MonoBehaviour
 {
@@ -23,9 +24,9 @@ public class TierComboManager : MonoBehaviour
     [SerializeField, Range(0.5f, 3f)] private float comboResetTime = 1.5f;
     [SerializeField] private bool debugMode = false;
 
-    [Header("References")]
-    [SerializeField, Tooltip("Assign manually if AnimFacade is on different GameObject")]
-    private AnimFacade animFacade;
+    [Header("Data Sources")]
+    [SerializeField, Tooltip("Reference AttackDatabase so combo tiers match PlayerAttack ScriptableObjects.")]
+    private AttackDatabase attackDatabase;
 
     // Current combo state
     private int currentTier = 1;          // 1, 2, or 3
@@ -44,18 +45,11 @@ public class TierComboManager : MonoBehaviour
 
     void Awake()
     {
-        // Auto-find AnimFacade if not assigned
-        if (animFacade == null)
+        if (attackDatabase == null)
         {
-            animFacade = GetComponent<AnimFacade>();
-            if (animFacade == null)
-            {
-                animFacade = GetComponentInParent<AnimFacade>();
-                if (animFacade == null)
-                    animFacade = GetComponentInChildren<AnimFacade>();
-                if (animFacade == null)
-                    Debug.LogError("TierComboManager: AnimFacade not found! Assign manually in Inspector or attach to same GameObject/parent/child.");
-            }
+            attackDatabase = Resources.Load<AttackDatabase>("AttackDatabase");
+            if (attackDatabase == null)
+                Debug.LogWarning("[TierComboManager] AttackDatabase reference missing. Combo stages will fall back to internal estimates.");
         }
     }
 
@@ -66,14 +60,14 @@ public class TierComboManager : MonoBehaviour
     public string RequestFastAttack(AttackStance currentStance)
     {
         string attackId = GetNextFastAttack(currentStance);
+        PlayerAttack attackData = attackDatabase != null ? attackDatabase.GetAttack(attackId) : null;
+        int executedStage = ResolveComboStageFromData(attackData, currentTier);
+        bool isFinisher = attackData != null && attackData.isFinisher;
         
-        if (animFacade != null)
-            animFacade.PressLight();
-        
-        AdvanceCombo(false, currentStance);
+        AdvanceCombo(false, currentStance, attackId, executedStage, isFinisher);
         
         if (debugMode)
-            Debug.Log($"Fast Attack: {attackId} | Tier: {currentTier} | Stance: {currentStance}");
+            Debug.Log($"Fast Attack: {attackId} | Stage(SO): {executedStage} | NextTier: {currentTier} | Stance: {currentStance}");
         
         return attackId;
     }
@@ -84,15 +78,15 @@ public class TierComboManager : MonoBehaviour
     /// </summary>
     public string RequestHeavyAttack(AttackStance currentStance)
     {
-        string attackId = GetNextHeavyAttack(currentStance);
+        string attackId = GetNextHeavyAttack(currentStance, out int resolvedTier);
+        PlayerAttack attackData = attackDatabase != null ? attackDatabase.GetAttack(attackId) : null;
+        int executedStage = ResolveComboStageFromData(attackData, resolvedTier);
+        bool isFinisher = attackData != null && attackData.isFinisher;
         
-        if (animFacade != null)
-            animFacade.PressHeavy();
-        
-        AdvanceCombo(true, currentStance);
+        AdvanceCombo(true, currentStance, attackId, executedStage, isFinisher);
         
         if (debugMode)
-            Debug.Log($"Heavy Attack: {attackId} | Tier: {currentTier} | Stance: {currentStance}");
+            Debug.Log($"Heavy Attack: {attackId} | Stage(SO): {executedStage} | NextTier: {currentTier} | Stance: {currentStance}");
         
         return attackId;
     }
@@ -190,44 +184,36 @@ public class TierComboManager : MonoBehaviour
     /// <summary>
     /// Determines the next heavy attack based on current tier and stance.
     /// </summary>
-    private string GetNextHeavyAttack(AttackStance currentStance)
+    private string GetNextHeavyAttack(AttackStance currentStance, out int resolvedTier)
     {
-        // Check if we're switching stances mid-combo
-        bool stanceChanged = (currentStance != lastStance) && (currentTier > 1);
+        resolvedTier = ResolveHeavyTier(currentStance);
 
-        if (stanceChanged)
-        {
-            return GetCrossStanceHeavyAttack(currentStance, currentTier);
-        }
-
-        // Heavy attacks follow simpler progression: Y1 -> Y2 -> Y3 for both stances
         string prefix = currentStance == AttackStance.Single ? "SY" : "AY";
-        
-        switch (currentTier)
-        {
-            case 1: return prefix + "1";
-            case 2: return prefix + "2";
-            case 3: return prefix + "3";
-            default: return prefix + "1";
-        }
+        return prefix + Mathf.Clamp(resolvedTier, 1, 3);
     }
 
-    private string GetCrossStanceHeavyAttack(AttackStance newStance, int tier)
+    private int ResolveHeavyTier(AttackStance currentStance)
     {
-        string prefix = newStance == AttackStance.Single ? "SY" : "AY";
-        
-        switch (tier)
+        int tier = currentTier;
+
+        if (tier == 1 && fastAttackIndex > 0)
         {
-            case 2: return prefix + "2";
-            case 3: return prefix + "3";
-            default: return prefix + "1";
+            // Already performed SX1/AX1, treat heavy as stage 2
+            tier = 2;
         }
+        else if (tier == 2 && fastAttackIndex > 0)
+        {
+            // After SX3, escalate heavy straight to stage 3
+            tier = 3;
+        }
+
+        return tier;
     }
 
     /// <summary>
     /// Advances the combo state after an attack is executed.
     /// </summary>
-    private void AdvanceCombo(bool isHeavy, AttackStance currentStance)
+    private void AdvanceCombo(bool isHeavy, AttackStance currentStance, string attackId, int executedStage, bool forceFinisher)
     {
         lastAttackTime = Time.time;
         
@@ -235,61 +221,92 @@ public class TierComboManager : MonoBehaviour
         lastStance = currentStance;
         isHeavyChain = isHeavy;
 
-        // Advance tier logic
-        if (currentTier == 1)
+        if (forceFinisher || executedStage >= 3)
         {
-            // In tier-1, track which attack (first or second)
-            if (!isHeavy)
-            {
-                fastAttackIndex++;
-                if (fastAttackIndex >= 2) // After SX2 or AX2, move to tier-2
-                {
-                    currentTier = 2;
-                    fastAttackIndex = 0;
-                }
-            }
-            else
-            {
-                // Heavy always advances tier immediately
-                currentTier = 2;
-                fastAttackIndex = 0;
-            }
-        }
-        else if (currentTier == 2)
-        {
-            // In tier-2, advance based on attack type
-            if (!isHeavy && currentStance == AttackStance.Single)
-            {
-                // Single stance: SX3 or SX4
-                fastAttackIndex++;
-                if (fastAttackIndex >= 2) // After SX4, move to tier-3
-                {
-                    currentTier = 3;
-                    fastAttackIndex = 0;
-                }
-            }
-            else
-            {
-                // AOE fast or any heavy: advance to tier-3
-                currentTier = 3;
-                fastAttackIndex = 0;
-            }
-        }
-        else if (currentTier == 3)
-        {
-            // Finisher executed, reset combo
             ResetCombo();
             return;
         }
 
-        // Restart reset timer
+        if (isHeavy)
+        {
+            fastAttackIndex = 0;
+            currentTier = Mathf.Clamp(executedStage + 1, 1, 3);
+            return;
+        }
+
+        if (executedStage == 1)
+        {
+            fastAttackIndex++;
+            bool reachedEnd = fastAttackIndex >= 2 || attackId.EndsWith("2");
+            if (reachedEnd)
+            {
+                currentTier = 2;
+                fastAttackIndex = 0;
+            }
+            else
+            {
+                currentTier = 1;
+            }
+        }
+        else if (executedStage == 2)
+        {
+            if (currentStance == AttackStance.Single)
+            {
+                fastAttackIndex++;
+                bool reachedEnd = fastAttackIndex >= 2 || attackId.EndsWith("4");
+                if (reachedEnd)
+                {
+                    currentTier = 3;
+                    fastAttackIndex = 0;
+                }
+                else
+                {
+                    currentTier = 2;
+                }
+            }
+            else
+            {
+                currentTier = 3;
+                fastAttackIndex = 0;
+            }
+        }
+        else
+        {
+            ResetCombo();
+            return;
+        }
+
+    }
+
+    /// <summary>
+    /// Begins (or restarts) the combo reset countdown after an attack finishes.
+    /// </summary>
+    public void StartComboResetCountdown()
+    {
+        if (!gameObject.activeInHierarchy)
+            return;
+
         if (resetCoroutine != null)
             StopCoroutine(resetCoroutine);
-        resetCoroutine = StartCoroutine(ComboResetTimer());
 
-        // Notify AnimFacade of tier change
-        if (animFacade != null)
-            animFacade.SetComboStage(currentTier);
+        resetCoroutine = StartCoroutine(ComboResetTimer());
+    }
+
+    /// <summary>
+    /// Cancels any pending combo reset countdown (e.g., when a new attack starts).
+    /// </summary>
+    public void CancelComboResetCountdown()
+    {
+        if (resetCoroutine != null)
+        {
+            StopCoroutine(resetCoroutine);
+            resetCoroutine = null;
+        }
+    }
+
+    private int ResolveComboStageFromData(PlayerAttack attackData, int fallbackStage)
+    {
+        return attackData != null ? Mathf.Clamp(attackData.comboStage, 1, 3) : Mathf.Clamp(fallbackStage, 1, 3);
     }
 
     /// <summary>
@@ -300,9 +317,8 @@ public class TierComboManager : MonoBehaviour
         currentTier = 1;
         fastAttackIndex = 0;
         isHeavyChain = false;
-        
-        if (animFacade != null)
-            animFacade.SetComboStage(1);
+
+        CancelComboResetCountdown();
         
         if (debugMode)
             Debug.Log("Combo Reset");

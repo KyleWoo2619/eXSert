@@ -15,6 +15,11 @@ namespace Singletons {
         // The private static instance of the singleton
         private static T _instance;
 
+        /// <summary>
+        /// Override to disable DontDestroyOnLoad behavior for Scene-scoped singletons.
+        /// </summary>
+        protected virtual bool ShouldPersistAcrossScenes => true;
+
         // The Public static property to access the singleton instance
         public static T Instance
         {
@@ -33,7 +38,11 @@ namespace Singletons {
                         GameObject singletonObject = new GameObject();
                         _instance = singletonObject.AddComponent<T>();
                         singletonObject.name = typeof(T).ToString() + " (Singleton)";
-                        DontDestroyOnLoad(singletonObject);
+
+                        if (_instance is Singleton<T> singleton && singleton.ShouldPersistAcrossScenes)
+                        {
+                            DontDestroyOnLoad(singletonObject);
+                        }
                     }
                 }
                 return _instance;
@@ -48,7 +57,10 @@ namespace Singletons {
             if(_instance == null)
             {
                 _instance = this as T;
-                DontDestroyOnLoad(gameObject);
+                if (ShouldPersistAcrossScenes)
+                {
+                    DontDestroyOnLoad(gameObject);
+                }
             }
             else if (_instance != this)
             {

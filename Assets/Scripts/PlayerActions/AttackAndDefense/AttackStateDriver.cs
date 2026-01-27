@@ -3,7 +3,7 @@ using UnityEngine;
 /// <summary>
 /// Animator StateMachineBehaviour that drives per-state attack windows without clip events.
 /// Add this to each attack state and set the attackId to match your AttackDatabase.
-/// It will request a one-shot hitbox window from EnhancedPlayerAttackManager.
+/// It will request a one-shot hitbox window from PlayerAttackManager.
 /// </summary>
 public class AttackStateDriver : StateMachineBehaviour
 {
@@ -19,7 +19,7 @@ public class AttackStateDriver : StateMachineBehaviour
 
     private bool spawned;
     private bool chainOpened;
-    private EnhancedPlayerAttackManager mgr;
+    private PlayerAttackManager attackManager;
     private AnimFacade anim;
 
     public override void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
@@ -28,23 +28,23 @@ public class AttackStateDriver : StateMachineBehaviour
         chainOpened = false;
         
         // Always try to get the manager reference (important for DontDestroyOnLoad objects)
-        if (!mgr)
+        if (!attackManager)
         {
             // Try on same GameObject first
-            mgr = animator.GetComponent<EnhancedPlayerAttackManager>();
+            attackManager = animator.GetComponent<PlayerAttackManager>();
             
             // Try on parent
-            if (!mgr) mgr = animator.GetComponentInParent<EnhancedPlayerAttackManager>();
+            if (!attackManager) attackManager = animator.GetComponentInParent<PlayerAttackManager>();
             
             // Try on children
-            if (!mgr) mgr = animator.GetComponentInChildren<EnhancedPlayerAttackManager>();
+            if (!attackManager) attackManager = animator.GetComponentInChildren<PlayerAttackManager>();
             
             // Last resort: Find in scene (works even with DontDestroyOnLoad)
-            if (!mgr) mgr = GameObject.FindAnyObjectByType<EnhancedPlayerAttackManager>();
+            if (!attackManager) attackManager = GameObject.FindAnyObjectByType<PlayerAttackManager>();
             
-            if (!mgr)
+            if (!attackManager)
             {
-                Debug.LogError($"[AttackStateDriver] Could not find EnhancedPlayerAttackManager anywhere! Make sure it exists on the player.");
+                Debug.LogError("[AttackStateDriver] Could not find PlayerAttackManager anywhere! Make sure it exists on the player.");
             }
         }
         
@@ -73,9 +73,9 @@ public class AttackStateDriver : StateMachineBehaviour
                 spawned = true;
                 Debug.Log($"[AttackStateDriver] Trying to spawn hitbox for '{attackId}' at time {currentSec}s");
                 
-                if (mgr == null)
+                if (attackManager == null)
                 {
-                    Debug.LogError($"[AttackStateDriver] EnhancedPlayerAttackManager is NULL! Cannot spawn hitbox for '{attackId}'");
+                    Debug.LogError($"[AttackStateDriver] PlayerAttackManager is NULL! Cannot spawn hitbox for '{attackId}'");
                 }
                 else if (string.IsNullOrEmpty(attackId))
                 {
@@ -84,7 +84,7 @@ public class AttackStateDriver : StateMachineBehaviour
                 else
                 {
                     Debug.Log($"[AttackStateDriver] Calling SpawnOneShotHitbox for '{attackId}' with duration {activeDuration}s");
-                    mgr.SpawnOneShotHitbox(attackId, activeDuration);
+                    attackManager.SpawnOneShotHitbox(attackId, activeDuration);
                 }
             }
         }

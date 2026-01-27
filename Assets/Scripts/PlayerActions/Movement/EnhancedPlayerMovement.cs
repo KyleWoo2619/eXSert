@@ -13,14 +13,13 @@ Handles player movement and saves/loads player position
 * CHANGES:
 * - Replaced direct Animator access with AnimFacade integration
 * - Added AerialComboManager integration for air dash reset
-* - Changed event subscription from PlayerAttackManager to EnhancedPlayerAttackManager
+* - Changed event subscription from PlayerAttackManager to the unified PlayerAttackManager event stream
 * - Added FeedMovement() calls to AnimFacade for proper animation syncing
 * - Cleaned up animator parameter setting (now handled by AnimFacade)
 */
 
 using System.Collections;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 using Utilities.Combat;
 using Utilities.Combat.Attacks;
@@ -60,10 +59,6 @@ public class EnhancedPlayerMovement : MonoBehaviour
     [SerializeField] private AerialComboManager aerialComboManager;
     [Tooltip("Fallback: Only used if AnimFacade is null (not recommended)")]
     [SerializeField] private Animator animator;
-
-    [Header("Input")]
-    [SerializeField, CriticalReference] private InputActionReference _jumpAction;
-    [SerializeField, CriticalReference] private InputActionReference _dashAction;
 
     [Header("Player Movement Settings")]
     [Tooltip("DEPRECATED: Use walk/run speeds instead. This value is no longer used.")]
@@ -166,14 +161,13 @@ public class EnhancedPlayerMovement : MonoBehaviour
 
     private void OnEnable()
     {
-        // Subscribe to attack event from the enhanced manager (used for aerial hop)
-        EnhancedPlayerAttackManager.OnAttack += AerialAttackHop;
+        // Subscribe to attack event for aerial hop boosts
+        PlayerAttackManager.OnAttack += AerialAttackHop;
     }
 
     private void OnDisable()
     {
-        // Unsubscribe
-        EnhancedPlayerAttackManager.OnAttack -= AerialAttackHop;
+        PlayerAttackManager.OnAttack -= AerialAttackHop;
     }
 
     // Update is called once per frame
@@ -189,10 +183,10 @@ public class EnhancedPlayerMovement : MonoBehaviour
         
         Move();
 
-        if (_jumpAction != null && _jumpAction.action != null && _jumpAction.action.triggered && !InputReader.inputBusy)
+        if (InputReader.JumpTriggered && !InputReader.inputBusy)
             OnJump();
 
-        if (_dashAction != null && _dashAction.action != null && _dashAction.action.triggered)
+        if (InputReader.DashTriggered)
             OnDash();
 
         ApplyMovement();

@@ -34,11 +34,11 @@ ModelImporter:
     extraUserProperties: []
     clipAnimations:
     - serializedVersion: 16
-      name: p_SX2_Attack
+      name: p_SX2
       takeName: Take 001
       internalID: 1827226128182048838
       firstFrame: 4
-      lastFrame: 17
+      lastFrame: 38
       wrapMode: 0
       orientationOffsetY: 22.08
       level: 0
@@ -58,22 +58,15 @@ ModelImporter:
       bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
       curves: []
       events:
-      - time: 0
-        functionName: SetComboStage
-        data: 
-        objectReferenceParameter: {instanceID: 0}
-        floatParameter: 0
-        intParameter: 1
-        messageOptions: 0
-      - time: 0
-        functionName: MarkInCombat
+      - time: 0.264574
+        functionName: GenerateHitbox
         data: 
         objectReferenceParameter: {instanceID: 0}
         floatParameter: 0
         intParameter: 0
         messageOptions: 0
-      - time: 0.80582523
-        functionName: OpenChainWindow
+      - time: 0.63378173
+        functionName: CancelWindowStart
         data: 
         objectReferenceParameter: {instanceID: 0}
         floatParameter: 0

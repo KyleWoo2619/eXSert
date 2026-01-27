@@ -35,17 +35,16 @@ public class DataPersistenceManager : Singletons.Singleton<DataPersistenceManage
 
     private FileDataHandler fileDataHandler;
 
+    private string lastSavedScene = "";
+
     
 
-    private void Awake()
+    protected override void Awake()
     {
-        //If a DataPersistenceManager already exists in the scene and error is returned
-        if(instance != null)
-        {
-            Debug.LogError("Found another manager in the scene");
-            Destroy(this.gameObject);
+        base.Awake();
+
+        if (Instance != this)
             return;
-        }
 
         if (disableDataPersistence)
         {
@@ -53,8 +52,6 @@ public class DataPersistenceManager : Singletons.Singleton<DataPersistenceManage
         }
 
         instance = this;
-
-        DontDestroyOnLoad(this.gameObject);
 
         //Defines the save file
         this.fileDataHandler = new FileDataHandler(Application.persistentDataPath, fileName);
@@ -107,6 +104,9 @@ public class DataPersistenceManager : Singletons.Singleton<DataPersistenceManage
         // Immediately persist the new defaults so the next scene load reads them
         if (!disableDataPersistence)
         {
+            // Initialize lastSavedScene for the new profile
+            this.gameData.lastSavedScene = SceneManager.GetActiveScene().name;
+            this.lastSavedScene = this.gameData.lastSavedScene;
             fileDataHandler.Save(this.gameData, selectedProfileId);
         }
     }
@@ -132,6 +132,8 @@ public class DataPersistenceManager : Singletons.Singleton<DataPersistenceManage
             Debug.Log("Intializing");
             return;
         }
+        // Keep the manager's cached lastSavedScene in sync with the loaded profile
+        this.lastSavedScene = this.gameData.lastSavedScene;
         //Goes through each of the found items that needs to be loaded and loads them
         foreach (IDataPersistenceManager dataPersistenceObj in dataPersistenceObjects)
         {
@@ -160,7 +162,22 @@ public class DataPersistenceManager : Singletons.Singleton<DataPersistenceManage
         //Saves the current time, converts to binary, and assigns the data to gameData
         gameData.lastUpdated = System.DateTime.Now.ToBinary();
 
+        // Record the active scene as the last saved scene for the current profile
+        gameData.lastSavedScene = SceneManager.GetActiveScene().name;
+        this.lastSavedScene = gameData.lastSavedScene;
+
         fileDataHandler.Save(gameData, selectedProfileId);
+    }
+
+    /// <summary>
+    /// Returns the last saved scene for the currently-selected profile (or empty string if none).
+    /// </summary>
+    public string GetLastSavedScene()
+    {
+        if (gameData != null)
+            return gameData.lastSavedScene ?? string.Empty;
+
+        return lastSavedScene ?? string.Empty;
     }
 
     /// <summary>

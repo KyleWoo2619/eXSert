@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAttack
   _attackId: SX4
   _attackName: SX4
+  _comboStage: 2
+  _isFinisher: 0
   _attackType: 0
   _attackWeight: 0
   _damage: 15
@@ -27,7 +29,9 @@ MonoBehaviour:
   _defaultDistanceFromPlayer: 1
   _customAttackDistanceFromPlayer: 0.75
   _hitboxHeightOffset: 1
-  _startLag: 0.15
-  _endLag: 0.1
+  _animationClip: {fileID: 1827226128182048838, guid: 5d0d47ddbc38a3d439d9e4fa3abeedf5, type: 3}
+  _allowLateChain: 0
+  _hitboxDuration: 0.1
+  _tickInterval: 0
   _attackSFX: {fileID: 8300000, guid: 962115b3a598cf744b252b526ffcf797, type: 3}
   _hitSFX: {fileID: 0}

@@ -11,6 +11,8 @@ using UnityEngine.Events;
 
 public class LogScrollingList : MonoBehaviour
 {
+
+
     [Header("Components")]
     [SerializeField] private GameObject contentParent;
 
@@ -21,8 +23,6 @@ public class LogScrollingList : MonoBehaviour
     [SerializeField] private RectTransform scrollRectTransform;
     [SerializeField] private RectTransform contentRectTransform;
     private Dictionary<string, LogButton> idToButtonMap = new Dictionary<string, LogButton>(); //Dict to hold id of buttons
-
-
     //If the button for a log doesn't already exist, this function will make it
     public LogButton CreateButtonIfNotExists(Logs log, UnityAction selectAction)
     {
@@ -30,18 +30,22 @@ public class LogScrollingList : MonoBehaviour
 
         if (log.info.isFound)
         {
+            Debug.Log($"Log {log.info.logID} is marked as found, checking if button exists...");
             if (!idToButtonMap.ContainsKey(log.info.logID))
             {
+                Debug.Log($"Creating button for log {log.info.logID}");
                 logButton = InstantiateLogButton(log, selectAction);
             }
             else
             {
+                Debug.Log($"Button for log {log.info.logID} already exists");
                 logButton = idToButtonMap[log.info.logID];
             }
             return logButton;
         }
         else
         {
+            Debug.Log($"Log {log.info.logID} is NOT marked as found (isFound={log.info.isFound}), skipping button creation");
             return logButton;
         }
     }

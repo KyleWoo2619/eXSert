@@ -22,6 +22,8 @@ namespace Behaviors
         // Cache the Attack state value for this enum type
         private TState attackStateValue;
 
+        private static readonly Collider[] hitBuffer = new Collider[16];
+
         public virtual void OnEnter(BaseEnemy<TState, TTrigger> enemy)
         {
             this.enemy = enemy;
@@ -86,7 +88,7 @@ namespace Behaviors
                         }
                     }
                 }
-                yield return new WaitForSeconds(1f);
+                yield return WaitForSecondsCache.Get(1f);
             }
         }
 
@@ -103,7 +105,7 @@ namespace Behaviors
                     yield break;
                 }
 
-                yield return new WaitForSeconds(0.1f);
+                yield return WaitForSecondsCache.Get(0.1f);
             }
         }
 
@@ -117,7 +119,9 @@ namespace Behaviors
                 safetyCounter++;
                 if (safetyCounter > maxIterations)
                 {
+#if UNITY_EDITOR
                     Debug.LogError("AttackLoop exceeded max iterations! Breaking to prevent freeze.");
+#endif
                     yield break;
                 }
 
@@ -128,19 +132,23 @@ namespace Behaviors
                 try
                 {
                     Vector3 boxCenter = enemy.transform.position + enemy.transform.forward * enemy.attackBoxDistance;
+                    boxCenter += Vector3.up * enemy.attackBoxHeightOffset;
                     Vector3 boxHalfExtents = enemy.attackBoxSize * 0.5f;
                     Quaternion boxRotation = enemy.transform.rotation;
 
                     if (boxHalfExtents == Vector3.zero)
                     {
+#if UNITY_EDITOR
                         Debug.LogWarning("Attack box size is zero!");
+#endif
                         yield break;
                     }
 
-                    Collider[] hits = Physics.OverlapBox(boxCenter, boxHalfExtents, boxRotation);
+                    int hitCount = Physics.OverlapBoxNonAlloc(boxCenter, boxHalfExtents, hitBuffer, boxRotation);
 
-                    foreach (var hit in hits)
+                    for (int i = 0; i < hitCount; i++)
                     {
+                        var hit = hitBuffer[i];
                         if (hit.CompareTag("Player"))
                         {
                             playerInAttackBox = true;
@@ -158,6 +166,7 @@ namespace Behaviors
                         DealDamageToPlayerOnce(playerCollider);
 
                         didAttack = true;
+                        enemy.TriggerAttackAnimation();
                     }
                     else
                     {
@@ -168,18 +177,20 @@ namespace Behaviors
                 }
                 catch (System.Exception ex)
                 {
+#if UNITY_EDITOR
                     Debug.LogError("Exception in AttackLoop: " + ex);
+#endif
                     yield break;
                 }
 
                 if (didAttack)
                 {
-                    yield return new WaitForSeconds(enemy.attackActiveDuration);
+                    yield return WaitForSecondsCache.Get(enemy.attackActiveDuration);
                     enemy.isAttackBoxActive = false;
                     enemy.attackCollider.enabled = false;
                     enemy.SetEnemyColor(enemy.attackColor);
                     ResetDamageFlag();
-                    yield return new WaitForSeconds(enemy.attackInterval);
+                    yield return WaitForSecondsCache.Get(enemy.attackInterval);
 
                     // Only do backup and rotate for crawlers
                     if (enemy is BaseCrawlerEnemy crawler)
@@ -192,7 +203,7 @@ namespace Behaviors
                 }
                 else
                 {
-                    yield return new WaitForSeconds(0.1f);
+                    yield return WaitForSecondsCache.Get(0.1f);
                 }
             }
             enemy.isAttackBoxActive = false;
@@ -213,14 +224,18 @@ namespace Behaviors
             if (CombatManager.isParrying)
             {
                 CombatManager.ParrySuccessful();
+#if UNITY_EDITOR
                 Debug.Log($"{enemy.gameObject.name} attack parried by player.");
+#endif
                 return;
             }
 
             playerCollider.TryGetComponent<IHealthSystem>(out var healthSystem);
             if (healthSystem == null)
             {
+#if UNITY_EDITOR
                 Debug.LogWarning($"{playerCollider.gameObject.name} has Player tag but no IHealthSystem component.");
+#endif
                 return;
             }
 
@@ -229,11 +244,15 @@ namespace Behaviors
             if (CombatManager.isGuarding)
             {
                 dmg *= 0.5f; // temporary guard mitigation
+#if UNITY_EDITOR
                 Debug.Log($"{enemy.gameObject.name} attack guarded. Applying reduced damage {dmg}.");
+#endif
             }
 
             healthSystem.LoseHP(dmg);
+#if UNITY_EDITOR
             Debug.Log($"{enemy.gameObject.name} attacked {playerCollider.gameObject.name} for {dmg} damage.");
+#endif
         }
 
         // Reset flag when hitbox is disabled
@@ -261,7 +280,7 @@ namespace Behaviors
                 enemy.GetComponent<UnityEngine.AI.NavMeshAgent>().SetDestination(backupTarget);
 
             // Optionally, wait a short time before rejoining the swarm
-            yield return new WaitForSeconds(0.5f);
+            yield return WaitForSecondsCache.Get(0.5f);
 
             // Here you can add the code to make the enemy rejoin the swarm
         }

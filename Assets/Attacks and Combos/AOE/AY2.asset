@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAttack
   _attackId: AY2
   _attackName: AY2
+  _comboStage: 2
+  _isFinisher: 0
   _attackType: 1
   _attackWeight: 1
   _damage: 10
@@ -26,8 +28,15 @@ MonoBehaviour:
   _width: 2.5
   _defaultDistanceFromPlayer: 0
   _customAttackDistanceFromPlayer: 0
-  _hitboxHeightOffset: 1
-  _startLag: 0.15
-  _endLag: 0.1
+  _hitboxHeightOffset: 0
+  _maxTargetsPerActivation: 5
+  _animationClip: {fileID: 1827226128182048838, guid: bda0bcdc3187e054e898cf6f5ea82a63, type: 3}
+  _allowLateChain: 0
+  _hitboxDuration: 0.1
+  _tickInterval: 0
+  _hitVfxPrefab: {fileID: 0}
+  _vfxAnchorId: 
+  _vfxLifetime: 0
+  _additionalVfxEntries: []
   _attackSFX: {fileID: 8300000, guid: 1935e65c657c36c4eb37279e27f91ee5, type: 3}
   _hitSFX: {fileID: 0}

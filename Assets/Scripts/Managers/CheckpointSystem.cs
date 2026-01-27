@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using Singletons;
 
 /// <summary>
@@ -9,16 +10,21 @@ using Singletons;
 public class CheckpointSystem : Singleton<CheckpointSystem>, IDataPersistenceManager
 {
     [Header("Current Progress")]
-    [SerializeField, ReadOnly] private string currentSceneName = "FP_Elevator";
+    [SerializeField, ReadOnly] private string currentSceneName = "VS_Elevator";
     [SerializeField, ReadOnly] private string currentSpawnPointID = "default";
     
+    [Header("Defaults")]
+    [SerializeField, Tooltip("Scene used when no checkpoint data exists (e.g., brand new profile).")]
+    private string defaultSceneName = "VS_Elevator";
+    [SerializeField, Tooltip("Spawn ID used when no checkpoint has been set.")]
+    private string defaultSpawnPointID = "default";
+
     [Header("Scene Progression")]
     [Tooltip("Define the order of scenes in your game")]
     [SerializeField] private string[] sceneProgression = new string[]
     {
-        "FP_Elevator",
-        "FP_Hanger",
-        "FP_Crew_Quarters"
+        "VS_Elevator",
+        "VS_CargoBay"
     };
 
     [Header("Debug")]
@@ -39,10 +45,24 @@ public class CheckpointSystem : Singleton<CheckpointSystem>, IDataPersistenceMan
     /// <param name="spawnPointID">The spawn point identifier (default, checkpoint1, checkpoint2, etc.)</param>
     public void SetCheckpoint(string sceneName, string spawnPointID)
     {
-        currentSceneName = sceneName;
-        currentSpawnPointID = spawnPointID;
+        string resolvedScene = sceneName;
+        string resolvedSpawn = string.IsNullOrWhiteSpace(spawnPointID) ? "default" : spawnPointID;
+
+        if (string.IsNullOrWhiteSpace(resolvedScene) && SpawnPoint.TryGetSceneForSpawn(resolvedSpawn, out var derivedScene))
+        {
+            resolvedScene = derivedScene;
+        }
+
+        if (string.IsNullOrWhiteSpace(resolvedScene))
+        {
+            resolvedScene = ResolveDefaultSceneName();
+        }
+
+        currentSceneName = resolvedScene;
+        currentSpawnPointID = resolvedSpawn;
         
-        Log($"Checkpoint set: {sceneName} - {spawnPointID}");
+        Log($"Checkpoint set: {currentSceneName} - {currentSpawnPointID}");
+        SpawnPoint.LogCheckpointSelection("CheckpointSystem", currentSpawnPointID, currentSceneName);
         
         // Save to persistent data
         SaveCheckpointData();
@@ -88,8 +108,8 @@ public class CheckpointSystem : Singleton<CheckpointSystem>, IDataPersistenceMan
     /// </summary>
     public void ResetProgress()
     {
-        currentSceneName = sceneProgression.Length > 0 ? sceneProgression[0] : "FP_Elevator";
-        currentSpawnPointID = "default";
+        currentSceneName = ResolveDefaultSceneName();
+        currentSpawnPointID = string.IsNullOrWhiteSpace(defaultSpawnPointID) ? "default" : defaultSpawnPointID;
         
         Log("Progress reset to beginning");
         SaveCheckpointData();
@@ -133,8 +153,8 @@ public class CheckpointSystem : Singleton<CheckpointSystem>, IDataPersistenceMan
     {
         if (data != null)
         {
-            currentSceneName = string.IsNullOrEmpty(data.currentSceneName) ? "FP_Elevator" : data.currentSceneName;
-            currentSpawnPointID = string.IsNullOrEmpty(data.currentSpawnPointID) ? "default" : data.currentSpawnPointID;
+            currentSceneName = string.IsNullOrEmpty(data.currentSceneName) ? ResolveDefaultSceneName() : data.currentSceneName;
+            currentSpawnPointID = string.IsNullOrEmpty(data.currentSpawnPointID) ? defaultSpawnPointID : data.currentSpawnPointID;
             Log($"Loaded checkpoint from save: {currentSceneName} - {currentSpawnPointID}");
         }
     }
@@ -173,4 +193,21 @@ public class CheckpointSystem : Singleton<CheckpointSystem>, IDataPersistenceMan
     }
 #endif
     #endregion
+
+    private string ResolveDefaultSceneName()
+    {
+        if (!string.IsNullOrWhiteSpace(defaultSceneName))
+            return defaultSceneName;
+
+        if (sceneProgression != null && sceneProgression.Length > 0)
+        {
+            for (int i = 0; i < sceneProgression.Length; i++)
+            {
+                if (!string.IsNullOrWhiteSpace(sceneProgression[i]))
+                    return sceneProgression[i];
+            }
+        }
+
+        return SceneManager.GetActiveScene().name;
+    }
 }

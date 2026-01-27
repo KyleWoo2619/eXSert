@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAttack
   _attackId: AX1
   _attackName: AX1
+  _comboStage: 1
+  _isFinisher: 0
   _attackType: 1
   _attackWeight: 0
   _damage: 10
@@ -26,8 +28,15 @@ MonoBehaviour:
   _width: 2.5
   _defaultDistanceFromPlayer: 0
   _customAttackDistanceFromPlayer: 0.07
-  _hitboxHeightOffset: 1
-  _startLag: 1.2
-  _endLag: 0.5
+  _hitboxHeightOffset: 0
+  _maxTargetsPerActivation: 5
+  _animationClip: {fileID: 1827226128182048838, guid: 964e35e918443ee4e8e75fffa7165147, type: 3}
+  _allowLateChain: 0
+  _hitboxDuration: 0.1
+  _tickInterval: 0
+  _hitVfxPrefab: {fileID: 0}
+  _vfxAnchorId: 
+  _vfxLifetime: 0
+  _additionalVfxEntries: []
   _attackSFX: {fileID: 8300000, guid: f1b5bc9d77390b74ebf18a4d8b025490, type: 3}
   _hitSFX: {fileID: 0}

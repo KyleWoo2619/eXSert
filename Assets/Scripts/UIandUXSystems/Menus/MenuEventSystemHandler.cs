@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using DG.Tweening;
-using System.ComponentModel;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.UI;
 using System.Collections;
 using UnityEngine.Events;
 
 public class MenuEventSystemHandler : MonoBehaviour
 {
     [Header("UI Selectables")]
-    [Description("List of UI Selectables (Buttons, Toggles, etc.) to add selection listeners to")]
+    [Tooltip("List of UI Selectables (Buttons, Toggles, etc.) to add selection listeners to")]
     public List<Selectable> Selectables = new List<Selectable>();
     [SerializeField] protected Selectable _firstSelected;
 

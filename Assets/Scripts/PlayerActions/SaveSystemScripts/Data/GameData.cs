@@ -29,6 +29,8 @@ public class GameData
     // Checkpoint/Progress data
     public string currentSceneName;
     public string currentSpawnPointID;
+    // Last scene that was saved for this profile (persisted per-profile)
+    public string lastSavedScene;
 
 
     //Base variable definitions should be here
@@ -40,7 +42,9 @@ public class GameData
         playerPos = Vector3.zero;
         
         // Default checkpoint is the first level
-        currentSceneName = "FP_Elevator";
+        currentSceneName = "VS_Elevator";
         currentSpawnPointID = "default";
+        // default last saved scene matches the current scene name on new games
+        lastSavedScene = currentSceneName;
     }
 }

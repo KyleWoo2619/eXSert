@@ -1,43 +1,52 @@
+using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// Helper component to play sounds through the SoundManager singleton.
-/// Useful for UnityEvents that need to play global SFX.
+/// Helper component to play and fade sounds through the SoundManager singleton.
+/// Automatically finds and uses the SoundManager's audio source for global SFX.
 /// </summary>
 public class PlaySoundThroughManager : MonoBehaviour
 {
-    [Header("Sound Settings")]
-    [Tooltip("The audio clip to play through SoundManager's SFX source")]
+    [Header("Audio Clip")]
     [SerializeField] private AudioClip soundClip;
     
-    [Tooltip("Volume for the sound (0-1)")]
-    [SerializeField, Range(0f, 1f)] private float volume = 1f;
+    [Header("Volume")]
+    [SerializeField] [Range(0f, 1f)] private float volume = 1f;
+    [SerializeField] internal bool loop = false;
+
+    [Header("Fade Out Settings")]
+    [SerializeField] [Range(0f, 10f)] private float fadeOutDuration = 1f;
+    
+    private Coroutine _fadeOutCoroutine;
     
     /// <summary>
-    /// Call this from UnityEvents to play the assigned sound through SoundManager.
+    /// Play the assigned sound through SoundManager.
     /// </summary>
     public void PlaySound()
     {
         if (soundClip == null)
         {
-            Debug.LogWarning($"{gameObject.name}: Cannot play sound - no clip assigned!");
+            Debug.LogWarning($"{gameObject.name}: No audio clip assigned!");
             return;
         }
         
-        if (SoundManager.Instance == null)
+        if (SoundManager.Instance == null || SoundManager.Instance.sfxSource == null)
         {
-            Debug.LogWarning($"{gameObject.name}: SoundManager instance not found in scene!");
+            Debug.LogWarning($"{gameObject.name}: SoundManager not found in scene!");
             return;
         }
-        
-        if (SoundManager.Instance.sfxSource == null)
+
+        if(!loop)
         {
-            Debug.LogWarning($"{gameObject.name}: SoundManager's sfxSource is not assigned!");
-            return;
+            SoundManager.Instance.sfxSource.PlayOneShot(soundClip, volume);
+        } 
+        else 
+        {
+            SoundManager.Instance.sfxSource.clip = soundClip;
+            SoundManager.Instance.sfxSource.volume = volume;
+            SoundManager.Instance.sfxSource.loop = true;
+            SoundManager.Instance.sfxSource.Play();
         }
-        
-        SoundManager.Instance.sfxSource.PlayOneShot(soundClip, volume);
-        Debug.Log($"{gameObject.name}: Playing '{soundClip.name}' through SoundManager at volume {volume}");
     }
     
     /// <summary>
@@ -49,5 +58,44 @@ public class PlaySoundThroughManager : MonoBehaviour
             return;
         
         SoundManager.Instance.sfxSource.PlayOneShot(clip, volume);
+    }
+
+    /// <summary>
+    /// Fade out and stop the current sound.
+    /// </summary>
+    public void StopSound()
+    {
+        if (SoundManager.Instance == null || SoundManager.Instance.sfxSource == null)
+            return;
+
+        // Only start fade if one isn't already running
+        if (_fadeOutCoroutine != null)
+            return;
+
+        _fadeOutCoroutine = StartCoroutine(FadeOutSound());
+    }
+
+    private IEnumerator FadeOutSound()
+    {
+        if (SoundManager.Instance == null || SoundManager.Instance.sfxSource == null)
+            yield break;
+
+        AudioSource audioSource = SoundManager.Instance.sfxSource;
+        float startVolume = audioSource.volume;
+        float elapsed = 0f;
+
+        audioSource.loop = false;
+
+        while (elapsed < fadeOutDuration)
+        {
+            elapsed += Time.deltaTime;
+            float progress = elapsed / fadeOutDuration;
+            audioSource.volume = Mathf.Lerp(startVolume, 0f, progress);
+            yield return null;
+        }
+
+        audioSource.volume = 0f;
+        audioSource.Stop();
+        _fadeOutCoroutine = null;
     }
 }

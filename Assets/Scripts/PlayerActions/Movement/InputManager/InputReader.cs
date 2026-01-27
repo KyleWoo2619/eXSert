@@ -14,7 +14,9 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using Singletons;
+using eXsert;
 
 public class InputReader : Singleton<InputReader>
 {
@@ -24,9 +26,9 @@ public class InputReader : Singleton<InputReader>
     [SerializeField] internal string activeControlScheme;
 
     private static InputActionAsset playerControls;
+    private PlayerControls runtimeGeneratedControls;
     public static PlayerInput playerInput {get; private set; }
     
-    public bool ableToGuard;
     internal float mouseSens;
 
     private InputAction moveAction;
@@ -40,123 +42,259 @@ public class InputReader : Singleton<InputReader>
     private InputAction navigationMenuAction;
     private InputAction interactAction;
     private InputAction escapePuzzleAction;
+    private InputAction lockOnAction;
+    private InputAction leftTargetAction;
+    private InputAction rightTargetAction;
+    private InputAction loadingLookAction;
+    private InputAction loadingZoomAction;
+    
+
+    private bool callbacksRegistered = false;
+    [SerializeField, Range(0f, 0.5f)] private float lockOnDashSuppressionWindow = 0.18f;
+    private float lastDashPerformedTime = float.NegativeInfinity;
+
+    public static event Action LockOnPressed;
+    public static event Action LeftTargetPressed;
+    public static event Action RightTargetPressed;
 
     public static bool inputBusy = false;
 
     [Header("DeadzoneValues")]
-    [SerializeField] internal float leftStickDeadzoneValue;
+    [SerializeField, Range(0f, 0.5f)] internal float leftStickDeadzoneValue = 0.15f;
+    [SerializeField, Range(0f, 0.5f)] internal float rightStickDeadzoneValue = 0.15f;
 
     // Gets the input and sets the variable
     public static Vector2 MoveInput { get; private set; }
-    public Vector2 LookInput { get; private set; }
-    public bool DashTrigger { get; private set; } = false;
+    public static Vector2 LookInput { get; private set; }
 
-    // Reset methods for triggers that need manual resetting
-    public void ResetDashTrigger()
+    public InputAction LoadingLookAction => loadingLookAction;
+    public InputAction LoadingZoomAction => loadingZoomAction;
+
+    // Centralized action accessors so gameplay scripts never touch InputActions directly
+    public static bool JumpTriggered =>
+        Instance != null
+        && Instance.jumpAction != null
+        && Instance.jumpAction.triggered;
+
+    public static bool DashTriggered =>
+        Instance != null
+        && Instance.dashAction != null
+        && Instance.dashAction.triggered;
+
+    public static bool JumpHeld =>
+        Instance != null
+        && Instance.jumpAction != null
+        && Instance.jumpAction.IsPressed();
+
+    public static bool DashHeld =>
+        Instance != null
+        && Instance.dashAction != null
+        && Instance.dashAction.IsPressed();
+
+    public static bool GuardHeld =>
+        Instance != null
+        && Instance.guardAction != null
+        && Instance.guardAction.IsPressed();
+
+    public static bool LightAttackTriggered =>
+        Instance != null
+        && Instance.lightAttackAction != null
+        && Instance.lightAttackAction.triggered;
+
+    public static bool HeavyAttackTriggered =>
+        Instance != null
+        && Instance.heavyAttackAction != null
+        && Instance.heavyAttackAction.triggered;
+
+    public static bool ChangeStanceTriggered =>
+        Instance != null
+        && Instance.changeStanceAction != null
+        && Instance.changeStanceAction.triggered;
+
+    public static bool InteractTriggered =>
+        Instance != null
+        && Instance.interactAction != null
+        && Instance.interactAction.triggered;
+
+    public static bool EscapePuzzleTriggered =>
+        Instance != null
+        && Instance.escapePuzzleAction != null
+        && Instance.escapePuzzleAction.triggered;
+
+    public static bool NavigationMenuTriggered =>
+        Instance != null
+        && Instance.navigationMenuAction != null
+        && Instance.navigationMenuAction.triggered;
+
+    #region Unity Lifecycle
+
+    protected override void Awake()
     {
-        DashTrigger = false;
-    }
+        base.Awake();
 
-    override protected void Awake()
-    {
-        base.Awake(); // Call singleton Awake first
-
-        if (_playerInput == null)
+        // If a different InputReader instance already exists, destroy this one to
+        // avoid duplicate singletons and conflicting PlayerInput bindings.
+        if (Instance != this)
         {
-            Debug.LogError("Player Input component not found. Input won't work.");
-            return; // Exit early if no PlayerInput
-        }
-        else
-            playerInput = _playerInput;
-
-        // Initialize activeControlScheme immediately so other scripts can read it during Awake/Start
-        try
-        {
-            activeControlScheme = playerInput != null ? playerInput.currentControlScheme : string.Empty;
-        }
-        catch
-        {
-            activeControlScheme = string.Empty;
-        }
-
-
-        if (_playerControls == null)
-        {
-            Debug.LogError("Player Controls Input Action component not found. Input won't work.");
-            return; // Exit early if no controls
-        }
-        else
-            playerControls = _playerControls;
-
-        // Make sure PlayerInput is enabled before accessing actions
-        if (!playerInput.enabled)
-        {
-            Debug.LogWarning("PlayerInput is not enabled. Enabling now...");
-            playerInput.enabled = true;
-        }
-
-        // Switch to Gameplay action map only (disable UI to prevent errors)
-        try
-        {
-            playerInput.SwitchCurrentActionMap("Gameplay");
-            Debug.Log("Switched to Gameplay action map");
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogWarning($"Could not switch to Gameplay action map: {e.Message}");
-        }
-
-        // Assigns the input action variables to the action in the action map
-        try
-        {
-            moveAction = playerInput.actions["Move"];
-            jumpAction = playerInput.actions["Jump"];
-            lookAction = playerInput.actions["Look"];
-            changeStanceAction = playerInput.actions["ChangeStance"];
-            guardAction = playerInput.actions["Guard"];
-            lightAttackAction = playerInput.actions["LightAttack"];
-            heavyAttackAction = playerInput.actions["HeavyAttack"];
-            dashAction = playerInput.actions["Dash"];
-            interactAction = playerInput.actions["Interact"];
-            escapePuzzleAction = playerInput.actions["EscapePuzzle"];
-            
-            // Try to get NavigationMenu, but don't fail if it doesn't exist
-            try
-            {
-                navigationMenuAction = playerInput.actions["NavigationMenu"];
-            }
-            catch
-            {
-                Debug.LogWarning("NavigationMenu action not found - continuing without it");
-            }
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"Failed to assign input actions: {e.Message}");
+            Destroy(gameObject);
             return;
         }
 
-        //RegisterInputAction();
-            
-        //Sets gamepad deadzone
-        InputSystem.settings.defaultDeadzoneMin = leftStickDeadzoneValue;
+        SceneManager.sceneLoaded += HandleSceneLoaded;
+
+        // Use the serialized InputActionAsset if assigned. Do not auto-create
+        // a runtime copy if one already exists; that caused duplicate assets
+        // when moving from main menu to gameplay.
+        if (_playerControls != null)
+        {
+            playerControls = _playerControls;
+        }
+        else if (playerControls == null)
+        {
+            // As a last resort (e.g., first scene missing a reference), create
+            // a single runtime controls asset that will be reused.
+            runtimeGeneratedControls = new PlayerControls();
+            _playerControls = runtimeGeneratedControls.asset;
+            playerControls = _playerControls;
+            Debug.LogWarning("Player Controls Input Action asset not assigned on InputReader; creating a runtime copy so gameplay actions remain available.");
+        }
+
+        if (_playerInput != null)
+        {
+            RebindTo(_playerInput, switchToGameplay: true);
+        }
+        else if (!TryAutoBindFromLoadedScenes())
+        {
+            Debug.Log("[InputReader] No PlayerInput assigned; waiting for a Player scene to bind automatically.");
+            StartCoroutine(WaitForPlayerInputRoutine());
+        }
+
+        InputSystem.settings.defaultDeadzoneMin = Mathf.Min(leftStickDeadzoneValue, rightStickDeadzoneValue);
+    }
+
+    private void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
+        UnregisterActionCallbacks();
+        if (runtimeGeneratedControls != null)
+        {
+            runtimeGeneratedControls.Dispose();
+            runtimeGeneratedControls = null;
+        }
+    }
+
+    private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (playerInput != null)
+            return;
+
+        if (scene.isLoaded && TryBindFromScene(scene))
+            return;
+
+        // If the specific scene didn't contain a player, try a broader search (e.g., additive load order differences)
+        TryAutoBindFromLoadedScenes();
+    }
+
+    private System.Collections.IEnumerator WaitForPlayerInputRoutine()
+    {
+        const float timeout = 10f;
+        float elapsed = 0f;
+        while (playerInput == null && elapsed < timeout)
+        {
+            if (TryAutoBindFromLoadedScenes())
+                yield break;
+            elapsed += Time.unscaledDeltaTime;
+            yield return null;
+        }
+    }
+
+    private bool TryAutoBindFromLoadedScenes()
+    {
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            Scene scene = SceneManager.GetSceneAt(i);
+            if (!scene.isLoaded || scene.name == "DontDestroyOnLoad")
+                continue;
+
+            if (TryBindFromScene(scene))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool TryBindFromScene(Scene scene)
+    {
+        if (!scene.IsValid())
+            return false;
+
+        GameObject[] roots = scene.GetRootGameObjects();
+        PlayerInput fallback = null;
+
+        for (int i = 0; i < roots.Length; i++)
+        {
+            var candidate = roots[i].GetComponentInChildren<PlayerInput>(true);
+            if (candidate == null)
+                continue;
+
+            if (candidate.GetComponent<InputReader>() != null)
+                continue;
+
+            bool likelyPlayer = candidate.gameObject.CompareTag("Player")
+                || candidate.GetComponentInParent<PlayerMovement>() != null;
+
+            if (likelyPlayer)
+            {
+                Debug.Log($"[InputReader] Auto-binding to PlayerInput '{candidate.name}' in scene '{scene.name}'.");
+                RebindTo(candidate, switchToGameplay: true);
+                return true;
+            }
+
+            if (fallback == null)
+                fallback = candidate;
+        }
+
+        if (fallback != null)
+        {
+            Debug.Log($"[InputReader] Fallback binding to PlayerInput '{fallback.name}' in scene '{scene.name}'.");
+            RebindTo(fallback, switchToGameplay: true);
+            return true;
+        }
+
+        return false;
     }
 
     private void Update()
     {
         // Null checks to prevent Input System errors before initialization
         if (moveAction != null && moveAction.enabled)
-            MoveInput = moveAction.ReadValue<Vector2>();
+            MoveInput = ApplyDeadzone(moveAction.ReadValue<Vector2>(), leftStickDeadzoneValue);
         else
             MoveInput = Vector2.zero;
             
         if (lookAction != null && lookAction.enabled)
-            LookInput = lookAction.ReadValue<Vector2>();
+            LookInput = ApplyDeadzone(lookAction.ReadValue<Vector2>(), rightStickDeadzoneValue);
         else
             LookInput = Vector2.zero;
 
-        activeControlScheme = playerInput.currentControlScheme;
+        if (playerInput != null)
+        {
+            try
+            {
+                activeControlScheme = playerInput.currentControlScheme;
+            }
+            catch
+            {
+                activeControlScheme = string.Empty;
+            }
+        }
+        else
+        {
+            activeControlScheme = string.Empty;
+        }
     }
+
+    #endregion
 
 
     //Turns the actions on
@@ -173,6 +311,11 @@ public class InputReader : Singleton<InputReader>
         if (navigationMenuAction != null) navigationMenuAction.Enable();
         if (interactAction != null) interactAction.Enable();
         if (escapePuzzleAction != null) escapePuzzleAction.Enable();
+        if (lockOnAction != null) lockOnAction.Enable();
+        if (leftTargetAction != null) leftTargetAction.Enable();
+        if (rightTargetAction != null) rightTargetAction.Enable();
+        if (loadingLookAction != null) loadingLookAction.Enable();
+        if (loadingZoomAction != null) loadingZoomAction.Enable();
     }
 
     private void OnDisable()
@@ -188,6 +331,11 @@ public class InputReader : Singleton<InputReader>
         if (navigationMenuAction != null) navigationMenuAction.Disable();
         if (interactAction != null) interactAction.Disable();
         if (escapePuzzleAction != null) escapePuzzleAction.Disable();
+        if (lockOnAction != null) lockOnAction.Disable();
+        if (leftTargetAction != null) leftTargetAction.Disable();
+        if (rightTargetAction != null) rightTargetAction.Disable();
+        if (loadingLookAction != null) loadingLookAction.Disable();
+        if (loadingZoomAction != null) loadingZoomAction.Disable();
     }
 
     /// <summary>
@@ -239,12 +387,32 @@ public class InputReader : Singleton<InputReader>
         if (navigationMenuAction != null) navigationMenuAction.Disable();
         if (interactAction != null) interactAction.Disable();
         if (escapePuzzleAction != null) escapePuzzleAction.Disable();
+        if (lockOnAction != null) lockOnAction.Disable();
+        if (leftTargetAction != null) leftTargetAction.Disable();
+        if (rightTargetAction != null) rightTargetAction.Disable();
+
+        UnregisterActionCallbacks();
 
         _playerInput = newPlayerInput;
         playerInput = newPlayerInput;
 
+        if (playerInput.actions == null)
+        {
+            if (playerControls != null)
+            {
+                playerInput.actions = Instantiate(playerControls);
+            }
+            else
+            {
+                Debug.LogError("[InputReader] PlayerInput has no action asset and no fallback is available.");
+                return;
+            }
+        }
+
         if (!playerInput.enabled)
             playerInput.enabled = true;
+
+        playerInput.neverAutoSwitchControlSchemes = false;
 
         // Optionally set the correct map first so action lookups succeed
         if (switchToGameplay)
@@ -265,9 +433,20 @@ public class InputReader : Singleton<InputReader>
             dashAction = playerInput.actions["Dash"];
             interactAction = playerInput.actions["Interact"];
             escapePuzzleAction = playerInput.actions["EscapePuzzle"];
+            lockOnAction = playerInput.actions["LockOn"];
+            leftTargetAction = playerInput.actions["LeftTarget"];
+            rightTargetAction = playerInput.actions["RightTarget"];
 
             try { navigationMenuAction = playerInput.actions["NavigationMenu"]; }
             catch { navigationMenuAction = null; }
+
+            try { loadingLookAction = playerInput.actions["LoadingLook"]; }
+            catch { loadingLookAction = null; }
+
+            try { loadingZoomAction = playerInput.actions["LoadingZoom"]; }
+            catch { loadingZoomAction = null; }
+
+            RegisterActionCallbacks();
         }
         catch (System.Exception e)
         {
@@ -288,8 +467,98 @@ public class InputReader : Singleton<InputReader>
             if (navigationMenuAction != null) navigationMenuAction.Enable();
             if (interactAction != null) interactAction.Enable();
             if (escapePuzzleAction != null) escapePuzzleAction.Enable();
+            if (lockOnAction != null) lockOnAction.Enable();
+            if (leftTargetAction != null) leftTargetAction.Enable();
+            if (rightTargetAction != null) rightTargetAction.Enable();
+        }
+
+        try
+        {
+            activeControlScheme = playerInput.currentControlScheme;
+        }
+        catch
+        {
+            activeControlScheme = string.Empty;
         }
 
         Debug.Log("[InputReader] Rebound to new PlayerInput and actions re-enabled.");
     }
+
+    private void RegisterActionCallbacks()
+    {
+        if (callbacksRegistered)
+            return;
+
+        if (lockOnAction != null)
+            lockOnAction.performed += HandleLockOnPerformed;
+        if (leftTargetAction != null)
+            leftTargetAction.performed += HandleLeftTargetPerformed;
+        if (rightTargetAction != null)
+            rightTargetAction.performed += HandleRightTargetPerformed;
+        if (dashAction != null)
+            dashAction.performed += HandleDashPerformed;
+
+        callbacksRegistered = true;
+    }
+
+    private void UnregisterActionCallbacks()
+    {
+        if (!callbacksRegistered)
+            return;
+
+        if (lockOnAction != null)
+            lockOnAction.performed -= HandleLockOnPerformed;
+        if (leftTargetAction != null)
+            leftTargetAction.performed -= HandleLeftTargetPerformed;
+        if (rightTargetAction != null)
+            rightTargetAction.performed -= HandleRightTargetPerformed;
+        if (dashAction != null)
+            dashAction.performed -= HandleDashPerformed;
+
+        callbacksRegistered = false;
+    }
+
+    private void HandleLockOnPerformed(InputAction.CallbackContext context)
+    {
+        if (!context.performed)
+            return;
+
+        if (Time.time - lastDashPerformedTime <= lockOnDashSuppressionWindow)
+            return;
+
+        LockOnPressed?.Invoke();
+    }
+
+    private void HandleLeftTargetPerformed(InputAction.CallbackContext context)
+    {
+        if (!context.performed)
+            return;
+
+        LeftTargetPressed?.Invoke();
+    }
+
+    private void HandleRightTargetPerformed(InputAction.CallbackContext context)
+    {
+        if (!context.performed)
+            return;
+
+        RightTargetPressed?.Invoke();
+    }
+
+    private void HandleDashPerformed(InputAction.CallbackContext context)
+    {
+        if (!context.performed)
+            return;
+
+        lastDashPerformedTime = Time.time;
+    }
+
+    private static Vector2 ApplyDeadzone(Vector2 value, float deadzone)
+    {
+        if (deadzone <= 0f)
+            return value;
+
+        return value.magnitude < deadzone ? Vector2.zero : value;
+    }
 }
+

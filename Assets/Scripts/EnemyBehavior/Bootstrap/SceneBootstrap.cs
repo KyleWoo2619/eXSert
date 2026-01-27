@@ -23,6 +23,7 @@ namespace EnemyBehavior
 
         void Start()
         {
+#if UNITY_EDITOR
             if (RequirePathRequestManager && FindObjectOfType<EnemyBehavior.Pathfinding.PathRequestManager>() == null)
             {
                 Debug.LogWarning("[Bootstrap] PathRequestManager not found in scene.");
@@ -35,7 +36,7 @@ namespace EnemyBehavior
             {
                 Debug.LogWarning("[Bootstrap] CrowdController not found in scene.");
             }
-            if (RequirePlayerTag && GameObject.FindGameObjectWithTag("Player") == null)
+            if (RequirePlayerTag && !PlayerPresenceManager.IsPlayerPresent && GameObject.FindGameObjectWithTag("Player") == null)
             {
                 Debug.LogWarning("[Bootstrap] No GameObject tagged 'Player' found in scene.");
             }
@@ -43,6 +44,7 @@ namespace EnemyBehavior
             {
                 Debug.Log("[Bootstrap] ScenePoolManager is not present. That's fine unless this is the boss scene with add spawns.");
             }
+#endif
         }
     }
 }

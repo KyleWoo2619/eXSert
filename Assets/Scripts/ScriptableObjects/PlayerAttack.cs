@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Utilities.Combat.Attacks
@@ -41,6 +42,15 @@ namespace Utilities.Combat.Attacks
 
         // If no custom name is given, use the scriptable object's name
         public string attackName { get => _attackName != "" ? _attackName : this.name; }
+
+        [Space, Header("Combo Metadata")]
+        [SerializeField, Tooltip("Explicit combo stage index (1-3) for validation and progression.")]
+        private int _comboStage = 1;
+        public int comboStage { get => Mathf.Clamp(_comboStage, 1, 3); }
+
+        [SerializeField, Tooltip("Marks this attack as a finisher that forces a combo reset.")]
+        private bool _isFinisher = false;
+        public bool isFinisher { get => _isFinisher; }
 
         [SerializeField, Tooltip("Type of attack, single target or area of effect")]
         private AttackCategory _attackType = AttackCategory.Single;
@@ -125,6 +135,10 @@ namespace Utilities.Combat.Attacks
         private float _hitboxHeightOffset = 1f;
         public float hitboxHeightOffset { get => _hitboxHeightOffset; }
 
+        [SerializeField, Tooltip("Maximum distinct enemies this attack can damage per activation (0 = unlimited). Singles default to 1, AOE can be higher.")]
+        private int _maxTargetsPerActivation = 1;
+        public int maxTargetsPerActivation => Mathf.Max(0, _maxTargetsPerActivation);
+
         // Returns the dimensions of the area of effect attack, or zero vector if not AOE
         public Vector2 areaOfEffectDimensions
         {
@@ -139,17 +153,80 @@ namespace Utilities.Combat.Attacks
 
         // ---------------------------------------------------------------------------------------------
 
-        [Space, Header("Timing")]
+        [Space, Header("Timing / Animation Reference")]
 
-        [SerializeField, Tooltip("How much time after the attack starts before the attack damage is applied, " +
-            "also prevents another attack or action to be started before this finished " +
-            "This usually would incorporate how long the attack animation is before the \"punch\" hits")]
-        private float _startLag = 0.2f;
-        public float startLag { get => _startLag; }
+        [SerializeField, Tooltip("Animation clip associated with this attack (reference for event placement).")]
+        private AnimationClip _animationClip;
+        public AnimationClip animationClip { get => _animationClip; }
 
-        [SerializeField, Tooltip("How much time after the damage is applied before the attack is complete.")]
-        private float _endLag = 0.2f;
-        public float endLag { get => _endLag; }
+        [SerializeField, Tooltip("If true, player may continue holding the current stance idle even when no buffered input exists after the cancel window.")]
+        private bool _allowLateChain = true;
+        public bool allowLateChain { get => _allowLateChain; }
+
+        [SerializeField, Tooltip("How long the hitbox stays active once spawned.")]
+        private float _hitboxDuration = 0.1f;
+        public float hitboxDuration { get => Mathf.Max(0f, _hitboxDuration); }
+
+        [SerializeField, Tooltip("If greater than zero, reapplies damage every interval during the hitbox duration (useful for flamethrowers).")]
+        private float _tickInterval = 0f;
+        public float tickInterval { get => Mathf.Max(0f, _tickInterval); }
+
+        [Space, Header("Impact VFX")]
+        [SerializeField, Tooltip("Optional legacy VFX prefab spawned when the hitbox activates.")]
+        private GameObject _hitVfxPrefab;
+        public GameObject hitVfxPrefab => _hitVfxPrefab;
+
+        [SerializeField, Tooltip("ID of the VFX anchor on the player rig. Leave blank to spawn at the hitbox origin.")]
+        private string _vfxAnchorId;
+        public string vfxAnchorId => _vfxAnchorId;
+
+        [SerializeField, Tooltip("Seconds before the spawned VFX is destroyed. 0 = immediate, -1 = never destroy (handled by prefab).")]
+        private float _vfxLifetime = 1f;
+        public float vfxLifetime => _vfxLifetime < 0f ? -1f : Mathf.Max(0f, _vfxLifetime);
+
+        [Serializable]
+        public struct VfxEntry
+        {
+            [SerializeField] private GameObject prefab;
+            [SerializeField, Tooltip("Anchor ID resolved via PlayerVfxAnchorRegistry. Leave blank to use hitbox pose.")]
+            private string anchorId;
+            [SerializeField, Tooltip("Seconds before this VFX is destroyed. 0 = immediate, -1 = never destroy (prefab handles cleanup).")]
+            private float lifetime;
+
+            public GameObject Prefab => prefab;
+            public string AnchorId => anchorId;
+            public float Lifetime => lifetime < 0f ? -1f : Mathf.Max(0f, lifetime);
+
+            public VfxEntry(GameObject prefab, string anchorId, float lifetime)
+            {
+                this.prefab = prefab;
+                this.anchorId = anchorId;
+                this.lifetime = lifetime;
+            }
+        }
+
+        [SerializeField, Tooltip("Optional list of additional VFX to spawn alongside the legacy fields above.")]
+        private VfxEntry[] _additionalVfxEntries;
+        public IReadOnlyList<VfxEntry> additionalVfxEntries => _additionalVfxEntries ?? Array.Empty<VfxEntry>();
+
+        public IEnumerable<VfxEntry> EnumerateAllVfx()
+        {
+            if (_hitVfxPrefab != null)
+            {
+                yield return new VfxEntry(_hitVfxPrefab, _vfxAnchorId, _vfxLifetime);
+            }
+
+            if (_additionalVfxEntries == null)
+                yield break;
+
+            foreach (var entry in _additionalVfxEntries)
+            {
+                if (entry.Prefab == null)
+                    continue;
+
+                yield return entry;
+            }
+        }
 
         // ---------------------------------------------------------------------------------------------
 
@@ -163,33 +240,34 @@ namespace Utilities.Combat.Attacks
         private AudioClip _hitSFX;
         public AudioClip hitSFX { get => _hitSFX; }
 
-        internal AudioSource _sfxSource { get => SoundManager.Instance.sfxSource; }
-
         // ---------------------------------------------------------------------------------------------
 
         // Creates and returns a hitbox GameObject for this attack at the specified position and forward direction
+        public void GetHitboxPose(Vector3 playerPosition, Vector3 playerForward, out Vector3 spawnPosition, out Quaternion spawnRotation)
+        {
+            spawnPosition = playerPosition + (playerForward * distanceFromPlayer) + (Vector3.up * hitboxHeightOffset);
+            spawnRotation = Quaternion.LookRotation(playerForward);
+        }
+
         public GameObject createHitBox(Vector3 playerPosition, Vector3 playerForward)
         {
-            GameObject hitbox = new GameObject(attackName + " Hitbox");
-            hitbox.tag = "PlayerAttackHitbox"; // Tag for easy identification
+            GetHitboxPose(playerPosition, playerForward, out var spawnPosition, out var spawnRotation);
+            return CreateHitBoxAt(spawnPosition, spawnRotation);
+        }
 
-            // Calculate position: forward distance + height offset
-            Vector3 spawnPosition = playerPosition + (playerForward * distanceFromPlayer) + (Vector3.up * hitboxHeightOffset);
-            hitbox.transform.position = spawnPosition;
-            hitbox.transform.rotation = Quaternion.LookRotation(playerForward);
+        public GameObject CreateHitBoxAt(Vector3 spawnPosition, Quaternion spawnRotation)
+        {
+            GameObject hitbox = new GameObject(attackName + " Hitbox");
+            hitbox.tag = "PlayerAttackHitbox"; // Tag for identification
+            hitbox.transform.SetPositionAndRotation(spawnPosition, spawnRotation);
 
             BoxCollider hb = hitbox.AddComponent<BoxCollider>();
             hb.isTrigger = true;
-            hb.size = new Vector3(x: width, y: 1f, z: range);
+            hb.size = new Vector3(width, 1f, range);
 
-            // add additional components here as needed, e.g., HitboxDamageManager
             HitboxDamageManager damageManager = hitbox.AddComponent<HitboxDamageManager>();
+            damageManager.Configure(attackName, damage, maxTargetsPerActivation);
 
-            // set damage manager properties based on this attack
-            damageManager.weaponName = attackName;
-            damageManager.damageAmount = damage;
-
-            // Add visual debug component for gizmos
             var debugVisual = hitbox.AddComponent<AttackHitboxVisualizer>();
             debugVisual.width = width;
             debugVisual.range = range;

@@ -1,13 +1,16 @@
+using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections;
+using System.Collections.Generic;
 using Singletons;
 using UnityEngine.InputSystem;
+using UI.Loading;
+using Utilities.Combat;
 
 /// <summary>
-/// Central scene loading system for additive scene loading with persistent player.
-/// Player uses DontDestroyOnLoad and persists across additive scene loads.
-/// Only cleaned up when returning to main menu or restarting.
+/// Central scene loading system for additive scene loading.
+/// Player content lives inside a dedicated PlayerScene that remains loaded.
 /// Written by GitHub Copilot
 /// </summary>
 public class SceneLoader : Singleton<SceneLoader>
@@ -15,14 +18,36 @@ public class SceneLoader : Singleton<SceneLoader>
     [Header("Scene Names")]
     [SerializeField] private string mainMenuSceneName = "MainMenu";
     
-    [Header("Prefabs (optional for non-elevator scenes)")]
-    [SerializeField, Tooltip("Player prefab with PlayerPersistence component for non-elevator scenes")] private GameObject playerPrefab;
-    [SerializeField, Tooltip("HUD prefab with HUDPersistence component for non-elevator scenes")] private GameObject hudPrefab;
+    [Header("Player Scene")]
+    [SerializeField, Tooltip("Scene that contains the player prefab, UI, and related managers. This scene stays loaded during gameplay.")]
+    private string playerSceneName = "PlayerScene";
+
+    [Header("Loading Screen")]
+    [SerializeField, Tooltip("Scene that contains the LoadingScreenController and supporting visuals.")]
+    private string loadingSceneName = "LoadingScene";
+    [SerializeField, Tooltip("Automatically load the loading scene when the main menu boots so the overlay is ready.")]
+    private bool preloadLoadingScene = true;
+    [SerializeField, Range(0f, 60f), Tooltip("Minimum number of seconds the loading screen should remain visible once the prop showcase appears.")]
+    private float minimumLoadingScreenSeconds = 1.5f;
     
     [Header("Debug")]
     [SerializeField] private bool showDebugLogs = true;
 
     private bool isLoadingScene = false;
+    private bool loadingSceneReady = false;
+    private bool loadingSceneLoadInProgress = false;
+    private bool playerSceneReady = false;
+    private bool playerSceneLoadInProgress = false;
+
+    protected override void Awake()
+    {
+        base.Awake();
+
+        if (preloadLoadingScene)
+        {
+            StartCoroutine(EnsureLoadingSceneLoadedCoroutine());
+        }
+    }
 
     /// <summary>
     /// Loads the main menu and cleans up all persistent objects (player, managers, etc.)
@@ -32,8 +57,11 @@ public class SceneLoader : Singleton<SceneLoader>
         if (isLoadingScene) return;
         
         Log("Loading Main Menu - Cleaning up persistent objects...");
-        
-        StartCoroutine(LoadMainMenuCoroutine());
+
+        RunSceneRoutine(
+            LoadMainMenuCoroutine(),
+            pauseDuringLoading: true,
+            minimumDisplayOverride: minimumLoadingScreenSeconds);
     }
 
     /// <summary>
@@ -41,13 +69,26 @@ public class SceneLoader : Singleton<SceneLoader>
     /// This is called when starting a new game or loading a save.
     /// </summary>
     /// <param name="sceneName">The initial scene to load</param>
-    public void LoadInitialGameScene(string sceneName)
+    /// <param name="additiveSceneName">Optional additive scene to load once the base scene finishes</param>
+    /// <param name="pauseUntilLoaded">If true, pauses time until both scenes have finished loading</param>
+    /// <param name="spawnPointIdOverride">Optional spawn ID to place the player at once scenes finish loading</param>
+    /// <param name="updateCheckpointAfterLoad">If true, writes the scene/spawn pair to CheckpointSystem after load</param>
+    public void LoadInitialGameScene(
+        string sceneName,
+        string additiveSceneName = null,
+        bool pauseUntilLoaded = false,
+        string spawnPointIdOverride = null,
+        bool updateCheckpointAfterLoad = true)
     {
         if (isLoadingScene) return;
         
-        Log($"Loading initial game scene: {sceneName}");
-        
-        StartCoroutine(LoadInitialGameSceneCoroutine(sceneName));
+        Log($"Loading initial game scene: {sceneName} (additive: {additiveSceneName ?? "<none>"})");
+
+        RunSceneRoutine(
+            LoadInitialGameSceneCoroutine(sceneName, additiveSceneName, pauseUntilLoaded, spawnPointIdOverride, updateCheckpointAfterLoad),
+            pauseDuringLoading: true,
+            minimumDisplayOverride: minimumLoadingScreenSeconds
+        );
     }
 
     /// <summary>
@@ -83,13 +124,30 @@ public class SceneLoader : Singleton<SceneLoader>
         if (isLoadingScene) return;
         
         // Get checkpoint from system
+        string checkpointSpawn = CheckpointSystem.Instance != null
+            ? CheckpointSystem.Instance.GetCurrentSpawnPointID()
+            : "default";
+
         string checkpointScene = CheckpointSystem.Instance != null 
             ? CheckpointSystem.Instance.GetCurrentSceneName() 
-            : "FP_Elevator";
+            : null;
+
+        if (string.IsNullOrWhiteSpace(checkpointScene) && SpawnPoint.TryGetSceneForSpawn(checkpointSpawn, out var spawnScene))
+        {
+            checkpointScene = spawnScene;
+        }
+
+        if (string.IsNullOrWhiteSpace(checkpointScene))
+        {
+            checkpointScene = SceneManager.GetActiveScene().name;
+        }
         
-        Log($"Restarting from checkpoint: {checkpointScene}");
-        
-        StartCoroutine(RestartFromCheckpointCoroutine(checkpointScene));
+        Log($"Reloading checkpoint via scene load: scene='{checkpointScene}', spawn='{checkpointSpawn}'.");
+
+        RunSceneRoutine(
+            RestartFromCheckpointNonPersistentCoroutine(checkpointScene, checkpointSpawn),
+            pauseDuringLoading: true,
+            minimumDisplayOverride: minimumLoadingScreenSeconds);
     }
 
     private IEnumerator LoadMainMenuCoroutine()
@@ -98,24 +156,6 @@ public class SceneLoader : Singleton<SceneLoader>
         
         // Resume time in case we're paused
         Time.timeScale = 1f;
-        
-        // Clean up all DontDestroyOnLoad objects BEFORE loading main menu
-        CleanupPersistentObjects();
-        
-        // Unload all loaded scenes except DontDestroyOnLoad
-        int sceneCount = SceneManager.sceneCount;
-        for (int i = sceneCount - 1; i >= 0; i--)
-        {
-            Scene scene = SceneManager.GetSceneAt(i);
-            if (scene.name != "DontDestroyOnLoad" && scene.isLoaded)
-            {
-                Log($"Unloading scene: {scene.name}");
-                yield return SceneManager.UnloadSceneAsync(scene);
-            }
-        }
-        
-        // Small delay to ensure cleanup completes
-        yield return null;
         
         // Resolve a valid main menu scene name (handles different project naming)
         string targetMenu = ResolveMainMenuSceneName();
@@ -126,12 +166,113 @@ public class SceneLoader : Singleton<SceneLoader>
             yield break;
         }
 
-        Log($"Loading main menu scene: {targetMenu}");
-        // Load main menu as single scene
-        AsyncOperation loadOperation = SceneManager.LoadSceneAsync(targetMenu, LoadSceneMode.Single);
+        // Load main menu additively so LoadingScene stays intact
+        Scene menuScene = SceneManager.GetSceneByName(targetMenu);
+        if (!menuScene.isLoaded)
+        {
+            Log($"Loading main menu scene additively: {targetMenu}");
+            AsyncOperation loadOperation = SceneManager.LoadSceneAsync(targetMenu, LoadSceneMode.Additive);
+            if (loadOperation == null)
+            {
+                Debug.LogError($"[SceneLoader] LoadSceneAsync returned null for '{targetMenu}'. Is it added to Build Settings?");
+                isLoadingScene = false;
+                yield break;
+            }
+
+            while (!loadOperation.isDone)
+            {
+                yield return null;
+            }
+
+            menuScene = SceneManager.GetSceneByName(targetMenu);
+        }
+
+        if (menuScene.IsValid())
+        {
+            SceneManager.SetActiveScene(menuScene);
+        }
+
+        // Unload all other scenes except DontDestroyOnLoad and LoadingScene
+        List<Scene> scenesToUnload = new();
+        int sceneCount = SceneManager.sceneCount;
+        for (int i = sceneCount - 1; i >= 0; i--)
+        {
+            Scene scene = SceneManager.GetSceneAt(i);
+            if (!scene.isLoaded)
+                continue;
+            if (scene.handle == menuScene.handle)
+                continue;
+            if (ShouldSkipSceneForUnload(scene))
+                continue;
+            scenesToUnload.Add(scene);
+        }
+
+        foreach (Scene scene in scenesToUnload)
+        {
+            Log($"Unloading scene: {scene.name}");
+            yield return SceneManager.UnloadSceneAsync(scene);
+        }
+
+        if (!string.IsNullOrWhiteSpace(playerSceneName))
+        {
+            Scene playerScene = SceneManager.GetSceneByName(playerSceneName);
+            if (playerScene.IsValid() && playerScene.isLoaded)
+            {
+                Log($"Unloading player scene: {playerScene.name}");
+                yield return SceneManager.UnloadSceneAsync(playerScene);
+                playerSceneReady = false;
+            }
+        }
+
+        Log("Main menu loaded successfully");
+        isLoadingScene = false;
+    }
+
+    private IEnumerator LoadInitialGameSceneCoroutine(
+        string sceneName,
+        string additiveSceneName,
+        bool pauseUntilLoaded,
+        string spawnPointIdOverride,
+        bool updateCheckpointAfterLoad)
+    {
+        isLoadingScene = true;
+
+        bool loadingScreenManagingPause = pauseUntilLoaded && LoadingScreenController.HasInstance;
+        float previousTimeScale = Time.timeScale;
+        if (pauseUntilLoaded && !loadingScreenManagingPause)
+        {
+            Time.timeScale = 0f;
+        }
+        else if (!pauseUntilLoaded)
+        {
+            Time.timeScale = 1f;
+        }
+
+        string resolvedSpawn = ResolveSpawnPointId(spawnPointIdOverride);
+
+        // Prepare scenes to unload after new content loads (keep persistent scenes alive)
+        List<Scene> scenesToUnload = new();
+        int sceneCount = SceneManager.sceneCount;
+        for (int i = 0; i < sceneCount; i++)
+        {
+            Scene scene = SceneManager.GetSceneAt(i);
+            if (!scene.isLoaded)
+                continue;
+            if (ShouldSkipSceneForUnload(scene))
+                continue;
+            if (string.Equals(scene.name, sceneName, StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (!string.IsNullOrWhiteSpace(additiveSceneName)
+                && string.Equals(scene.name, additiveSceneName, StringComparison.OrdinalIgnoreCase))
+                continue;
+            scenesToUnload.Add(scene);
+        }
+
+        // Load the first gameplay scene additively so loading overlay persists
+        AsyncOperation loadOperation = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
         if (loadOperation == null)
         {
-            Debug.LogError($"[SceneLoader] LoadSceneAsync returned null for '{targetMenu}'. Is it added to Build Settings?");
+            Debug.LogError($"[SceneLoader] Failed to load scene '{sceneName}'. Is it in Build Settings?");
             isLoadingScene = false;
             yield break;
         }
@@ -140,46 +281,69 @@ public class SceneLoader : Singleton<SceneLoader>
         {
             yield return null;
         }
-        
-        Log("Main menu loaded successfully");
-        isLoadingScene = false;
-    }
 
-    private IEnumerator LoadInitialGameSceneCoroutine(string sceneName)
-    {
-        isLoadingScene = true;
-        
-        // Resume time in case we're paused
-        Time.timeScale = 1f;
-        
-        // Load the first gameplay scene as Single (replaces main menu)
-        AsyncOperation loadOperation = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
-        
-        while (!loadOperation.isDone)
+        Scene baseScene = SceneManager.GetSceneByName(sceneName);
+        if (baseScene.IsValid())
         {
-            yield return null;
+            SceneManager.SetActiveScene(baseScene);
         }
-        
+
         // Wait for scene to initialize
         yield return null;
-        
+
         Log($"Initial game scene {sceneName} loaded");
-        
-        // If this is NOT an elevator scene, ensure persistent Player/HUD are spawned
-        if (!IsElevatorSceneName(sceneName))
+
+        if (!string.IsNullOrWhiteSpace(additiveSceneName)
+            && !additiveSceneName.Equals(sceneName, StringComparison.OrdinalIgnoreCase))
         {
-            EnsurePersistentPlayerAndHUD("default");
+            Log($"Loading queued additive scene after base load: {additiveSceneName}");
+            AsyncOperation additiveOp = SceneManager.LoadSceneAsync(additiveSceneName, LoadSceneMode.Additive);
+            if (additiveOp == null)
+            {
+                Debug.LogWarning($"[SceneLoader] Failed to queue additive scene '{additiveSceneName}'.");
+            }
+            else
+            {
+                while (!additiveOp.isDone)
+                {
+                    yield return null;
+                }
+
+                Log($"Additive scene {additiveSceneName} loaded");
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(additiveSceneName)
+                 && additiveSceneName.Equals(sceneName, StringComparison.OrdinalIgnoreCase))
+        {
+            Debug.LogWarning($"[SceneLoader] Cannot load additive scene '{additiveSceneName}' because it matches the base scene name.");
         }
 
-        // Ensure InputReader is bound to the active PlayerInput and using Gameplay map
-        RefreshInputToCurrentPlayer();
+        yield return EnsurePlayerSceneLoadedCoroutine();
 
-        // Update checkpoint
-        if (CheckpointSystem.Instance != null)
+        // Allow spawn point registry in the player scene to initialize
+        yield return null;
+
+        if (updateCheckpointAfterLoad && CheckpointSystem.Instance != null)
         {
-            CheckpointSystem.Instance.SetCheckpoint(sceneName, "default");
+            CheckpointSystem.Instance.SetCheckpoint(sceneName, resolvedSpawn);
         }
-        
+
+        PositionPlayerForScene(resolvedSpawn, healPlayer: false);
+
+        // Unload any scenes that should no longer be resident (e.g., main menu)
+        foreach (Scene scene in scenesToUnload)
+        {
+            if (!scene.IsValid() || !scene.isLoaded)
+                continue;
+            Log($"Unloading previous scene: {scene.name}");
+            yield return SceneManager.UnloadSceneAsync(scene);
+        }
+
+        if (pauseUntilLoaded && !loadingScreenManagingPause)
+        {
+            Time.timeScale = previousTimeScale;
+        }
+
         isLoadingScene = false;
     }
 
@@ -235,232 +399,315 @@ public class SceneLoader : Singleton<SceneLoader>
         Log($"Scene {sceneName} unloaded");
     }
 
-    private IEnumerator RestartFromCheckpointCoroutine(string checkpointScene)
+    private IEnumerator RestartFromCheckpointNonPersistentCoroutine(string checkpointScene, string spawnPointId)
     {
         isLoadingScene = true;
-        
-        // Keep current pause state; we will operate using unscaled time
-        bool wasPaused = Time.timeScale == 0f;
 
-        // Always remove any persistent Player/HUD first to avoid duplicates and stale cameras
-        CleanupPersistentPlayer();
-        var existingHud = FindAnyObjectByType<HUDPersistence>();
-        if (existingHud != null)
+        string resolvedSpawn = ResolveSpawnPointId(spawnPointId);
+        string resolvedScene = ResolveSceneNameForSpawn(checkpointScene, resolvedSpawn);
+
+        bool loadingScreenManagingPause = LoadingScreenController.HasInstance;
+        float previousTimeScale = Time.timeScale;
+        if (!loadingScreenManagingPause)
         {
-            Log($"Destroying persistent HUD before restart: {existingHud.gameObject.name}");
-            Destroy(existingHud.gameObject);
+            Time.timeScale = 0f;
         }
 
-        // Small realtime delay to let destroys process while paused
-        yield return new WaitForEndOfFrame();
+        Log($"Restarting gameplay scenes (non-persistent). TargetScene={resolvedScene}, Spawn={resolvedSpawn}");
 
-        bool isElevator = IsElevatorSceneName(checkpointScene);
-
-        // CRITICAL: Unload the checkpoint scene first if it's already loaded
-        // This ensures a true restart rather than just reactivating the existing scene
-        Scene existingScene = SceneManager.GetSceneByName(checkpointScene);
-        if (existingScene.isLoaded)
+        // Collect all progression scenes so we can unload them before resetting the checkpoint scene
+        List<Scene> scenesToUnload = new();
+        int sceneCount = SceneManager.sceneCount;
+        for (int i = 0; i < sceneCount; i++)
         {
-            Log($"Unloading existing checkpoint scene before reload: {checkpointScene}");
-            yield return SceneManager.UnloadSceneAsync(existingScene);
-            yield return null; // Let Unity settle
+            Scene scene = SceneManager.GetSceneAt(i);
+            if (ShouldSkipSceneForUnload(scene))
+                continue;
+            scenesToUnload.Add(scene);
         }
 
-        // Now load the checkpoint scene additively while paused
-        Log($"Additively loading checkpoint scene: {checkpointScene}");
-        AsyncOperation loadAdd = SceneManager.LoadSceneAsync(checkpointScene, LoadSceneMode.Additive);
-        while (loadAdd != null && !loadAdd.isDone)
+        foreach (Scene scene in scenesToUnload)
+        {
+            if (!scene.IsValid() || !scene.isLoaded)
+                continue;
+
+            Log($"Unloading scene before checkpoint reload: {scene.name}");
+            AsyncOperation unloadOp = SceneManager.UnloadSceneAsync(scene);
+            while (unloadOp != null && !unloadOp.isDone)
+            {
+                yield return null;
+            }
+        }
+
+        yield return null;
+
+        yield return EnsurePlayerSceneLoadedCoroutine();
+
+        AsyncOperation loadOp = SceneManager.LoadSceneAsync(resolvedScene, LoadSceneMode.Additive);
+        if (loadOp == null)
+        {
+            Debug.LogError($"[SceneLoader] Failed to load checkpoint scene '{resolvedScene}'. Verify it is added to Build Settings.");
+            if (!loadingScreenManagingPause)
+            {
+                Time.timeScale = previousTimeScale;
+            }
+            isLoadingScene = false;
+            yield break;
+        }
+
+        while (!loadOp.isDone)
         {
             yield return null;
         }
 
-        // Set the checkpoint scene active
-        var loadedScene = SceneManager.GetSceneByName(checkpointScene);
-        if (loadedScene.IsValid())
+        Scene checkpointSceneHandle = SceneManager.GetSceneByName(resolvedScene);
+        if (checkpointSceneHandle.IsValid())
         {
-            SceneManager.SetActiveScene(loadedScene);
-        }
-        else
-        {
-            Debug.LogError($"[SceneLoader] Failed to find loaded scene '{checkpointScene}' after additive load.");
+            SceneManager.SetActiveScene(checkpointSceneHandle);
         }
 
-        // Give Unity one short realtime tick to register the new scene (helps when duplicating by name)
-        yield return new WaitForSecondsRealtime(0.01f);
-
-        // Unload all other scenes except DontDestroyOnLoad and the exact loadedScene
-        int sceneCount = SceneManager.sceneCount;
-        for (int i = sceneCount - 1; i >= 0; i--)
-        {
-            Scene s = SceneManager.GetSceneAt(i);
-            if (s.isLoaded && s.name != "DontDestroyOnLoad" && s.handle != loadedScene.handle)
-            {
-                Log($"Unloading scene after additive swap: {s.name}");
-                yield return SceneManager.UnloadSceneAsync(s);
-            }
-        }
-
-        // One more frame to settle
+        // Give newly loaded scene a frame to initialize its content
         yield return null;
 
-        if (!isElevator)
-        {
-            // Spawn fresh persistent Player/HUD and place at saved spawn for non-elevator scenes
-            string spawnId = CheckpointSystem.Instance != null ? CheckpointSystem.Instance.GetCurrentSpawnPointID() : "default";
-            EnsurePersistentPlayerAndHUD(spawnId);
-        }
-        else
-        {
-            // Elevator scenes own their player; ensure no persistent stragglers exist
-            RemoveAnyPersistentPlayerDuplicates();
-        }
+        PositionPlayerForScene(resolvedSpawn, healPlayer: true);
 
-        // Rebind InputReader to the current PlayerInput and switch to Gameplay
-        RefreshInputToCurrentPlayer();
+        // Allow a short realtime delay so the loading overlay lingers
+        yield return new WaitForSecondsRealtime(0.25f);
 
-        // Optionally resume gameplay after the swap (unpause)
         if (PauseManager.Instance != null)
         {
             PauseManager.Instance.ResumeGame();
         }
-        else
+        else if (!loadingScreenManagingPause)
         {
-            Time.timeScale = 1f;
+            Time.timeScale = previousTimeScale;
         }
 
-        Log($"Restarted at checkpoint: {checkpointScene} (Elevator: {isElevator}, PausedWas: {wasPaused})");
         isLoadingScene = false;
     }
 
-    /// <summary>
-    /// Removes all DontDestroyOnLoad objects (player, HUD, etc.)
-    /// Call this when returning to main menu.
-    /// </summary>
-    private void CleanupPersistentObjects()
+    private string ResolveSpawnPointId(string requestedSpawnPointId)
     {
-        Log("Cleaning up all persistent objects...");
-        
-        // 1) Destroy ALL PlayerPersistence instances (in case of duplicates)
-        var players = FindObjectsByType<PlayerPersistence>(FindObjectsSortMode.None);
-        foreach (var p in players)
+        if (!string.IsNullOrWhiteSpace(requestedSpawnPointId))
+            return requestedSpawnPointId;
+
+        if (CheckpointSystem.Instance != null)
         {
-            if (p == null) continue;
-            Log($"Destroying persistent player: {p.gameObject.name}");
-            Destroy(p.gameObject);
+            string checkpointSpawn = CheckpointSystem.Instance.GetCurrentSpawnPointID();
+            if (!string.IsNullOrWhiteSpace(checkpointSpawn))
+                return checkpointSpawn;
         }
 
-        // As a fallback, also destroy anything tagged Player (covers cases without PlayerPersistence)
-        foreach (var go in GameObject.FindGameObjectsWithTag("Player"))
-        {
-            if (go == null) continue;
-            Log($"Destroying object with Player tag: {go.name}");
-            Destroy(go);
-        }
-        
-        // 2) Destroy ALL HUDPersistence instances (HUD canvases)
-        var huds = FindObjectsByType<HUDPersistence>(FindObjectsSortMode.None);
-        foreach (var hud in huds)
-        {
-            if (hud == null) continue;
-            Log($"Destroying persistent HUD: {hud.gameObject.name}");
-            Destroy(hud.gameObject);
-        }
-
-        // 3) Inspect the DontDestroyOnLoad scene roots and clean any stray player/HUD roots
-        for (int i = 0; i < SceneManager.sceneCount; i++)
-        {
-            var scene = SceneManager.GetSceneAt(i);
-            if (scene.name != "DontDestroyOnLoad") continue;
-            foreach (var root in scene.GetRootGameObjects())
-            {
-                if (root == null) continue;
-
-                // Whitelist core singletons we want to keep alive
-                if (root.GetComponent<SceneLoader>() ||
-                    root.GetComponent<DataPersistenceManager>() ||
-                    root.GetComponent<CheckpointSystem>() ||
-                    root.GetComponent<SoundManager>())
-                {
-                    continue;
-                }
-
-                // If a root contains PlayerPersistence or HUDPersistence, remove it
-                // But do NOT remove if it also contains a whitelisted singleton somewhere in children
-                bool containsPlayerOrHud = root.GetComponentInChildren<PlayerPersistence>(true) ||
-                                           root.GetComponentInChildren<HUDPersistence>(true);
-                bool containsCoreSingleton = root.GetComponentInChildren<SceneLoader>(true) ||
-                                              root.GetComponentInChildren<DataPersistenceManager>(true) ||
-                                              root.GetComponentInChildren<CheckpointSystem>(true) ||
-                                              root.GetComponentInChildren<SoundManager>(true);
-
-                if (containsPlayerOrHud && !containsCoreSingleton)
-                {
-                    Log($"Destroying stray persistent root: {root.name}");
-                    Destroy(root);
-                }
-            }
-        }
-        
-        // IMPORTANT: Don't destroy CheckpointSystem - it needs to persist!
-        // The MainMenu scene should NOT have its own CheckpointSystem GameObject.
-        // CheckpointSystem is created in the first gameplay scene and persists throughout.
-        
-        // Essential singletons stay (DataPersistenceManager, SceneLoader, CheckpointSystem, SoundManager, SettingsManager)
+        return "default";
     }
 
-    /// <summary>
-    /// Removes only the persistent player GameObject.
-    /// Call this before restarting from checkpoint.
-    /// </summary>
-    private void CleanupPersistentPlayer()
+    private string ResolveSceneNameForSpawn(string preferredSceneName, string spawnPointId)
     {
-        Log("Cleaning up persistent player for restart...");
-        
-        // Find and destroy the persistent player
-        var persistentPlayer = FindAnyObjectByType<PlayerPersistence>();
-        if (persistentPlayer != null)
+        if (!string.IsNullOrWhiteSpace(preferredSceneName))
+            return preferredSceneName;
+
+        if (!string.IsNullOrWhiteSpace(spawnPointId)
+            && SpawnPoint.TryGetSceneForSpawn(spawnPointId, out var spawnScene)
+            && !string.IsNullOrWhiteSpace(spawnScene))
         {
-            Log($"Destroying player for restart: {persistentPlayer.gameObject.name}");
-            Destroy(persistentPlayer.gameObject);
+            return spawnScene;
         }
-        
-        // Also destroy any GameObjects tagged Player that live in DontDestroyOnLoad scene
-        for (int i = 0; i < SceneManager.sceneCount; i++)
+
+        return SceneManager.GetActiveScene().name;
+    }
+
+    private void PositionPlayerForScene(string spawnPointId, bool healPlayer)
+    {
+        string resolvedSpawn = ResolveSpawnPointId(spawnPointId);
+        GameObject playerRoot = FindActivePlayerRoot();
+        if (playerRoot == null)
         {
-            var scene = SceneManager.GetSceneAt(i);
-            if (scene.name != "DontDestroyOnLoad") continue;
-            foreach (var root in scene.GetRootGameObjects())
+            Debug.LogWarning("[SceneLoader] Unable to find player root when attempting to position at spawn.");
+            return;
+        }
+
+        PositionTransformAtSpawn(playerRoot.transform, resolvedSpawn);
+        ResetPlayerStateForRespawn(playerRoot);
+
+        if (healPlayer)
+        {
+            var healthManager = PlayerHealthBarManager.Instance;
+            healthManager?.ForceFullHeal();
+        }
+
+        RefreshInputToCurrentPlayer();
+        InputReader.inputBusy = false;
+    }
+
+    private bool ShouldSkipSceneForUnload(Scene scene)
+    {
+        if (!scene.isLoaded)
+            return true;
+        if (scene.name == "DontDestroyOnLoad")
+            return true;
+        if (IsLoadingSceneName(scene.name))
+            return true;
+        if (IsPlayerSceneName(scene.name))
+            return true;
+        return false;
+    }
+
+    private bool IsLoadingSceneName(string sceneName)
+    {
+        if (string.IsNullOrEmpty(loadingSceneName))
+            return false;
+
+        return string.Equals(sceneName, loadingSceneName, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsPlayerSceneName(string sceneName)
+    {
+        if (string.IsNullOrEmpty(playerSceneName))
+            return false;
+
+        return string.Equals(sceneName, playerSceneName, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void RunSceneRoutine(IEnumerator routine, bool pauseDuringLoading, float? minimumDisplayOverride = null)
+    {
+        if (routine == null)
+        {
+            Debug.LogWarning("[SceneLoader] Attempted to run a null scene routine.");
+            return;
+        }
+
+        if (LoadingScreenController.HasInstance)
+        {
+            float minDuration = minimumDisplayOverride ?? minimumLoadingScreenSeconds;
+            LoadingScreenController.Instance.BeginLoading(routine, pauseDuringLoading, minDuration);
+            return;
+        }
+
+        StartCoroutine(RunAfterLoadingSceneReady(routine, pauseDuringLoading, minimumDisplayOverride));
+    }
+
+    private IEnumerator RunAfterLoadingSceneReady(IEnumerator routine, bool pauseDuringLoading, float? minimumDisplayOverride)
+    {
+        yield return EnsureLoadingSceneLoadedCoroutine();
+
+        if (LoadingScreenController.HasInstance)
+        {
+            float minDuration = minimumDisplayOverride ?? minimumLoadingScreenSeconds;
+            LoadingScreenController.Instance.BeginLoading(routine, pauseDuringLoading, minDuration);
+            yield break;
+        }
+
+        // Fall back to running the routine directly if the loading screen still isn't available
+        yield return routine;
+    }
+
+    private IEnumerator EnsureLoadingSceneLoadedCoroutine()
+    {
+        if (LoadingScreenController.HasInstance)
+        {
+            loadingSceneReady = true;
+            yield break;
+        }
+
+        if (loadingSceneReady)
+            yield break;
+
+        if (loadingSceneLoadInProgress)
+        {
+            while (loadingSceneLoadInProgress && !loadingSceneReady && !LoadingScreenController.HasInstance)
             {
-                if (root == null) continue;
-                if (root.CompareTag("Player"))
-                {
-                    Log($"Destroying Player-tagged persistent root: {root.name}");
-                    Destroy(root);
-                }
-                else
-                {
-                    // Also check children
-                    var tagged = root.GetComponentsInChildren<Transform>(true);
-                    foreach (var t in tagged)
-                    {
-                        if (t != null && t.CompareTag("Player"))
-                        {
-                            Log($"Destroying Player-tagged persistent object: {t.gameObject.name}");
-                            Destroy(t.gameObject);
-                        }
-                    }
-                }
+                yield return null;
             }
+            yield break;
         }
-        
-        // Also destroy persistent HUD
-        var hudPersistence = FindAnyObjectByType<HUDPersistence>();
-        if (hudPersistence != null)
+
+        if (string.IsNullOrWhiteSpace(loadingSceneName))
         {
-            Log($"Destroying HUD for restart: {hudPersistence.gameObject.name}");
-            Destroy(hudPersistence.gameObject);
+            Debug.LogWarning("[SceneLoader] Loading scene name is empty; cannot preload loading overlay.");
+            yield break;
+        }
+
+        Scene loadingScene = SceneManager.GetSceneByName(loadingSceneName);
+        if (loadingScene.isLoaded)
+        {
+            loadingSceneReady = true;
+            yield break;
+        }
+
+        loadingSceneLoadInProgress = true;
+
+        AsyncOperation loadOp = SceneManager.LoadSceneAsync(loadingSceneName, LoadSceneMode.Additive);
+        if (loadOp == null)
+        {
+            Debug.LogWarning($"[SceneLoader] Failed to load loading scene '{loadingSceneName}'. Is it added to Build Settings?");
+            loadingSceneLoadInProgress = false;
+            yield break;
+        }
+
+        while (!loadOp.isDone)
+        {
+            yield return null;
+        }
+
+        loadingSceneLoadInProgress = false;
+
+        float waitTimer = 0f;
+        const float controllerWaitTimeout = 2f;
+        while (!LoadingScreenController.HasInstance && waitTimer < controllerWaitTimeout)
+        {
+            waitTimer += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        if (LoadingScreenController.HasInstance)
+        {
+            loadingSceneReady = true;
+        }
+        else
+        {
+            Debug.LogWarning($"[SceneLoader] Loading scene '{loadingSceneName}' finished loading but LoadingScreenController was not found.");
         }
     }
+
+    private IEnumerator EnsurePlayerSceneLoadedCoroutine()
+    {
+        if (string.IsNullOrWhiteSpace(playerSceneName))
+            yield break;
+
+        Scene playerScene = SceneManager.GetSceneByName(playerSceneName);
+        if (playerScene.isLoaded)
+        {
+            playerSceneReady = true;
+            yield break;
+        }
+
+        if (playerSceneLoadInProgress)
+        {
+            while (playerSceneLoadInProgress && !playerSceneReady)
+            {
+                yield return null;
+            }
+            yield break;
+        }
+
+        playerSceneLoadInProgress = true;
+        AsyncOperation loadOp = SceneManager.LoadSceneAsync(playerSceneName, LoadSceneMode.Additive);
+        if (loadOp == null)
+        {
+            Debug.LogWarning($"[SceneLoader] Failed to load player scene '{playerSceneName}'. Is it added to Build Settings?");
+            playerSceneLoadInProgress = false;
+            yield break;
+        }
+
+        while (!loadOp.isDone)
+        {
+            yield return null;
+        }
+
+        playerSceneLoadInProgress = false;
+        playerSceneReady = true;
+    }
+
 
     private void Log(string message)
     {
@@ -496,69 +743,16 @@ public class SceneLoader : Singleton<SceneLoader>
     }
 
     /// <summary>
-    /// Determines if a scene name should be treated as an elevator scene (scene supplies its own Player/HUD).
-    /// </summary>
-    private bool IsElevatorSceneName(string sceneName)
-    {
-        if (string.IsNullOrEmpty(sceneName)) return false;
-        string s = sceneName.ToLowerInvariant();
-        if (s.Contains("elevator")) return true;
-        // Project naming conventions provided: DP_, FP_, VS_
-        return s.StartsWith("fp_") || s.StartsWith("dp_") || s.StartsWith("vs_");
-    }
-
-    /// <summary>
-    /// Ensures persistent Player and HUD exist for non-elevator scenes, spawning prefabs if needed.
-    /// </summary>
-    private void EnsurePersistentPlayerAndHUD(string spawnPointId)
-    {
-        // Player
-        var player = FindAnyObjectByType<PlayerPersistence>();
-        if (player == null)
-        {
-            if (playerPrefab != null)
-            {
-                Log("Spawning persistent Player from prefab for non-elevator scene");
-                var go = Instantiate(playerPrefab);
-                // Place at spawn immediately since scene is already loaded
-                var sp = FindSpawnPoint(spawnPointId);
-                if (sp != null)
-                {
-                    go.transform.SetPositionAndRotation(sp.position, sp.rotation);
-                }
-                else
-                {
-                    Log($"Spawn point '{spawnPointId}' not found, using prefab position");
-                }
-                // PlayerPersistence on prefab will mark DontDestroyOnLoad and optionally reposition on scene load
-            }
-            else
-            {
-                Debug.LogWarning("[SceneLoader] Player prefab is not assigned, cannot spawn persistent player for non-elevator scene.");
-            }
-        }
-
-        // HUD
-        var hud = FindAnyObjectByType<HUDPersistence>();
-        if (hud == null)
-        {
-            if (hudPrefab != null)
-            {
-                Log("Spawning persistent HUD from prefab for non-elevator scene");
-                Instantiate(hudPrefab);
-            }
-            else
-            {
-                Debug.LogWarning("[SceneLoader] HUD prefab is not assigned, cannot spawn persistent HUD for non-elevator scene.");
-            }
-        }
-    }
-
-    /// <summary>
     /// Find a spawn point by ID via SpawnPoint component or by tag/name fallback.
     /// </summary>
     private Transform FindSpawnPoint(string spawnPointID)
     {
+        if (string.IsNullOrWhiteSpace(spawnPointID))
+            spawnPointID = "default";
+
+        if (SpawnPoint.TryGetSpawnPoint(spawnPointID, out var linked) && linked != null)
+            return linked.transform;
+
         // Prefer SpawnPoint component
         var points = FindObjectsByType<SpawnPoint>(FindObjectsSortMode.None);
         foreach (var sp in points)
@@ -586,38 +780,68 @@ public class SceneLoader : Singleton<SceneLoader>
         return null;
     }
 
-    /// <summary>
-    /// After loading an elevator scene, ensure no persistent player is lingering in DontDestroyOnLoad.
-    /// If two players exist (one in active scene and one persistent), remove the persistent one.
-    /// </summary>
-    private void RemoveAnyPersistentPlayerDuplicates()
+    private void PositionTransformAtSpawn(Transform target, string spawnPointId)
     {
-        // Count players in active scene
-        var activeScene = SceneManager.GetActiveScene();
-        var scenePlayers = new System.Collections.Generic.List<GameObject>();
-        var persistentPlayers = new System.Collections.Generic.List<GameObject>();
+        if (target == null)
+            return;
 
-        // Collect by PlayerPersistence and by tag "Player"
-        foreach (var go in GameObject.FindObjectsByType<GameObject>(FindObjectsSortMode.None))
+        var sp = FindSpawnPoint(spawnPointId);
+        if (sp == null)
         {
-            if (go == null) continue;
-            bool isPlayerLike = (go.GetComponent<PlayerPersistence>() != null) || go.CompareTag("Player");
-            if (!isPlayerLike) continue;
-
-            if (go.scene == activeScene)
-                scenePlayers.Add(go);
-            else if (go.scene.name == "DontDestroyOnLoad")
-                persistentPlayers.Add(go);
+            Log($"Spawn point '{spawnPointId}' not found when positioning player.");
+            return;
         }
 
-        if (scenePlayers.Count > 0 && persistentPlayers.Count > 0)
+        var controller = target.GetComponent<CharacterController>() ?? target.GetComponentInChildren<CharacterController>(true);
+        bool controllerInitiallyEnabled = false;
+        if (controller != null)
         {
-            foreach (var p in persistentPlayers)
-            {
-                Log($"Removing lingering persistent player after elevator load: {p.name}");
-                Destroy(p);
-            }
+            controllerInitiallyEnabled = controller.enabled;
+            controller.enabled = false;
         }
+
+        target.SetPositionAndRotation(sp.position, sp.rotation);
+
+        if (controller != null && controllerInitiallyEnabled)
+        {
+            controller.enabled = true;
+        }
+    }
+
+    private GameObject FindActivePlayerRoot()
+    {
+        var tagged = GameObject.FindGameObjectWithTag("Player");
+        if (tagged != null)
+            return tagged;
+
+        var movement = FindAnyObjectByType<PlayerMovement>();
+        if (movement != null)
+            return movement.gameObject;
+
+        return null;
+    }
+
+    private void ResetPlayerStateForRespawn(GameObject playerRoot)
+    {
+        if (playerRoot == null)
+            return;
+
+        playerRoot.SetActive(true);
+
+        var movement = playerRoot.GetComponent<PlayerMovement>() ?? playerRoot.GetComponentInChildren<PlayerMovement>(true);
+        if (movement != null)
+        {
+            movement.currentMovement = Vector3.zero;
+            movement.ExitDeathState();
+        }
+
+        var attackManager = playerRoot.GetComponent<PlayerAttackManager>() ?? playerRoot.GetComponentInChildren<PlayerAttackManager>(true);
+        attackManager?.ForceCancelCurrentAttack();
+
+        var animationController = playerRoot.GetComponent<PlayerAnimationController>() ?? playerRoot.GetComponentInChildren<PlayerAnimationController>(true);
+        animationController?.PlayIdle();
+
+        CombatManager.ExitGuard();
     }
 
     /// <summary>
@@ -633,7 +857,7 @@ public class SceneLoader : Singleton<SceneLoader>
         PlayerInput pi = null;
         var playerTagged = GameObject.FindGameObjectWithTag("Player");
         if (playerTagged != null) pi = playerTagged.GetComponent<PlayerInput>();
-        if (pi == null) pi = Object.FindFirstObjectByType<PlayerInput>(FindObjectsInactive.Exclude);
+        if (pi == null) pi = UnityEngine.Object.FindFirstObjectByType<PlayerInput>(FindObjectsInactive.Exclude);
 
         if (pi == null)
         {

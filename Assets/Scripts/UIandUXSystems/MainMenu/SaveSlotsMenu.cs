@@ -22,6 +22,10 @@ public class SaveSlotsMenu : Menu
 
     [SerializeField] internal SaveSlots currentSaveSlotSelected = null;
 
+    [SerializeField] private string SceneName = "PlayerScene";
+
+    [SerializeField] private string DefaultSceneName = "VS_Elevator";
+
     private bool isLoadingGame = false;
 
     private void Awake()
@@ -86,12 +90,33 @@ public class SaveSlotsMenu : Menu
         { 
             // NEW GAME - Create fresh save data
             DataPersistenceManager.instance.NewGame();
-            
-            // Don't access CheckpointSystem here - it doesn't exist yet in MainMenu!
-            // GameData will initialize with default values (FP_Elevator, default spawn)
-            
-            // Load first scene - player will be spawned normally in the scene
-            SceneLoader.Instance.LoadInitialGameScene("FP_Elevator");
+            if (CheckpointSystem.Instance != null)
+            {
+                CheckpointSystem.Instance.ResetProgress();
+            }
+
+            string configuredGameplay = string.IsNullOrWhiteSpace(SceneName) ? "PlayerScene" : SceneName;
+            string configuredDefault = string.IsNullOrWhiteSpace(DefaultSceneName) ? configuredGameplay : DefaultSceneName;
+
+            string primaryScene = configuredDefault;
+            string secondaryScene = configuredGameplay;
+
+            if (string.Equals(primaryScene, secondaryScene))
+            {
+                secondaryScene = null;
+            }
+
+            string spawnId = CheckpointSystem.Instance != null
+                ? CheckpointSystem.Instance.GetCurrentSpawnPointID()
+                : "default";
+
+            // Pause gameplay while the default scene loads first, then the gameplay scene second
+            SceneLoader.Instance.LoadInitialGameScene(
+                primaryScene,
+                secondaryScene,
+                pauseUntilLoaded: true,
+                spawnPointIdOverride: spawnId,
+                updateCheckpointAfterLoad: true);
         }
         else
         {
@@ -99,7 +124,7 @@ public class SaveSlotsMenu : Menu
             DataPersistenceManager.instance.LoadGame();
             
             // Get checkpoint from the loaded profile's game data
-            string savedScene = "FP_Elevator";
+            string savedScene = DataPersistenceManager.instance.GetLastSavedScene();
             
             // Get the profile data we just loaded
             Dictionary<string, GameData> profilesGameData = DataPersistenceManager.instance.GetAllProfilesGameData();
@@ -112,9 +137,20 @@ public class SaveSlotsMenu : Menu
                     savedScene = loadedData.currentSceneName;
                 }
             }
+
+            string savedSpawnPoint = loadedData != null && !string.IsNullOrWhiteSpace(loadedData.currentSpawnPointID)
+                ? loadedData.currentSpawnPointID
+                : CheckpointSystem.Instance != null
+                    ? CheckpointSystem.Instance.GetCurrentSpawnPointID()
+                    : "default";
             
             // Load the saved checkpoint scene
-            SceneLoader.Instance.LoadInitialGameScene(savedScene);
+            SceneLoader.Instance.LoadInitialGameScene(
+                savedScene,
+                additiveSceneName: null,
+                pauseUntilLoaded: true,
+                spawnPointIdOverride: savedSpawnPoint,
+                updateCheckpointAfterLoad: false);
         }
     }
 
@@ -220,3 +256,6 @@ public class SaveSlotsMenu : Menu
         this.gameObject.SetActive(false);
     }
 }
+
+
+

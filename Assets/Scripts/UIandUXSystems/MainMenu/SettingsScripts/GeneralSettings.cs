@@ -21,10 +21,12 @@ public class GeneralSettings : MonoBehaviour
     [Header("Sensitivity Settings")]
     [SerializeField] private Slider sensSlider = null;
     [SerializeField] private float defaultSens = 1.5f;
+    [SerializeField] private Slider staticSensSlider = null;
 
     [Header("Vibration Settings")]
     [SerializeField] private Slider vibrationSlider = null;
     [SerializeField] private float defaultVibration = 0.5f;
+    [SerializeField] private Slider staticVibrationSlider = null;
 
     [Header("On/Off Text")]
     [SerializeField] private TMP_Text invertYText = null;
@@ -56,12 +58,14 @@ public class GeneralSettings : MonoBehaviour
     public void SetSens(float sens)
     {
         SettingsManager.Instance.sensitivity = sens;
+        // Update live value; defer updating the read-only/static slider until Apply.
         PlayerPrefs.SetFloat("masterSens", SettingsManager.Instance.sensitivity);
     }
 
     public void SetVibration(float vibrate)
     {
         SettingsManager.Instance.rumbleStrength = vibrate;
+        // Update live value; defer updating the read-only/static slider until Apply.
         PlayerPrefs.SetFloat("masterVibrateStrength", SettingsManager.Instance.rumbleStrength);
     }
 
@@ -119,6 +123,13 @@ public class GeneralSettings : MonoBehaviour
 
         SettingsManager.Instance.rumbleStrength = vibrationSlider.value;
         PlayerPrefs.SetFloat("masterVibrateStrength", SettingsManager.Instance.rumbleStrength);
+
+        // Update static/read-only sliders to reflect applied values
+        if (staticSensSlider != null)
+            staticSensSlider.value = sensSlider != null ? sensSlider.value : SettingsManager.Instance.sensitivity;
+
+        if (staticVibrationSlider != null)
+            staticVibrationSlider.value = vibrationSlider != null ? vibrationSlider.value : SettingsManager.Instance.rumbleStrength;
 
         PlayerPrefs.SetInt("masterInvertY", (isInvertYOn ? 1 : 0));
 

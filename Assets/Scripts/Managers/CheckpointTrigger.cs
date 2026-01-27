@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Place this on trigger volumes to set checkpoints when player enters.
@@ -11,9 +13,13 @@ public class CheckpointTrigger : MonoBehaviour
     [Header("Checkpoint Settings")]
     [SerializeField, Tooltip("Unique ID for this checkpoint (default, checkpoint1, checkpoint2, etc.)")]
     private string checkpointID = "checkpoint1";
-    
-    [SerializeField, Tooltip("Scene name where this checkpoint is located (leave empty to use current scene)")]
-    private string sceneName = "";
+
+    [FormerlySerializedAs("sceneName")]
+    [SerializeField, Tooltip("Optional explicit scene to associate with this checkpoint. Leave empty to derive from the linked spawn point or host scene.")]
+    private string sceneOverride = string.Empty;
+
+    [SerializeField, Tooltip("Optional spawn point this checkpoint should align with. Leave empty to resolve by checkpoint ID.")]
+    private SpawnPoint linkedSpawnPoint;
     
     [SerializeField, Tooltip("Only trigger once per game session")]
     private bool triggerOnce = true;
@@ -29,6 +35,7 @@ public class CheckpointTrigger : MonoBehaviour
     private AudioClip activationSound;
 
     private bool hasBeenTriggered = false;
+    private string fallbackSceneName;
 
     private void Start()
     {
@@ -41,10 +48,8 @@ public class CheckpointTrigger : MonoBehaviour
         }
 
         // Use current scene if not specified
-        if (string.IsNullOrEmpty(sceneName))
-        {
-            sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
-        }
+        fallbackSceneName = SceneManager.GetActiveScene().name;
+        EnsureSpawnPointLink();
     }
 
     private void OnTriggerEnter(Collider other)
@@ -65,12 +70,14 @@ public class CheckpointTrigger : MonoBehaviour
     {
         hasBeenTriggered = true;
 
-        Log($"Checkpoint activated: {checkpointID} in scene {sceneName}");
+        string resolvedScene = ResolveSceneName();
+        Log($"Checkpoint activated by '{name}': spawn '{checkpointID}' => scene '{resolvedScene}'");
+        SpawnPoint.LogCheckpointSelection(name, checkpointID, resolvedScene);
 
         // Set checkpoint in system
         if (CheckpointSystem.Instance != null)
         {
-            CheckpointSystem.Instance.SetCheckpoint(sceneName, checkpointID);
+            CheckpointSystem.Instance.SetCheckpoint(resolvedScene, checkpointID);
         }
         else
         {
@@ -96,6 +103,42 @@ public class CheckpointTrigger : MonoBehaviour
         {
             Debug.Log($"[CheckpointTrigger] {message}");
         }
+    }
+
+    private void EnsureSpawnPointLink()
+    {
+        if (linkedSpawnPoint == null && !string.IsNullOrWhiteSpace(checkpointID))
+        {
+            SpawnPoint.TryGetSpawnPoint(checkpointID, out linkedSpawnPoint);
+        }
+
+        if (linkedSpawnPoint == null)
+            return;
+
+        if (!string.Equals(checkpointID, linkedSpawnPoint.spawnPointID, System.StringComparison.Ordinal))
+        {
+            Log($"Syncing checkpoint ID '{checkpointID}' with linked spawn '{linkedSpawnPoint.spawnPointID}'.");
+            checkpointID = linkedSpawnPoint.spawnPointID;
+        }
+    }
+
+    private string ResolveSceneName()
+    {
+        if (!string.IsNullOrWhiteSpace(sceneOverride))
+            return sceneOverride;
+
+        SpawnPoint target = linkedSpawnPoint;
+        if (target == null && !string.IsNullOrWhiteSpace(checkpointID))
+        {
+            SpawnPoint.TryGetSpawnPoint(checkpointID, out target);
+        }
+
+        if (target != null)
+            return target.SceneName;
+
+        return !string.IsNullOrWhiteSpace(fallbackSceneName)
+            ? fallbackSceneName
+            : SceneManager.GetActiveScene().name;
     }
 
     private void OnDrawGizmos()

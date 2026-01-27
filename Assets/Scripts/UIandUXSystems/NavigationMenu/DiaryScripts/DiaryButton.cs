@@ -67,25 +67,44 @@ public class DiaryButton : MonoBehaviour, ISelectHandler
         }
     }
 
+    public void FindAddMenusToList()
+    {
+        GameObject NavigationMenuObject = GameObject.FindGameObjectWithTag("NavigationMenu");
+
+        GameObject individualDiaryMenuObject = GameObject.FindGameObjectWithTag("IndividualDiaryMenu");
+
+        if(NavigationMenuObject != null)
+        {
+            var MenuToManage = NavigationMenuObject.GetComponent<MenuListManager>();
+            if(individualDiaryMenuObject != null)
+            {
+                Transform child = individualDiaryMenuObject.transform.GetChild(0);
+                MenuToManage.AddToMenuList(child.gameObject);
+            }
+        }
+        else
+        {
+            Debug.LogError("GameObject with tag 'NavigationMenu' not found");
+        }
+    }
+        
+
     public void OnSelect(BaseEventData eventData)
     {
         onSelectAction();
     }
 
     //Hides Menus
-    public void hideMenuOnClick()
+    public void AddOverlay()
     {
-        GameObject diaryMenuOverview = GameObject.FindGameObjectWithTag("DiaryMenuOverview");
-        if (diaryMenuOverview != null)
-        {
-            diaryMenuOverview.SetActive(false);
-        }
 
-        GameObject parent = GameObject.FindGameObjectWithTag("DiaryUI");
-        if (parent != null && parent.transform.childCount > 0)
+        GameObject overlayParent = GameObject.FindGameObjectWithTag("Overlay");
+        if (overlayParent != null)
         {
-            Transform child = parent.transform.GetChild(0);
+            Transform child = overlayParent.transform.GetChild(0);
             child.gameObject.SetActive(true);
+        } else {
+            Debug.LogError("GameObject with tag 'Overlay' not found");
         }
     }
 }

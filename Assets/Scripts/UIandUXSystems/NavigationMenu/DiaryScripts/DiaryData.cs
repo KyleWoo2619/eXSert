@@ -7,11 +7,13 @@
 [System.Serializable]
 public class DiaryData
 {
-    public DiarySO info;
+    public string diaryID;
+    public bool isFound;
 
     public DiaryData(DiarySO info)
     {
-        this.info = info;
+        this.diaryID = info.diaryID;
+        this.isFound = info.isFound;
     }
 }
 

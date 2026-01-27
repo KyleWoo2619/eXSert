@@ -1,8 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
 public class LoadPrefs : MonoBehaviour
 {
     [Header("Settings")]
@@ -25,6 +23,7 @@ public class LoadPrefs : MonoBehaviour
     [Header("Graphics Settings")]
     [SerializeField] private TMP_Text brightnessTextValue = null;
     [SerializeField] private Slider brightnessSlider = null;
+    [SerializeField] private float fallbackDefaultBrightness = 0.75f;
     [SerializeField] private TMP_Dropdown qualityDropdown;
     [SerializeField] private Toggle motionBlurToggle;
     [SerializeField] private Toggle cameraShakeToggle;
@@ -241,15 +240,15 @@ public class LoadPrefs : MonoBehaviour
                 if (brightnessTextValue) brightnessTextValue.text = localBrightness.ToString("0.0");
                 if (brightnessSlider) brightnessSlider.value = localBrightness;
 
-                if (graphics.postProcessVolume != null && graphics.postProcessVolume.profile.TryGet(out graphics.colorAdjustments))
+                float defaultBrightness = fallbackDefaultBrightness;
+                if (graphics != null)
                 {
+                    defaultBrightness = graphics.DefaultBrightness;
                     graphics.SetBrightness(localBrightness);
                 }
- 
-                
-                if (brightnessSlider != null)
+                else
                 {
-                    brightnessSlider.value = localBrightness;
+                    BrightnessOverlayController.Instance?.ApplyBrightness(localBrightness, defaultBrightness);
                 }
             } 
         }

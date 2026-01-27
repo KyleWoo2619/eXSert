@@ -13,7 +13,7 @@
  */
 
 using UnityEngine;
-using System.Collections;
+using Utilities.Combat.Attacks;
 
 public class AerialComboManager : MonoBehaviour
 {
@@ -22,43 +22,67 @@ public class AerialComboManager : MonoBehaviour
     [SerializeField] private bool debugMode = false;
 
     [Header("References")]
-    [SerializeField, Tooltip("Assign manually if AnimFacade is on different GameObject")]
-    private AnimFacade animFacade;
     [SerializeField] private CharacterController characterController;
+    [SerializeField] private PlayerAnimationController animationController;
+    [SerializeField] private AttackDatabase attackDatabase;
+    [SerializeField, Tooltip("Movement controller used for plunge behavior (PlayerMovement)")]
+    private PlayerMovement playerMovement;
+
+    [Header("Attack Data")]
+    [Tooltip("PlayerAttack assets for aerial light chain (X1 -> X2). Leave null to fall back to AttackDatabase IDs.")]
+    [SerializeField] private PlayerAttack[] aerialLightChain = new PlayerAttack[2];
+    [SerializeField, Tooltip("PlayerAttack asset for the plunge attack (heavy aerial).")]
+    private PlayerAttack aerialHeavyAttack;
+    [SerializeField, Tooltip("Fallback ID for the first aerial light attack if no asset is assigned.")]
+    private string fallbackLightAttack1Id = "AC_X1";
+    [SerializeField, Tooltip("Fallback ID for the second aerial light attack if no asset is assigned.")]
+    private string fallbackLightAttack2Id = "AC_X2";
+    [SerializeField, Tooltip("Fallback ID for the aerial heavy plunge attack if no asset is assigned.")]
+    private string fallbackHeavyAttackId = "Plunge";
 
     // Aerial combo state
     private int aerialFastCount = 0;  // 0, 1, or 2
     private bool hasUsedAirDash = false;
-    private bool hasUsedAerialHeavy = false;  // NEW: limit heavy to once per airtime
+    private bool hasUsedAerialHeavy = false;
     private bool isInAerialCombo = false;
     private float lastAerialAttackTime = -999f;
+    private bool pendingAutoFall = false;
 
     private const int MAX_AERIAL_FAST_ATTACKS = 2;
 
     // Public property for external checks
     public bool HasUsedAerialHeavy => hasUsedAerialHeavy;
 
-    void Awake()
+    private void Awake()
     {
-        // Auto-find AnimFacade if not assigned
-        if (animFacade == null)
-        {
-            animFacade = GetComponent<AnimFacade>();
-            if (animFacade == null)
-            {
-                animFacade = GetComponentInParent<AnimFacade>();
-                if (animFacade == null)
-                    animFacade = GetComponentInChildren<AnimFacade>();
-                if (animFacade == null)
-                    Debug.LogError("AerialComboManager: AnimFacade not found! Assign manually in Inspector.");
-            }
-        }
-        
-        if (characterController == null)
-            characterController = GetComponent<CharacterController>();
-
+        characterController ??= GetComponent<CharacterController>();
         if (characterController == null)
             Debug.LogError("AerialComboManager: CharacterController not found!");
+
+        animationController ??= GetComponent<PlayerAnimationController>()
+            ?? GetComponentInChildren<PlayerAnimationController>()
+            ?? GetComponentInParent<PlayerAnimationController>();
+
+        playerMovement ??= GetComponent<PlayerMovement>()
+            ?? GetComponentInChildren<PlayerMovement>()
+            ?? GetComponentInParent<PlayerMovement>();
+
+        attackDatabase ??= Resources.Load<AttackDatabase>("AttackDatabase");
+        if (attackDatabase == null)
+            Debug.LogWarning("AerialComboManager: AttackDatabase missing. Assign in inspector to resolve fallback IDs.");
+
+        // Ensure the light chain always has two slots so designers only worry about data entries
+        if (aerialLightChain == null || aerialLightChain.Length < MAX_AERIAL_FAST_ATTACKS)
+        {
+            var resized = new PlayerAttack[MAX_AERIAL_FAST_ATTACKS];
+            if (aerialLightChain != null)
+            {
+                for (int i = 0; i < aerialLightChain.Length && i < resized.Length; i++)
+                    resized[i] = aerialLightChain[i];
+            }
+
+            aerialLightChain = resized;
+        }
     }
 
     void Update()
@@ -71,14 +95,14 @@ public class AerialComboManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Request aerial fast attack. Returns attack ID or null if not allowed.
+    /// Request aerial fast attack. Returns PlayerAttack data or null if not allowed.
     /// </summary>
-    public string RequestAerialFastAttack()
+    public PlayerAttack RequestAerialLightAttack()
     {
         if (!CanPerformAerialFastAttack())
         {
             if (debugMode)
-                Debug.LogWarning("Cannot perform aerial fast attack - max reached or grounded");
+                Debug.LogWarning("Cannot perform aerial fast attack - requirements not met");
             return null;
         }
 
@@ -86,64 +110,73 @@ public class AerialComboManager : MonoBehaviour
         lastAerialAttackTime = Time.time;
         isInAerialCombo = true;
 
-        string attackId = aerialFastCount == 1 ? "AerialX1" : "AerialX2";
-
-        // Call AnimFacade for animation
-        if (animFacade != null)
-            animFacade.PressLight();
-
-        if (debugMode)
-            Debug.Log($"Aerial Fast Attack: {attackId} | Count: {aerialFastCount}/{MAX_AERIAL_FAST_ATTACKS}");
-
-        // Check if we've hit the limit
-        if (aerialFastCount >= MAX_AERIAL_FAST_ATTACKS)
+        PlayerAttack attackData = ResolveLightAttackForStep(aerialFastCount - 1);
+        if (attackData == null)
         {
+            aerialFastCount = Mathf.Max(0, aerialFastCount - 1);
             if (debugMode)
-                Debug.Log("Max aerial fast attacks reached - player will fall after animation");
+                Debug.LogWarning("Aerial light attack data missing. Ensure PlayerAttack is assigned or exists in AttackDatabase.");
+            return null;
         }
 
-        return attackId;
+        if (aerialFastCount >= MAX_AERIAL_FAST_ATTACKS && !hasUsedAirDash)
+            pendingAutoFall = true;
+
+        if (debugMode)
+            Debug.Log($"Aerial Fast Attack: {attackData.attackId} | Count: {aerialFastCount}/{MAX_AERIAL_FAST_ATTACKS}");
+
+        return attackData;
+    }
+
+    [System.Obsolete("Use RequestAerialLightAttack to get PlayerAttack data directly.")]
+    public string RequestAerialFastAttack()
+    {
+        PlayerAttack attack = RequestAerialLightAttack();
+        return attack != null ? attack.attackId : null;
     }
 
     /// <summary>
     /// Request aerial heavy (plunge) attack. Only allowed once per airtime.
     /// </summary>
-    public string RequestAerialHeavyAttack()
+    public PlayerAttack RequestAerialHeavyAttack()
     {
-        if (characterController != null && characterController.isGrounded)
+        if (!CanPerformAerialHeavyAttack())
         {
             if (debugMode)
-                Debug.LogWarning("Cannot perform aerial heavy - already grounded");
-            return null;
-        }
-
-        if (hasUsedAerialHeavy)
-        {
-            if (debugMode)
-                Debug.LogWarning("Aerial heavy already used this airtime");
+                Debug.LogWarning("Cannot perform aerial heavy - requirements not met");
             return null;
         }
 
         hasUsedAerialHeavy = true;
         lastAerialAttackTime = Time.time;
         isInAerialCombo = true;
+        pendingAutoFall = false;
 
-        // Trigger plunge movement (freeze + fast drop)
-        EnhancedPlayerMovement playerMovement = GetComponent<EnhancedPlayerMovement>();
-        if (playerMovement != null)
+        PlayerAttack heavyAttack = ResolveHeavyAttack();
+        if (heavyAttack == null)
         {
-            playerMovement.StartPlunge();
+            if (debugMode)
+                Debug.LogWarning("No PlayerAttack assigned for aerial plunge.");
+            hasUsedAerialHeavy = false;
+            return null;
         }
 
-        // Call AnimFacade for animation AFTER validation
-        if (animFacade != null)
-            animFacade.PressHeavy();
+        if (playerMovement != null)
+            playerMovement.StartPlunge();
+        else if (debugMode)
+            Debug.LogWarning("AerialComboManager: PlayerMovement not assigned; plunge movement skipped.");
 
         if (debugMode)
-            Debug.Log("Aerial Heavy Attack: AerialY1 (Plunge) - plunge movement triggered");
+            Debug.Log($"Aerial Heavy Attack: {heavyAttack.attackId} - plunge movement triggered");
 
-        // Heavy attack forces plunge, will reset on landing
-        return "AerialY1";
+        return heavyAttack;
+    }
+
+    [System.Obsolete("Use RequestAerialHeavyAttack to get PlayerAttack data directly.")]
+    public string RequestAerialHeavyAttackId()
+    {
+        PlayerAttack attack = RequestAerialHeavyAttack();
+        return attack != null ? attack.attackId : null;
     }
 
     /// <summary>
@@ -162,6 +195,7 @@ public class AerialComboManager : MonoBehaviour
         // Air dash resets fast attack count
         aerialFastCount = 0;
         hasUsedAirDash = true;
+        pendingAutoFall = false;
         
         if (debugMode)
             Debug.Log("Air dash performed - aerial fast attacks reset");
@@ -174,12 +208,27 @@ public class AerialComboManager : MonoBehaviour
     /// </summary>
     public bool CanPerformAerialFastAttack()
     {
-        // Must be in air
         if (characterController != null && characterController.isGrounded)
             return false;
 
-        // Must not have exceeded max fast attacks
+        if (InputReader.inputBusy)
+            return false;
+
         return aerialFastCount < MAX_AERIAL_FAST_ATTACKS;
+    }
+
+    private bool CanPerformAerialHeavyAttack()
+    {
+        if (characterController != null && characterController.isGrounded)
+            return false;
+
+        if (hasUsedAerialHeavy)
+            return false;
+
+        if (InputReader.inputBusy)
+            return false;
+
+        return true;
     }
 
     /// <summary>
@@ -187,7 +236,7 @@ public class AerialComboManager : MonoBehaviour
     /// </summary>
     public bool ShouldFallAfterAnimation()
     {
-        return aerialFastCount >= MAX_AERIAL_FAST_ATTACKS && !hasUsedAirDash;
+        return pendingAutoFall;
     }
 
     /// <summary>
@@ -199,6 +248,7 @@ public class AerialComboManager : MonoBehaviour
         hasUsedAirDash = false;
         hasUsedAerialHeavy = false;  // Reset heavy flag for next airtime
         isInAerialCombo = false;
+        pendingAutoFall = false;
 
         if (debugMode)
             Debug.Log("Aerial combo reset");
@@ -216,5 +266,54 @@ public class AerialComboManager : MonoBehaviour
     public int AerialFastCount => aerialFastCount;
     public bool HasUsedAirDash => hasUsedAirDash;
     public bool IsInAerialCombo => isInAerialCombo;
-    public bool CanAirDash => !hasUsedAirDash && !characterController.isGrounded;
+    public bool CanAirDash => !hasUsedAirDash && characterController != null && !characterController.isGrounded;
+
+    public void HandleAttackAnimationComplete(PlayerAttack completedAttack)
+    {
+        if (completedAttack == null)
+            return;
+
+        bool isAerialAttack = completedAttack.attackType == AttackType.LightAerial
+            || completedAttack.attackType == AttackType.HeavyAerial;
+
+        if (!isAerialAttack)
+            return;
+
+        if (completedAttack.attackType == AttackType.LightAerial && pendingAutoFall)
+        {
+            pendingAutoFall = false;
+            animationController?.PlayFalling();
+        }
+    }
+
+    private PlayerAttack ResolveLightAttackForStep(int index)
+    {
+        if (index < 0)
+            index = 0;
+
+        if (aerialLightChain != null && index < aerialLightChain.Length && aerialLightChain[index] != null)
+            return aerialLightChain[index];
+
+        string fallbackId = index == 0 ? fallbackLightAttack1Id : fallbackLightAttack2Id;
+        return LookupAttack(fallbackId);
+    }
+
+    private PlayerAttack ResolveHeavyAttack()
+    {
+        if (aerialHeavyAttack != null)
+            return aerialHeavyAttack;
+
+        return LookupAttack(fallbackHeavyAttackId);
+    }
+
+    private PlayerAttack LookupAttack(string attackId)
+    {
+        if (string.IsNullOrWhiteSpace(attackId) || attackDatabase == null)
+            return null;
+
+        return attackDatabase.GetAttack(attackId);
+    }
 }
+
+
+

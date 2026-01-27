@@ -9,8 +9,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.EventSystems;
 public class DiaryScrollingList : MonoBehaviour
 {
+    public GameObject selectedButton;
+
     [Header("Components")]
     [SerializeField] private GameObject contentParent;
 
@@ -22,6 +25,14 @@ public class DiaryScrollingList : MonoBehaviour
     [SerializeField] private RectTransform contentRectTransform;
     private Dictionary<string, DiaryButton> idToButtonMap = new Dictionary<string, DiaryButton>(); //Dict to hold id of buttons
 
+    void Update()
+    {
+        if (EventSystem.current.currentSelectedGameObject != null)
+        {
+            selectedButton = EventSystem.current.currentSelectedGameObject;
+            Debug.Log("Selected Button: " + selectedButton.name);
+        }
+    }
 
     //If the button for a diary doesn't already exist, this function will make it
     public DiaryButton CreateButtonIfNotExists(Diaries diary, UnityAction selectAction)
@@ -30,18 +41,22 @@ public class DiaryScrollingList : MonoBehaviour
 
         if (diary.info.isFound)
         {
+            Debug.Log($"Diary {diary.info.diaryID} is marked as found, checking if button exists...");
             if (!idToButtonMap.ContainsKey(diary.info.diaryID))
             {
+                Debug.Log($"Creating button for diary {diary.info.diaryID}");
                 diaryButton = InstantiateDiaryButton(diary, selectAction);
             }
             else
             {
+                Debug.Log($"Button for diary {diary.info.diaryID} already exists");
                 diaryButton = idToButtonMap[diary.info.diaryID];
             }
             return diaryButton;
         }
         else
         {
+            Debug.Log($"Diary {diary.info.diaryID} is NOT marked as found (isFound={diary.info.isFound}), skipping button creation");
             return diaryButton;
         }
     }

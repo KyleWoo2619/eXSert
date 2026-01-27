@@ -57,7 +57,7 @@ namespace EnemyBehavior.Density
         private System.Collections.IEnumerator TickLoop()
         {
             float interval = Mathf.Max(0.01f, tickHz > 0f ? 1f / tickHz : 0.05f);
-            var wait = new WaitForSeconds(interval);
+            var wait = WaitForSecondsCache.Get(interval);
             while (enabled)
             {
                 UpdateGrid(interval);
