@@ -3,6 +3,7 @@
 
     This script handles the different types of door interactions with realistic door movements.
     Doors can open upwards, outwards, or inwards depending on the door type set in the inspector.
+    Lock management is handled by the DoorInteractions component (part of UnlockableInteraction system).
 */
 
 
@@ -12,16 +13,11 @@ using System.Collections;
 using UnityEditor;
 #endif
 
-public class LockedAttribute : PropertyAttribute { }
-
 public class DoorHandler : MonoBehaviour
 {
-    public enum DoorState { Open, Closed, Locked }
+    public enum DoorState { Open, Closed }
 
     public enum DoorType { OpenUp, OpenOut, OpenIn }
-
-    [Locked]
-    [SerializeField] private string doorKeyNeeded = "";
 
     public DoorState currentDoorState;
     public DoorType doorType;
@@ -32,6 +28,8 @@ public class DoorHandler : MonoBehaviour
     private Quaternion targetDoorRot;
     private Vector3 targetPos;
 
+    [Tooltip("Height to which the door will open when using OpenUp door type.")]
+    [SerializeField] private float doorUpTargetHeight;
     [SerializeField] private float openSpeed = 2f;
 
     private bool isOpening = false;
@@ -54,6 +52,10 @@ public class DoorHandler : MonoBehaviour
         doorRotOrigin = this.transform.rotation;
     }
 
+    /// <summary>
+    /// Toggles the door between Open and Closed states.
+    /// Lock checking is handled by DoorInteractions component.
+    /// </summary>
     public void Interact()
     {
         switch (currentDoorState)
@@ -63,21 +65,6 @@ public class DoorHandler : MonoBehaviour
                 break;
             case DoorState.Closed:
                 OpenDoor();
-                break;
-            case DoorState.Locked:
-                foreach(var item in InternalPlayerInventory.Instance.collectedInteractables)
-                {
-                    if(item == doorKeyNeeded)
-                    {
-                        OpenDoor();
-                        Debug.Log("Door unlocked with key: " + doorKeyNeeded);
-                        return;
-                    }
-                    else 
-                    {
-                        Debug.Log("Door is locked. Key needed: " + doorKeyNeeded);
-                    }
-                }
                 break;
         }
     }
@@ -211,7 +198,7 @@ public class DoorHandler : MonoBehaviour
     // Coroutines for opening and closing the door upwards
     private IEnumerator OpenUpCoroutine()
     {
-        targetDoorPos = doorPosOrigin + new Vector3(0f, 2.2f, 0f);
+        targetDoorPos = doorPosOrigin + new Vector3(0f, doorUpTargetHeight, 0f);
 
         if(this.transform.position == targetDoorPos)
         {
@@ -251,40 +238,4 @@ public class DoorHandler : MonoBehaviour
         isOpened = false;
         yield return null;
     }
-
 }
-
-#if UNITY_EDITOR
-[CustomPropertyDrawer(typeof(LockedAttribute))]
-public class LockedAttributeDrawer : PropertyDrawer
-{
-    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
-    {
-        // Only enable editing when the door is actually in the Locked state
-        var parent = property.serializedObject.targetObject as DoorHandler;
-        bool disabled = true;
-        if (parent != null)
-        {
-            disabled = parent.currentDoorState != DoorHandler.DoorState.Locked;
-        }
-
-        EditorGUI.BeginDisabledGroup(disabled);
-        EditorGUI.PropertyField(position, property, label);
-        EditorGUI.EndDisabledGroup();
-    }
-
-    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
-    {
-        var parent = property.serializedObject.targetObject as DoorHandler;
-        if (parent != null)
-        {
-            var stateField = property.serializedObject.FindProperty("currentDoorState");
-            if (stateField != null && stateField.enumValueIndex == (int)DoorHandler.DoorState.Locked)
-            {
-                return EditorGUI.GetPropertyHeight(property);
-            }
-        }
-        return 0;
-    }
-}
-#endif
