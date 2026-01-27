@@ -1,5 +1,26 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-4006074169732452161
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1614fc811f8f184697d9bee70ab9fe5, type: 3}
+  m_Name: DecalRendererFeature
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.DecalRendererFeature
+  m_Active: 1
+  m_Settings:
+    technique: 0
+    maxDrawDistance: 1000
+    decalLayers: 0
+    dBufferSettings:
+      surfaceData: 2
+    screenSpaceSettings:
+      normalBlend: 0
 --- !u!114 &-2662287155800971953
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -70,7 +91,8 @@ MonoBehaviour:
   - {fileID: 7833122117494664109}
   - {fileID: 8517727613773581966}
   - {fileID: -2662287155800971953}
-  m_RendererFeatureMap: ad6b866f10d7b46c8e8e82c8220c35764fe565ecefa70ddb
+  - {fileID: -4006074169732452161}
+  m_RendererFeatureMap: ad6b866f10d7b46c8e8e82c8220c35764fe565ecefa70ddbbfb03a89c49067c8
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
