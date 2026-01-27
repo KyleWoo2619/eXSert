@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public abstract class EncounterManager : MonoBehaviour
+public abstract class BasicEncounter : MonoBehaviour
 {
     
 }
