@@ -41,7 +41,9 @@ namespace Behaviors
             {
                 if (crawler.Pocket == null)
                 {
+#if UNITY_EDITOR
                     Debug.LogWarning($"{crawler.name}: No pocket assigned, cannot flee.");
+#endif
                     yield break;
                 }
 
@@ -66,7 +68,9 @@ namespace Behaviors
                 }
                 else
                 {
+#if UNITY_EDITOR
                     Debug.LogWarning($"{crawler.name}: Agent is null or disabled in Flee state!");
+#endif
                 }
 
                 crawler.ApplySeparation();
@@ -84,7 +88,7 @@ namespace Behaviors
                     yield break;
                 }
 
-                yield return new WaitForSeconds(0.1f);
+                yield return WaitForSecondsCache.Get(0.1f);
             }
         }
 

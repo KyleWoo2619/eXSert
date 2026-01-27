@@ -129,7 +129,7 @@ namespace Behaviors
 
                 crawler.ApplySeparation();
 
-                yield return new WaitForSeconds(0.05f);
+                yield return WaitForSecondsCache.Get(0.05f);
             }
         }
         public void Tick(BaseEnemy<TState, TTrigger> enemy)

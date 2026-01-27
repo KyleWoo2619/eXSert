@@ -84,8 +84,30 @@ public class LogButton : MonoBehaviour, ISelectHandler
         }
     }
 
+    public void FindAddMenusToList()
+    {
+        GameObject NavigationMenuObject = GameObject.FindGameObjectWithTag("NavigationMenu");
+
+        GameObject individualLogMenuObject = GameObject.FindGameObjectWithTag("IndividualLogMenu");
+
+        if(NavigationMenuObject != null)
+        {
+            var MenuToManage = NavigationMenuObject.GetComponent<MenuListManager>();
+            if(individualLogMenuObject != null)
+            {
+                Transform child = individualLogMenuObject.transform.GetChild(0);
+                MenuToManage.AddToMenuList(child.gameObject);
+            }
+        }
+        else
+        {
+            Debug.LogError("GameObject with tag 'NavigationMenu' not found");
+        }
+        
+    }
+
     //Hides Menus
-    public void hideMenuOnClick()
+    public void AddOverlay()
     {
 
         GameObject overlayParent = GameObject.FindGameObjectWithTag("Overlay");
@@ -96,15 +118,5 @@ public class LogButton : MonoBehaviour, ISelectHandler
         } else {
             Debug.LogError("GameObject with tag 'Overlay' not found");
         }
-
-        GameObject parent = GameObject.FindGameObjectWithTag("IndividualLogMenu");
-        if (parent != null)
-        {
-            Transform child = parent.transform.GetChild(0);
-            child.gameObject.SetActive(true);
-        } else {
-            Debug.LogError("GameObject with tag 'IndividualLogMenu' not found");
-        }
-
     }
 }

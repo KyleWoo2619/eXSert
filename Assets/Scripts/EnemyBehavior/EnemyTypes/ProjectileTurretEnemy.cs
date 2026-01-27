@@ -40,8 +40,8 @@ public class ProjectileTurretEnemy : BaseTurretEnemy
 
     private IEnumerator BurstFireLoop()
     {
-        WaitForSeconds shotDelay = new WaitForSeconds(Mathf.Max(0.01f, burstShotInterval));
-        WaitForSeconds reloadDelay = new WaitForSeconds(Mathf.Max(0f, reloadDuration));
+        WaitForSeconds shotDelay = WaitForSecondsCache.Get(Mathf.Max(0.01f, burstShotInterval));
+        WaitForSeconds reloadDelay = WaitForSecondsCache.Get(Mathf.Max(0f, reloadDuration));
 
         while (enemyAI != null && enemyAI.State.Equals(EnemyState.Attack))
         {
@@ -67,8 +67,16 @@ public class ProjectileTurretEnemy : BaseTurretEnemy
 
             if (player == null)
             {
-                var found = GameObject.FindGameObjectWithTag("Player");
-                player = found != null ? found.transform : null;
+                // Use PlayerPresenceManager if available
+                if (PlayerPresenceManager.IsPlayerPresent)
+                {
+                    player = PlayerPresenceManager.PlayerTransform;
+                }
+                else
+                {
+                    var found = GameObject.FindGameObjectWithTag("Player");
+                    player = found != null ? found.transform : null;
+                }
                 PlayerTarget = player;
             }
 

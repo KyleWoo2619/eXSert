@@ -7,10 +7,12 @@
 [System.Serializable]
 public class LogData
 {
-    public NavigationLogSO info;
+    public string logID;
+    public bool isFound;
 
     public LogData(NavigationLogSO info)
     {
-        this.info = info;
+        this.logID = info.logID;
+        this.isFound = info.isFound;
     }
 }

@@ -75,13 +75,13 @@ namespace Behaviors
                     break;
                 }
 
-                yield return new WaitForSeconds(0.05f);
+                yield return WaitForSecondsCache.Get(0.05f);
             }
 
             // Only fire AmbushReady for crawlers still in Ambush state
             // After all crawlers are clustered, wait a short time before firing AmbushReady
             float minClusterTime = 1.5f; // seconds
-            yield return new WaitForSeconds(minClusterTime);
+            yield return WaitForSecondsCache.Get(minClusterTime);
             if (crawler.Pocket != null)
             {
                 foreach (var c in crawler.Pocket.activeEnemies)

@@ -63,7 +63,9 @@ public class LogManager : Singleton<LogManager>
     private void FindLog(string id)
     {
         Logs logs = GetLogById(id);
+        Debug.Log($"FindLog called for {id}: was isFound={logs.info.isFound}");
         logs.info.isFound = true;
+        Debug.Log($"FindLog set isFound=true for {id}, firing LogStateChange event");
         EventsManager.Instance.logEvents.LogStateChange(logs);
     }
 
@@ -128,15 +130,20 @@ public class LogManager : Singleton<LogManager>
                 string serializedData = PlayerPrefs.GetString(logInfo.logID);
                 LogData logData = JsonUtility.FromJson<LogData>(serializedData);
                 log = new Logs(logInfo);
+                // Apply the loaded state to the ScriptableObject
+                log.info.isFound = logData.isFound;
+                Debug.Log($"Loaded log {logInfo.logID}: isFound={logData.isFound}");
             }
             else
             {
                 log = new Logs(logInfo);
+                Debug.Log($"No saved data for log {logInfo.logID}, created with isFound={logInfo.isFound}");
             }
         }
         catch (System.Exception e)
         {
-            Debug.LogError("Failed to load log with id " + log.info.logID + ": " + e);
+            Debug.LogError("Failed to load log with id " + logInfo.logID + ": " + e);
+            log = new Logs(logInfo);
         }
         
         return log;

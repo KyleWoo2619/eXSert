@@ -12,8 +12,13 @@
 using Unity.Cinemachine;
 using UnityEngine;
 using System.Collections.Generic;
+using System.Collections;
 using TMPro;
 using UnityEngine.InputSystem;
+
+
+
+
 
 
 #if UNITY_EDITOR
@@ -67,42 +72,76 @@ public class ShowIfZAttribute : PropertyAttribute { }
 
 public class CranePuzzle : MonoBehaviour, IPuzzleInterface
 {
+    private enum DetectionResult
+    {
+        None,
+        Target,
+        Wrong
+    }
     // Cache of the player's movement component so it can be re-enabled later
     private PlayerMovement cachedPlayerMovement;
-    private bool disabledPlayerMovement = false;
 
+    [Header("References")]
+    [SerializeField] private CraneGrabObject craneGrabObjectScript;
+
+    [Header("Input Actions")]
     [SerializeField] private InputActionReference _escapePuzzleAction;
+    [SerializeField] private InputActionReference _confirmPuzzleAction;
 
+    [Space(10)]
+    [Header("Camera")]
     // Cinemachine camera for the puzzle
     [SerializeField] CinemachineCamera puzzleCamera;
+
+    [Space(10)]
 
     // List of crane parts to move
     [Header("Crane Parts")]
     [SerializeField] private List<CranePart> craneParts = new List<CranePart>();
+    [SerializeField] public GameObject magnetExtender;
+
+    [Space(10)]
 
     // Swap input mapping so X uses W/S and Z uses A/D
     [Tooltip("Swap input mapping so X uses W/S and Z uses A/D")]
     [SerializeField] private bool swapXZControls = false;
+
+    [Space(10)]
     
-    [Header("Smoothing")]
+    [Header("Smoothing - Optional")]
     [Tooltip("Enable smooth interpolation when moving crane parts")]
     [SerializeField] private bool useLerp = true;
 
     [Tooltip("Higher values = snappier movement. Should be between 5-20")]
     [SerializeField] private float lerpSpeed = 10f;
-    
-    // Speed of crane
-    [Tooltip("Movement speed applied to the crane (units/sec)")]
+
+    [Space(10)]
 
     [Header("Crane Settings")]
     [SerializeField] private float craneMoveSpeed = 2f;
-
+    [Tooltip("Height to which the magnet extends")]
+    [SerializeField] private float magnetExtendHeight;
     [SerializeField] private GameObject[] craneUI; // UI elements to show/hide during puzzle
+    [Tooltip("Invert horizontal input (A/D) so A acts as right and D as left when enabled")]
+    [SerializeField] private bool invertHorizontal = false;
 
-    [Tooltip("Invert horizontal input (A/D) so A acts as right and D as left when enabled")][SerializeField]
-    private bool invertHorizontal = false;
-    // When true the crane will respond to input
+
+    [Space(10)]
+
+    [Header("Puzzle Settings")]
+    [Tooltip("Object crane needs to grab")]
+    [SerializeField] internal GameObject targetObject;
+    [SerializeField] private Vector3 targetEndPos;
+    [SerializeField] private LayerMask grabLayerMask;
+    [SerializeField] private float magnetDetectLength;
+    internal bool isGrabbed;
+
     private bool puzzleActive = false;
+    internal bool isExtending = false;
+    private bool isAutomatedMovement = false;
+
+    // Coroutines for magnet animation
+    private Coroutine retractCoroutine;
 
     public bool isCompleted { get; set; }
 
@@ -112,100 +151,21 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
         {
             img.SetActive(false);
         }
-
     }
-
-    // Called by whatever system starts this puzzle
-    public void StartPuzzle()
-    {   
-        if(InputReader.Instance.activeControlScheme == "Gamepad")
-        {
-            craneUI[1].SetActive(true);
-        } 
-        else if (InputReader.Instance.activeControlScheme == "Keyboard&Mouse")
-        {
-            Debug.Log("Keyboard Crane UI Activated");
-            craneUI[0].SetActive(true);
-        }
-
-        _escapePuzzleAction.action.Enable(); // Make sure enabled
-        puzzleActive = true;
-
-        // Prevent player input reads (used across movement, dash, etc.); Jump still wont deactivate idk why
-        InputReader.inputBusy = true;
-
-        // Finds the player
-        var player = GameObject.FindWithTag("Player");
-        Debug.Log($"Player found: {(player != null ? player.name : "NULL")}");
-        
-        if (player != null)
-        {
-            var pm = player.GetComponent<PlayerMovement>();
-            Debug.Log($"PlayerMovement found: {(pm != null ? "YES" : "NO")}");
-            
-            // If found, the movement is disabled and stored for later restoration
-            if (pm != null)
-            {
-                cachedPlayerMovement = pm;
-                pm.enabled = false;
-                disabledPlayerMovement = true;
-                Debug.Log($"PlayerMovement disabled on {player.name}");
-            }
-            else
-            {
-                Debug.LogError($"PlayerMovement NOT FOUND on {player.name}");
-            }
-        }
-        else
-        {
-            Debug.LogError("Player with 'Player' tag not found!");
-        }
-
-        // Changes camera priority to switch to puzzle camera
-       if(puzzleCamera != null)
-       {
-           puzzleCamera.Priority = 21;
-       }
-       else
-       {
-           Debug.LogError("Puzzle Camera not assigned in CranePuzzle.");
-       }
-
-       //isCompleted = true;
-    }
-
-    // Call this when the puzzle is finished or cancelled
-    public void EndPuzzle()
-    {
-            foreach (GameObject img in craneUI)
-            {
-                img.SetActive(false);
-            }
-
-            puzzleActive = false;
-
-            // Sets camera priority back to normal
-            if(puzzleCamera != null)
-            {
-                puzzleCamera.Priority = 9;
-            }
-
-            // Re-enable player input
-            InputReader.inputBusy = false;
-
-            // Restore player's movement component if we disabled it
-            if (disabledPlayerMovement && cachedPlayerMovement != null)
-            {
-                cachedPlayerMovement.enabled = true;
-                cachedPlayerMovement = null;
-                disabledPlayerMovement = false;
-            }
-    }
-
+    
     private void Update()
     {
-        // If not active, skip processing
-        if (!puzzleActive || craneParts == null || craneParts.Count == 0) return;
+        // Visualize both detection rays with colors that reflect hit state
+        AssignRayData();
+
+
+        // If not active or automated movement is running, skip processing
+        if (!puzzleActive || isAutomatedMovement || craneParts == null || craneParts.Count == 0) return;
+
+        if(_confirmPuzzleAction != null && _confirmPuzzleAction.action != null)
+        {
+            CheckForConfirm();
+        }
 
         // Read centralized input
         Vector2 move = InputReader.MoveInput;
@@ -257,8 +217,12 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
             // Lerps to new position if enabled
             if (useLerp)
             {
-                float t = Mathf.Clamp01(lerpSpeed * Time.deltaTime);
-                partTransform.localPosition = Vector3.Lerp(currentPos, newPos, t);
+                Vector3 targetPos = newPos;
+                // Clamp before lerping to ensure we don't exceed bounds
+                targetPos.x = Mathf.Clamp(targetPos.x, part.minX, part.maxX);
+                targetPos.y = Mathf.Clamp(targetPos.y, part.minY, part.maxY);
+                targetPos.z = Mathf.Clamp(targetPos.z, part.minZ, part.maxZ);
+                partTransform.localPosition = Vector3.Lerp(currentPos, targetPos, Mathf.Clamp01(lerpSpeed * Time.deltaTime));
             }
             else
             {
@@ -268,16 +232,452 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
 
         if(isCompleted || _escapePuzzleAction != null && _escapePuzzleAction.action != null && _escapePuzzleAction.action.triggered)
         {
-            Debug.Log("Escape triggered");
             EndPuzzle();
         }
     }
 
-    // Call this to switch between crane parts (e.g., with keyboard shortcuts or UI buttons)
-    public void SetActiveCranePart(int index)
-    {
-        Debug.Log($"SetActiveCranePart is deprecated. All crane parts are now active simultaneously.");
+    #region IPuzzleInterface Methods
+
+    // Called by whatever system starts this puzzle
+    public void StartPuzzle()
+    {   
+        if(InputReader.Instance.activeControlScheme == "Gamepad")
+        {
+            craneUI[1].SetActive(true);
+        } 
+        else if (InputReader.Instance.activeControlScheme == "Keyboard&Mouse")
+        {
+            craneUI[0].SetActive(true);
+        }
+
+        SwapActionMaps("CranePuzzle");
+
+        _escapePuzzleAction.action.Enable(); // Make sure enabled
+        puzzleActive = true;
+
+        // Prevent player input reads (used across movement, dash, etc.); Jump still wont deactivate idk why
+        InputReader.inputBusy = true;
+
+        // Finds the player
+        var player = GameObject.FindWithTag("Player");
+        Debug.Log($"Player found: {(player != null ? player.name : "NULL")}");
+        
+        if (player != null)
+        {
+            // Try to find PlayerMovement on the player, its children, or parent; fallback to any active instance
+            var pm = player.GetComponent<PlayerMovement>();
+
+            Debug.Log($"PlayerMovement found: {(pm != null ? "YES" : "NO")}");
+
+            // If found, disable movement and cache for restoration
+            if (pm != null)
+            {
+                cachedPlayerMovement = pm;
+                pm.enabled = false;
+                Debug.Log($"PlayerMovement disabled on {(pm.gameObject != null ? pm.gameObject.name : player.name)}");
+            }
+            else
+            {
+                Debug.LogError($"PlayerMovement NOT FOUND on {player.name} or its hierarchy; gameplay movement will remain enabled.");
+            }
+        }
+        else
+        {
+            Debug.LogError("Player with 'Player' tag not found!");
+        }
+
+        // Changes camera priority to switch to puzzle camera
+       if(puzzleCamera != null)
+       {
+           puzzleCamera.Priority = 21;
+       }
     }
+
+    // Call this when the puzzle is finished or cancelled
+    public void EndPuzzle()
+    {
+            foreach (GameObject img in craneUI)
+            {
+                img.SetActive(false);
+            }
+
+            puzzleActive = false;
+
+            StopAllCoroutines();
+
+            // Unlock crane movement
+            LockOrUnlockMovement(false);
+            isExtending = false;
+            isAutomatedMovement = false;
+
+            // Disable input actions
+            if (_escapePuzzleAction != null && _escapePuzzleAction.action != null)
+            {
+                _escapePuzzleAction.action.Disable();
+            }
+            if (_confirmPuzzleAction != null && _confirmPuzzleAction.action != null)
+            {
+                _confirmPuzzleAction.action.Disable();
+            }
+
+            // Sets camera priority back to normal
+            if(puzzleCamera != null)
+            {
+                puzzleCamera.Priority = 9;
+            }
+
+            // Re-enable player input
+            InputReader.inputBusy = false;
+
+            SwapActionMaps("Gameplay");
+            
+            if (InputReader.Instance != null && InputReader.Instance._playerInput != null)
+            {
+                var cranePuzzleMap = InputReader.Instance._playerInput.actions.FindActionMap("CranePuzzle");
+                if (cranePuzzleMap != null)
+                {
+                    cranePuzzleMap.Disable();
+                }
+                
+                InputReader.Instance._playerInput.enabled = true;
+                InputReader.Instance._playerInput.ActivateInput();
+                InputReader.Instance._playerInput.actions.Enable();
+                
+                var gameplayMap = InputReader.Instance._playerInput.actions.FindActionMap("Gameplay");
+                if (gameplayMap != null)
+                {
+                    gameplayMap.Enable();
+                }
+            }
+            RestorePlayerMovement();
+            
+    }
+    #endregion
+
+    private DetectionResult DetectDesiredObjectBelow()
+    {
+        RaycastHit hit;
+        RaycastHit hit2;
+
+        Debug.Log(targetObject != null ? $"Detecting object: {targetObject.name}" : "No target object set for detection");
+
+        GetRayData(out var originA, out var originB, out var originC, out var originD, out var castDir);
+
+        bool hitFirst = Physics.Raycast(originA, castDir, out hit, magnetDetectLength);
+        bool hitSecond = Physics.Raycast(originB, castDir, out hit2, magnetDetectLength);
+        bool hitThird = Physics.Raycast(originC, castDir, out var hit3, magnetDetectLength);
+        bool hitFourth = Physics.Raycast(originD, castDir, out var hit4, magnetDetectLength);
+        
+        if(hitFirst || hitSecond || hitThird || hitFourth)
+        {
+            
+            if((hitFirst && hit.collider.gameObject == targetObject) || (hitSecond && hit2.collider.gameObject == targetObject) 
+                || (hitThird && hit3.collider.gameObject == targetObject) || (hitFourth && hit4.collider.gameObject == targetObject))
+            {
+                Debug.Log("Desired object detected below magnet");
+                craneGrabObjectScript.GrabObject(targetObject);
+                isGrabbed = true;
+                
+                return DetectionResult.Target;
+            }
+            else
+            {
+                string hitName = hitFirst ? hit.collider.gameObject.name : hitSecond ? hit2.collider.gameObject.name 
+                    : hitThird ? hit3.collider.gameObject.name : hit4.collider.gameObject.name;
+                Debug.Log($"Object detected below magnet: {hitName}, but it is not the desired object - bouncing off!");
+                return DetectionResult.Wrong;
+            }
+        }
+        else
+        {
+            Debug.Log("Raycast did not hit anything on grabLayerMask");
+        }
+
+        return DetectionResult.None;
+    }
+
+    #region Coroutine Animations
+    private IEnumerator AnimateMagnet(GameObject magnet, Vector3 targetPosition, float duration, bool magnetRetract = true)
+    {
+        LockOrUnlockMovement(true);
+        Vector3 startPosition = magnet.transform.localPosition;
+        targetPosition = new Vector3(magnet.transform.localPosition.x, magnetExtendHeight, magnet.transform.localPosition.z);
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            magnet.transform.localPosition = Vector3.Lerp(startPosition, targetPosition, elapsed / duration);
+            
+            // Check continuously during extension for objects below
+            DetectionResult detectionResult = DetectDesiredObjectBelow();
+            
+            // If hit wrong object, bounce back immediately
+            if (detectionResult == DetectionResult.Wrong && elapsed > 0.1f) // Small delay to avoid instant bounce
+            {
+                Debug.Log("Hit wrong object during extension - bouncing back!");
+                isExtending = false;
+                
+                if (retractCoroutine != null)
+                {
+                    StopCoroutine(retractCoroutine);
+                }
+                retractCoroutine = StartCoroutine(RetractMagnet(magnet, startPosition, duration * 0.5f));
+                yield break;
+            }
+            else if (detectionResult == DetectionResult.Target) // Target found
+            {
+                isExtending = false;
+                if (magnetRetract)
+                {
+                    if (retractCoroutine != null)
+                    {
+                        StopCoroutine(retractCoroutine);
+                    }
+                    retractCoroutine = StartCoroutine(RetractMagnet(magnet, startPosition, duration));
+                }
+                yield break;
+            }
+            
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        magnet.transform.localPosition = targetPosition;
+        isExtending = false;
+
+        // Final check at full extension
+        DetectionResult finalCheck = DetectDesiredObjectBelow();
+        
+        if (magnetRetract)
+        {
+            if (retractCoroutine != null)
+            {
+                StopCoroutine(retractCoroutine);
+            }
+            float retractDuration = finalCheck == DetectionResult.Wrong ? duration * 0.5f : duration;
+            retractCoroutine = StartCoroutine(RetractMagnet(magnet, startPosition, retractDuration));
+        }
+    }
+
+    private IEnumerator RetractMagnet(GameObject magnet, Vector3 originalPosition, float duration)
+    {
+        Vector3 startPosition = magnet.transform.localPosition;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            magnet.transform.localPosition = Vector3.Lerp(startPosition, originalPosition, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        if(!isCompleted)
+            magnet.transform.localPosition = originalPosition;
+        
+        if(isGrabbed)
+        {
+            isAutomatedMovement = true;
+            LockOrUnlockMovement(false);
+            
+            yield return StartCoroutine(MoveCraneToPosition(craneParts[1].partObject, new Vector3(0, 0, targetEndPos.z), 1));
+            yield return StartCoroutine(MoveCraneToPosition(craneParts[0].partObject, new Vector3(targetEndPos.x, 0, 0), 1));
+            yield return new WaitForSeconds(0.5f);
+            
+            // Lower magnet to place the object - extend down to drop position
+            Vector3 dropStartPos = magnetExtender.transform.localPosition;
+            Vector3 dropTargetPos = new Vector3(dropStartPos.x, magnetExtendHeight, dropStartPos.z);
+            float dropElapsed = 0f;
+            float dropDuration = 1f;
+            
+            while (dropElapsed < dropDuration)
+            {
+                magnetExtender.transform.localPosition = Vector3.Lerp(dropStartPos, dropTargetPos, dropElapsed / dropDuration);
+                dropElapsed += Time.deltaTime;
+                yield return null;
+            }
+            magnetExtender.transform.localPosition = dropTargetPos;
+            
+            // Release the object before clearing reference
+            if (craneGrabObjectScript != null && targetObject != null)
+            {
+                craneGrabObjectScript.ReleaseObject(targetObject);
+            }
+            
+            // Clear grab state
+            GameObject releasedObject = targetObject;
+            isGrabbed = false;
+            targetObject = null;
+            
+            // Retract to original position after releasing the object
+            yield return StartCoroutine(RetractMagnet(magnetExtender, originalPosition, 1f));
+
+            isAutomatedMovement = false;
+            isCompleted = true;
+            EndPuzzle();
+        } 
+        else 
+        {
+            LockOrUnlockMovement(false); // Unlock movement if nothing was grabbed
+        }
+       
+    }
+
+    private IEnumerator MoveCraneToPosition(GameObject crane, Vector3 targetPosition, float duration)
+    {
+        Vector3 startPosition = crane.transform.localPosition;
+        CranePart cranePart = craneParts.Find(p => p.partObject == crane);
+
+        Vector3 finalTarget = new Vector3(
+            cranePart.moveX ? targetPosition.x : startPosition.x,
+            cranePart.moveY ? targetPosition.y : startPosition.y,
+            cranePart.moveZ ? targetPosition.z : startPosition.z
+        );
+        
+        if (cranePart.moveX)
+            finalTarget.x = Mathf.Clamp(finalTarget.x, cranePart.minX, cranePart.maxX);
+        if (cranePart.moveY)
+            finalTarget.y = Mathf.Clamp(finalTarget.y, cranePart.minY, cranePart.maxY);
+        if (cranePart.moveZ)
+            finalTarget.z = Mathf.Clamp(finalTarget.z, cranePart.minZ, cranePart.maxZ);
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            crane.transform.localPosition = Vector3.Lerp(startPosition, finalTarget, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        crane.transform.localPosition = finalTarget;
+    }
+    #endregion
+    
+    #region Restrict/Restore Movement
+    //After puzzle ends, restore player movement if it was disabled
+    private void RestorePlayerMovement()
+    {
+        // Restore player's movement component; reacquire if cache missing
+            if (cachedPlayerMovement == null)
+            {
+                var player = GameObject.FindWithTag("Player");
+                if (player != null)
+                    cachedPlayerMovement = player.GetComponent<PlayerMovement>();
+            }
+
+            if (cachedPlayerMovement != null)
+            {
+                cachedPlayerMovement.enabled = true;
+                
+                var cc = cachedPlayerMovement.GetComponent<CharacterController>();
+                if (cc != null && !cc.enabled)
+                {
+                    cc.enabled = true;
+                }
+            }
+            cachedPlayerMovement = null;
+    }
+
+    private void LockOrUnlockMovement(bool lockMovement)
+    {
+        for (int i = 0; i < craneParts.Count; i++)
+        {
+            CranePart part = craneParts[i];
+            
+            // craneParts[1]: Lock X and Y, control Z only
+            if (i == 1)
+            {
+                part.moveX = false;
+                part.moveY = false;
+                part.moveZ = !lockMovement;
+            }
+            // craneParts[0]: Lock Y and Z, control X only
+            else if (i == 0)
+            {
+                part.moveX = !lockMovement;
+                part.moveY = false;
+                part.moveZ = false;
+            }
+            // Other parts: Lock/unlock all axes
+            else
+            {
+                part.moveX = !lockMovement;
+                part.moveY = !lockMovement;
+                part.moveZ = !lockMovement;
+            }
+        }
+    }
+    #endregion
+
+    #region Utility Scripts
+    // Swaps action maps
+    private void SwapActionMaps(string actionMapName)
+    {
+        InputReader.Instance._playerInput.SwitchCurrentActionMap(actionMapName);
+    }
+
+    // Checks for confirm input to start magnet extension
+    private void CheckForConfirm()
+    {
+        if (_confirmPuzzleAction.action.triggered && targetObject != null && !isExtending)
+        {
+            isExtending = true;
+            StartCoroutine(AnimateMagnet(magnetExtender, new Vector3(targetObject.transform.position.x, magnetExtender.transform.position.y, targetObject.transform.position.z), 2f, true));
+        }
+    }
+
+    private void GetRayData(out Vector3 originA, out Vector3 originB, out Vector3 originC, out Vector3 originD, out Vector3 castDir)
+    {
+        Vector3 offset = magnetExtender.transform.TransformDirection(Vector3.forward * 2f);
+        Vector3 offset2 = magnetExtender.transform.TransformDirection(Vector3.right * 2f);
+        originA = magnetExtender.transform.position + offset;
+        originB = magnetExtender.transform.position - offset;
+        originC = magnetExtender.transform.position + offset2;
+        originD = magnetExtender.transform.position - offset2;
+        castDir = magnetExtender.transform.TransformDirection(Vector3.down);
+    }
+
+    private void AssignRayData()
+    {
+        GetRayData(out var originA, out var originB, out var originC, out var originD, out var castDir);
+
+        if (Physics.Raycast(originA, castDir, out var dbgHitA, magnetDetectLength, grabLayerMask))
+        {
+            Debug.DrawRay(originA, castDir * dbgHitA.distance, dbgHitA.collider.gameObject == targetObject ? Color.cyan : Color.red);
+        }
+        else
+        {
+            Debug.DrawRay(originA, castDir * magnetDetectLength, Color.yellow);
+        }
+
+        if (Physics.Raycast(originB, castDir, out var dbgHitB, magnetDetectLength, grabLayerMask))
+        {
+            Debug.DrawRay(originB, castDir * dbgHitB.distance, dbgHitB.collider.gameObject == targetObject ? Color.cyan : Color.red);
+        }
+        else
+        {
+            Debug.DrawRay(originB, castDir * magnetDetectLength, Color.yellow);
+        }
+
+        if (Physics.Raycast(originC, castDir, out var dbgHitC, magnetDetectLength, grabLayerMask))
+        {
+            Debug.DrawRay(originC, castDir * dbgHitC.distance, dbgHitC.collider.gameObject == targetObject ? Color.cyan : Color.red);
+        }
+        else
+        {
+            Debug.DrawRay(originC, castDir * magnetDetectLength, Color.yellow);
+        }
+
+        if (Physics.Raycast(originD, castDir, out var dbgHitD, magnetDetectLength, grabLayerMask))
+        {
+            Debug.DrawRay(originD, castDir * dbgHitD.distance, dbgHitD.collider.gameObject == targetObject ? Color.cyan : Color.red);
+        }
+        else
+        {
+            Debug.DrawRay(originD, castDir * magnetDetectLength, Color.yellow);
+        }
+    }
+    #endregion
+
 }
 
 // Custom Property Drawers for showing fields based on movement axis toggles

@@ -80,7 +80,7 @@ namespace EnemyBehavior.Crowd
 
         private IEnumerator CourtesyLoop()
         {
-            var wait = new WaitForSeconds(0.12f);
+            var wait = WaitForSecondsCache.Get(0.12f);
             while (true)
             {
                 if (!yielding && Time.time >= nextAllowTime && agent != null && agent.enabled && agent.isOnNavMesh)

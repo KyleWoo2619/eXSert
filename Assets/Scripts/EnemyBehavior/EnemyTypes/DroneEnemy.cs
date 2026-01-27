@@ -30,9 +30,41 @@ public enum DroneTrigger
 [RequireComponent(typeof(NavMeshAgent))]
 public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShooter
 {
+    // ============= MEMORY LEAK DIAGNOSTIC - Renderer Toggle Only =============
+    // The memory leak is caused by the Renderer. Toggle this to disable renderers for testing.
+    private static bool s_disableRenderers = false;
+    
+    [Header("MEMORY LEAK DIAGNOSTIC")]
+    [Tooltip("Check this box at RUNTIME to disable all drone renderers (stops the memory leak)")]
+    [SerializeField] private bool _disableRenderers = false;
+    
+    // Cached component references for toggling
+    private Renderer[] _cachedRenderers;
+    private bool _lastRendererDisableState;
+    
+    private void OnValidate()
+    {
+        // Sync renderer disable flag at runtime
+        if (Application.isPlaying)
+        {
+            s_disableRenderers = _disableRenderers;
+        }
+    }
+    
+#if UNITY_EDITOR
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticFlags()
+    {
+        s_disableRenderers = false;
+    }
+#endif
+    // =========================================================
+
     [Header("Drone Settings")]
     [Tooltip("Desired vertical hover height above ground used for visuals/pathing.")]
     [SerializeField] private float hoverHeight = 5f;
+
+
 
     [Tooltip("Preferred combat radius. Drones enter Fire near this distance (with hysteresis).")]
     [SerializeField] public float attackRange = 15f;
@@ -124,6 +156,17 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
     public float HoverHeight => hoverHeight;
     public DroneCluster Cluster { get; set; }
 
+    /// <summary>
+    /// Returns true if this drone is the leader of its cluster.
+    /// Only the leader should run cluster-wide logic.
+    /// </summary>
+    public bool IsClusterLeader()
+    {
+        if (Cluster == null || Cluster.drones == null || Cluster.drones.Count == 0)
+            return false;
+        return ReferenceEquals(Cluster.drones[0], this);
+    }
+
     // Expose thresholds
     public float FireEnterDistance => attackRange + fireEnterBuffer;
     public float FireExitDistance  => attackRange + fireExitBuffer;
@@ -214,6 +257,7 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
         agent = GetComponent<NavMeshAgent>();
         agent.updateRotation = false;
         agent.updateUpAxis = false;
+        
         player = GameObject.FindGameObjectWithTag("Player")?.transform;
 
         idleBehavior = new DroneIdleBehavior<DroneState, DroneTrigger>();
@@ -225,6 +269,7 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
         idleTimerDuration = 15f;
         detectionRange = 15f;
 
+
         // Cache own colliders (exclude pool to avoid unnecessary ignores)
         ownColliders = GetComponentsInChildren<Collider>(includeInactive: true);
 
@@ -234,6 +279,7 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
         poolObj.transform.localPosition = Vector3.zero;
         bulletPoolParent = poolObj.transform;
     }
+
 
     private void Start()
     {
@@ -245,29 +291,94 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
             currentZone = FindNearestZone(transform.position);
         }
 
-        if (enemyAI.State.Equals(DroneState.Idle))
+        // State machine initialization typically doesn't fire OnEntry.
+        // We need to manually start the idle behavior for the cluster leader.
+        // Only call OnEnter for the leader to avoid duplicate coroutines.
+        if (IsClusterLeader())
         {
             idleBehavior.OnEnter(this);
         }
 
+
         EnsureHealthBarBinding();
 
-        StartIdleTimer();
+        // Cache renderer references for memory leak diagnostic toggling
+        _cachedRenderers = GetComponentsInChildren<Renderer>();
+
+        // NOTE: Don't call StartIdleTimer() here - idleBehavior.OnEnter() handles it
+        // and only starts the timer when there are multiple zones
     }
+
 
     protected override void Update()
     {
+        // Handle component-level toggling (for memory leak diagnosis)
+        HandleComponentToggling();
+        
         base.Update();
-
+        RefreshPlayerReference();
+        
         float speed01 = 0f;
         if (agent != null && agent.enabled)
         {
             float normalizedDivisor = Mathf.Max(agent.speed, 0.01f);
             speed01 = Mathf.Clamp01(agent.velocity.magnitude / normalizedDivisor);
         }
-
         PlayLocomotionAnim(speed01);
         UpdateFacing();
+    }
+    
+    /// <summary>
+    /// Handles toggling of Renderer components for memory leak diagnosis.
+    /// </summary>
+    private void HandleComponentToggling()
+    {
+        // Toggle Renderer components
+        if (s_disableRenderers != _lastRendererDisableState)
+        {
+            _lastRendererDisableState = s_disableRenderers;
+            if (_cachedRenderers != null)
+            {
+                foreach (var r in _cachedRenderers)
+                {
+                    if (r != null) r.enabled = !s_disableRenderers;
+                }
+            }
+        }
+    }
+
+    // Throttle player reference refresh to avoid calling FindGameObjectWithTag every frame
+    private float _lastPlayerRefreshTime;
+    private const float PlayerRefreshInterval = 1f;
+
+
+    /// <summary>
+    /// Refreshes the player reference if it's null or inactive.
+    /// Throttled to avoid expensive FindGameObjectWithTag calls every frame.
+    /// </summary>
+    private void RefreshPlayerReference()
+    {
+        // If we have a valid player, no need to refresh
+        if (player != null && player.gameObject.activeInHierarchy)
+            return;
+
+        // Throttle refresh attempts to avoid calling FindGameObjectWithTag every frame
+        if (Time.time - _lastPlayerRefreshTime < PlayerRefreshInterval)
+            return;
+
+        _lastPlayerRefreshTime = Time.time;
+
+        // Use PlayerPresenceManager if available (avoids redundant FindGameObjectWithTag calls)
+        if (PlayerPresenceManager.IsPlayerPresent)
+        {
+            player = PlayerPresenceManager.PlayerTransform;
+        }
+        else
+        {
+            var playerObj = GameObject.FindGameObjectWithTag("Player");
+            player = playerObj != null ? playerObj.transform : null;
+        }
+        PlayerTarget = player;
     }
 
     public void StartIdleTimer()
@@ -279,7 +390,7 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
 
     private IEnumerator IdleTimerRoutine()
     {
-        yield return new WaitForSeconds(idleTimerDuration);
+        yield return WaitForSecondsCache.Get(idleTimerDuration);
         enemyAI.Fire(DroneTrigger.LosePlayer);
     }
 
@@ -313,9 +424,17 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
             .Ignore(DroneTrigger.SeePlayer)
             .Ignore(DroneTrigger.RelocateComplete);
 
+
         enemyAI.Configure(DroneState.Fire)
-            .OnEntry(() => { fireBehavior.OnEnter(this); StartFireTick(); })   // start tick
-            .OnExit(() => { fireBehavior.OnExit(this); StopFireTick(); })                                // stop tick
+            .OnEntry(() => { 
+                fireBehavior.OnEnter(this); 
+                // ALL drones start firing, but only leader handles movement coordination
+                StartFireTick(); 
+            })
+            .OnExit(() => { 
+                fireBehavior.OnExit(this); 
+                StopFireTick(); 
+            })
             .Permit(DroneTrigger.OutOfAttackRange, DroneState.Chase)
             .Permit(DroneTrigger.LosePlayer, DroneState.Relocate)
             .Permit(DroneTrigger.Die, DroneState.Death)
@@ -333,79 +452,114 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
             .Ignore(DroneTrigger.Die);
     }
 
-    // Movement, attack, and utility methods as before...
+    // Destination caching to prevent redundant SetDestination calls
+    private Vector3 _lastRequestedDestination = Vector3.positiveInfinity;
+    private const float DestinationChangeThreshold = 1.0f;
+    private const float PathRefreshInterval = 2.0f;
+    private const float MinSetDestinationInterval = 0.5f;
+    private float _lastPathRequestTime;
+    private float _lastSetDestinationTime;
+
+    /// <summary>
+    /// Moves the drone to the specified position.
+    /// Simplified for reliability - removed complex fallback logic.
+    /// </summary>
     public void MoveTo(Vector3 position)
     {
-        if (agent == null || !agent.enabled) return;
-
-        // Ensure agent is on a NavMesh, or try to recover
-        if (!agent.isOnNavMesh)
+        if (agent == null || !agent.enabled)
         {
-            if (NavMesh.SamplePosition(transform.position, out var selfHit, 2f, NavMesh.AllAreas))
-                agent.Warp(selfHit.position);
-            else
-                return;
+#if UNITY_EDITOR
+            Debug.LogWarning($"[DroneEnemy] {name}: MoveTo failed - agent null or disabled");
+#endif
+            return;
         }
 
-        // Flatten Y to the agent plane
-        Vector3 desired = new Vector3(position.x, transform.position.y, position.z);
-        Vector3 final = desired;
-
-        // Try sampling near the desired point
-        if (!NavMesh.SamplePosition(desired, out var hit, navSampleRadius, NavMesh.AllAreas))
+        // Ensure agent is on a NavMesh
+        if (!agent.isOnNavMesh)
         {
-            // Fallback: shrink toward player center until we find a valid on-mesh point
-            var playerTf = GetPlayerTransform();
-            if (playerTf != null)
+            // Try to warp to nearest NavMesh position with progressively larger radii
+            float[] warpRadii = { 5f, 15f, 30f, 50f };
+            bool warped = false;
+            
+            foreach (float radius in warpRadii)
             {
-                Vector3 center = new Vector3(playerTf.position.x, transform.position.y, playerTf.position.z);
-                Vector3 toDesired = desired - center;
-                float radius = toDesired.magnitude;
-
-                if (radius > 0.001f)
+                if (NavMesh.SamplePosition(transform.position, out var selfHit, radius, NavMesh.AllAreas))
                 {
-                    Vector3 dir = toDesired / radius;
-                    float shrink = 0f;
-                    bool found = false;
-
-                    while (shrink <= navEdgeFallbackMaxShrink)
-                    {
-                        float r = Mathf.Max(radius - shrink, 0.5f);
-                        Vector3 candidate = center + dir * r;
-
-                        if (NavMesh.SamplePosition(candidate, out hit, navSampleRadius, NavMesh.AllAreas))
-                        {
-                            final = hit.position;
-                            found = true;
-                            break;
-                        }
-                        shrink += 0.5f;
-                    }
-
-                    if (!found)
-                    {
-                        // Last resort: sample near our current position
-                        if (NavMesh.SamplePosition(transform.position, out var nearSelf, navSampleRadius, NavMesh.AllAreas))
-                            final = nearSelf.position;
-                        else
-                            return;
-                    }
+                    agent.Warp(selfHit.position);
+                    warped = true;
+#if UNITY_EDITOR
+                    Debug.Log($"[DroneEnemy] {name}: Warped to NavMesh at {selfHit.position} (radius: {radius})");
+#endif
+                    break;
                 }
             }
-            else
+            
+            if (!warped)
             {
-                // No player reference; try desired again
-                if (!NavMesh.SamplePosition(desired, out hit, navSampleRadius, NavMesh.AllAreas))
-                    return;
-                final = hit.position;
+#if UNITY_EDITOR
+                Debug.LogWarning($"[DroneEnemy] {name}: MoveTo failed - not on NavMesh and couldn't find one within 50m");
+#endif
+                return;
             }
+        }
+
+        // Flatten Y to the agent's current Y (NavMesh surface)
+        Vector3 desired = new Vector3(position.x, agent.transform.position.y, position.z);
+        
+        // Throttle check - skip if destination hasn't changed much and we have a valid path
+        float distanceToLastDest = Vector3.Distance(desired, _lastRequestedDestination);
+        bool destinationChanged = distanceToLastDest > DestinationChangeThreshold;
+        bool timeToRefresh = Time.time - _lastPathRequestTime > PathRefreshInterval;
+        bool hasValidPath = agent.hasPath && agent.pathStatus == NavMeshPathStatus.PathComplete;
+        
+        if (!destinationChanged && hasValidPath && !timeToRefresh)
+        {
+            return; // Skip - destination same and path is valid
+        }
+
+        // Try to find a valid NavMesh position near the desired point
+        Vector3 finalDestination = desired;
+        if (NavMesh.SamplePosition(desired, out var hit, 10f, NavMesh.AllAreas))
+        {
+            finalDestination = hit.position;
         }
         else
         {
-            final = hit.position;
+            // Fallback: just try to move toward the desired position
+            // The NavMeshAgent will handle pathfinding
+#if UNITY_EDITOR
+            Debug.LogWarning($"[DroneEnemy] {name}: No NavMesh near desired position {desired}, using direct destination");
+#endif
         }
 
-        agent.SetDestination(final);
+        // Set the destination
+        _lastRequestedDestination = desired;
+        _lastPathRequestTime = Time.time;
+        _lastSetDestinationTime = Time.time;
+        
+        if (agent.SetDestination(finalDestination))
+        {
+#if UNITY_EDITOR
+            if (Time.frameCount % 300 == 0) // Log every ~5 seconds at 60fps
+                Debug.Log($"[DroneEnemy] {name}: SetDestination to {finalDestination}");
+#endif
+        }
+        else
+        {
+#if UNITY_EDITOR
+            Debug.LogWarning($"[DroneEnemy] {name}: SetDestination FAILED for {finalDestination}");
+#endif
+        }
+    }
+
+    /// <summary>
+    /// Forces a path recalculation on next MoveTo call by invalidating the cached destination.
+    /// </summary>
+    public void InvalidatePathCache()
+    {
+        _lastRequestedDestination = Vector3.positiveInfinity;
+        _lastPathRequestTime = 0f;
+        _lastSetDestinationTime = 0f;
     }
 
     public void TryFireAtPlayer()
@@ -415,6 +569,20 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
 
         if (player == null) return;
         if (Time.time - lastFireTime < fireCooldown) return;
+        
+        // Check if we're roughly facing the player before firing (within 45 degrees)
+        Vector3 toPlayer = (player.position - transform.position);
+        toPlayer.y = 0; // Flatten to horizontal
+        if (toPlayer.sqrMagnitude > 0.01f)
+        {
+            float angle = Vector3.Angle(transform.forward, toPlayer.normalized);
+            if (angle > 45f)
+            {
+                // Not facing player yet, skip firing this frame (UpdateFacing will rotate us)
+                return;
+            }
+        }
+        
         lastFireTime = Time.time;
 
         if (projectilePrefab != null && firePoint != null)
@@ -430,6 +598,7 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
             proj.transform.SetParent(ProjectileHierarchy.GetActiveEnemyProjectilesParent(), true);
             Vector3 spawnPos = firePoint.position + dir * Mathf.Max(0f, muzzleForwardOffset);
             proj.transform.SetPositionAndRotation(spawnPos, Quaternion.LookRotation(dir));
+
 
             var rb = proj.GetComponent<Rigidbody>();
             if (rb != null)
@@ -462,7 +631,10 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
 
     private Zone FindNearestZone(Vector3 position)
     {
-        var zones = FindObjectsByType<Zone>(FindObjectsSortMode.None);
+        // Use ZoneManager if available for cached zones
+        var zones = ZoneManager.Instance != null 
+            ? ZoneManager.Instance.GetAllZones() 
+            : FindObjectsByType<Zone>(FindObjectsSortMode.None);
         Zone nearest = null;
         float minDist = float.MaxValue;
         foreach (var zone in zones)
@@ -496,8 +668,9 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
     {
         while (true)
         {
+            // Always run ticks - diagnostic flags removed for reliability
             tickAction?.Invoke();
-            yield return interval > 0f ? new WaitForSeconds(interval) : null;
+            yield return interval > 0f ? WaitForSecondsCache.Get(interval) : null;
         }
     }
 
@@ -521,7 +694,8 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
     public void StartFireTick()
     {
         StopFireTick();
-        fireTickCoroutine = StartCoroutine(TickRoutine(() => fireBehavior.Tick(this), 0f));
+        // Increased interval to reduce SetDestination calls which cause memory leaks
+        fireTickCoroutine = StartCoroutine(TickRoutine(() => fireBehavior.Tick(this), 0.25f));
     }
 
     public void StopFireTick()
@@ -631,25 +805,40 @@ public class DroneEnemy : BaseEnemy<DroneState, DroneTrigger>, IProjectileShoote
     {
         Vector3 forward = Vector3.zero;
 
-        if (agent != null && agent.enabled)
+        // In Fire state, ALWAYS face the player (priority over movement direction)
+        bool isInFireState = enemyAI != null && enemyAI.State.Equals(DroneState.Fire);
+        
+        if (isInFireState && player != null)
         {
-            Vector3 planarVel = new Vector3(agent.velocity.x, 0f, agent.velocity.z);
-            if (planarVel.sqrMagnitude >= velocityFacingThreshold * velocityFacingThreshold)
-            {
-                forward = planarVel;
-            }
-        }
-
-        if (forward == Vector3.zero && player != null)
-        {
+            // Always face player when firing
             forward = new Vector3(player.position.x - transform.position.x, 0f, player.position.z - transform.position.z);
+        }
+        else
+        {
+            // Normal behavior: face movement direction, or player if stationary
+            if (agent != null && agent.enabled)
+            {
+                Vector3 planarVel = new Vector3(agent.velocity.x, 0f, agent.velocity.z);
+                if (planarVel.sqrMagnitude >= velocityFacingThreshold * velocityFacingThreshold)
+                {
+                    forward = planarVel;
+                }
+            }
+
+            if (forward == Vector3.zero && player != null)
+            {
+                forward = new Vector3(player.position.x - transform.position.x, 0f, player.position.z - transform.position.z);
+            }
         }
 
         if (forward.sqrMagnitude < 0.0001f)
             return;
 
         Quaternion targetRot = Quaternion.LookRotation(forward.normalized, Vector3.up);
-        transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, turnSpeed * Time.deltaTime);
+        
+        // Use faster turn speed when in Fire state to snap to player quickly
+        float effectiveTurnSpeed = isInFireState ? turnSpeed * 2f : turnSpeed;
+        transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, effectiveTurnSpeed * Time.deltaTime);
     }
 
     protected override void OnDamageTaken(float amount)

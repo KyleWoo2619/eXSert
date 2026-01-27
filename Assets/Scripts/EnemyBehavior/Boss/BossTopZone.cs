@@ -135,7 +135,7 @@ namespace EnemyBehavior.Boss
         private System.Collections.IEnumerator MonitorPresence()
         {
             float dt = 1f / Mathf.Max(5f, monitorHz);
-            var wait = new WaitForSeconds(dt);
+            var wait = WaitForSecondsCache.Get(dt);
             while (playerTransform != null)
             {
                 bool inside = false;

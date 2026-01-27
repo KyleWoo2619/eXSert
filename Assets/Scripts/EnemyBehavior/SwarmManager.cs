@@ -40,7 +40,11 @@ public class SwarmManager : MonoBehaviour
         }
         Instance = this;
 
-        player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        // Use PlayerPresenceManager if available
+        if (PlayerPresenceManager.IsPlayerPresent)
+            player = PlayerPresenceManager.PlayerTransform;
+        else
+            player = GameObject.FindGameObjectWithTag("Player")?.transform;
     }
 
     private void Start()
