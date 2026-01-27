@@ -41,6 +41,7 @@ public class DoorHandler : MonoBehaviour
     // Hinge variables that are used for OpenIn and OpenOut door types
     private Quaternion hingeStartRot;
     private Quaternion hingeTargetRot;
+    private Quaternion hingeOriginalRot; // Store the original hinge rotation before any animation
     private Coroutine hingeAnimCoroutine = null;
 
     // Store original parent to reparent door after using hinge pivot
@@ -50,6 +51,12 @@ public class DoorHandler : MonoBehaviour
     {
         doorPosOrigin = this.transform.position;
         doorRotOrigin = this.transform.rotation;
+        
+        // If a hinge pivot is provided, store its original rotation
+        if (hingePivot != null)
+        {
+            hingeOriginalRot = hingePivot.rotation;
+        }
     }
 
     /// <summary>
@@ -100,11 +107,11 @@ public class DoorHandler : MonoBehaviour
                 break;
             case DoorType.OpenOut:
                 EnsurePivot();
-                StartHingeAnimation(hingePivot.rotation, doorRotOrigin, 1f / openSpeed);
+                StartHingeAnimation(hingePivot.rotation, hingeOriginalRot, 1f / openSpeed);
                 break;
             case DoorType.OpenIn:
                 EnsurePivot();
-                StartHingeAnimation(hingePivot.rotation, doorRotOrigin, 1f / openSpeed);
+                StartHingeAnimation(hingePivot.rotation, hingeOriginalRot, 1f / openSpeed);
                 break;
         }
     }
@@ -154,6 +161,8 @@ public class DoorHandler : MonoBehaviour
             // parent pivot to the door's original parent to keep hierarchy
             go.transform.SetParent(this.transform.parent, true);
             hingePivot = go.transform;
+            // Store the original hinge rotation for closing animation (first time only)
+            hingeOriginalRot = hingePivot.rotation;
             // store original parent and reparent the door to hinge while preserving world transform
             originalParent = this.transform.parent;
             this.transform.SetParent(hingePivot, true);
