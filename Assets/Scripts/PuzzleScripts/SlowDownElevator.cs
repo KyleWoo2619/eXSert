@@ -233,7 +233,7 @@ public class SlowDownElevator : MonoBehaviour, IPuzzleInterface
             }
 
             // Move wallWithDoor only after swap
-            if(_swapped && _elevatorWalls.wallWithDoor != null)
+            if(_elevatorWalls.wallWithDoor != null)
             {
                 Vector3 doorPos = _elevatorWalls.wallWithDoor.transform.position;
                 doorPos.y = currentY; // keep in sync after swap

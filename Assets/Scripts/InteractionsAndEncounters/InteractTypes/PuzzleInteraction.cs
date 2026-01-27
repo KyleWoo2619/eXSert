@@ -14,6 +14,8 @@ public class PuzzleInteraction : UnlockableInteraction
     [Tooltip("Insert puzzle script that implements IPuzzleInterface")]
     [SerializeField] private MonoBehaviour puzzleScript;
 
+    private bool inProgress;
+
     private IPuzzleInterface _puzzleInterface;
 
     protected override void Awake()
@@ -34,8 +36,14 @@ public class PuzzleInteraction : UnlockableInteraction
         }
 
         if (_puzzleInterface.isCompleted)
+        {
             _puzzleInterface.EndPuzzle();
-        else
+            inProgress = false;
+        }
+        else if(!inProgress)
+        {
             _puzzleInterface.StartPuzzle();
+            inProgress = true;
+        }
     }
 }
