@@ -96,7 +96,7 @@ public class EnemiesClearedProgression : MonoBehaviour
         if(dropAtLastEnemy)
             progressionObj.transform.position = dropPosition;
         else 
-            progressionObj.transform.position = this.transform.position;
+            progressionObj.transform.position = progressionObj.transform.position;
 
         progressionObj.gameObject.SetActive(true);
     }
