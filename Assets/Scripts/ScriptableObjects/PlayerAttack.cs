@@ -153,6 +153,18 @@ namespace Utilities.Combat.Attacks
 
         // ---------------------------------------------------------------------------------------------
 
+        [Space, Header("Movement")]
+
+        [SerializeField, Tooltip("Forward distance to nudge the player when this heavy attack starts.")]
+        private float _forwardMoveDistance = 0f;
+        public float forwardMoveDistance { get => Mathf.Max(0f, _forwardMoveDistance); }
+
+        [SerializeField, Tooltip("Seconds to smoothly move the player forward for this heavy attack.")]
+        private float _forwardMoveDuration = 0.12f;
+        public float forwardMoveDuration { get => Mathf.Max(0f, _forwardMoveDuration); }
+
+        // ---------------------------------------------------------------------------------------------
+
         [Space, Header("Timing / Animation Reference")]
 
         [SerializeField, Tooltip("Animation clip associated with this attack (reference for event placement).")]
