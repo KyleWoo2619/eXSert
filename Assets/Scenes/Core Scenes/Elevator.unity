@@ -42375,6 +42375,22 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 59755486}
     m_Modifications:
+    - target: {fileID: 4770665618775230118, guid: e0d9a2cd77fdcd748b3f41f31a5b8a01, type: 3}
+      propertyPath: burstDuration
+      value: 0.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4770665618775230118, guid: e0d9a2cd77fdcd748b3f41f31a5b8a01, type: 3}
+      propertyPath: attackInterval
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4770665618775230118, guid: e0d9a2cd77fdcd748b3f41f31a5b8a01, type: 3}
+      propertyPath: burstShotInterval
+      value: 0.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4770665618775230118, guid: e0d9a2cd77fdcd748b3f41f31a5b8a01, type: 3}
+      propertyPath: overrideFireCooldown
+      value: -1
+      objectReference: {fileID: 0}
     - target: {fileID: 5070969307154705865, guid: e0d9a2cd77fdcd748b3f41f31a5b8a01, type: 3}
       propertyPath: m_Name
       value: ProjectileTurret
@@ -51617,76 +51633,6 @@ Transform:
   - {fileID: 146462577}
   m_Father: {fileID: 1520180939}
   m_LocalEulerAnglesHint: {x: 0, y: -180, z: 180}
---- !u!1 &1470709270
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1470709271}
-  - component: {fileID: 1470709273}
-  - component: {fileID: 1470709272}
-  m_Layer: 0
-  m_Name: SceneLoadVolume
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1470709271
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1470709270}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 7.9707, y: 5.4207, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1706431949}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1470709272
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1470709270}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3ac4992e4126e494699946b8e0ac1046, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  playerTag: Player
-  sceneToUnload: Elevator
-  sceneToLoad: CargoBay
-  setLoadedSceneActive: 1
---- !u!65 &1470709273
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1470709270}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1475814875
 GameObject:
   m_ObjectHideFlags: 0
@@ -57842,7 +57788,6 @@ Transform:
   m_Children:
   - {fileID: 905126773}
   - {fileID: 92129124}
-  - {fileID: 1470709271}
   - {fileID: 1211338386}
   - {fileID: 291765892}
   m_Father: {fileID: 642930190}
@@ -69098,8 +69043,37 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 68f2e2b1d126795408d70a6d377f40e8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2088777617}
   m_SourcePrefab: {fileID: 100100000, guid: 68f2e2b1d126795408d70a6d377f40e8, type: 3}
+--- !u!1 &2088777616 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 68f2e2b1d126795408d70a6d377f40e8, type: 3}
+  m_PrefabInstance: {fileID: 2088777615}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &2088777617
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2088777616}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.010000002, y: 0.025861962, z: 0.009937436}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &2093562351
 GameObject:
   m_ObjectHideFlags: 0
