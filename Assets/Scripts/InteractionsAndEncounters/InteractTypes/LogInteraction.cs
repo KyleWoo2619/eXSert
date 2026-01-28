@@ -9,7 +9,6 @@ using TMPro;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using System;
-using UnityEditor.PackageManager;
 
 [RequireComponent(typeof(BoxCollider))]
 public class LogInteraction : InteractionManager

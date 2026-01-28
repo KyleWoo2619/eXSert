@@ -51,12 +51,21 @@ namespace EnemyBehavior.Boss
     [System.Serializable]
     public sealed class SidePanel
     {
-        public GameObject panelObject;
+        [Tooltip("The visual panel mesh that detaches and falls (child of zone collider object)")]
+        public GameObject panelVisualMesh;
         public float maxHealth = 100f;
-        public float currentHealth;
-        public bool isDestroyed;
-        [Tooltip("Damage multiplier when this panel is destroyed")]
-        public float vulnerabilityMultiplier = 1.5f;
+        [HideInInspector] public float currentHealth;
+        [HideInInspector] public bool isDestroyed;
+        [Tooltip("Damage multiplier when attacking the exposed zone after panel breaks")]
+        public float vulnerabilityMultiplier = 2.0f;
+        [Tooltip("Time in seconds before destroyed panel despawns (0 = never)")]
+        public float destroyedPanelLifetime = 5f;
+        [Tooltip("Force applied when panel breaks off")]
+        public float breakOffForce = 400f;
+        [Tooltip("Optional: Particle effect to spawn when panel breaks")]
+        public GameObject breakVFXPrefab;
+        [Tooltip("Optional: Simplified convex mesh for falling panel physics (uses MeshFilter mesh if null)")]
+        public Mesh fallCollisionMesh;
     }
 
     public interface IParrySink { void OnParry(string attackId, GameObject player); }
@@ -1132,6 +1141,9 @@ namespace EnemyBehavior.Boss
                 animator.SetLayerWeight(layerIndex, Mathf.Clamp01(weight));
         }
 
+        /// <summary>
+        /// Called by BossSidePanelCollider when player attacks a panel.
+        /// </summary>
         public void DamageSidePanel(int panelIndex, float damage)
         {
             if (panelIndex < 0 || panelIndex >= SidePanels.Count) return;
@@ -1140,23 +1152,199 @@ namespace EnemyBehavior.Boss
             if (panel.isDestroyed) return;
 
             panel.currentHealth -= damage;
+            PushAction($"Panel {panelIndex} took {damage} damage ({panel.currentHealth}/{panel.maxHealth})");
 
             TriggerRandomHitReact();
 
             if (panel.currentHealth <= 0)
             {
-                panel.isDestroyed = true;
-                PushAction($"Side panel {panelIndex} destroyed!");
+                DestroyPanel(panelIndex);
+            }
+        }
 
-                if (panel.panelObject != null)
+        /// <summary>
+        /// Called by BossSidePanelCollider when player attacks an exposed vulnerable zone.
+        /// Applies amplified damage to the boss's main health pool.
+        /// </summary>
+        public void DamageVulnerableZone(int panelIndex, float damage)
+        {
+            if (panelIndex < 0 || panelIndex >= SidePanels.Count) return;
+
+            var panel = SidePanels[panelIndex];
+            if (!panel.isDestroyed) return; // Only take damage if panel is already destroyed
+
+            float amplifiedDamage = damage * panel.vulnerabilityMultiplier;
+            PushAction($"Vulnerable zone {panelIndex} hit for {amplifiedDamage} damage (x{panel.vulnerabilityMultiplier})");
+
+            // Apply amplified damage to boss health
+            ApplyDamageToBoss(amplifiedDamage);
+            
+            TriggerRandomHitReact();
+        }
+
+        /// <summary>
+        /// Centralized method to apply damage to the boss's health pool.
+        /// Used by vulnerable zones and can be called by other systems.
+        /// </summary>
+        public void ApplyDamageToBoss(float damage)
+        {
+            var health = GetComponent<BossHealth>();
+            if (health != null)
+            {
+                health.TakeDamage(damage);
+            }
+            else
+            {
+                Debug.LogWarning($"[BossRoombaBrain] No BossHealth component found! Cannot apply {damage} damage.");
+            }
+        }
+
+
+
+
+
+        private void DestroyPanel(int panelIndex)
+        {
+            var panel = SidePanels[panelIndex];
+            panel.isDestroyed = true;
+            panel.currentHealth = 0;
+            PushAction($"Side panel {panelIndex} DESTROYED! Zone now vulnerable (x{panel.vulnerabilityMultiplier} damage)");
+
+            if (panel.panelVisualMesh == null)
+            {
+                Debug.LogWarning($"[BossRoombaBrain] Panel {panelIndex} has no visual mesh assigned!");
+                return;
+            }
+
+            // Spawn break VFX at panel position
+            Vector3 panelPos = panel.panelVisualMesh.transform.position;
+            Quaternion panelRot = panel.panelVisualMesh.transform.rotation;
+            
+            if (panel.breakVFXPrefab != null)
+            {
+                Instantiate(panel.breakVFXPrefab, panelPos, panelRot);
+            }
+
+            // Check if this is a Skinned Mesh Renderer (animated mesh)
+            var skinnedRenderer = panel.panelVisualMesh.GetComponent<SkinnedMeshRenderer>();
+            if (skinnedRenderer != null)
+            {
+                // SKINNED MESH: Bake to static mesh, create new falling object, hide original
+                CreateFallingPanelFromSkinnedMesh(panel, skinnedRenderer, panelPos, panelRot);
+            }
+            else
+            {
+                // REGULAR MESH: Detach and apply physics directly
+                CreateFallingPanelFromStaticMesh(panel, panelPos);
+            }
+        }
+
+        /// <summary>
+        /// Handles panel break-off for Skinned Mesh Renderers.
+        /// Bakes the current pose to a static mesh, creates a falling copy, hides original.
+        /// </summary>
+        private void CreateFallingPanelFromSkinnedMesh(SidePanel panel, SkinnedMeshRenderer skinnedRenderer, Vector3 position, Quaternion rotation)
+        {
+            // Bake the current skinned mesh pose to a static mesh
+            Mesh bakedMesh = new Mesh();
+            skinnedRenderer.BakeMesh(bakedMesh);
+            
+            // Create a new GameObject for the falling panel
+            GameObject fallingPanel = new GameObject($"FallingPanel_{panel.panelVisualMesh.name}");
+            fallingPanel.transform.position = position;
+            fallingPanel.transform.rotation = rotation;
+            fallingPanel.transform.localScale = panel.panelVisualMesh.transform.lossyScale;
+            
+            // Add mesh components
+            var meshFilter = fallingPanel.AddComponent<MeshFilter>();
+            meshFilter.mesh = bakedMesh;
+            
+            var meshRenderer = fallingPanel.AddComponent<MeshRenderer>();
+            meshRenderer.sharedMaterials = skinnedRenderer.sharedMaterials;
+            
+            // Add physics
+            var rb = fallingPanel.AddComponent<Rigidbody>();
+            rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            
+            // Add collider
+            var meshCol = fallingPanel.AddComponent<MeshCollider>();
+            meshCol.convex = true;
+            meshCol.sharedMesh = panel.fallCollisionMesh != null ? panel.fallCollisionMesh : bakedMesh;
+            
+            // Apply break-off force
+            Vector3 breakDirection = (position - transform.position).normalized;
+            breakDirection.y = 0.3f;
+            rb.AddForce(breakDirection.normalized * panel.breakOffForce, ForceMode.Impulse);
+            rb.AddTorque(Random.insideUnitSphere * panel.breakOffForce * 0.5f, ForceMode.Impulse);
+            
+            // Hide the original skinned mesh (can't detach from skeleton)
+            panel.panelVisualMesh.SetActive(false);
+            
+            // Schedule cleanup of the falling panel
+            if (panel.destroyedPanelLifetime > 0)
+            {
+                Destroy(fallingPanel, panel.destroyedPanelLifetime);
+            }
+            
+            PushAction($"Panel {panel.panelVisualMesh.name} baked and detached (skinned mesh)");
+        }
+
+        /// <summary>
+        /// Handles panel break-off for regular static meshes.
+        /// Detaches and applies physics directly.
+        /// </summary>
+        private void CreateFallingPanelFromStaticMesh(SidePanel panel, Vector3 panelPos)
+        {
+            // Detach from boss hierarchy
+            panel.panelVisualMesh.transform.SetParent(null);
+            
+            // Add physics components
+            var rb = panel.panelVisualMesh.GetComponent<Rigidbody>();
+            if (rb == null) rb = panel.panelVisualMesh.AddComponent<Rigidbody>();
+            rb.isKinematic = false;
+            rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            
+            // Add collider for falling physics (convex required for rigidbody)
+            var meshCol = panel.panelVisualMesh.GetComponent<MeshCollider>();
+            if (meshCol == null) meshCol = panel.panelVisualMesh.AddComponent<MeshCollider>();
+            meshCol.convex = true;
+            
+            // Use custom collision mesh if provided, otherwise try to get from MeshFilter
+            if (panel.fallCollisionMesh != null)
+            {
+                meshCol.sharedMesh = panel.fallCollisionMesh;
+            }
+            else
+            {
+                var meshFilter = panel.panelVisualMesh.GetComponent<MeshFilter>();
+                if (meshFilter != null && meshFilter.sharedMesh != null)
                 {
-                    panel.panelObject.transform.SetParent(null);
-                    var rb = panel.panelObject.GetComponent<Rigidbody>();
-                    if (rb == null) rb = panel.panelObject.AddComponent<Rigidbody>();
-                    rb.isKinematic = false;
-                    rb.AddForce(Random.onUnitSphere * 300f);
+                    meshCol.sharedMesh = meshFilter.sharedMesh;
                 }
             }
+            
+            // Apply outward force from boss center
+            Vector3 breakDirection = (panelPos - transform.position).normalized;
+            breakDirection.y = 0.3f;
+            rb.AddForce(breakDirection.normalized * panel.breakOffForce, ForceMode.Impulse);
+            rb.AddTorque(Random.insideUnitSphere * panel.breakOffForce * 0.5f, ForceMode.Impulse);
+
+            // Schedule cleanup
+            if (panel.destroyedPanelLifetime > 0)
+            {
+                Destroy(panel.panelVisualMesh, panel.destroyedPanelLifetime);
+            }
+            
+            PushAction($"Panel {panel.panelVisualMesh.name} detached (static mesh)");
+        }
+
+        /// <summary>
+        /// Check if a specific panel has been destroyed (for external queries).
+        /// </summary>
+        public bool IsPanelDestroyed(int panelIndex)
+        {
+            if (panelIndex < 0 || panelIndex >= SidePanels.Count) return false;
+            return SidePanels[panelIndex].isDestroyed;
         }
 
         private void TriggerRandomHitReact()
@@ -1270,6 +1458,90 @@ namespace EnemyBehavior.Boss
                 Debug.LogError("[BossRoombaBrain] BossHealth component not found! Cannot test damage.");
             }
         }
+
+        #region Debug Panel Break Methods
+        
+        /// <summary>
+        /// Debug method to force-break a specific panel by index.
+        /// Works in Edit mode and Play mode.
+        /// </summary>
+        public void DebugBreakPanel(int panelIndex)
+        {
+            if (panelIndex < 0 || panelIndex >= SidePanels.Count)
+            {
+                Debug.LogError($"[BossRoombaBrain] Invalid panel index {panelIndex}. Valid range: 0-{SidePanels.Count - 1}");
+                return;
+            }
+            
+            var panel = SidePanels[panelIndex];
+            if (panel.isDestroyed)
+            {
+                Debug.LogWarning($"[BossRoombaBrain] Panel {panelIndex} is already destroyed!");
+                return;
+            }
+            
+            if (panel.panelVisualMesh == null)
+            {
+                Debug.LogError($"[BossRoombaBrain] Panel {panelIndex} has no visual mesh assigned!");
+                return;
+            }
+            
+            Debug.Log($"[BossRoombaBrain] DEBUG: Breaking panel {panelIndex} ({panel.panelVisualMesh.name})");
+            DestroyPanel(panelIndex);
+        }
+        
+        /// <summary>
+        /// Debug method to reset all panels to their original state.
+        /// Only works if the panel GameObjects still exist.
+        /// </summary>
+        [ContextMenu("Debug: Reset All Panels")]
+        public void DebugResetAllPanels()
+        {
+            foreach (var panel in SidePanels)
+            {
+                panel.currentHealth = panel.maxHealth;
+                panel.isDestroyed = false;
+            }
+            Debug.Log($"[BossRoombaBrain] DEBUG: Reset all {SidePanels.Count} panels to full health. Note: Detached panels cannot be re-attached at runtime.");
+        }
+        
+        [ContextMenu("Debug: Break Panel 0")]
+        public void DebugBreakPanel0() => DebugBreakPanel(0);
+        
+        [ContextMenu("Debug: Break Panel 1")]
+        public void DebugBreakPanel1() => DebugBreakPanel(1);
+        
+        [ContextMenu("Debug: Break Panel 2")]
+        public void DebugBreakPanel2() => DebugBreakPanel(2);
+        
+        [ContextMenu("Debug: Break Panel 3")]
+        public void DebugBreakPanel3() => DebugBreakPanel(3);
+        
+        [ContextMenu("Debug: Break Panel 4")]
+        public void DebugBreakPanel4() => DebugBreakPanel(4);
+        
+        [ContextMenu("Debug: Break Panel 5")]
+        public void DebugBreakPanel5() => DebugBreakPanel(5);
+        
+        [ContextMenu("Debug: Break Panel 6")]
+        public void DebugBreakPanel6() => DebugBreakPanel(6);
+        
+        [ContextMenu("Debug: Break Panel 7")]
+        public void DebugBreakPanel7() => DebugBreakPanel(7);
+        
+        [ContextMenu("Debug: Break ALL Panels")]
+        public void DebugBreakAllPanels()
+        {
+            for (int i = 0; i < SidePanels.Count; i++)
+            {
+                if (!SidePanels[i].isDestroyed)
+                {
+                    DebugBreakPanel(i);
+                }
+            }
+        }
+        
+        #endregion
 
         private IEnumerator DeployArmsIfNeeded()
         {
