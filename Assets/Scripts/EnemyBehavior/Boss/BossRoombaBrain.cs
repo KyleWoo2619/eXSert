@@ -72,7 +72,7 @@ namespace EnemyBehavior.Boss
 
     [RequireComponent(typeof(BossRoombaController))
     , RequireComponent(typeof(NavMeshAgent))]
-    public sealed class BossRoombaBrain : MonoBehaviour, IParrySink
+    public sealed class BossRoombaBrain : MonoBehaviour, IParrySink, IQueuedAttacker
     {
         [Header("Component Help")]
         [SerializeField, TextArea(3, 6)] private string inspectorHelp =
@@ -285,6 +285,75 @@ namespace EnemyBehavior.Boss
         // Debug test mode - prevents normal AI from interfering
         private bool isDebugTestRunning;
         private Coroutine debugTestCoroutine;
+
+        #region IQueuedAttacker Implementation
+        
+        
+        /// <summary>
+        /// Returns true - this is a boss enemy.
+        /// </summary>
+        public bool IsBoss => true;
+        
+        /// <summary>
+        /// Returns true if the boss is alive and able to attack.
+        /// </summary>
+        public bool IsAlive
+        {
+            get
+            {
+                var health = GetComponent<BossHealth>();
+                return health == null || health.currentHP > 0f;
+            }
+        }
+        
+        /// <summary>
+        /// Returns the GameObject for the queue manager.
+        /// </summary>
+        public GameObject AttackerGameObject => gameObject;
+        
+        /// <summary>
+        /// Check if this boss can attack right now (is at front of queue).
+        /// Only relevant if includeBossesInQueue is true.
+        /// </summary>
+        public bool CanAttackFromQueue()
+        {
+            if (EnemyAttackQueueManager.Instance == null) return true;
+            return EnemyAttackQueueManager.Instance.CanAttack(this);
+        }
+        
+        /// <summary>
+        /// Notify the queue that the boss is beginning an attack.
+        /// </summary>
+        public void NotifyAttackBegin()
+        {
+            EnemyAttackQueueManager.Instance?.BeginAttack(this);
+        }
+        
+        /// <summary>
+        /// Notify the queue that the boss finished attacking.
+        /// </summary>
+        public void NotifyAttackEnd()
+        {
+            EnemyAttackQueueManager.Instance?.FinishAttack(this);
+        }
+        
+        /// <summary>
+        /// Register this boss with the attack queue.
+        /// </summary>
+        public void RegisterWithAttackQueue()
+        {
+            EnemyAttackQueueManager.Instance?.Register(this);
+        }
+        
+        /// <summary>
+        /// Unregister this boss from the attack queue.
+        /// </summary>
+        public void UnregisterFromAttackQueue()
+        {
+            EnemyAttackQueueManager.Instance?.Unregister(this);
+        }
+        
+        #endregion
 
         private bool IsPlayerMounted()
         {
@@ -572,7 +641,11 @@ namespace EnemyBehavior.Boss
             if (loop != null) StopCoroutine(loop);
             loop = StartCoroutine(FormLoop());
             ctrl.StartFollowingPlayer(0.1f);
+            
+            // Register with attack queue system
+            RegisterWithAttackQueue();
         }
+
 
         void OnDisable()
         {
@@ -585,6 +658,9 @@ namespace EnemyBehavior.Boss
             armsRetractInProgress = false;
             hornsRaiseInProgress = false;
             hornsLowerInProgress = false;
+            
+            // Unregister from attack queue system
+            UnregisterFromAttackQueue();
         }
 
         void Update()
@@ -1086,20 +1162,14 @@ namespace EnemyBehavior.Boss
                 yield break;
             }
 
-            // Check if we should use the combo system or simple lanes
-            if (ArenaManager != null && ArenaManager.ShouldUseCombos)
+            // Execute the charge combo system
+            if (ArenaManager != null && ArenaManager.HasValidCombos)
             {
-                // Use the advanced combo system
                 yield return ExecuteChargeCombo();
             }
             else
             {
-                // Use simple lane system: turn → dash → turn → dash (no overshoot)
-                for (int i = 0; i < StaticChargeCount; i++)
-                {
-                    if (isStunned) break;
-                    yield return ExecuteStaticChargeWithTurn(i);
-                }
+                PushAction("No valid combos configured - skipping static charges");
             }
 
             // Brief rest before targeted charge
@@ -1127,13 +1197,7 @@ namespace EnemyBehavior.Boss
             var combo = ArenaManager.GetRandomCombo();
             if (combo == null || !combo.IsValid)
             {
-                PushAction("No valid combo found, falling back to simple lanes");
-                // Fallback to simple lane system
-                for (int i = 0; i < StaticChargeCount; i++)
-                {
-                    if (isStunned) break;
-                    yield return ExecuteStaticChargeWithTurn(i);
-                }
+                PushAction("No valid combo found - skipping combo");
                 yield break;
             }
 
@@ -1291,48 +1355,6 @@ namespace EnemyBehavior.Boss
                 agent.angularSpeed = baseAgentAngularSpeed * TurnAngularMultiplier;
                 agent.updateRotation = true; // Allow rotation during turns
             }
-        }
-
-        /// <summary>
-        /// Execute a static charge with proper turn → dash pattern.
-        /// No overshoot - stops at destination.
-        /// </summary>
-        private IEnumerator ExecuteStaticChargeWithTurn(int cycleIndex)
-        {
-            if (ArenaManager == null || ArenaManager.LaneCount == 0)
-            {
-                PushAction("No arena lanes configured");
-                yield break;
-            }
-
-            int laneCount = ArenaManager.LaneCount;
-            var (start, end) = ArenaManager.GetLane(cycleIndex % laneCount);
-
-            PushAction($"Static charge cycle {cycleIndex} - Lane {cycleIndex % laneCount}");
-
-            // Phase 1: Move to start position (fast approach speed)
-            ApplyApproachSettings();
-            agent.isStopped = false;
-            agent.SetDestination(start);
-            while (Vector3.Distance(transform.position, start) > ChargeArrivalThreshold && !isStunned)
-            {
-                yield return null;
-            }
-
-            if (isStunned) yield break;
-
-            // Phase 2: Turn to face the end position (high angular speed, nearly stopped)
-            PushAction("Turning to face charge direction...");
-            yield return TurnToFacePosition(end);
-
-
-            if (isStunned) yield break;
-
-            // Phase 3: Charge to end (high speed, low angular speed - commits to direction)
-            yield return ExecuteChargeDash(end, isTargeted: false);
-            
-            // Brief pause between charges
-            yield return WaitForSecondsCache.Get(0.3f);
         }
 
         /// <summary>
@@ -1557,24 +1579,6 @@ namespace EnemyBehavior.Boss
             yield return ExecuteChargeDash(overshootTarget, isTargeted: true);
 
             MarkCooldown(TargetedCharge);
-        }
-
-        private IEnumerator ExecuteStaticCharge(int cycleIndex)
-        {
-            // Legacy method - redirects to new implementation
-            yield return ExecuteStaticChargeWithTurn(cycleIndex);
-        }
-
-        private IEnumerator ExecuteTargetedCharge()
-        {
-            // Legacy method - redirects to new implementation
-            yield return ExecuteTargetedChargeWithOvershoot();
-        }
-
-        private IEnumerator ExecuteChargeBetweenPoints(Vector3 start, Vector3 end)
-        {
-            // Legacy method - use new charge dash
-            yield return ExecuteChargeDash(end, isTargeted: false);
         }
 
         /// <summary>

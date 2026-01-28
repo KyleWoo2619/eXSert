@@ -235,7 +235,7 @@ public class EnemyHealthManager : MonoBehaviour, IHealthSystem
     private IEnumerator DeathFallbackRoutine()
     {
         // Allow time for the state machine to play its death animation before forcing a cleanup.
-        yield return new WaitForSeconds(4f);
+        yield return WaitForSecondsCache.Get(4f);
         deathFallbackRoutine = null;
         HandleStateMachineDeath();
     }

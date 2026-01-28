@@ -76,16 +76,8 @@ namespace EnemyBehavior.Boss
         [Header("Arena Elements")]
         public List<GameObject> Walls;
         public List<GameObject> Pillars;
-        
-        [Header("Simple Lanes (Legacy)")]
-        [Tooltip("Simple lane system - LaneStarts[i] pairs with LaneEnds[i]")]
-        public List<Transform> LaneStarts;
-        public List<Transform> LaneEnds;
 
-        [Header("Lane Combos (Advanced)")]
-        [Tooltip("If true, uses the LaneCombos system instead of simple lanes")]
-        public bool UseLaneCombos = false;
-        
+        [Header("Lane Combos")]
         [Tooltip("Predefined charge combos - each combo is a sequence of charge segments")]
         public List<LaneCombo> LaneCombos = new List<LaneCombo>();
 
@@ -140,11 +132,6 @@ namespace EnemyBehavior.Boss
         /// Returns the total number of pillars (including destroyed).
         /// </summary>
         public int TotalPillarCount => Pillars?.Count ?? 0;
-
-        /// <summary>
-        /// Returns the number of simple lanes configured.
-        /// </summary>
-        public int LaneCount => Mathf.Min(LaneStarts?.Count ?? 0, LaneEnds?.Count ?? 0);
 
         /// <summary>
         /// Returns the number of lane combos configured.
@@ -251,17 +238,21 @@ namespace EnemyBehavior.Boss
                 var collider = wall.GetComponent<Collider>();
                 if (collider != null)
                 {
-                    // Set size to match the collider bounds
-                    obstacle.size = collider.bounds.size;
+                    // Set size slightly larger than collider to prevent clipping
+                    // Add buffer on X and Z axes (horizontal) to keep boss model from visually clipping
+                    Vector3 size = collider.bounds.size;
+                    size.x += 2f; // Add 1 unit buffer on each side
+                    size.z += 2f;
+                    obstacle.size = size;
                     obstacle.center = wall.transform.InverseTransformPoint(collider.bounds.center);
                 }
                 else
                 {
                     // Default size if no collider
-                    obstacle.size = new Vector3(1f, 3f, 1f);
+                    obstacle.size = new Vector3(3f, 3f, 3f);
                 }
                 
-                Debug.Log($"[BossArenaManager] Added NavMeshObstacle to wall: {wall.name}");
+                Debug.Log($"[BossArenaManager] Added NavMeshObstacle to wall: {wall.name} (size: {obstacle.size})");
             }
             
             // Enable/disable carving based on wall state
@@ -272,28 +263,6 @@ namespace EnemyBehavior.Boss
             {
                 Debug.Log($"[BossArenaManager] Wall '{wall.name}' NavMesh carving ENABLED - boss cannot pass");
             }
-        }
-
-        public (Vector3 start, Vector3 end) GetLane(int idx)
-        {
-            int count = LaneCount;
-            if (count == 0)
-                return (transform.position, transform.position + Vector3.forward * 5f);
-            
-            int i = Mathf.Clamp(idx, 0, count - 1);
-            return (LaneStarts[i].position, LaneEnds[i].position);
-        }
-
-        /// <summary>
-        /// Gets a random lane that exists (simple lane system).
-        /// </summary>
-        public (Vector3 start, Vector3 end) GetRandomLane()
-        {
-            if (LaneCount == 0)
-                return (transform.position, transform.position + Vector3.forward * 5f);
-            
-            int idx = UnityEngine.Random.Range(0, LaneCount);
-            return GetLane(idx);
         }
 
         #region Lane Combo System
@@ -317,8 +286,8 @@ namespace EnemyBehavior.Boss
             if (LaneCombos == null || LaneCombos.Count == 0)
                 return null;
             
-            // Filter to only valid combos
-            var validCombos = new List<int>();
+            // Filter to only valid combos - preallocate to avoid resizing
+            var validCombos = new List<int>(LaneCombos.Count);
             for (int i = 0; i < LaneCombos.Count; i++)
             {
                 if (LaneCombos[i] != null && LaneCombos[i].IsValid)
@@ -389,9 +358,9 @@ namespace EnemyBehavior.Boss
         }
 
         /// <summary>
-        /// Checks if the combo system should be used (has valid combos configured).
+        /// Returns true if valid combos are configured.
         /// </summary>
-        public bool ShouldUseCombos => UseLaneCombos && LaneCombos != null && LaneCombos.Count > 0;
+        public bool HasValidCombos => LaneCombos != null && LaneCombos.Count > 0;
 
         #endregion
 

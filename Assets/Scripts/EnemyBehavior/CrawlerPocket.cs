@@ -5,7 +5,6 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
 
 public class CrawlerPocket : MonoBehaviour
 {
@@ -179,21 +178,33 @@ public class CrawlerPocket : MonoBehaviour
                     }
                 }
                 spawned++;
-                yield return new WaitForSeconds(0.15f);
+                yield return WaitForSecondsCache.Get(0.15f);
             }
         }
         inactiveCrawlers.Clear();
         spawnCoroutine = null;
 
-        // Register all crawlers with SwarmManager
-        var crawlers = activeEnemies.OfType<BaseCrawlerEnemy>().ToList();
+        // Register all crawlers with SwarmManager (without LINQ allocation)
+        var crawlers = new List<BaseCrawlerEnemy>();
+        foreach (var enemy in activeEnemies)
+        {
+            if (enemy is BaseCrawlerEnemy crawler)
+                crawlers.Add(crawler);
+        }
+        
         foreach (var crawler in crawlers)
         {
             crawler.RegisterWithSwarmManager();
         }
 
         // After all are registered, check the count ONCE
-        int aliveCount = crawlers.Count(c => c != null && c.gameObject.activeInHierarchy);
+        int aliveCount = 0;
+        foreach (var c in crawlers)
+        {
+            if (c != null && c.gameObject.activeInHierarchy)
+                aliveCount++;
+        }
+        
         if (aliveCount <= 3)
         {
             foreach (var crawler in crawlers)
@@ -203,7 +214,6 @@ public class CrawlerPocket : MonoBehaviour
         }
 
         // After registering all crawlers:
-        crawlers = activeEnemies.OfType<BaseCrawlerEnemy>().ToList();
         activeSwarmCrawlers = crawlers.Count;
         swarmDisabledDueToLowCount = false;
 
@@ -294,7 +304,17 @@ public class CrawlerPocket : MonoBehaviour
 
         if (prefab != null)
         {
-            var existing = inactiveCrawlers.FirstOrDefault(info => info.prefab == prefab);
+            // Find existing entry without LINQ
+            CrawlerSpawnInfo existing = null;
+            foreach (var info in inactiveCrawlers)
+            {
+                if (info.prefab == prefab)
+                {
+                    existing = info;
+                    break;
+                }
+            }
+            
             if (existing != null)
                 existing.count++;
             else
@@ -334,9 +354,9 @@ public class CrawlerPocket : MonoBehaviour
         if (activeSwarmCrawlers <= 3)
         {
             // Disable swarm behavior for all remaining crawlers in this pocket
-            foreach (var crawler in activeEnemies.OfType<BaseCrawlerEnemy>())
+            foreach (var enemy in activeEnemies)
             {
-                if (crawler != null)
+                if (enemy is BaseCrawlerEnemy crawler && crawler != null)
                     crawler.enableSwarmBehavior = false;
             }
             swarmDisabledDueToLowCount = true;

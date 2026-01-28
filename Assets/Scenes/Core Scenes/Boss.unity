@@ -535,9 +535,6 @@ MonoBehaviour:
   - {fileID: 3554109390917850654}
   - {fileID: 3554109392396675770}
   - {fileID: 3554109390956084682}
-  LaneStarts: []
-  LaneEnds: []
-  UseLaneCombos: 1
   LaneCombos:
   - ComboName: TestoCombo
     Segments:
@@ -635,11 +632,11 @@ NavMeshObstacle:
   m_Enabled: 1
   serializedVersion: 3
   m_Shape: 1
-  m_Extents: {x: 0.5, y: 0.5, z: 0.5}
+  m_Extents: {x: 11.72, y: 0.5, z: 2.25}
   m_MoveThreshold: 0.1
   m_Carve: 1
   m_CarveOnlyStationary: 1
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 8.5, y: -3, z: 1.5}
   m_TimeToStationary: 0.5
 --- !u!1001 &49393170
 PrefabInstance:
@@ -723,6 +720,55 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 6b183e7f0d7720c4ab4bf7a7ca981023, type: 3}
   m_PrefabInstance: {fileID: 49393170}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &52832043
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 52832045}
+  - component: {fileID: 52832044}
+  m_Layer: 0
+  m_Name: AttackQueueSystem
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &52832044
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 52832043}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d66520928e35f534baf5d17550b809a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.EnemyAttackQueueManager
+  includeBossesInQueue: 0
+  attackTimeout: 3
+  debugLogging: 0
+  queueCount: 0
+  currentAttackerName: None
+--- !u!4 &52832045
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 52832043}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -18.03199, y: 10.92998, z: 404.07684}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &58314840
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4483,11 +4529,11 @@ NavMeshObstacle:
   m_Enabled: 1
   serializedVersion: 3
   m_Shape: 1
-  m_Extents: {x: 0.5, y: 0.5, z: 0.5}
+  m_Extents: {x: 7.5, y: 0.5, z: 2.25}
   m_MoveThreshold: 0.1
   m_Carve: 1
   m_CarveOnlyStationary: 1
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 8, y: -3, z: -2.5}
   m_TimeToStationary: 0.5
 --- !u!43 &193979504
 Mesh:
@@ -6689,11 +6735,11 @@ NavMeshObstacle:
   m_Enabled: 1
   serializedVersion: 3
   m_Shape: 1
-  m_Extents: {x: 7.5, y: 0.5, z: 0.5}
+  m_Extents: {x: 7.5, y: 0.5, z: 2.25}
   m_MoveThreshold: 0.1
   m_Carve: 1
   m_CarveOnlyStationary: 1
-  m_Center: {x: 8, y: -5, z: 0}
+  m_Center: {x: 8, y: -3, z: 1.5}
   m_TimeToStationary: 0.5
 --- !u!1 &281090855
 GameObject:
@@ -60756,11 +60802,11 @@ NavMeshObstacle:
   m_Enabled: 1
   serializedVersion: 3
   m_Shape: 1
-  m_Extents: {x: 0.5, y: 0.5, z: 0.5}
+  m_Extents: {x: 11.72, y: 0.5, z: 2.25}
   m_MoveThreshold: 0.1
   m_Carve: 1
   m_CarveOnlyStationary: 1
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 8.5, y: -3, z: -2.3}
   m_TimeToStationary: 0.5
 --- !u!1001 &2036122621
 PrefabInstance:
@@ -73577,3 +73623,4 @@ SceneRoots:
   - {fileID: 1182882003}
   - {fileID: 1147001270}
   - {fileID: 1432375761}
+  - {fileID: 52832045}

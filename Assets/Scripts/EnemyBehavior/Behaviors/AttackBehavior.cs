@@ -1,11 +1,12 @@
 // AttackBehavior.cs
 // Purpose: Handles attack state logic for enemies (melee/ranged), damage application, and hit detection.
-// Works with: BaseEnemy attack triggers, EnemyProjectile, Player health systems.
+// Works with: BaseEnemy attack triggers, EnemyProjectile, Player health systems, EnemyAttackQueueManager.
 // Notes: Does not manage movement; only attack timing and hit application.
 
 using UnityEngine;
 using System.Collections;
 using Utilities.Combat;
+using EnemyBehavior;
 
 namespace Behaviors
 {
@@ -125,6 +126,14 @@ namespace Behaviors
                     yield break;
                 }
 
+                // Check if this enemy can attack (is at front of queue)
+                if (!enemy.CanAttackFromQueue())
+                {
+                    // Not our turn - wait and check again
+                    yield return WaitForSecondsCache.Get(0.15f);
+                    continue;
+                }
+
                 bool playerInAttackBox = false;
                 Collider playerCollider = null;
                 bool didAttack = false;
@@ -159,6 +168,9 @@ namespace Behaviors
 
                     if (playerInAttackBox)
                     {
+                        // Notify queue that we're attacking
+                        enemy.NotifyAttackBegin();
+                        
                         enemy.isAttackBoxActive = true;
                         enemy.attackCollider.enabled = true;
                         enemy.SetEnemyColor(enemy.hitboxActiveColor);
@@ -191,6 +203,9 @@ namespace Behaviors
                     enemy.SetEnemyColor(enemy.attackColor);
                     ResetDamageFlag();
                     yield return WaitForSecondsCache.Get(enemy.attackInterval);
+
+                    // Notify queue that attack is finished - move to back of queue
+                    enemy.NotifyAttackEnd();
 
                     // Only do backup and rotate for crawlers
                     if (enemy is BaseCrawlerEnemy crawler)

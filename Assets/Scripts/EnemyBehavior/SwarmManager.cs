@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections.Generic;
-using System.Linq;
 using System.Collections;
 
 public class SwarmManager : MonoBehaviour
@@ -80,32 +79,63 @@ public class SwarmManager : MonoBehaviour
             OnActiveCrawlersChanged?.Invoke(swarmMembers.Count);
             Debug.Log($"SwarmManager: Removed {crawler.gameObject.name} from swarm.", crawler);
 
-            // Remove from attack queue
-            var tempQueue = new Queue<BaseCrawlerEnemy>(attackQueue.Where(c => c != crawler));
-            attackQueue = tempQueue;
+            // Remove from attack queue without LINQ allocation
+            RemoveFromAttackQueue(crawler);
+        }
+    }
+    
+    private void RemoveFromAttackQueue(BaseCrawlerEnemy crawler)
+    {
+        int count = attackQueue.Count;
+        for (int i = 0; i < count; i++)
+        {
+            var item = attackQueue.Dequeue();
+            if (item != crawler)
+                attackQueue.Enqueue(item);
         }
     }
 
+    // Reusable list to avoid allocations in UpdateSwarm
+    private readonly List<BaseCrawlerEnemy> sortedSwarmBuffer = new List<BaseCrawlerEnemy>();
+    
     public void UpdateSwarm()
     {
         if (player == null) return;
-        var sorted = swarmMembers.OrderBy(c => Vector3.Distance(c.transform.position, player.position)).ToList();
-        for (int i = 0; i < sorted.Count; i++)
+        
+        // Sort by distance without LINQ allocation
+        sortedSwarmBuffer.Clear();
+        sortedSwarmBuffer.AddRange(swarmMembers);
+        sortedSwarmBuffer.Sort((a, b) => 
+            Vector3.Distance(a.transform.position, player.position)
+            .CompareTo(Vector3.Distance(b.transform.position, player.position)));
+        
+        for (int i = 0; i < sortedSwarmBuffer.Count; i++)
         {
             if (i < maxAttackers)
             {
                 // Allow these to attack if not already attacking
-                if (sorted[i].enemyAI.State == CrawlerEnemyState.Swarm)
-                    sorted[i].TryFireTriggerByName("InAttackRange");
+                if (sortedSwarmBuffer[i].enemyAI.State == CrawlerEnemyState.Swarm)
+                    sortedSwarmBuffer[i].TryFireTriggerByName("InAttackRange");
             }
             // else: do nothing, just keep encircling
         }
     }
 
-    public IEnumerable<BaseCrawlerEnemy> GetAttackers()
+    // Reusable list to avoid allocations in GetAttackers
+    private readonly List<BaseCrawlerEnemy> attackersBuffer = new List<BaseCrawlerEnemy>();
+    
+    public IReadOnlyList<BaseCrawlerEnemy> GetAttackers()
     {
-        // Return the first maxAttackers in the queue
-        return attackQueue.Take(maxAttackers);
+        // Return the first maxAttackers without LINQ allocation
+        attackersBuffer.Clear();
+        int count = 0;
+        foreach (var crawler in attackQueue)
+        {
+            if (count >= maxAttackers) break;
+            attackersBuffer.Add(crawler);
+            count++;
+        }
+        return attackersBuffer;
     }
 
     // Separation routine to avoid overlapping crawlers
@@ -142,7 +172,7 @@ public class SwarmManager : MonoBehaviour
                     crawler.agent.Move(separation * 0.5f);
                 }
             }
-            yield return new WaitForSeconds(0.1f);
+            yield return WaitForSecondsCache.Get(0.1f);
         }
     }
 
