@@ -146,6 +146,24 @@ namespace EnemyBehavior.Boss
         public BossArenaManager ArenaManager;
         [Tooltip("Manages player lifecycle (claims/releases from DontDestroyOnLoad)")]
         public BossScenePlayerManager PlayerManager;
+        
+        [Header("Vacuum Suction Settings")]
+        [Tooltip("Reference to the VacuumSuctionEffect component (creates one if null)")]
+        public VacuumSuctionEffect VacuumSuctionController;
+        [Tooltip("Duration of the vacuum suction pull effect")]
+        public float VacuumSuctionDuration = 4.0f;
+        [Tooltip("Base pull strength for vacuum suction")]
+        public float VacuumPullStrength = 10f;
+        [Tooltip("Maximum pull strength when player is close")]
+        public float VacuumMaxPullStrength = 18f;
+        [Tooltip("Effective radius of the vacuum suction")]
+        public float VacuumEffectiveRadius = 30f;
+
+        [Tooltip("Speed multiplier when moving to vacuum position (higher = faster approach)")]
+        public float VacuumApproachSpeedMultiplier = 3f;
+
+        [Tooltip("How close the boss must get to the vacuum position before starting the attack")]
+        public float VacuumPositionThreshold = 2f;
 
         [Header("Cage Bull Charges")]
         [Tooltip("Speed multiplier during charges")]
@@ -190,6 +208,7 @@ namespace EnemyBehavior.Boss
         private BossRoombaController ctrl;
         private NavMeshAgent agent;
         private Transform player;
+        private PlayerMovement playerMovement; // Cached PlayerMovement component
         private RoombaForm form;
         private Coroutine loop;
         private bool alarmDestroyed;
@@ -230,6 +249,9 @@ namespace EnemyBehavior.Boss
         private int attacksLayer = -1;
         private int idleAdditiveLayer = -1;
 
+        // Debug vacuum sequence tracking
+        private Coroutine debugVacuumCoroutine;
+
         private bool IsPlayerMounted()
         {
             if (player == null) return false;
@@ -257,7 +279,10 @@ namespace EnemyBehavior.Boss
             animator = GetComponentInChildren<Animator>();
             // Mediator must be on same GameObject as Animator (or child of it) for Animation Events
             animMediator = GetComponentInChildren<BossAnimationEventMediator>(true);
-            player = GameObject.FindWithTag("Player")?.transform;
+            
+            // Cache player reference - search hierarchy for PlayerMovement
+            CachePlayerReference();
+            
             lastMountedTime = -999f;
             hasEverMounted = false;
 
@@ -272,6 +297,69 @@ namespace EnemyBehavior.Boss
             }
 
             InitializeAttackDescriptors();
+        }
+
+        /// <summary>
+        /// Caches the player Transform and PlayerMovement component.
+        /// Searches the hierarchy since PlayerMovement may be on a parent of the tagged object.
+        /// </summary>
+        private void CachePlayerReference()
+        {
+            // First try PlayerPresenceManager if available
+            if (PlayerPresenceManager.IsPlayerPresent)
+            {
+                player = PlayerPresenceManager.PlayerTransform;
+            }
+            else
+            {
+                // Fallback to FindWithTag
+                var playerObj = GameObject.FindWithTag("Player");
+                if (playerObj != null)
+                {
+                    player = playerObj.transform;
+                }
+            }
+
+            if (player != null)
+            {
+                // PlayerMovement might be on the tagged object, parent, or child
+                playerMovement = player.GetComponent<PlayerMovement>();
+                if (playerMovement == null)
+                {
+                    playerMovement = player.GetComponentInParent<PlayerMovement>();
+                }
+                if (playerMovement == null)
+                {
+                    playerMovement = player.GetComponentInChildren<PlayerMovement>();
+                }
+
+                // Use PlayerMovement's transform as the canonical player reference
+                if (playerMovement != null)
+                {
+                    player = playerMovement.transform;
+                    Debug.Log($"[BossRoombaBrain] Player cached: {player.name} (has PlayerMovement)");
+                }
+                else
+                {
+                    Debug.LogWarning($"[BossRoombaBrain] Player found ({player.name}) but no PlayerMovement component!");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[BossRoombaBrain] No player found in scene during Awake!");
+            }
+        }
+
+        /// <summary>
+        /// Gets the cached PlayerMovement component. Re-caches if null.
+        /// </summary>
+        public PlayerMovement GetPlayerMovement()
+        {
+            if (playerMovement == null)
+            {
+                CachePlayerReference();
+            }
+            return playerMovement;
         }
 
         private void CacheAnimatorLayerIndices()
@@ -601,23 +689,183 @@ namespace EnemyBehavior.Boss
         {
             PushAction("Vacuum sequence START");
 
+            // CRITICAL: Stop the controller's follow behavior so it doesn't override our destination
+            ctrl.StopFollowing();
+#if UNITY_EDITOR
+            Debug.Log("[Boss] Stopped controller follow behavior for vacuum sequence");
+#endif
+
+            // Determine the target position for the vacuum attack
+            // IMPORTANT: Cache the position as a Vector3, not a Transform reference
+            // This prevents issues if VacuumPosition is parented to the boss
+            Vector3 vacuumTargetPosition;
             if (VacuumPosition != null)
             {
-                agent.SetDestination(VacuumPosition.position);
-                while (Vector3.Distance(transform.position, VacuumPosition.position) > 1f)
+                vacuumTargetPosition = VacuumPosition.position;
+#if UNITY_EDITOR
+                Debug.Log($"[Boss] Vacuum target: VacuumPosition at {vacuumTargetPosition}");
+#endif
+            }
+            else if (ArenaCenterBounds != null)
+            {
+                vacuumTargetPosition = ArenaCenterBounds.bounds.center;
+#if UNITY_EDITOR
+                Debug.Log($"[Boss] Vacuum target: ArenaCenterBounds center at {vacuumTargetPosition}");
+#endif
+            }
+            else
+            {
+                // No valid position - skip pathfinding and do vacuum from current position
+                Debug.LogWarning("[Boss] No VacuumPosition or ArenaCenterBounds assigned! Doing vacuum from current position.");
+                vacuumTargetPosition = transform.position;
+            }
+
+            // Flatten Y to match boss height (NavMesh movement is 2D)
+            vacuumTargetPosition.y = transform.position.y;
+
+            // Pathfind to the vacuum position
+            float distanceToTarget = Vector3.Distance(transform.position, vacuumTargetPosition);
+#if UNITY_EDITOR
+            Debug.Log($"[Boss] Distance to vacuum position: {distanceToTarget:F1}m (boss at {transform.position}, target at {vacuumTargetPosition})");
+#endif
+
+            if (distanceToTarget > VacuumPositionThreshold)
+            {
+                // Store original agent settings to restore later
+                float originalSpeed = agent.speed;
+                float originalAngularSpeed = agent.angularSpeed;
+                float originalAcceleration = agent.acceleration;
+                float originalStoppingDistance = agent.stoppingDistance;
+                
+                // Boost speed, angular speed, and acceleration for vacuum approach
+                // Set small stopping distance so it gets close to exact position
+                agent.speed = originalSpeed * VacuumApproachSpeedMultiplier;
+                agent.angularSpeed = originalAngularSpeed * VacuumApproachSpeedMultiplier; // Turn faster to match movement speed
+                agent.acceleration = originalAcceleration * VacuumApproachSpeedMultiplier; // Accelerate faster
+                agent.stoppingDistance = 0.5f;
+                
+#if UNITY_EDITOR
+                Debug.Log($"[Boss] Vacuum approach: speed {originalSpeed:F1}→{agent.speed:F1}, angularSpeed {originalAngularSpeed:F1}→{agent.angularSpeed:F1}, accel {originalAcceleration:F1}→{agent.acceleration:F1}");
+#endif
+
+                // Ensure agent is ready to move
+                agent.isStopped = false;
+                agent.updateRotation = true;
+                bool pathSet = agent.SetDestination(vacuumTargetPosition);
+                
+#if UNITY_EDITOR
+                Debug.Log($"[Boss] SetDestination returned: {pathSet}, agent.pathPending: {agent.pathPending}");
+#endif
+                PushAction($"Moving to vacuum position ({distanceToTarget:F1}m away)...");
+
+                // Wait for path to be calculated
+                float pathWaitTimer = 0f;
+                while (agent.pathPending && pathWaitTimer < 2f)
                 {
+                    pathWaitTimer += Time.deltaTime;
                     yield return null;
                 }
+
+#if UNITY_EDITOR
+                Debug.Log($"[Boss] Path status: {agent.pathStatus}, hasPath: {agent.hasPath}, pathPending: {agent.pathPending}");
+#endif
+
+                // Wait until we reach the position (with timeout)
+                float moveTimeout = 15f; // Increased timeout since we're moving faster
+                float moveTimer = 0f;
+                float logTimer = 0f;
+                
+                while (Vector3.Distance(transform.position, vacuumTargetPosition) > VacuumPositionThreshold && moveTimer < moveTimeout)
+                {
+                    // Check if agent has a valid path
+                    if (agent.pathStatus == UnityEngine.AI.NavMeshPathStatus.PathInvalid)
+                    {
+                        Debug.LogWarning("[Boss] NavMesh path invalid! Skipping movement to vacuum position.");
+                        break;
+                    }
+                    
+                    // Check if agent stopped moving but is still far away (stoppingDistance issue)
+                    if (agent.remainingDistance < agent.stoppingDistance && agent.velocity.sqrMagnitude < 0.01f)
+                    {
+                        // Agent thinks it arrived but we're still not close enough - force re-path
+                        float currentDistCheck = Vector3.Distance(transform.position, vacuumTargetPosition);
+                        if (currentDistCheck > VacuumPositionThreshold)
+                        {
+#if UNITY_EDITOR
+                            Debug.Log($"[Boss] Agent stopped early at {currentDistCheck:F1}m - forcing re-path");
+#endif
+                            agent.SetDestination(vacuumTargetPosition);
+                        }
+                    }
+                    
+                    if (!agent.hasPath && !agent.pathPending)
+                    {
+                        Debug.LogWarning("[Boss] Agent has no path and none pending! Retrying SetDestination...");
+                        agent.SetDestination(vacuumTargetPosition);
+                    }
+
+                    // Log progress every 1 second
+#if UNITY_EDITOR
+                    logTimer += Time.deltaTime;
+                    if (logTimer >= 1f)
+                    {
+                        float currentDist = Vector3.Distance(transform.position, vacuumTargetPosition);
+                        Debug.Log($"[Boss] Moving... dist={currentDist:F1}m, velocity={agent.velocity.magnitude:F1}, remainingDist={agent.remainingDistance:F1}");
+                        logTimer = 0f;
+                    }
+#endif
+                    
+                    moveTimer += Time.deltaTime;
+                    yield return null;
+                }
+
+                // Restore original agent settings (ALWAYS happens regardless of how loop exited)
+                agent.speed = originalSpeed;
+                agent.angularSpeed = originalAngularSpeed;
+                agent.acceleration = originalAcceleration;
+                agent.stoppingDistance = originalStoppingDistance;
+#if UNITY_EDITOR
+                Debug.Log($"[Boss] Agent settings RESTORED: speed={agent.speed:F1}, angularSpeed={agent.angularSpeed:F1}, accel={agent.acceleration:F1}");
+#endif
+
+                float finalDist = Vector3.Distance(transform.position, vacuumTargetPosition);
+                if (moveTimer >= moveTimeout)
+                {
+                    Debug.LogWarning($"[Boss] Timed out moving to vacuum position after {moveTimeout}s (still {finalDist:F1}m away)");
+                }
+                else if (finalDist <= VacuumPositionThreshold)
+                {
+                    PushAction($"Reached vacuum position (dist={finalDist:F1}m)");
+                }
+#if UNITY_EDITOR
+                else
+                {
+                    Debug.Log($"[Boss] Exited movement loop at {finalDist:F1}m (threshold={VacuumPositionThreshold:F1}m)");
+                }
+#endif
             }
+            else
+            {
+#if UNITY_EDITOR
+                Debug.Log("[Boss] Already at vacuum position, skipping movement");
+#endif
+            }
+
+            // Stop movement before starting the attack
+            agent.isStopped = true;
 
             // Execute vacuum attack WITHOUT incrementing the attack counter
             // (it's a special transition attack, not part of the regular attack cycle)
             yield return ExecuteVacuumAttackWithoutCounter();
 
+            // Resume movement
+            agent.isStopped = false;
+
             bool playerInCenter = false;
             if (player != null && ArenaCenterBounds != null)
             {
                 playerInCenter = ArenaCenterBounds.bounds.Contains(player.position);
+                Debug.Log($"[Boss] Player in center bounds: {playerInCenter} (player pos: {player.position})");
             }
 
             if (playerInCenter)
@@ -646,6 +894,12 @@ namespace EnemyBehavior.Boss
                 attackCounter = 0;
                 attackThresholdForVacuum = Random.Range(AttackCountForVacuumRange.x, AttackCountForVacuumRange.y + 1);
             }
+
+            // Resume the controller's follow behavior now that vacuum is complete
+            ctrl.StartFollowingPlayer(0.1f);
+#if UNITY_EDITOR
+            Debug.Log("[Boss] Vacuum sequence END - follow behavior restarted");
+#endif
         }
 
         private IEnumerator ExecuteVacuumAttackWithoutCounter()
@@ -679,8 +933,26 @@ namespace EnemyBehavior.Boss
             Debug.Log($"[Boss] Starting vacuum attack animations - Windup trigger: {a.AnimatorTriggerOnWindup}");
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnWindup)) animator.SetTrigger(a.AnimatorTriggerOnWindup);
             yield return new WaitForSeconds(a.WindupSpeedMultiplier * GetClipLength(animator, a.WindupClipName));
+            
+            // START VACUUM SUCTION EFFECT during the active phase
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnActive)) animator.SetTrigger(a.AnimatorTriggerOnActive);
-            yield return new WaitForSeconds(a.ActiveSpeedMultiplier * GetClipLength(animator, a.ActiveClipName));
+            
+            // Calculate active phase duration
+            float activePhaseDuration = a.ActiveSpeedMultiplier * GetClipLength(animator, a.ActiveClipName);
+            
+            // Use the configured suction duration, or fall back to animation length
+            float suctionDuration = VacuumSuctionDuration > 0 ? VacuumSuctionDuration : activePhaseDuration;
+            
+            // Start the vacuum suction
+            StartVacuumSuction(suctionDuration);
+            PushAction($"Vacuum suction ACTIVE for {suctionDuration}s");
+            
+            // Wait for the active phase to complete
+            yield return new WaitForSeconds(Mathf.Max(activePhaseDuration, suctionDuration));
+            
+            // Stop suction if still active
+            StopVacuumSuction();
+            
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnRecovery)) animator.SetTrigger(a.AnimatorTriggerOnRecovery);
             yield return new WaitForSeconds(a.RecoverySpeedMultiplier * GetClipLength(animator, a.RecoveryClipName));
 
@@ -688,6 +960,80 @@ namespace EnemyBehavior.Boss
             yield return LowerHornsIfNeeded();
 
             MarkCooldown(a);
+        }
+
+        private void StartVacuumSuction(float duration)
+        {
+            Debug.Log($"[BossRoombaBrain] StartVacuumSuction called - duration={duration}");
+            
+            // Ensure player is cached
+            if (player == null || playerMovement == null)
+            {
+                CachePlayerReference();
+            }
+            
+            // Create or get the vacuum suction controller
+            if (VacuumSuctionController == null)
+            {
+                VacuumSuctionController = GetComponent<VacuumSuctionEffect>();
+                if (VacuumSuctionController == null)
+                {
+                    VacuumSuctionController = gameObject.AddComponent<VacuumSuctionEffect>();
+                    Debug.Log("[BossRoombaBrain] Created VacuumSuctionEffect component");
+                }
+            }
+
+            // Configure the suction effect
+            VacuumSuctionController.BasePullStrength = VacuumPullStrength;
+            VacuumSuctionController.MaxPullStrength = VacuumMaxPullStrength;
+            VacuumSuctionController.EffectiveRadius = VacuumEffectiveRadius;
+            VacuumSuctionController.ArenaManager = ArenaManager;
+            
+            // Pass cached player references to avoid repeated FindWithTag calls
+            VacuumSuctionController.SetPlayerReferences(player, playerMovement);
+            
+            
+            // Set the suction target to the arena center bounds center
+            if (ArenaCenterBounds != null)
+            {
+                // Create a temporary transform for the target if needed
+                if (VacuumSuctionController.SuctionTarget == null)
+                {
+                    var targetObj = new GameObject("VacuumSuctionTarget");
+                    targetObj.transform.SetParent(transform);
+                    VacuumSuctionController.SuctionTarget = targetObj.transform;
+                }
+                VacuumSuctionController.SuctionTarget.position = ArenaCenterBounds.bounds.center;
+                Debug.Log($"[BossRoombaBrain] Suction target set to ArenaCenterBounds center: {ArenaCenterBounds.bounds.center}");
+            }
+            else if (VacuumPosition != null)
+            {
+                VacuumSuctionController.SuctionTarget = VacuumPosition;
+                Debug.Log($"[BossRoombaBrain] Suction target set to VacuumPosition: {VacuumPosition.position}");
+            }
+            else
+            {
+                // Fallback: use the boss's current position as the suction target
+                if (VacuumSuctionController.SuctionTarget == null)
+                {
+                    var targetObj = new GameObject("VacuumSuctionTarget");
+                    targetObj.transform.SetParent(transform);
+                    VacuumSuctionController.SuctionTarget = targetObj.transform;
+                }
+                VacuumSuctionController.SuctionTarget.position = transform.position;
+                Debug.LogWarning($"[BossRoombaBrain] Neither ArenaCenterBounds nor VacuumPosition set! Using boss position as fallback: {transform.position}");
+            }
+
+            // Start the suction
+            VacuumSuctionController.StartSuction(duration);
+        }
+
+        private void StopVacuumSuction()
+        {
+            if (VacuumSuctionController != null)
+            {
+                VacuumSuctionController.StopSuction();
+            }
         }
 
         private IEnumerator CageBullLoop()
@@ -1379,6 +1725,130 @@ namespace EnemyBehavior.Boss
                 attackCounter = attackThresholdForVacuum;
                 PushAction("DEBUG: Forced vacuum sequence");
             }
+        }
+
+        [ContextMenu("Debug: Test Vacuum Suction Only")]
+        public void DebugTestVacuumSuctionOnly()
+        {
+            // Direct test of vacuum suction without needing the full AI loop
+            if (!Application.isPlaying)
+            {
+                Debug.LogWarning("[BossRoombaBrain] Debug: Test Vacuum Suction Only requires Play Mode!");
+                return;
+            }
+            
+            // Make sure player exists
+            if (player == null)
+            {
+                player = GameObject.FindWithTag("Player")?.transform;
+                if (player == null)
+                {
+                    Debug.LogError("[BossRoombaBrain] DEBUG: Cannot test vacuum - no Player found in scene!");
+                    return;
+                }
+            }
+            
+            float testDuration = VacuumSuctionDuration > 0 ? VacuumSuctionDuration : 4f;
+            Debug.Log($"[BossRoombaBrain] DEBUG: Starting vacuum suction test - duration={testDuration}, player={player.name}");
+            StartVacuumSuction(testDuration);
+            PushAction($"DEBUG: Vacuum suction started for {testDuration}s (suction only, no animations)");
+        }
+
+
+        [ContextMenu("Debug: Execute Full Vacuum Sequence")]
+        public void DebugExecuteFullVacuumSequence()
+        {
+            // Direct execution of the full vacuum sequence (pathfind + animation + suction)
+            if (!Application.isPlaying)
+            {
+                Debug.LogWarning("[BossRoombaBrain] Debug: Execute Full Vacuum Sequence requires Play Mode!");
+                return;
+            }
+            
+            // Make sure player exists
+            if (player == null)
+            {
+                player = GameObject.FindWithTag("Player")?.transform;
+                if (player == null)
+                {
+                    Debug.LogError("[BossRoombaBrain] DEBUG: Cannot execute vacuum - no Player found in scene!");
+                    return;
+                }
+            }
+            
+            // CRITICAL: Stop the main AI loop so it doesn't interfere
+            if (loop != null)
+            {
+                StopCoroutine(loop);
+                loop = null;
+#if UNITY_EDITOR
+                Debug.Log("[BossRoombaBrain] DEBUG: Stopped main AI loop");
+#endif
+            }
+            
+            // Stop any existing debug vacuum sequence (prevents double-press issues)
+            if (debugVacuumCoroutine != null)
+            {
+                StopCoroutine(debugVacuumCoroutine);
+                debugVacuumCoroutine = null;
+#if UNITY_EDITOR
+                Debug.Log("[BossRoombaBrain] DEBUG: Stopped previous debug vacuum sequence");
+#endif
+            }
+            
+            // Stop any current attack in progress
+            if (currentAttackRoutine != null)
+            {
+                StopCoroutine(currentAttackRoutine);
+                currentAttackRoutine = null;
+#if UNITY_EDITOR
+                Debug.Log("[BossRoombaBrain] DEBUG: Stopped current attack");
+#endif
+            }
+            
+            // Stop arms retract routine if running
+            if (armsRetractRoutine != null)
+            {
+                StopCoroutine(armsRetractRoutine);
+                armsRetractRoutine = null;
+            }
+            
+#if UNITY_EDITOR
+            Debug.Log("[BossRoombaBrain] DEBUG: Starting full vacuum sequence (pathfind → animation → suction)");
+#endif
+            debugVacuumCoroutine = StartCoroutine(DebugVacuumSequenceWrapper());
+        }
+
+        /// <summary>
+        /// Wrapper that executes vacuum sequence and then restarts the AI loop.
+        /// </summary>
+        private IEnumerator DebugVacuumSequenceWrapper()
+        {
+            // Execute the vacuum sequence
+            yield return ExecuteVacuumSequence();
+            
+#if UNITY_EDITOR
+            Debug.Log("[BossRoombaBrain] DEBUG: Vacuum sequence complete, restarting AI loop and following");
+#endif
+            
+            // Clear the debug coroutine reference
+            debugVacuumCoroutine = null;
+            
+            // Restart the controller's follow behavior
+            ctrl.StartFollowingPlayer(0.1f);
+            
+            // Restart the main AI loop
+            if (loop == null)
+            {
+                loop = StartCoroutine(FormLoop());
+            }
+        }
+
+        [ContextMenu("Debug: Stop Vacuum Suction")]
+        public void DebugStopVacuumSuction()
+        {
+            StopVacuumSuction();
+            PushAction("DEBUG: Vacuum suction stopped");
         }
 
         [ContextMenu("Debug: Return to Duelist Form")]
