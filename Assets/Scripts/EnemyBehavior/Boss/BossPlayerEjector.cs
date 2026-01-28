@@ -174,7 +174,7 @@ namespace EnemyBehavior.Boss
 
         private IEnumerator ClearEjectionVelocityAfterDelay(float delay)
         {
-            yield return new WaitForSeconds(delay);
+            yield return WaitForSecondsCache.Get(delay);
             if (playerMovement != null)
                 playerMovement.ClearExternalVelocity();
         }

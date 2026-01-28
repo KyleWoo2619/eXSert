@@ -29,6 +29,20 @@ namespace EnemyBehavior.Boss
         [Range(0f, 1f)]
         public float RampUpSpeed = 0.3f;
 
+        [Header("Suction Blocking")]
+        [Tooltip("If true, players behind pillars (no line of sight to roomba) won't be sucked")]
+        public bool BlockSuctionBehindPillars = false;
+
+        [Tooltip("Layer mask for line-of-sight checks to pillars")]
+        public LayerMask PillarBlockingLayerMask;
+
+        [Header("Height Threshold")]
+        [Tooltip("If true, players above the height threshold won't be sucked")]
+        public bool UseHeightThreshold = false;
+
+        [Tooltip("Y-level above which players won't be sucked (only used if UseHeightThreshold is true)")]
+        public float HeightThreshold = 5f;
+
         [Header("Pathfinding")]
         [Tooltip("If true, uses NavMesh to path around obstacles (pillars). If false, pulls directly.")]
         public bool UsePathfinding = true;
@@ -214,6 +228,7 @@ namespace EnemyBehavior.Boss
             lastPathCalculateTime = -999f;
             currentWaypointIndex = 0;
 
+
 #if UNITY_EDITOR
             Debug.Log($"[VacuumSuctionEffect] SuctionCoroutine started - duration={duration}, player={player?.name}, playerMovement={playerMovement != null}");
 #endif
@@ -256,6 +271,44 @@ namespace EnemyBehavior.Boss
                     Debug.Log("[VacuumSuctionEffect] Player reached center zone!");
 #endif
                     break;
+                }
+
+                // Check height threshold - if enabled and player is above threshold, don't suck
+                bool playerAboveThreshold = UseHeightThreshold && player.position.y > HeightThreshold;
+                if (playerAboveThreshold)
+                {
+#if UNITY_EDITOR
+                    // Only log occasionally to avoid spam
+                    frameCount++;
+                    if (frameCount % 60 == 0)
+                    {
+                        Debug.Log($"[VacuumSuctionEffect] Player above height threshold ({player.position.y:F1} > {HeightThreshold:F1}) - no suction");
+                    }
+#endif
+                    // Clear any existing velocity and skip this frame
+                    playerMovement.ClearExternalVelocity();
+                    elapsed += Time.deltaTime;
+                    yield return null;
+                    continue;
+                }
+
+                // Check if player is behind a pillar (no line of sight to roomba)
+                bool blockedByPillar = BlockSuctionBehindPillars && !HasLineOfSightToRoomba();
+                if (blockedByPillar)
+                {
+#if UNITY_EDITOR
+                    // Only log occasionally to avoid spam
+                    frameCount++;
+                    if (frameCount % 60 == 0)
+                    {
+                        Debug.Log("[VacuumSuctionEffect] Player blocked by pillar - no suction");
+                    }
+#endif
+                    // Clear any existing velocity and skip this frame
+                    playerMovement.ClearExternalVelocity();
+                    elapsed += Time.deltaTime;
+                    yield return null;
+                    continue;
                 }
 
                 // Calculate pull direction
@@ -331,6 +384,78 @@ namespace EnemyBehavior.Boss
 
             // Fallback to direct pull if path failed
             return (targetPos - playerPos).normalized;
+        }
+
+        /// <summary>
+        /// Checks if the player has a clear line of sight to the roomba (this transform).
+        /// Used for the BlockSuctionBehindPillars feature.
+        /// </summary>
+        private bool HasLineOfSightToRoomba()
+        {
+            if (player == null)
+                return true; // Assume LOS if no player reference
+
+            Vector3 playerPos = player.position + Vector3.up * 0.5f; // Offset above ground
+            Vector3 roombaPos = transform.position + Vector3.up * 0.5f;
+            Vector3 direction = roombaPos - playerPos;
+            float distance = direction.magnitude;
+
+            // First check with the PillarBlockingLayerMask if set
+            if (PillarBlockingLayerMask != 0)
+            {
+                if (Physics.Raycast(playerPos, direction.normalized, out RaycastHit hit, distance, PillarBlockingLayerMask))
+                {
+                    // Hit something in the blocking layer
+                    return false;
+                }
+            }
+
+            // Also check against known pillar positions from ArenaManager
+            if (ArenaManager != null && ArenaManager.Pillars != null)
+            {
+                foreach (var pillar in ArenaManager.Pillars)
+                {
+                    if (pillar == null || !pillar.activeInHierarchy) continue;
+
+                    // Get pillar collider for more accurate check
+                    var pillarCollider = pillar.GetComponent<Collider>();
+                    if (pillarCollider != null)
+                    {
+                        // Check if ray from player to roomba intersects pillar bounds
+                        Ray ray = new Ray(playerPos, direction.normalized);
+                        if (pillarCollider.bounds.IntersectRay(ray, out float enterDist))
+                        {
+                            if (enterDist < distance)
+                            {
+                                // Pillar is between player and roomba
+                                return false;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Fallback: simple position-based check
+                        Vector3 pillarPos = pillar.transform.position;
+                        pillarPos.y = playerPos.y;
+
+                        Vector3 toPillar = pillarPos - playerPos;
+                        float dot = Vector3.Dot(toPillar.normalized, direction.normalized);
+                        
+                        // Check if pillar is roughly in the direction of the roomba
+                        if (dot > 0.7f && toPillar.magnitude < distance)
+                        {
+                            // Check perpendicular distance to line
+                            float perpDist = Vector3.Cross(direction.normalized, toPillar).magnitude;
+                            if (perpDist < ObstacleAvoidanceRadius + 0.5f)
+                            {
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return true;
         }
 
         private bool HasClearLineOfSight(Vector3 from, Vector3 to)
