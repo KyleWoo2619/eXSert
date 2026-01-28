@@ -18,7 +18,7 @@ MonoBehaviour:
   _isFinisher: 0
   _attackType: 0
   _attackWeight: 1
-  _damage: 15
+  _damage: 200
   _launch: 0
   _knockback: 0
   _knockbackAngle: 0
@@ -29,9 +29,16 @@ MonoBehaviour:
   _defaultDistanceFromPlayer: 1
   _customAttackDistanceFromPlayer: 0.75
   _hitboxHeightOffset: 1
+  _maxTargetsPerActivation: 1
+  _forwardMoveDistance: 0
+  _forwardMoveDuration: 0
   _animationClip: {fileID: 1827226128182048838, guid: ff7e43c69ec3bb54a8a619ba0f42a5fc, type: 3}
   _allowLateChain: 1
   _hitboxDuration: 0.1
   _tickInterval: 0
+  _hitVfxPrefab: {fileID: 0}
+  _vfxAnchorId: 
+  _vfxLifetime: 1
+  _additionalVfxEntries: []
   _attackSFX: {fileID: 8300000, guid: c7a28a6dc531ab64bac3452a4768d1ea, type: 3}
   _hitSFX: {fileID: 0}

@@ -38,6 +38,12 @@ public class DoorTriggerZone : MonoBehaviour
 
     private void Awake()
     {
+        if (topDoor == null || bottomDoor == null)
+        {
+            Debug.LogError($"{nameof(DoorTriggerZone)} on {name} is missing door references. Disabling to prevent crash.", this);
+            enabled = false;
+            return;
+        }
         // Work in local space so elevator/platform movement doesn't cause snapping
         _topClosedLocal = topDoor.transform.localPosition;
         _bottomClosedLocal = bottomDoor.transform.localPosition;
