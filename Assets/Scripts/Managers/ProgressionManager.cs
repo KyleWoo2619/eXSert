@@ -10,7 +10,6 @@
 using System.Collections.Generic;
 using System.Collections;
 using UnityEngine;
-using UnityEditor.EditorTools;
 
 public class ProgressionManager : MonoBehaviour
 {
