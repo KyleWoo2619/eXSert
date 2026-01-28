@@ -1,10 +1,10 @@
-/*
+/* 
     Written by Brandon Wahl
 
-    This script manages the progression of a zone by tracking the completion status of multiple puzzles.
-    It periodically checks if all puzzles are completed and marks the zone as complete when they are.
-    So if any designers want to lock any progression behind zone completion, they can reference this script.
-
+    This script manages the progression of a zone by tracking the completion status of multiple puzzles and combat encounters.
+    It keeps track of all the encounters within the scene and manages communication between the different encounters.
+    
+    Written later on by Will T
 */
 
 using System.Collections.Generic;
@@ -14,6 +14,26 @@ using UnityEditor.EditorTools;
 
 public class ProgressionManager : MonoBehaviour
 {
+    #region Singletonish Functionality
+    // Singleton instance dictionary to ensure one ProgressionManager per scene
+    private static Dictionary<SceneAsset, ProgressionManager> instances = new Dictionary<SceneAsset, ProgressionManager>();
+
+    // Get the ProgressionManager instance for a specific scene
+    public static ProgressionManager GetInstance(SceneAsset scene)
+    {
+        if (instances.TryGetValue(scene, out ProgressionManager instance))
+        {
+            return instance;
+        }
+        else
+        {
+            Debug.LogError($"[ProgressionManager] No ProgressionManager instance found for scene: {scene.name}");
+            return null;
+        }
+    }
+    #endregion
+
+
     [Tooltip("Add scripts of puzzles that are in this zone. ie SlowDownElevator.cs if you're in the ElevatorScene")]
     [SerializeField] private BasicEncounter[] encountersToComplete;
 
@@ -26,6 +46,13 @@ public class ProgressionManager : MonoBehaviour
 
     private void Awake()
     {
+        // implement singletonish functionality
+
+        if (instances.ContainsKey())
+        {
+
+        }
+
         LoadArrayIntoDictionary();
     }
 

@@ -50,4 +50,14 @@ public class SceneAsset : ScriptableObject
             Debug.LogWarning($"Scene '{sceneName}' is not loaded, cannot unload.");
         }
     }
+    public static SceneAsset GetSceneAssetByName(string name)
+    {
+        return Resources.Load<SceneAsset>($"Scene Assets/{name}");
+    }
+
+    // dont forget to implement this method
+    public static SceneAsset GetSceneAssetOfObject(GameObject go)
+    {
+
+    }
 }
