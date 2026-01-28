@@ -1,16 +1,15 @@
 using UnityEngine;
 
-public class PuzzleEncounter : BasicEncounter
+namespace Progression.Encounters
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    public class PuzzleEncounter : BasicEncounter
     {
-        
-    }
+        protected override Color DebugColor { get => Color.purple; }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
+        protected override void SetupEncounter()
+        {
+
+        }
     }
 }
+

@@ -7,87 +7,31 @@
     Written later on by Will T
 */
 
+using Singletons;
 using System.Collections.Generic;
-using System.Collections;
 using UnityEngine;
-using UnityEditor.EditorTools;
 
-public class ProgressionManager : MonoBehaviour
+namespace Progression
 {
-    #region Singletonish Functionality
-    // Singleton instance dictionary to ensure one ProgressionManager per scene
-    private static Dictionary<SceneAsset, ProgressionManager> instances = new Dictionary<SceneAsset, ProgressionManager>();
+    using Encounters;
 
-    // Get the ProgressionManager instance for a specific scene
-    public static ProgressionManager GetInstance(SceneAsset scene)
+    public class ProgressionManager : SceneSingleton<ProgressionManager>
     {
-        if (instances.TryGetValue(scene, out ProgressionManager instance))
+        private bool zoneIsComplete = false;
+
+        private Dictionary<BasicEncounter, bool> encounterCompletionMap = new Dictionary<BasicEncounter, bool>();
+
+        protected override void Awake()
         {
-            return instance;
-        }
-        else
-        {
-            Debug.LogError($"[ProgressionManager] No ProgressionManager instance found for scene: {scene.name}");
-            return null;
-        }
-    }
-    #endregion
+            base.Awake();
 
-
-    [Tooltip("Add scripts of puzzles that are in this zone. ie SlowDownElevator.cs if you're in the ElevatorScene")]
-    [SerializeField] private BasicEncounter[] encountersToComplete;
-
-    [Tooltip("Interval in seconds to check if all puzzles are complete")]
-    [SerializeField] [Range(0.1f, .5f)] private float checkInterval = .2f;
-
-    private bool zoneIsComplete = false;
-
-    private Dictionary<BasicEncounter, bool> encounterCompletionMap = new Dictionary<BasicEncounter, bool>();
-
-    private void Awake()
-    {
-        // implement singletonish functionality
-
-        if (instances.ContainsKey())
-        {
-
+            this.gameObject.name = $"[{SceneAsset.GetSceneAssetOfObject(this.gameObject).name}] Progression Manager";
         }
 
-        LoadArrayIntoDictionary();
-    }
-
-    private void Start()
-    {
-        StartCoroutine(IsZoneComplete());
-    }
-
-    private void LoadArrayIntoDictionary()
-    {
-        foreach (BasicEncounter encounter in encountersToComplete)
+        public void AddEncounter(BasicEncounter encounter)
         {
-            if (!encounterCompletionMap.ContainsKey(encounter))
-            {
-                encounterCompletionMap.Add(encounter, false);
-            }
+            encounterCompletionMap.Add(encounter, false);
         }
-    }
-
-    private IEnumerator IsZoneComplete()
-    {
-        var wait = new WaitForSeconds(checkInterval);
-        var numberOfEncountersLeft = encounterCompletionMap.Count;
-        while (!zoneIsComplete)
-        {
-
-            if(numberOfEncountersLeft <= 0)
-            {
-                zoneIsComplete = true;
-                Debug.Log("[ProgressionManager] Zone is complete!");
-                yield break;
-            }
-
-            yield return wait;
-        }
-        
     }
 }
+
