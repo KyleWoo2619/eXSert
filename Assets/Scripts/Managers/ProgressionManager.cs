@@ -15,14 +15,14 @@ using UnityEditor.EditorTools;
 public class ProgressionManager : MonoBehaviour
 {
     [Tooltip("Add scripts of puzzles that are in this zone. ie SlowDownElevator.cs if you're in the ElevatorScene")]
-    [SerializeField] private EncounterManager[] puzzlesToComplete;
+    [SerializeField] private BasicEncounter[] encountersToComplete;
 
     [Tooltip("Interval in seconds to check if all puzzles are complete")]
     [SerializeField] [Range(0.1f, .5f)] private float checkInterval = .2f;
 
     private bool zoneIsComplete = false;
 
-    private Dictionary<EncounterManager, bool> encounterCompletionMap = new Dictionary<EncounterManager, bool>();
+    private Dictionary<BasicEncounter, bool> encounterCompletionMap = new Dictionary<BasicEncounter, bool>();
 
     private void Awake()
     {
@@ -36,7 +36,7 @@ public class ProgressionManager : MonoBehaviour
 
     private void LoadArrayIntoDictionary()
     {
-        foreach (EncounterManager encounter in puzzlesToComplete)
+        foreach (BasicEncounter encounter in encountersToComplete)
         {
             if (!encounterCompletionMap.ContainsKey(encounter))
             {

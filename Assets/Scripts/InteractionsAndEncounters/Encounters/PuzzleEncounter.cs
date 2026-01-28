@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class PuzzleEncounter : EncounterManager
+public class PuzzleEncounter : BasicEncounter
 {
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
