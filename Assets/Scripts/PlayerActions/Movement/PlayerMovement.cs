@@ -24,8 +24,20 @@ using Utilities.Combat.Attacks;
 
 public class PlayerMovement : MonoBehaviour
 {
-    private static CharacterController characterController;
-    public static bool isGrounded { get {return characterController.isGrounded; } }
+    private CharacterController characterController;
+    // Keep a weak static reference to the most-recent active PlayerMovement instance so
+    // other systems that reference PlayerMovement.isGrounded continue to work without
+    // holding a direct reference to a component instance (avoids leaking a destroyed
+    // CharacterController via a static field).
+    private static PlayerMovement s_instance;
+
+    public static bool isGrounded
+    {
+        get
+        {
+            return s_instance != null && s_instance.characterController != null && s_instance.characterController.isGrounded;
+        }
+    }
 
     [Header("Player Animator")]
     [SerializeField] private PlayerAnimationController animationController;
@@ -273,6 +285,8 @@ public class PlayerMovement : MonoBehaviour
             ?? GetComponentInParent<PlayerCombatIdleController>()
             ?? FindFirstCombatIdleController();
         hasCombatIdleController = combatIdleController != null;
+        // Cache a static reference to the active instance (cleared when destroyed)
+        s_instance = this;
     }
 
     void Start()
@@ -305,6 +319,65 @@ public class PlayerMovement : MonoBehaviour
     private void OnDisable()
     {
         PlayerAttackManager.OnAttack -= AerialAttackHop;
+
+        // Stop any running coroutines we own to avoid keeping this MonoBehaviour alive
+        if (dashRoutine != null)
+        {
+            try { StopCoroutine(dashRoutine); } catch { }
+            dashRoutine = null;
+        }
+
+        if (externalStunRoutine != null)
+        {
+            try { StopCoroutine(externalStunRoutine); } catch { }
+            externalStunRoutine = null;
+        }
+
+        // Ensure any input locks we held are released
+        if (dashInputLockOwned)
+        {
+            InputReader.inputBusy = false;
+            dashInputLockOwned = false;
+        }
+
+        if (externalStunOwnsInput)
+        {
+            ReleaseExternalStunInputLock();
+        }
+
+        // Clear static instance reference if it pointed to this instance
+        if (s_instance == this)
+            s_instance = null;
+    }
+
+    private void OnDestroy()
+    {
+        // Mirror OnDisable cleanup in case object is destroyed without disabling first
+        PlayerAttackManager.OnAttack -= AerialAttackHop;
+
+        if (dashRoutine != null)
+        {
+            try { StopCoroutine(dashRoutine); } catch { }
+            dashRoutine = null;
+        }
+
+        if (externalStunRoutine != null)
+        {
+            try { StopCoroutine(externalStunRoutine); } catch { }
+            externalStunRoutine = null;
+        }
+
+        if (dashInputLockOwned)
+        {
+            InputReader.inputBusy = false;
+            dashInputLockOwned = false;
+        }
+
+        if (externalStunOwnsInput)
+            ReleaseExternalStunInputLock();
+
+        if (s_instance == this)
+            s_instance = null;
     }
 
     // Update is called once per frame

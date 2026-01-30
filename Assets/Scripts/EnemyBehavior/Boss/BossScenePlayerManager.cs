@@ -44,7 +44,11 @@ namespace EnemyBehavior.Boss
                 return;
             }
 
-            player = GameObject.FindGameObjectWithTag(playerTag)?.transform;
+            // Use PlayerPresenceManager if available, fallback to tag search
+            if (PlayerPresenceManager.IsPlayerPresent)
+                player = PlayerPresenceManager.PlayerTransform;
+            else
+                player = GameObject.FindGameObjectWithTag(playerTag)?.transform;
             
             if (player == null)
             {

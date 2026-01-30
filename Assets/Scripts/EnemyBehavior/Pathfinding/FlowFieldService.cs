@@ -15,6 +15,9 @@ public sealed class FlowFieldService : IPathPlanner
  // Density multiplier applied to sampled density values to influence cost (0 = disabled)
  public float DensityCostMultiplier { get; set; } =0f;
 
+ // Maximum cached flow fields to prevent unbounded memory growth
+ private const int MaxCachedFields = 32;
+
  private readonly Dictionary<int, FlowField> _fields = new Dictionary<int, FlowField>(64);
  private readonly int gridW =128;
  private readonly int gridH =128;
@@ -27,6 +30,12 @@ public sealed class FlowFieldService : IPathPlanner
  var key = KeyFrom(query.Goal);
  if (!_fields.TryGetValue(key, out var field))
  {
+ // Limit cache size to prevent unbounded memory growth
+ if (_fields.Count >= MaxCachedFields)
+ {
+  _fields.Clear(); // Simple eviction - clear all when full
+ }
+ 
  field = BuildField(query.Goal);
  _fields[key] = field;
  }
@@ -47,6 +56,14 @@ public sealed class FlowFieldService : IPathPlanner
  task.IsCompleted = true;
  task.Succeeded = true;
  return task;
+ }
+
+ /// <summary>
+ /// Clears the flow field cache. Call when changing scenes or when memory pressure is high.
+ /// </summary>
+ public void ClearCache()
+ {
+ _fields.Clear();
  }
 
  public void Update(float dt) { }

@@ -29,6 +29,15 @@ namespace Behaviors
 
         private static readonly Dictionary<DroneCluster, ClusterFireState> s_states = new Dictionary<DroneCluster, ClusterFireState>();
 
+#if UNITY_EDITOR
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            // Clear static state when entering play mode in editor
+            s_states.Clear();
+        }
+#endif
+
         public void OnEnter(BaseEnemy<TState, TTrigger> enemy)
         {
             var drone = enemy as DroneEnemy;
@@ -76,7 +85,13 @@ namespace Behaviors
             if (drone == null) return;
 
             var player = drone.GetPlayerTransform();
-            if (player == null) return;
+            
+            // If no player or player inactive, transition back to relocate
+            if (player == null || !player.gameObject.activeInHierarchy)
+            {
+                enemy.TryFireTriggerByName("LosePlayer");
+                return;
+            }
 
             // Leader schedules discrete repositions, not continuous orbit
             if (drone.Cluster != null && IsLeader(drone))

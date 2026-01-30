@@ -699,7 +699,7 @@ namespace EnemyBehavior.Boss
 
             if (!isStunned)
             {
-                yield return new WaitForSeconds(ChargeRestDuration);
+                yield return WaitForSecondsCache.Get(ChargeRestDuration);
                 yield return ExecuteTargetedCharge();
             }
 
@@ -726,7 +726,7 @@ namespace EnemyBehavior.Boss
             }
 
             yield return ExecuteChargeBetweenPoints(start, end);
-            yield return new WaitForSeconds(0.3f);
+            yield return WaitForSecondsCache.Get(0.3f);
         }
 
         private IEnumerator ExecuteTargetedCharge()
@@ -845,7 +845,7 @@ namespace EnemyBehavior.Boss
                     if (!waitedAfterLastPoke)
                     {
                         waitedAfterLastPoke = true;
-                        yield return new WaitForSeconds(SpinAfterLastPokeDelay);
+                        yield return WaitForSecondsCache.Get(SpinAfterLastPokeDelay);
                         if (!IsMountedWithGrace()) { ResetTopSequence(); yield break; }
                     }
 
@@ -1297,19 +1297,25 @@ namespace EnemyBehavior.Boss
 
             armsDeployInProgress = true;
             armsDeployed = true;
+#if UNITY_EDITOR
             Debug.Log($"[Boss] DeployArms() started - setting armsDeployed=true, triggering animator: {ArmsDeployTrigger}");
+#endif
             
             if (animator != null && !string.IsNullOrEmpty(ArmsDeployTrigger)) 
             {
                 animator.SetTrigger(ArmsDeployTrigger);
+#if UNITY_EDITOR
                 Debug.Log($"[Boss] Animator trigger '{ArmsDeployTrigger}' SET");
+#endif
             }
 
             // Wait for deploy animation to complete
-            yield return new WaitForSeconds(ArmsDeployTimeoutSeconds);
+            yield return WaitForSecondsCache.Get(ArmsDeployTimeoutSeconds);
             
             armsDeployInProgress = false;
+#if UNITY_EDITOR
             Debug.Log($"[Boss] DeployArms() complete");
+#endif
         }
 
         private IEnumerator RetractArmsIfNeeded()
@@ -1338,22 +1344,30 @@ namespace EnemyBehavior.Boss
 
             armsRetractInProgress = true;
             armsDeployed = false;
+#if UNITY_EDITOR
             Debug.Log($"[Boss] RetractArms() started - setting armsDeployed=false, triggering animator: {ArmsRetractTrigger}");
+#endif
             
             if (animator != null && !string.IsNullOrEmpty(ArmsRetractTrigger)) 
             {
                 animator.SetTrigger(ArmsRetractTrigger);
+#if UNITY_EDITOR
                 Debug.Log($"[Boss] Animator trigger '{ArmsRetractTrigger}' SET");
+#endif
             }
 
             // CRITICAL: Wait for the FULL retract animation to complete
             // This ensures arms are fully retracted before starting unarmed attacks
             float waitTime = ArmsRetractDuration;
+#if UNITY_EDITOR
             Debug.Log($"[Boss] RetractArms() - waiting {waitTime}s for animation to complete");
-            yield return new WaitForSeconds(waitTime);
+#endif
+            yield return WaitForSecondsCache.Get(waitTime);
             
             armsRetractInProgress = false;
+#if UNITY_EDITOR
             Debug.Log($"[Boss] RetractArms() complete");
+#endif
         }
 
         private IEnumerator RaiseHornsIfNeeded()
@@ -1383,22 +1397,30 @@ namespace EnemyBehavior.Boss
             hornsRaiseInProgress = true;
             hornsRaised = true;
             PushAction("Raising horns (lowering faceplate)...");
+#if UNITY_EDITOR
             Debug.Log($"[Boss] RaiseHorns() started - setting hornsRaised=true, triggering animator: {HornsRaiseTrigger}");
+#endif
             
             if (animator != null && !string.IsNullOrEmpty(HornsRaiseTrigger)) 
             {
                 animator.SetTrigger(HornsRaiseTrigger);
+#if UNITY_EDITOR
                 Debug.Log($"[Boss] Animator trigger '{HornsRaiseTrigger}' SET");
+#endif
             }
 
             // Wait for horn raise animation to complete
             float waitTime = HornsRaiseDuration;
+#if UNITY_EDITOR
             Debug.Log($"[Boss] RaiseHorns() - waiting {waitTime}s for animation to complete");
-            yield return new WaitForSeconds(waitTime);
+#endif
+            yield return WaitForSecondsCache.Get(waitTime);
             
             hornsRaiseInProgress = false;
             PushAction("Horns raised (faceplate lowered)");
+#if UNITY_EDITOR
             Debug.Log($"[Boss] RaiseHorns() complete");
+#endif
         }
 
         private IEnumerator LowerHornsIfNeeded()
@@ -1428,22 +1450,30 @@ namespace EnemyBehavior.Boss
             hornsLowerInProgress = true;
             hornsRaised = false;
             PushAction("Lowering horns (raising faceplate)...");
+#if UNITY_EDITOR
             Debug.Log($"[Boss] LowerHorns() started - setting hornsRaised=false, triggering animator: {HornsLowerTrigger}");
+#endif
             
             if (animator != null && !string.IsNullOrEmpty(HornsLowerTrigger)) 
             {
                 animator.SetTrigger(HornsLowerTrigger);
+#if UNITY_EDITOR
                 Debug.Log($"[Boss] Animator trigger '{HornsLowerTrigger}' SET");
+#endif
             }
 
             // Wait for horn lower animation to complete
             float waitTime = HornsLowerDuration;
+#if UNITY_EDITOR
             Debug.Log($"[Boss] LowerHorns() - waiting {waitTime}s for animation to complete");
-            yield return new WaitForSeconds(waitTime);
+#endif
+            yield return WaitForSecondsCache.Get(waitTime);
             
             hornsLowerInProgress = false;
             PushAction("Horns lowered (faceplate raised)");
+#if UNITY_EDITOR
             Debug.Log($"[Boss] LowerHorns() complete");
+#endif
         }
 
         private void DeployArms()

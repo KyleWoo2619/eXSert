@@ -26,7 +26,7 @@ public class ActButton : MonoBehaviour
     {
         bool matchKey = false;
 
-        foreach(int i in PlayerProgressionDetector.Instance.actCompletionMap.Keys)
+        foreach(int i in ActsManager.Instance.actCompletionMap.Keys)
         {
             
             if(i == actNumber)
@@ -37,7 +37,7 @@ public class ActButton : MonoBehaviour
 
         if(matchKey)
         {
-            bool isCompleted = PlayerProgressionDetector.Instance.actCompletionMap[actNumber];
+            bool isCompleted = ActsManager.Instance.actCompletionMap[actNumber];
             if(isCompleted)
             {
                 TeleportPlayerToAct();

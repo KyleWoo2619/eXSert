@@ -42,7 +42,9 @@ public class DiaryManager : Singleton<DiaryManager>
     private void FindDiary(string id)
     {
         Diaries diaries = GetDiaryById(id);
+        Debug.Log($"FindDiary called for {id}: was isFound={diaries.info.isFound}");
         diaries.info.isFound = true;
+        Debug.Log($"FindDiary set isFound=true for {id}, firing DiaryStateChange event");
         EventsManager.Instance.diaryEvents.DiaryStateChange(diaries);
     }
 
@@ -105,17 +107,22 @@ public class DiaryManager : Singleton<DiaryManager>
             if (PlayerPrefs.HasKey(diaryInfo.diaryID) && loadDiaryState)
             {
                 string serializedData = PlayerPrefs.GetString(diaryInfo.diaryID);
-                LogData logData = JsonUtility.FromJson<LogData>(serializedData);
+                DiaryData diaryData = JsonUtility.FromJson<DiaryData>(serializedData);
                 diary = new Diaries(diaryInfo);
+                // Apply the loaded state to the ScriptableObject
+                diary.info.isFound = diaryData.isFound;
+                Debug.Log($"Loaded diary {diaryInfo.diaryID}: isFound={diaryData.isFound}");
             }
             else
             {
                 diary = new Diaries(diaryInfo);
+                Debug.Log($"No saved data for diary {diaryInfo.diaryID}, created with isFound={diaryInfo.isFound}");
             }
         }
         catch (System.Exception e)
         {
-            Debug.LogError("Failed to load log with id " + diary.info.diaryID + ": " + e);
+            Debug.LogError("Failed to load diary with id " + diaryInfo.diaryID + ": " + e);
+            diary = new Diaries(diaryInfo);
         }
         
         return diary;

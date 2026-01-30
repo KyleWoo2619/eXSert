@@ -58,10 +58,15 @@ public class TestingEnemy : BaseEnemy<EnemyState, EnemyTrigger>
 
         //Debug.Log($"{gameObject.name} Awake called");
 
-        // Find the player by tag (if not set elsewhere)
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        if (playerObj != null)
-            PlayerTarget = playerObj.transform;
+        // Find the player - use PlayerPresenceManager if available
+        if (PlayerPresenceManager.IsPlayerPresent)
+            PlayerTarget = PlayerPresenceManager.PlayerTransform;
+        else
+        {
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null)
+                PlayerTarget = playerObj.transform;
+        }
     }
 
     protected virtual void Start()

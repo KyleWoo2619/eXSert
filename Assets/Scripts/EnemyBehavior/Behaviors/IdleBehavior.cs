@@ -35,7 +35,9 @@ namespace Behaviors
             //Debug.Log("IdleBehavior.OnEnter called!");
             if (enemy.agent == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("NavMeshAgent not initialized!");
+#endif
                 return;
             }
             enemy.SetEnemyColor(enemy.patrolColor);
@@ -77,11 +79,13 @@ namespace Behaviors
 
         private IEnumerator IdleTimerCoroutine()
         {
-            yield return new WaitForSeconds(enemy.idleTimerDuration);
+            yield return WaitForSecondsCache.Get(enemy.idleTimerDuration);
             if (enemy.enemyAI.State.Equals(EnemyState.Idle))
             {
-                // If there are no other zones present, keep idling instead of relocating
-                var zones = Object.FindObjectsByType<Zone>(FindObjectsSortMode.None);
+                // Use ZoneManager if available, otherwise fallback
+                Zone[] zones = ZoneManager.Instance != null 
+                    ? ZoneManager.Instance.GetAllZones() 
+                    : Object.FindObjectsByType<Zone>(FindObjectsSortMode.None);
                 if (zones == null || zones.Length <= 1)
                 {
                     // Continue idling: restart timer and keep wandering
@@ -97,7 +101,7 @@ namespace Behaviors
 
         private IEnumerator IdleWanderLoop()
         {
-            var wait = new WaitForSeconds(monitorInterval);
+            var wait = WaitForSecondsCache.Get(monitorInterval);
             while (true)
             {
                 if (!hasIdleTarget)

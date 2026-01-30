@@ -43,13 +43,13 @@ namespace Behaviors
         private IEnumerator DeathSequence()
         {
             // Wait a few seconds before playing SFX
-            yield return new WaitForSeconds(2f);
+            yield return WaitForSecondsCache.Get(2f);
 
             // Play SFX (placeholder, replace with actual SFX logic)
             PlayDeathSFX();
 
             // Wait for SFX duration
-            yield return new WaitForSeconds(1f);
+            yield return WaitForSecondsCache.Get(1f);
 
             // Destroy health bar if it exists
             if (enemy.healthBarInstance != null)
@@ -70,7 +70,9 @@ namespace Behaviors
         private void PlayDeathSFX()
         {
             // Placeholder for SFX logic
+#if UNITY_EDITOR
             Debug.Log($"{enemy.gameObject.name} death SFX played.");
+#endif
         }
         public void Tick(BaseEnemy<TState, TTrigger> enemy)
         {

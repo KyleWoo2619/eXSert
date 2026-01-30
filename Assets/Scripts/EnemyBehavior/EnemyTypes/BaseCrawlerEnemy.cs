@@ -77,12 +77,19 @@ public class BaseCrawlerEnemy : BaseEnemy<CrawlerEnemyState, CrawlerEnemyTrigger
         attackBehavior = new AttackBehavior<CrawlerEnemyState, CrawlerEnemyTrigger>();
         deathBehavior = new DeathBehavior<CrawlerEnemyState, CrawlerEnemyTrigger>();
 
+#if UNITY_EDITOR
         Debug.Log($"{gameObject.name} Awake called");
+#endif
 
-        // Find the player by tag (if not set elsewhere)
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        if (playerObj != null)
-            PlayerTarget = playerObj.transform;
+        // Find the player - use PlayerPresenceManager if available
+        if (PlayerPresenceManager.IsPlayerPresent)
+            PlayerTarget = PlayerPresenceManager.PlayerTransform;
+        else
+        {
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null)
+                PlayerTarget = playerObj.transform;
+        }
 
         // Initialize state machine and health bar here
         InitializeStateMachine(CrawlerEnemyState.Ambush);

@@ -41,18 +41,22 @@ public class DiaryScrollingList : MonoBehaviour
 
         if (diary.info.isFound)
         {
+            Debug.Log($"Diary {diary.info.diaryID} is marked as found, checking if button exists...");
             if (!idToButtonMap.ContainsKey(diary.info.diaryID))
             {
+                Debug.Log($"Creating button for diary {diary.info.diaryID}");
                 diaryButton = InstantiateDiaryButton(diary, selectAction);
             }
             else
             {
+                Debug.Log($"Button for diary {diary.info.diaryID} already exists");
                 diaryButton = idToButtonMap[diary.info.diaryID];
             }
             return diaryButton;
         }
         else
         {
+            Debug.Log($"Diary {diary.info.diaryID} is NOT marked as found (isFound={diary.info.isFound}), skipping button creation");
             return diaryButton;
         }
     }
