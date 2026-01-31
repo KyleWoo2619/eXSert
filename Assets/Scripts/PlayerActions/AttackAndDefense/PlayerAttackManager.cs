@@ -53,6 +53,7 @@ public class PlayerAttackManager : MonoBehaviour
     private Coroutine plungeRecoveryRoutine;
     private Coroutine guardAttackFlowRoutine;
     private Coroutine specialAttackAutoCancelRoutine;
+    private Coroutine heavyMoveRoutine;
 
     [Header("Input Buffering")]
     [SerializeField, Range(0.05f, 0.6f)] private float inputBufferWindow = 0.25f;
@@ -108,6 +109,11 @@ public class PlayerAttackManager : MonoBehaviour
         {
             StopCoroutine(plungeRecoveryRoutine);
             plungeRecoveryRoutine = null;
+        }
+        if (heavyMoveRoutine != null)
+        {
+            StopCoroutine(heavyMoveRoutine);
+            heavyMoveRoutine = null;
         }
         StopGuardAttackFlowRoutine();
         StopSpecialAttackAutoCancelRoutine();
@@ -384,6 +390,8 @@ public class PlayerAttackManager : MonoBehaviour
 
         PlaySfx(attackData.attackSFX);
 
+        ApplyHeavyAttackForwardMove(attackData);
+
         if (animationOverride != null)
             animationOverride(animationController);
         else if (playDefaultAnimation)
@@ -392,6 +400,87 @@ public class PlayerAttackManager : MonoBehaviour
         OnAttack?.Invoke(attackData);
 
         Debug.Log($"[PlayerAttackManager] Executing attack {attackData.attackName} ({attackId})");
+    }
+
+    private void ApplyHeavyAttackForwardMove(PlayerAttack attackData)
+    {
+        if (attackData == null)
+            return;
+
+        if (!IsHeavyAttack(attackData))
+            return;
+
+        float distance = attackData.forwardMoveDistance;
+        if (distance <= 0f)
+            return;
+
+        Vector3 forward = transform.forward;
+        forward.y = 0f;
+        if (forward.sqrMagnitude <= 0.0001f)
+            return;
+        forward.Normalize();
+
+        float duration = attackData.forwardMoveDuration;
+        if (duration <= 0f)
+        {
+            MoveXZ(forward * distance);
+            return;
+        }
+
+        if (heavyMoveRoutine != null)
+            StopCoroutine(heavyMoveRoutine);
+
+        heavyMoveRoutine = StartCoroutine(HeavyAttackForwardMoveRoutine(forward, distance, duration));
+    }
+
+    private IEnumerator HeavyAttackForwardMoveRoutine(Vector3 forward, float distance, float duration)
+    {
+        float elapsed = 0f;
+        Vector3 totalMove = forward * distance;
+        Vector3 moved = Vector3.zero;
+
+        while (elapsed < duration)
+        {
+            float t = Mathf.Clamp01(elapsed / duration);
+            Vector3 target = totalMove * t;
+            Vector3 delta = target - moved;
+            if (delta.sqrMagnitude > 0f)
+            {
+                MoveXZ(delta);
+                moved += delta;
+            }
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        Vector3 finalDelta = totalMove - moved;
+        if (finalDelta.sqrMagnitude > 0f)
+            MoveXZ(finalDelta);
+
+        heavyMoveRoutine = null;
+    }
+
+    private void MoveXZ(Vector3 delta)
+    {
+        Vector3 planarDelta = new Vector3(delta.x, 0f, delta.z);
+        if (planarDelta.sqrMagnitude <= 0f)
+            return;
+
+        if (characterController != null)
+            characterController.Move(planarDelta);
+        else
+            transform.position += planarDelta;
+    }
+
+    private static bool IsHeavyAttack(PlayerAttack attackData)
+    {
+        if (attackData == null)
+            return false;
+
+        return attackData.attackType == AttackType.HeavySingle
+            || attackData.attackType == AttackType.HeavyAOE
+            || attackData.attackType == AttackType.HeavyAerial;
     }
 
     private bool IsGrounded()
