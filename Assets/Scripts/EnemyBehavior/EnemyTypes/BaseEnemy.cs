@@ -317,6 +317,11 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         PlayState(idleStateName);
     }
 
+    protected void PlayIdleAnimOn(Animator target)
+    {
+        PlayStateOn(target, idleStateName);
+    }
+
     protected void RegisterExternalHelper(GameObject helper)
     {
         if (helper == null)
@@ -385,7 +390,7 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         }
 
         detectionCollider.isTrigger = true;
-        detectionCollider.radius = detectionRange;
+        detectionCollider.radius = GetUnscaledRadiusForRange(detectionCollider, detectionRange);
     }
 
     private void EnsureAttackCollider()
@@ -501,11 +506,27 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         }
     }
 
+    protected void PlayAttackAnimOn(Animator target)
+    {
+        if (!TrySetTriggerOn(target, attackTriggerName))
+        {
+            PlayStateOn(target, attackStateName);
+        }
+    }
+
     protected virtual void PlayHitAnim()
     {
         if (!TrySetTrigger(hitTriggerName))
         {
             PlayState(hitStateName);
+        }
+    }
+
+    protected void PlayHitAnimOn(Animator target)
+    {
+        if (!TrySetTriggerOn(target, hitTriggerName))
+        {
+            PlayStateOn(target, hitStateName);
         }
     }
 
@@ -517,25 +538,43 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         }
     }
 
+    protected void PlayDieAnimOn(Animator target)
+    {
+        if (!TrySetTriggerOn(target, dieTriggerName))
+        {
+            PlayStateOn(target, dieStateName);
+        }
+    }
+
     private bool TrySetTrigger(string triggerName)
     {
-        if (animator == null || string.IsNullOrEmpty(triggerName))
+        return TrySetTriggerOn(animator, triggerName);
+    }
+
+    private bool TrySetTriggerOn(Animator target, string triggerName)
+    {
+        if (target == null || string.IsNullOrEmpty(triggerName))
             return false;
 
-        if (!AnimatorHasParameter(triggerName, AnimatorControllerParameterType.Trigger))
+        if (!AnimatorHasParameter(target, triggerName, AnimatorControllerParameterType.Trigger))
             return false;
 
-        animator.ResetTrigger(triggerName);
-        animator.SetTrigger(triggerName);
+        target.ResetTrigger(triggerName);
+        target.SetTrigger(triggerName);
         return true;
     }
 
     private bool AnimatorHasParameter(string parameterName, AnimatorControllerParameterType type)
     {
-        if (animator == null || string.IsNullOrEmpty(parameterName))
+        return AnimatorHasParameter(animator, parameterName, type);
+    }
+
+    private bool AnimatorHasParameter(Animator target, string parameterName, AnimatorControllerParameterType type)
+    {
+        if (target == null || string.IsNullOrEmpty(parameterName))
             return false;
 
-        foreach (var parameter in animator.parameters)
+        foreach (var parameter in target.parameters)
         {
             if (parameter.type == type && parameter.name == parameterName)
                 return true;
@@ -545,20 +584,30 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
 
     private bool AnimatorHasState(string stateName, int layerIndex = 0)
     {
-        if (animator == null || string.IsNullOrEmpty(stateName))
+        return AnimatorHasState(animator, stateName, layerIndex);
+    }
+
+    private bool AnimatorHasState(Animator target, string stateName, int layerIndex = 0)
+    {
+        if (target == null || string.IsNullOrEmpty(stateName))
             return false;
 
         // Check if the state exists by trying to get its hash
         int stateHash = Animator.StringToHash(stateName);
-        return animator.HasState(layerIndex, stateHash);
+        return target.HasState(layerIndex, stateHash);
     }
 
     private void PlayState(string stateName)
     {
-        if (animator == null || string.IsNullOrEmpty(stateName))
+        PlayStateOn(animator, stateName);
+    }
+
+    private void PlayStateOn(Animator target, string stateName)
+    {
+        if (target == null || string.IsNullOrEmpty(stateName))
             return;
 
-        animator.Play(stateName, 0, 0f);
+        target.Play(stateName, 0, 0f);
     }
 
     public virtual void TriggerAttackAnimation()
@@ -859,7 +908,8 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         {
             // Use sqrMagnitude for faster distance check instead of bounds.Contains
             float sqrDist = (other.transform.position - transform.position).sqrMagnitude;
-            float sqrRange = detectionRange * detectionRange;
+            float effectiveRange = GetEffectiveDetectionRange();
+            float sqrRange = effectiveRange * effectiveRange;
             
             if (sqrDist <= sqrRange)
             {
@@ -891,10 +941,11 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         // Detection range gizmo (sphere)
         if (showDetectionGizmo)
         {
+            float effectiveRange = GetEffectiveDetectionRange();
             Gizmos.color = new Color(0f, 0.7f, 1f, 0.3f); // Cyan, semi-transparent
-            Gizmos.DrawWireSphere(transform.position, detectionRange);
+            Gizmos.DrawWireSphere(transform.position, effectiveRange);
             Gizmos.color = new Color(0f, 0.7f, 1f, 0.1f);
-            Gizmos.DrawSphere(transform.position, detectionRange);
+            Gizmos.DrawSphere(transform.position, effectiveRange);
         }
 
         // Attack range gizmo (box)
@@ -919,7 +970,7 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     {
         var detectionRef = detectionCollider != null ? detectionCollider : detectionColliderOverride;
         if (detectionRef != null)
-            detectionRef.radius = detectionRange;
+            detectionRef.radius = GetUnscaledRadiusForRange(detectionRef, detectionRange);
 
         var attackRef = attackCollider != null ? attackCollider : attackColliderOverride;
         if (attackRef != null)
@@ -932,6 +983,43 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         EnsurePlayerTargetReference();
+    }
+
+    protected float GetEffectiveDetectionRange()
+    {
+        if (detectionCollider != null)
+            return GetScaledRadius(detectionCollider);
+
+        if (detectionColliderOverride != null)
+            return GetScaledRadius(detectionColliderOverride);
+
+        return detectionRange;
+    }
+
+    private static float GetScaledRadius(SphereCollider collider)
+    {
+        if (collider == null)
+            return 0f;
+
+        Vector3 lossy = collider.transform.lossyScale;
+        float maxScale = Mathf.Max(Mathf.Abs(lossy.x), Mathf.Abs(lossy.y), Mathf.Abs(lossy.z));
+        if (maxScale <= 0f)
+            return collider.radius;
+
+        return collider.radius * maxScale;
+    }
+
+    private static float GetUnscaledRadiusForRange(SphereCollider collider, float worldRange)
+    {
+        if (collider == null)
+            return worldRange;
+
+        Vector3 lossy = collider.transform.lossyScale;
+        float maxScale = Mathf.Max(Mathf.Abs(lossy.x), Mathf.Abs(lossy.y), Mathf.Abs(lossy.z));
+        if (maxScale <= 0f)
+            return worldRange;
+
+        return worldRange / maxScale;
     }
 }
 

@@ -15,6 +15,8 @@ using System.Collections.Generic;
 using System.Collections;
 using TMPro;
 using UnityEngine.InputSystem;
+using Unity.VisualScripting;
+
 
 
 
@@ -70,7 +72,7 @@ public class ShowIfXAttribute : PropertyAttribute { }
 public class ShowIfYAttribute : PropertyAttribute { }
 public class ShowIfZAttribute : PropertyAttribute { }
 
-public class CranePuzzle : MonoBehaviour, IPuzzleInterface
+public class CranePuzzle : PuzzlePart
 {
     private enum DetectionResult
     {
@@ -131,9 +133,11 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     [Header("Puzzle Settings")]
     [Tooltip("Object crane needs to grab")]
     [SerializeField] internal GameObject targetObject;
-    [SerializeField] private Vector3 targetEndPos;
+    [SerializeField] private GameObject targetDropZone;
+    private Vector3 targetEndPos;
     [SerializeField] private LayerMask grabLayerMask;
     [SerializeField] private float magnetDetectLength;
+    private Vector3 magnetStartPos;
     internal bool isGrabbed;
 
     private bool puzzleActive = false;
@@ -142,8 +146,6 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
 
     // Coroutines for magnet animation
     private Coroutine retractCoroutine;
-
-    public bool isCompleted { get; set; }
 
     private void Awake()
     {
@@ -162,7 +164,7 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
         // If not active or automated movement is running, skip processing
         if (!puzzleActive || isAutomatedMovement || craneParts == null || craneParts.Count == 0) return;
 
-        if(_confirmPuzzleAction != null && _confirmPuzzleAction.action != null)
+        if(_confirmPuzzleAction != null && _confirmPuzzleAction.action != null && !isExtending)
         {
             CheckForConfirm();
         }
@@ -239,7 +241,7 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     #region IPuzzleInterface Methods
 
     // Called by whatever system starts this puzzle
-    public void StartPuzzle()
+    public override void StartPuzzle()
     {   
         if(InputReader.Instance.activeControlScheme == "Gamepad")
         {
@@ -294,7 +296,7 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     }
 
     // Call this when the puzzle is finished or cancelled
-    public void EndPuzzle()
+    public override void EndPuzzle()
     {
             foreach (GameObject img in craneUI)
             {
@@ -443,7 +445,6 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
         }
 
         magnet.transform.localPosition = targetPosition;
-        isExtending = false;
 
         // Final check at full extension
         DetectionResult finalCheck = DetectDesiredObjectBelow();
@@ -456,6 +457,10 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
             }
             float retractDuration = finalCheck == DetectionResult.Wrong ? duration * 0.5f : duration;
             retractCoroutine = StartCoroutine(RetractMagnet(magnet, startPosition, retractDuration));
+        }
+        else
+        {
+            isExtending = false;
         }
     }
 
@@ -474,28 +479,57 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
         if(!isCompleted)
             magnet.transform.localPosition = originalPosition;
         
+        isExtending = false;
+        
         if(isGrabbed)
         {
             isAutomatedMovement = true;
             LockOrUnlockMovement(false);
             
-            yield return StartCoroutine(MoveCraneToPosition(craneParts[1].partObject, new Vector3(0, 0, targetEndPos.z), 1));
-            yield return StartCoroutine(MoveCraneToPosition(craneParts[0].partObject, new Vector3(targetEndPos.x, 0, 0), 1));
+            // Convert world position of target drop zone to local space
+            Vector3 targetWorldPos = targetDropZone.transform.position;
+            Vector3 targetLocalPos = targetWorldPos;
+            
+            // If crane parts have a parent, convert world to local
+            if (craneParts.Count > 0 && craneParts[0].partObject != null && craneParts[0].partObject.transform.parent != null)
+            {
+                targetLocalPos = craneParts[0].partObject.transform.parent.InverseTransformPoint(targetWorldPos);
+            }
+
+            yield return StartCoroutine(MoveCraneToPosition(craneParts[1].partObject, new Vector3(0, 0, targetLocalPos.z), 1));
+            yield return StartCoroutine(MoveCraneToPosition(craneParts[0].partObject, new Vector3(targetLocalPos.x, 0, 0), 1));
             yield return new WaitForSeconds(0.5f);
             
             // Lower magnet to place the object - extend down to drop position
             Vector3 dropStartPos = magnetExtender.transform.localPosition;
-            Vector3 dropTargetPos = new Vector3(dropStartPos.x, magnetExtendHeight, dropStartPos.z);
+            Vector3 dropTargetPos = new Vector3(dropStartPos.x, targetDropZone.transform.position.y, dropStartPos.z);
             float dropElapsed = 0f;
             float dropDuration = 1f;
+            bool droppedEarly = false;
             
-            while (dropElapsed < dropDuration)
+            while (dropElapsed < dropDuration && !droppedEarly)
             {
                 magnetExtender.transform.localPosition = Vector3.Lerp(dropStartPos, dropTargetPos, dropElapsed / dropDuration);
+                
+                // Check if object hits something during descent
+                if (Physics.Raycast(magnetExtender.transform.position, Vector3.down, out RaycastHit hitInfo, 2f, grabLayerMask))
+                {
+                    // If we hit something that's not the target drop zone, drop here
+                    if (hitInfo.collider.gameObject != targetDropZone)
+                    {
+                        Debug.Log($"Object hit {hitInfo.collider.gameObject.name} during descent - dropping here!");
+                        droppedEarly = true;
+                        StartCoroutine(ReturnCraneToStartPosition(craneParts[1].partObject, magnetStartPos, 2f));
+                        break;
+
+                    }
+                }
+                
                 dropElapsed += Time.deltaTime;
                 yield return null;
             }
-            magnetExtender.transform.localPosition = dropTargetPos;
+            
+            magnetExtender.transform.localPosition = new Vector3(dropStartPos.x, magnetExtender.transform.localPosition.y, dropStartPos.z);
             
             // Release the object before clearing reference
             if (craneGrabObjectScript != null && targetObject != null)
@@ -520,6 +554,21 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
             LockOrUnlockMovement(false); // Unlock movement if nothing was grabbed
         }
        
+    }
+
+    private IEnumerator ReturnCraneToStartPosition(GameObject crane, Vector3 startPosition, float duration)
+    {
+        Vector3 currentPos = crane.transform.localPosition;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            crane.transform.localPosition = Vector3.Lerp(currentPos, startPosition, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        crane.transform.localPosition = startPosition;
     }
 
     private IEnumerator MoveCraneToPosition(GameObject crane, Vector3 targetPosition, float duration)
