@@ -98,6 +98,18 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     /// </summary>
     public event System.Action<BaseEnemy<TState, TTrigger>> OnDeath;
 
+    /// <summary>
+    /// Event fired when this enemy begins its spawn sequence.
+    /// Subscribers receive this enemy instance. Use for encounter tracking.
+    /// </summary>
+    public event System.Action<BaseEnemy<TState, TTrigger>> OnSpawn;
+
+    /// <summary>
+    /// Event fired when this enemy is reset (e.g., player left encounter zone).
+    /// Subscribers receive this enemy instance. Fired after reset logic completes.
+    /// </summary>
+    public event System.Action<BaseEnemy<TState, TTrigger>> OnReset;
+
     // Cached animator parameter checks to avoid allocations from repeated animator.parameters access
     private bool _hasIsMovingParam;
     private bool _hasMoveSpeedParam;
@@ -673,6 +685,101 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
             Debug.LogError($"[{name}] Exception in OnDeath event handler: {ex}");
 #endif
         }
+    }
+
+    /// <summary>
+    /// Invokes the OnSpawn event. Called by Spawn() when the spawn sequence begins.
+    /// </summary>
+    protected void InvokeOnSpawn()
+    {
+        try
+        {
+            OnSpawn?.Invoke(this);
+        }
+        catch (System.Exception ex)
+        {
+#if UNITY_EDITOR
+            Debug.LogError($"[{name}] Exception in OnSpawn event handler: {ex}");
+#endif
+        }
+    }
+
+    /// <summary>
+    /// Invokes the OnReset event. Called by ResetEnemy() after reset logic completes.
+    /// </summary>
+    protected void InvokeOnReset()
+    {
+        try
+        {
+            OnReset?.Invoke(this);
+        }
+        catch (System.Exception ex)
+        {
+#if UNITY_EDITOR
+            Debug.LogError($"[{name}] Exception in OnReset event handler: {ex}");
+#endif
+        }
+    }
+
+    /// <summary>
+    /// Called when the enemy should begin its spawn sequence (e.g., play spawn animation).
+    /// Override in derived classes for custom spawn behavior.
+    /// Call base.Spawn() to fire the OnSpawn event.
+    /// </summary>
+    public virtual void Spawn()
+    {
+        // Fire the spawn event for encounter tracking
+        InvokeOnSpawn();
+        
+        // Derived classes can override to play spawn animations, enable AI, etc.
+#if UNITY_EDITOR
+        Debug.Log($"[{name}] Spawn() called. Override in derived class for custom spawn animation.");
+#endif
+    }
+
+    /// <summary>
+    /// Resets the enemy to its initial state (e.g., when player leaves encounter zone).
+    /// Restores health, clears flags, and resets state machine if applicable.
+    /// Override in derived classes for additional reset behavior.
+    /// Call base.ResetEnemy() to ensure proper reset and event firing.
+    /// </summary>
+    public virtual void ResetEnemy()
+    {
+        // Restore health to max
+        currentHealth = maxHealth;
+        
+        // Clear death and low health flags
+        deathSequenceTriggered = false;
+        hasFiredLowHealth = false;
+        
+        // Stop any death fallback routine
+        if (deathFallbackRoutine != null)
+        {
+            StopCoroutine(deathFallbackRoutine);
+            deathFallbackRoutine = null;
+        }
+        
+        // Re-enable the agent if it was disabled
+        if (agent != null && !agent.enabled)
+        {
+            agent.enabled = true;
+        }
+        
+        // Ensure the GameObject is active
+        if (!gameObject.activeSelf)
+        {
+            gameObject.SetActive(true);
+        }
+        
+        // Re-register with attack queue if needed
+        RegisterWithAttackQueue();
+        
+        // Fire the reset event for encounter tracking
+        InvokeOnReset();
+        
+#if UNITY_EDITOR
+        Debug.Log($"[{name}] ResetEnemy() called. Health restored to {maxHealth}.");
+#endif
     }
 
     // Method to fire triggers safely by value, returns true if fired
