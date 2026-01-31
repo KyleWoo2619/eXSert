@@ -632,25 +632,25 @@ public class BaseCrawlerEnemy : BaseEnemy<CrawlerEnemyState, CrawlerEnemyTrigger
     {
         if (_isRegisteredWithSwarmManager || !enableSwarmBehavior || SwarmManager.Instance == null)
         {
-            Debug.Log($"{gameObject.name}: RegisterWithSwarmManager skipped (already registered: {_isRegisteredWithSwarmManager}, enableSwarmBehavior: {enableSwarmBehavior}, SwarmManager.Instance null: {SwarmManager.Instance == null})", this);
+            //Debug.Log($"{gameObject.name}: RegisterWithSwarmManager skipped (already registered: {_isRegisteredWithSwarmManager}, enableSwarmBehavior: {enableSwarmBehavior}, SwarmManager.Instance null: {SwarmManager.Instance == null})", this);
             return;
         }
 
         SwarmManager.Instance.AddToSwarm(this);
         _isRegisteredWithSwarmManager = true;
-        Debug.Log($"{gameObject.name}: Registered with SwarmManager", this);
+        //Debug.Log($"{gameObject.name}: Registered with SwarmManager", this);
     }
 
     public void UnregisterFromSwarmManager()
     {
         if (!_isRegisteredWithSwarmManager || SwarmManager.Instance == null)
         {
-            Debug.Log($"{gameObject.name}: UnregisterFromSwarmManager skipped (not registered: {!_isRegisteredWithSwarmManager}, SwarmManager.Instance null: {SwarmManager.Instance == null})", this);
+            //Debug.Log($"{gameObject.name}: UnregisterFromSwarmManager skipped (not registered: {!_isRegisteredWithSwarmManager}, SwarmManager.Instance null: {SwarmManager.Instance == null})", this);
             return;
         }
 
         SwarmManager.Instance.RemoveFromSwarm(this);
         _isRegisteredWithSwarmManager = false;
-        Debug.Log($"{gameObject.name}: Unregistered from SwarmManager", this);
+        //Debug.Log($"{gameObject.name}: Unregistered from SwarmManager", this);
     }
 }
