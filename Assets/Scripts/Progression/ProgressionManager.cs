@@ -17,9 +17,12 @@ namespace Progression
 
     public class ProgressionManager : SceneSingleton<ProgressionManager>
     {
-        private bool zoneIsComplete = false;
+        /// <summary>
+        /// Indicates whether all encounters in the scene have been completed
+        /// </summary>
+        private bool allZonesComplete = false;
 
-        private Dictionary<BasicEncounter, bool> encounterCompletionMap = new Dictionary<BasicEncounter, bool>();
+        private List<BasicEncounter> encounterCompletionMap = new List<BasicEncounter>();
 
         protected override void Awake()
         {
@@ -28,9 +31,13 @@ namespace Progression
             this.gameObject.name = $"[{SceneAsset.GetSceneAssetOfObject(this.gameObject).name}] Progression Manager";
         }
 
+        /// <summary>
+        /// Adds the encounter to the manager's database
+        /// </summary>
+        /// <param name="encounter"></param>
         public void AddEncounter(BasicEncounter encounter)
         {
-            encounterCompletionMap.Add(encounter, false);
+            encounterCompletionMap.Add(encounter);
         }
     }
 }

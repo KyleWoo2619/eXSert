@@ -14,9 +14,37 @@ namespace Progression.Encounters
     {
         private ProgressionManager progressionManager;
 
+        public string encounterName => this.gameObject.name;
+
+        #region Inspector Settup
+        [SerializeField]
+        
+        private bool startEnabled = true;
+
+        [SerializeField]
+        private bool enableEncounterOnComplete = false;
+
+        [SerializeField]
+        public BasicEncounter encounterToEnable;
+        #endregion
+
+        /// <summary>
+        /// Indicates whether the player is currently within the encounter zone
+        /// </summary>
         protected bool zoneActive = false;
 
+        /// <summary>
+        /// Indicates if the encounter can be started when the player is in the zone
+        /// </summary>
+        protected bool zoneEnabled = false;
+
+        /// <summary>
+        /// Indicates whether the encounter has been completed
+        /// </summary>
+        protected bool isCompleted = false;
+
         protected BoxCollider encounterZone;
+
         protected virtual void Awake()
         {
             encounterZone = GetComponent<BoxCollider>();
@@ -55,18 +83,25 @@ namespace Progression.Encounters
             progressionManager.AddEncounter(this);
         }
 
+        /// <summary>
+        /// The setup function for the encounter, called during Start after being added to the ProgressionManager
+        /// </summary>
         protected abstract void SetupEncounter();
         #endregion
 
         #region Collider Functions
         protected virtual void OnTriggerEnter(Collider other)
         {
-           zoneActive = true;
+            if (other.gameObject.tag != "Player")
+                return;
+            zoneActive = true;
             Debug.Log("Zone Entered");
         }
 
         protected virtual void OnTriggerExit(Collider other)
         {
+            if (other.gameObject.tag != "Player")
+                return;
             zoneActive = false;
             Debug.Log("Zone Left");
         }

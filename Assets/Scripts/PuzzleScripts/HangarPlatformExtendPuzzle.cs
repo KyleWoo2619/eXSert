@@ -7,7 +7,7 @@
 
 using UnityEngine;
 
-public class HangarPlatformExtendPuzzle : MonoBehaviour, IPuzzleInterface
+public class HangarPlatformExtendPuzzle : PuzzlePart
 {
     [SerializeField] private float lerpSpeed = 10f;
     private bool isExtending = false;
@@ -15,8 +15,6 @@ public class HangarPlatformExtendPuzzle : MonoBehaviour, IPuzzleInterface
     private Vector3 targetPos;
 
     protected Vector3 origin;
-    
-    public bool isCompleted { get; set; }
 
     private void Awake()
     {
@@ -24,7 +22,7 @@ public class HangarPlatformExtendPuzzle : MonoBehaviour, IPuzzleInterface
     }
 
     // Extends platform out to desired point
-    public void StartPuzzle()
+    public override void StartPuzzle()
     {
         if(!isCompleted)
         {
@@ -36,7 +34,7 @@ public class HangarPlatformExtendPuzzle : MonoBehaviour, IPuzzleInterface
     }
 
     // If the platform is already extended, if it is clicked again it will revert
-    public void EndPuzzle()
+    public override void EndPuzzle()
     {
         if(isCompleted)
         {
@@ -47,7 +45,7 @@ public class HangarPlatformExtendPuzzle : MonoBehaviour, IPuzzleInterface
         }
     }
 
-
+    // to reduce performance impact, change this to be a coroutine
     private void Update()
     {
         if (isExtending)

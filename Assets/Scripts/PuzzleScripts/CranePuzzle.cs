@@ -72,7 +72,7 @@ public class ShowIfXAttribute : PropertyAttribute { }
 public class ShowIfYAttribute : PropertyAttribute { }
 public class ShowIfZAttribute : PropertyAttribute { }
 
-public class CranePuzzle : MonoBehaviour, IPuzzleInterface
+public class CranePuzzle : PuzzlePart
 {
     private enum DetectionResult
     {
@@ -146,8 +146,6 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
 
     // Coroutines for magnet animation
     private Coroutine retractCoroutine;
-
-    public bool isCompleted { get; set; }
 
     private void Awake()
     {
@@ -243,7 +241,7 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     #region IPuzzleInterface Methods
 
     // Called by whatever system starts this puzzle
-    public void StartPuzzle()
+    public override void StartPuzzle()
     {   
         if(InputReader.Instance.activeControlScheme == "Gamepad")
         {
@@ -298,7 +296,7 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     }
 
     // Call this when the puzzle is finished or cancelled
-    public void EndPuzzle()
+    public override void EndPuzzle()
     {
             foreach (GameObject img in craneUI)
             {
