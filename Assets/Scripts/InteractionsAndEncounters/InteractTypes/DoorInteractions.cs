@@ -12,16 +12,27 @@ public class DoorInteractions : UnlockableInteraction
 {
     [Tooltip("Place the gameObject with the DoorHandler component here, it may be on a different object or the same object as this script.")]
     [SerializeField] private DoorHandler doorHandler;
+    [SerializeField] private DoorHandler doorhandler2;
 
     protected override void ExecuteInteraction()
     {
         if (doorHandler != null)
         {
             doorHandler.Interact();
+
+            if (doorhandler2 != null)
+            {
+                doorhandler2.Interact();
+            }
+            else
+            {
+                Debug.LogError($"DoorHandler2 not assigned on {gameObject.name}");
+            }
         }
         else
         {
             Debug.LogError($"DoorHandler not assigned on {gameObject.name}");
         }
+        
     }
 }

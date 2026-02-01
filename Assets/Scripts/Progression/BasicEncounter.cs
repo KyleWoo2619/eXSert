@@ -1,0 +1,123 @@
+/*
+ * Made by Brandon, Implemented by Will
+ * 
+ * The core framework for implementing the Encounters
+ * 
+ */
+
+using UnityEngine;
+
+namespace Progression.Encounters
+{
+    [RequireComponent(typeof(BoxCollider))]
+    public abstract class BasicEncounter : MonoBehaviour
+    {
+        private ProgressionManager progressionManager;
+
+        public string encounterName => this.gameObject.name;
+
+        #region Inspector Settup
+        [SerializeField]
+        
+        private bool startEnabled = true;
+
+        [SerializeField]
+        private bool enableEncounterOnComplete = false;
+
+        [SerializeField]
+        public BasicEncounter encounterToEnable;
+        #endregion
+
+        /// <summary>
+        /// Indicates whether the player is currently within the encounter zone
+        /// </summary>
+        protected bool zoneActive = false;
+
+        /// <summary>
+        /// Indicates if the encounter can be started when the player is in the zone
+        /// </summary>
+        protected bool zoneEnabled = false;
+
+        /// <summary>
+        /// Indicates whether the encounter has been completed
+        /// </summary>
+        protected bool isCompleted = false;
+
+        protected BoxCollider encounterZone;
+
+        protected virtual void Awake()
+        {
+            encounterZone = GetComponent<BoxCollider>();
+
+            if (encounterZone == null)
+                Debug.LogError("Encounter couldn't find BoxCollider attached to gameobject");
+        }
+        protected virtual void Start()
+        {
+            // Find ProgressionManager in Scene and add this under its database
+            progressionManager = FindManager();
+            if (progressionManager == null)
+                return;
+
+            // add this to the manager's database
+            AddEncounterToManager();
+
+            // basic encounter setup
+            SetupEncounter();
+        }
+
+        #region Setup Functions
+        private ProgressionManager FindManager()
+        {
+            SceneAsset asset = SceneAsset.GetSceneAssetOfObject(this.gameObject);
+            ProgressionManager manager = ProgressionManager.GetInstance(asset);
+            if (manager == null)
+            {
+                Debug.LogError($"{this.gameObject.name} could not find ProgressionManager in scene {asset.name}");
+            }
+            return manager;
+        }
+
+        private void AddEncounterToManager()
+        {
+            progressionManager.AddEncounter(this);
+        }
+
+        /// <summary>
+        /// The setup function for the encounter, called during Start after being added to the ProgressionManager
+        /// </summary>
+        protected abstract void SetupEncounter();
+        #endregion
+
+        #region Collider Functions
+        protected virtual void OnTriggerEnter(Collider other)
+        {
+            if (other.gameObject.tag != "Player")
+                return;
+            zoneActive = true;
+            Debug.Log("Zone Entered");
+        }
+
+        protected virtual void OnTriggerExit(Collider other)
+        {
+            if (other.gameObject.tag != "Player")
+                return;
+            zoneActive = false;
+            Debug.Log("Zone Left");
+        }
+        #endregion
+
+        #region Debug Scripts
+        protected abstract Color DebugColor { get; }
+
+        private void OnDrawGizmos()
+        {
+            if(encounterZone == null)
+                encounterZone = GetComponent<BoxCollider>();
+
+            Gizmos.color = DebugColor;
+            Gizmos.DrawWireCube(encounterZone.bounds.center, encounterZone.bounds.size);
+        }
+        #endregion
+    }
+}

@@ -10,10 +10,10 @@
 
 using System.Collections;
 using UnityEngine;
-public class SlowDownElevator : MonoBehaviour, IPuzzleInterface
+public class SlowDownElevator : PuzzlePart
 {
     [Header("Required References")]
-    [SerializeField] private ElevatorWalls _elevatorWalls;
+    [SerializeField, CriticalReference] private ElevatorWalls _elevatorWalls;
     [SerializeField] private PlaySoundThroughManager elevatorAmbience;
 
     [Header("Deceleration")]
@@ -46,8 +46,6 @@ public class SlowDownElevator : MonoBehaviour, IPuzzleInterface
     private bool _swapped = false;
 
     [SerializeField] private float _pointToSwitchWallsY;
-    
-    public bool isCompleted { get; set; } = false;
 
     private void Awake()
     {
@@ -59,6 +57,7 @@ public class SlowDownElevator : MonoBehaviour, IPuzzleInterface
         _initialSpeed = 0f;
     }
 
+    // this should be changed to a coroutine to reduce performance impact
     private void Update()
     {
         if (_isDecelerating)
@@ -70,15 +69,10 @@ public class SlowDownElevator : MonoBehaviour, IPuzzleInterface
 
     /// <summary>
     /// Initiates the elevator deceleration puzzle.
+    /// When StartPuzzle is called, the elevator will begin to decelerate.
     /// </summary>
-    public void StartPuzzle()
+    public override void StartPuzzle()
     {
-        if (_elevatorWalls == null)
-        {
-            Debug.LogError("[SlowDownElevator] ElevatorWalls reference is missing!");
-            return;
-        }
-
         _soundFadeStarted = false;
         _decelerationTimer = 0f;
         _isDecelerating = true;
@@ -132,7 +126,7 @@ public class SlowDownElevator : MonoBehaviour, IPuzzleInterface
     /// <summary>
     /// Called when the puzzle ends. Placeholder for future logic.
     /// </summary>
-    public void EndPuzzle()
+    public override void EndPuzzle()
     {
         // Puzzle end logic (if needed in future)
     }
@@ -233,7 +227,7 @@ public class SlowDownElevator : MonoBehaviour, IPuzzleInterface
             }
 
             // Move wallWithDoor only after swap
-            if(_swapped && _elevatorWalls.wallWithDoor != null)
+            if(_elevatorWalls.wallWithDoor != null)
             {
                 Vector3 doorPos = _elevatorWalls.wallWithDoor.transform.position;
                 doorPos.y = currentY; // keep in sync after swap
