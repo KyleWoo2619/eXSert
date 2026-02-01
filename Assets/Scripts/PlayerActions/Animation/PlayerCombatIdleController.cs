@@ -3,7 +3,7 @@ using Utilities.Combat;
 using Utilities.Combat.Attacks;
 
 /// <summary>
-/// Drives stance-aware idle playback (breathing, combat, weapon-check) using gameplay signals rather than animator logic.
+/// Drives attack-type-aware idle playback (breathing, combat, weapon-check) using gameplay signals rather than animator logic.
 /// </summary>
 [DisallowMultipleComponent]
 public class PlayerCombatIdleController : MonoBehaviour
@@ -11,7 +11,6 @@ public class PlayerCombatIdleController : MonoBehaviour
     private const float WeaponCheckCrossfade = 0.3f;
     private const float WeaponCheckCompletionThreshold = 0.99f;
     private const string SingleTargetBreathingState = "ST_Breathing";
-    private const string AreaBreathingState = "AOE_Breathing";
     private const string SingleTargetCombatState = "ST_Idle_Combat";
     private const string AreaCombatState = "AOE_Idle_Combat";
     private const string SingleTargetWeaponCheckState = "ST_Idle_WC";
@@ -27,7 +26,6 @@ public class PlayerCombatIdleController : MonoBehaviour
     [Header("References")]
     [SerializeField]
     private PlayerAnimationController animationController;
-
     [SerializeField]
     private CharacterController characterController;
 
@@ -36,24 +34,22 @@ public class PlayerCombatIdleController : MonoBehaviour
     [Tooltip("Seconds the player stays flagged as in combat after an attack or taking damage.")]
     private float combatDuration = 10f;
 
-    [SerializeField]
-    [Tooltip(
-        "Seconds of total inactivity before the weapon-check idle fires (only counts during breathing idle).")]
-    private float weaponCheckDelay = 15f;
+
+
 
     [SerializeField]
     [Tooltip("Minimum squared magnitude required to treat MoveInput as real movement.")]
     private float movementThreshold = 0.02f;
 
     private float combatTimer;
-    private float breathingIdleTimer;
     private bool weaponCheckActive;
+    private bool weaponCheckHasBegun;
     private string activeWeaponCheckState = string.Empty;
-    private string lastIdleKey = string.Empty;
     private string lastStateName = string.Empty;
     private IdlePose currentPose = IdlePose.Breathing;
     private bool inputBusyLastFrame;
     private bool guardActiveLastFrame;
+    private bool lastAttackWasAoe;
 
     private void Awake()
     {
@@ -72,31 +68,23 @@ public class PlayerCombatIdleController : MonoBehaviour
     {
         PlayerAttackManager.OnAttack += HandleAttackEvent;
         PlayerHealthBarManager.OnPlayerDamaged += HandleDamageEvent;
-        CombatManager.OnStanceChanged += HandleStanceChanged;
     }
 
     private void OnDisable()
     {
         PlayerAttackManager.OnAttack -= HandleAttackEvent;
         PlayerHealthBarManager.OnPlayerDamaged -= HandleDamageEvent;
-        CombatManager.OnStanceChanged -= HandleStanceChanged;
     }
 
     private void HandleAttackEvent(PlayerAttack _)
     {
+        UpdateLastAttackType(_);
         EnterCombatState();
     }
 
     private void HandleDamageEvent(float _)
     {
         EnterCombatState();
-    }
-
-    private void HandleStanceChanged()
-    {
-        lastIdleKey = string.Empty;
-        lastStateName = string.Empty;
-        TryForceStanceIdleUpdate();
     }
 
     private void EnterCombatState()
@@ -125,7 +113,6 @@ public class PlayerCombatIdleController : MonoBehaviour
         if (guardActiveLastFrame)
         {
             guardActiveLastFrame = false;
-            lastIdleKey = string.Empty;
             lastStateName = string.Empty;
         }
 
@@ -142,7 +129,6 @@ public class PlayerCombatIdleController : MonoBehaviour
         if (inputBusyLastFrame)
         {
             inputBusyLastFrame = false;
-            lastIdleKey = string.Empty;
             lastStateName = string.Empty;
         }
 
@@ -186,19 +172,10 @@ public class PlayerCombatIdleController : MonoBehaviour
         bool breathingActive = desiredPose == IdlePose.Breathing
             && !weaponCheckActive
             && IsPoseActive(IdlePose.Breathing);
-        if (breathingActive)
+        if (breathingActive && HasBreathingFinished())
         {
-            breathingIdleTimer += Time.deltaTime;
-            if (breathingIdleTimer >= weaponCheckDelay)
-            {
-                ResetBreathingTimer();
-                PlayWeaponCheck();
-                return;
-            }
-        }
-        else
-        {
-            ResetBreathingTimer();
+            PlayWeaponCheck();
+            return;
         }
 
         EnsureIdlePose(desiredPose);
@@ -206,6 +183,8 @@ public class PlayerCombatIdleController : MonoBehaviour
 
     private void PlayWeaponCheck()
     {
+        activeWeaponCheckState = GetWeaponCheckStateForLastAttack();
+        weaponCheckHasBegun = false;
         SetIdlePose(IdlePose.WeaponCheck, WeaponCheckCrossfade);
     }
 
@@ -215,6 +194,7 @@ public class PlayerCombatIdleController : MonoBehaviour
             return;
 
         weaponCheckActive = false;
+        weaponCheckHasBegun = false;
         activeWeaponCheckState = string.Empty;
         ResetBreathingTimer();
 
@@ -227,59 +207,56 @@ public class PlayerCombatIdleController : MonoBehaviour
         if (string.IsNullOrEmpty(activeWeaponCheckState))
             return true;
 
+        if (!weaponCheckHasBegun)
+        {
+            if (animationController.IsPlaying(activeWeaponCheckState, out _))
+                weaponCheckHasBegun = true;
+            return false;
+        }
+
         if (!animationController.IsPlaying(activeWeaponCheckState, out float normalizedTime))
-            return true;
+            return weaponCheckHasBegun;
 
         return normalizedTime >= WeaponCheckCompletionThreshold;
     }
 
     private void SetIdlePose(IdlePose pose, float transitionOverride = -1f)
     {
-        string newKey = ComposeIdleKey(pose);
-        string stateName = GetStateNameForPose(pose);
+        string stateName = ResolveStateNameForPose(pose);
         bool poseAllowsRefresh = pose == IdlePose.WeaponCheck;
 
-        if (!poseAllowsRefresh && newKey == lastIdleKey && !NeedsStateRefresh(stateName))
+        if (!poseAllowsRefresh && stateName == lastStateName && !NeedsStateRefresh(stateName))
             return;
 
         switch (pose)
         {
             case IdlePose.Breathing:
-                if (CombatManager.singleTargetMode)
-                    animationController.PlaySingleTargetBreathing(transitionOverride);
-                else
-                    animationController.PlayAoeBreathing(transitionOverride);
+                animationController.PlaySingleTargetBreathing(transitionOverride);
                 weaponCheckActive = false;
                 activeWeaponCheckState = string.Empty;
                 ResetBreathingTimer();
                 break;
             case IdlePose.Combat:
-                if (CombatManager.singleTargetMode)
-                    animationController.PlaySingleTargetIdleCombat();
-                else
+                if (lastAttackWasAoe)
                     animationController.PlayAoeIdleCombat();
+                else
+                    animationController.PlaySingleTargetIdleCombat();
                 weaponCheckActive = false;
                 activeWeaponCheckState = string.Empty;
                 ResetBreathingTimer();
                 break;
             case IdlePose.WeaponCheck:
-                if (CombatManager.singleTargetMode)
-                {
-                    animationController.PlaySingleTargetIdleWorld(transitionOverride);
-                    activeWeaponCheckState = SingleTargetWeaponCheckState;
-                }
-                else
-                {
+                activeWeaponCheckState = stateName;
+                if (stateName == AreaWeaponCheckState)
                     animationController.PlayAoeIdleWorld(transitionOverride);
-                    activeWeaponCheckState = AreaWeaponCheckState;
-                }
+                else
+                    animationController.PlaySingleTargetIdleWorld(transitionOverride);
                 weaponCheckActive = true;
                 ResetBreathingTimer();
                 break;
         }
 
         currentPose = pose;
-        lastIdleKey = newKey;
         lastStateName = stateName;
     }
 
@@ -288,7 +265,6 @@ public class PlayerCombatIdleController : MonoBehaviour
         if (animationController == null)
             return;
 
-        lastIdleKey = string.Empty;
         lastStateName = string.Empty;
         currentPose = IdlePose.Breathing;
         ResetBreathingTimer();
@@ -297,9 +273,8 @@ public class PlayerCombatIdleController : MonoBehaviour
 
     private void EnsureIdlePose(IdlePose pose)
     {
-        string desiredKey = ComposeIdleKey(pose);
-        string desiredState = GetStateNameForPose(pose);
-        bool needsStanceRefresh = desiredKey != lastIdleKey;
+        string desiredState = ResolveStateNameForPose(pose);
+        bool needsStanceRefresh = desiredState != lastStateName;
         bool statePlaying = !string.IsNullOrEmpty(desiredState)
             && animationController.IsPlaying(desiredState, out _);
 
@@ -309,51 +284,27 @@ public class PlayerCombatIdleController : MonoBehaviour
         SetIdlePose(pose);
     }
 
-    private string ComposeIdleKey(IdlePose pose)
-    {
-        string prefix = CombatManager.singleTargetMode ? "ST" : "AOE";
-        return $"{prefix}_{pose}";
-    }
-
     private bool IsPoseActive(IdlePose pose)
     {
-        string stateName = GetStateNameForPose(pose);
+        string stateName = ResolveStateNameForPose(pose);
         return !string.IsNullOrEmpty(stateName) && animationController.IsPlaying(stateName, out _);
     }
 
-    private static string GetStateNameForPose(bool singleTarget, IdlePose pose)
+    private string ResolveStateNameForPose(IdlePose pose)
     {
-        if (singleTarget)
+        switch (pose)
         {
-            switch (pose)
-            {
-                case IdlePose.Breathing:
-                    return SingleTargetBreathingState;
-                case IdlePose.Combat:
-                    return SingleTargetCombatState;
-                case IdlePose.WeaponCheck:
-                    return SingleTargetWeaponCheckState;
-            }
+            case IdlePose.Breathing:
+                return SingleTargetBreathingState;
+            case IdlePose.Combat:
+                return lastAttackWasAoe ? AreaCombatState : SingleTargetCombatState;
+            case IdlePose.WeaponCheck:
+                return !string.IsNullOrEmpty(activeWeaponCheckState)
+                    ? activeWeaponCheckState
+                    : GetWeaponCheckStateForLastAttack();
+            default:
+                return string.Empty;
         }
-        else
-        {
-            switch (pose)
-            {
-                case IdlePose.Breathing:
-                    return AreaBreathingState;
-                case IdlePose.Combat:
-                    return AreaCombatState;
-                case IdlePose.WeaponCheck:
-                    return AreaWeaponCheckState;
-            }
-        }
-
-        return string.Empty;
-    }
-
-    private string GetStateNameForPose(IdlePose pose)
-    {
-        return GetStateNameForPose(CombatManager.singleTargetMode, pose);
     }
 
     private bool NeedsStateRefresh(string stateName)
@@ -364,26 +315,36 @@ public class PlayerCombatIdleController : MonoBehaviour
         return !animationController.IsPlaying(stateName, out _);
     }
 
-    private void ResetBreathingTimer()
+    private void ResetBreathingTimer() { }
+
+    private bool HasBreathingFinished()
     {
-        breathingIdleTimer = 0f;
+        if (!animationController.IsPlaying(SingleTargetBreathingState, out float normalizedTime))
+            return false;
+
+        return normalizedTime >= WeaponCheckCompletionThreshold;
     }
 
-    private void TryForceStanceIdleUpdate()
+    private string GetWeaponCheckStateForLastAttack()
     {
-        if (animationController == null || InputReader.inputBusy)
+        return lastAttackWasAoe ? AreaWeaponCheckState : SingleTargetWeaponCheckState;
+    }
+
+    private void UpdateLastAttackType(PlayerAttack attack)
+    {
+        if (attack == null)
             return;
 
-        bool grounded = characterController == null || characterController.isGrounded;
-        if (!grounded)
-            return;
-
-        bool hasMovementInput = InputReader.MoveInput.sqrMagnitude >= movementThreshold;
-        if (hasMovementInput)
-            return;
-
-        IdlePose desiredPose = combatTimer > 0f ? IdlePose.Combat : IdlePose.Breathing;
-        SetIdlePose(desiredPose, 0f);
+        switch (attack.attackType)
+        {
+            case AttackType.LightSingle:
+            case AttackType.HeavySingle:
+                lastAttackWasAoe = false;
+                break;
+            case AttackType.HeavyAOE:
+                lastAttackWasAoe = true;
+                break;
+        }
     }
 }
 
