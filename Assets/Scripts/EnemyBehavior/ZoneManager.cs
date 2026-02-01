@@ -42,16 +42,20 @@ public class ZoneManager : MonoBehaviour
 
     public Zone[] GetAllZones() => cachedZones ?? System.Array.Empty<Zone>();
 
-    public Zone[] GetOtherZones(Zone currentZone)
+    /// <summary>
+    /// Returns a read-only list of zones excluding the specified zone.
+    /// Note: The returned list is reused - do not cache the reference.
+    /// </summary>
+    public IReadOnlyList<Zone> GetOtherZones(Zone currentZone)
     {
-        if (cachedZones == null) return System.Array.Empty<Zone>();
-        
         tempZoneList.Clear();
+        if (cachedZones == null) return tempZoneList;
+        
         foreach (var zone in cachedZones)
         {
             if (zone != currentZone)
                 tempZoneList.Add(zone);
         }
-        return tempZoneList.ToArray();
+        return tempZoneList;
     }
 }

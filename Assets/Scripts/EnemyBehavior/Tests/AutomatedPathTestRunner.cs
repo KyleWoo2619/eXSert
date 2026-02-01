@@ -11,7 +11,7 @@ public class AutomatedPathTestRunner : MonoBehaviour
  IEnumerator Start()
  {
  // small delay to allow systems to initialize
- yield return new WaitForSeconds(waitBeforeStart);
+ yield return WaitForSecondsCache.Get(waitBeforeStart);
  yield return RunAllTests();
  }
 

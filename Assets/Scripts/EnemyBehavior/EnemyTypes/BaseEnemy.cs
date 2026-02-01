@@ -4,9 +4,10 @@ using Stateless;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.SceneManagement;
+using EnemyBehavior;
 
 // BaseEnemy is generic so derived classes can define their own states and triggers
-public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
+public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem, IQueuedAttacker
     where TState : struct, System.Enum
     where TTrigger : struct, System.Enum
 {
@@ -88,9 +89,26 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     protected Renderer enemyRenderer;
     protected Animator animator;
 
-
     private bool deathSequenceTriggered;
     private Coroutine deathFallbackRoutine;
+
+    /// <summary>
+    /// Event fired when this enemy dies. Subscribers receive this enemy instance.
+    /// Fired once when the death sequence begins (before destruction).
+    /// </summary>
+    public event System.Action<BaseEnemy<TState, TTrigger>> OnDeath;
+
+    /// <summary>
+    /// Event fired when this enemy begins its spawn sequence.
+    /// Subscribers receive this enemy instance. Use for encounter tracking.
+    /// </summary>
+    public event System.Action<BaseEnemy<TState, TTrigger>> OnSpawn;
+
+    /// <summary>
+    /// Event fired when this enemy is reset (e.g., player left encounter zone).
+    /// Subscribers receive this enemy instance. Fired after reset logic completes.
+    /// </summary>
+    public event System.Action<BaseEnemy<TState, TTrigger>> OnReset;
 
     // Cached animator parameter checks to avoid allocations from repeated animator.parameters access
     private bool _hasIsMovingParam;
@@ -136,6 +154,72 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         get => playerTarget;
         set => playerTarget = value;
     }
+
+    #region IQueuedAttacker Implementation
+    
+    /// <summary>
+    /// Override in derived class to return true for boss enemies.
+    /// Default is false (regular enemy).
+    /// </summary>
+    public virtual bool IsBoss => false;
+    
+    /// <summary>
+    /// Returns true if this enemy is alive and able to attack.
+    /// </summary>
+    public bool IsAlive => currentHealth > 0f && gameObject != null && gameObject.activeInHierarchy;
+    
+    /// <summary>
+    /// Returns the GameObject for the queue manager.
+    /// </summary>
+    public GameObject AttackerGameObject => gameObject;
+    
+    /// <summary>
+    /// Check if this enemy can attack right now (is at front of queue).
+    /// Call this before starting an attack.
+    /// </summary>
+    public bool CanAttackFromQueue()
+    {
+        if (EnemyAttackQueueManager.Instance == null) return true; // No queue manager = free for all
+        return EnemyAttackQueueManager.Instance.CanAttack(this);
+    }
+    
+    /// <summary>
+    /// Notify the queue that this enemy is beginning an attack.
+    /// Call this when the attack starts.
+    /// </summary>
+    public void NotifyAttackBegin()
+    {
+        EnemyAttackQueueManager.Instance?.BeginAttack(this);
+    }
+    
+    /// <summary>
+    /// Notify the queue that this enemy finished attacking.
+    /// Call this when the attack ends (hit or miss).
+    /// </summary>
+    public void NotifyAttackEnd()
+    {
+        EnemyAttackQueueManager.Instance?.FinishAttack(this);
+    }
+    
+    /// <summary>
+    /// Register this enemy with the attack queue.
+    /// Called automatically in Start, but can be called manually for pooled enemies.
+    /// </summary>
+    public void RegisterWithAttackQueue()
+    {
+        EnemyAttackQueueManager.Instance?.Register(this);
+    }
+    
+    /// <summary>
+    /// Unregister this enemy from the attack queue.
+    /// Called automatically in OnDestroy, but can be called manually for pooled enemies.
+    /// </summary>
+    public void UnregisterFromAttackQueue()
+    {
+        EnemyAttackQueueManager.Instance?.Unregister(this);
+    }
+    
+    #endregion
 
     /// <summary>
     /// Ensures an EnemyHealthBar exists and is bound to this enemy's IHealthSystem implementation.
@@ -204,6 +288,12 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     protected virtual void ConfigureStateMachine()
     {
         // Intentionally left blank for derived class override
+    }
+
+    protected virtual void Start()
+    {
+        // Register with the attack queue system
+        RegisterWithAttackQueue();
     }
 
     // Update is called once per frame
@@ -370,6 +460,9 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     {
         SceneManager.sceneLoaded -= HandleSceneLoaded;
         CleanupExternalHelpers();
+        
+        // Unregister from the attack queue system
+        UnregisterFromAttackQueue();
     }
 
     protected virtual void PlayLocomotionAnim(float moveSpeed)
@@ -602,6 +695,10 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
             if (!deathSequenceTriggered)
             {
                 deathSequenceTriggered = true;
+                
+                // Fire the OnDeath event for any listeners
+                InvokeOnDeath();
+                
                 bool fired = TryFireTriggerByName("Die");
                 if (!fired)
                 {
@@ -619,6 +716,119 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
             hasFiredLowHealth = true;
             TryFireTriggerByName("LowHealth");
         }
+    }
+    
+    /// <summary>
+    /// Invokes the OnDeath event. Called automatically when health reaches zero.
+    /// Can be called manually if needed for custom death sequences.
+    /// </summary>
+    protected void InvokeOnDeath()
+    {
+        try
+        {
+            OnDeath?.Invoke(this);
+        }
+        catch (System.Exception ex)
+        {
+#if UNITY_EDITOR
+            Debug.LogError($"[{name}] Exception in OnDeath event handler: {ex}");
+#endif
+        }
+    }
+
+    /// <summary>
+    /// Invokes the OnSpawn event. Called by Spawn() when the spawn sequence begins.
+    /// </summary>
+    protected void InvokeOnSpawn()
+    {
+        try
+        {
+            OnSpawn?.Invoke(this);
+        }
+        catch (System.Exception ex)
+        {
+#if UNITY_EDITOR
+            Debug.LogError($"[{name}] Exception in OnSpawn event handler: {ex}");
+#endif
+        }
+    }
+
+    /// <summary>
+    /// Invokes the OnReset event. Called by ResetEnemy() after reset logic completes.
+    /// </summary>
+    protected void InvokeOnReset()
+    {
+        try
+        {
+            OnReset?.Invoke(this);
+        }
+        catch (System.Exception ex)
+        {
+#if UNITY_EDITOR
+            Debug.LogError($"[{name}] Exception in OnReset event handler: {ex}");
+#endif
+        }
+    }
+
+    /// <summary>
+    /// Called when the enemy should begin its spawn sequence (e.g., play spawn animation).
+    /// Override in derived classes for custom spawn behavior.
+    /// Call base.Spawn() to fire the OnSpawn event.
+    /// </summary>
+    public virtual void Spawn()
+    {
+        // Fire the spawn event for encounter tracking
+        InvokeOnSpawn();
+        
+        // Derived classes can override to play spawn animations, enable AI, etc.
+#if UNITY_EDITOR
+        Debug.Log($"[{name}] Spawn() called. Override in derived class for custom spawn animation.");
+#endif
+    }
+
+    /// <summary>
+    /// Resets the enemy to its initial state (e.g., when player leaves encounter zone).
+    /// Restores health, clears flags, and resets state machine if applicable.
+    /// Override in derived classes for additional reset behavior.
+    /// Call base.ResetEnemy() to ensure proper reset and event firing.
+    /// </summary>
+    public virtual void ResetEnemy()
+    {
+        // Restore health to max
+        currentHealth = maxHealth;
+        
+        // Clear death and low health flags
+        deathSequenceTriggered = false;
+        hasFiredLowHealth = false;
+        
+        // Stop any death fallback routine
+        if (deathFallbackRoutine != null)
+        {
+            StopCoroutine(deathFallbackRoutine);
+            deathFallbackRoutine = null;
+        }
+        
+        // Re-enable the agent if it was disabled
+        if (agent != null && !agent.enabled)
+        {
+            agent.enabled = true;
+        }
+        
+        // Ensure the GameObject is active
+        if (!gameObject.activeSelf)
+        {
+            gameObject.SetActive(true);
+        }
+        
+        // Re-register with attack queue if needed
+        RegisterWithAttackQueue();
+        
+        // Fire the reset event for encounter tracking
+        InvokeOnReset();
+        
+#if UNITY_EDITOR
+        Debug.Log($"[{name}] ResetEnemy() called. Health restored to {maxHealth}.");
+#endif
     }
 
     // Method to fire triggers safely by value, returns true if fired

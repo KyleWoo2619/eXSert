@@ -12,6 +12,10 @@ Handles player movement and saves/loads player position
 * Edited by Kyle Woo
 * Added aerial combat integration, including aerial attack hops and plunge attacks
 * Included more complex animation system and intricate movement state management
+* 
+* Edited by William Hamaric
+* Added functionality for external forces/velocities to be used for the vacuum/suction move for the Roomba fight
+* (Currently) Lines 210-212, 895-900, 1256-1291
 */
 
 using System;
@@ -202,6 +206,10 @@ public class PlayerMovement : MonoBehaviour
     private Coroutine externalStunRoutine;
     private bool externalStunOwnsInput;
     private bool disabledByDeath;
+
+    // External velocity injection (used by vacuum suction, knockback, etc.)
+    private Vector3 externalVelocity = Vector3.zero;
+    private bool externalVelocityActive;
 
     private Transform ResolveCameraTransform()
     {
@@ -884,6 +892,13 @@ public class PlayerMovement : MonoBehaviour
         currentMovement.y = Mathf.Clamp(currentMovement.y, -terminalVelocity, terminalVelocity);
 
         Vector3 horizontalMovement = isDashing ? dashVelocity : new Vector3(currentMovement.x, 0, currentMovement.z);
+        
+        // Add external velocity injection (vacuum suction, knockback, etc.)
+        if (externalVelocityActive)
+        {
+            horizontalMovement += new Vector3(externalVelocity.x, 0, externalVelocity.z);
+        }
+        
         Vector3 finalVelocity = horizontalMovement + Vector3.up * currentMovement.y;
 
         // move the character controller
@@ -1239,4 +1254,53 @@ public class PlayerMovement : MonoBehaviour
                 break;
         }
     }
+
+    #region External Velocity Injection (Vacuum, Knockback, etc.)
+    
+    /// <summary>
+    /// Sets an external velocity that will be applied to the player each frame.
+    /// Used by systems like vacuum suction that need to move the player externally.
+    /// Call ClearExternalVelocity() when done.
+    /// </summary>
+    public void SetExternalVelocity(Vector3 velocity)
+    {
+#if UNITY_EDITOR
+        // Only log when first activated (not every frame)
+        if (!externalVelocityActive && velocity.sqrMagnitude > 0.1f)
+        {
+            Debug.Log($"[PlayerMovement] SetExternalVelocity STARTED: {velocity}, magnitude={velocity.magnitude:F2}");
+        }
+#endif
+        
+        externalVelocity = velocity;
+        externalVelocityActive = true;
+    }
+
+    /// <summary>
+    /// Clears any active external velocity injection.
+    /// </summary>
+    public void ClearExternalVelocity()
+    {
+#if UNITY_EDITOR
+        if (externalVelocityActive)
+        {
+            Debug.Log("[PlayerMovement] ClearExternalVelocity called - external velocity stopped");
+        }
+#endif
+        externalVelocity = Vector3.zero;
+        externalVelocityActive = false;
+    }
+
+    /// <summary>
+    /// Returns true if an external velocity is currently being applied.
+    /// </summary>
+    public bool HasExternalVelocity => externalVelocityActive;
+
+    /// <summary>
+    /// Gets the CharacterController for direct external manipulation.
+    /// Use with caution - prefer SetExternalVelocity for most use cases.
+    /// </summary>
+    public CharacterController GetCharacterController() => characterController;
+
+    #endregion
 }

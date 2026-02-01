@@ -65,7 +65,7 @@ public class GeneratedMovingPlatform : MonoBehaviour
  pitObstacle.carving = false;
 
  // Arrived, linger
- yield return new WaitForSeconds(Mathf.Max(0f, lingerSeconds));
+ yield return WaitForSecondsCache.Get(Mathf.Max(0f, lingerSeconds));
 
  _index++;
  if (_index >= pathPoints.Length)

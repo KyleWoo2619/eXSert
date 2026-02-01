@@ -175,7 +175,7 @@ public class BossRoombaController : MonoBehaviour
 
     private IEnumerator AnimParamsLoop(float cadence)
     {
-        var wait = new WaitForSeconds(Mathf.Max(0.02f, cadence));
+        var wait = WaitForSecondsCache.Get(Mathf.Max(0.02f, cadence));
         if (animator == null) yield break;
         while (true)
         {
@@ -268,7 +268,7 @@ public class BossRoombaController : MonoBehaviour
 
     private IEnumerator FollowLoop(float cadence)
     {
-        var wait = new WaitForSeconds(Mathf.Max(0.02f, cadence));
+        var wait = WaitForSecondsCache.Get(Mathf.Max(0.02f, cadence));
         while (true)
         {
             if (player != null)
@@ -394,7 +394,7 @@ public class BossRoombaController : MonoBehaviour
 
     private IEnumerator ManageSpawnsRoutine()
     {
-        var wait = new WaitForSeconds(2f);
+        var wait = WaitForSecondsCache.Get(2f);
         
         while (alarmActivated)
         {
