@@ -4,9 +4,10 @@ using Stateless;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.SceneManagement;
+using EnemyBehavior;
 
 // BaseEnemy is generic so derived classes can define their own states and triggers
-public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
+public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem, IQueuedAttacker
     where TState : struct, System.Enum
     where TTrigger : struct, System.Enum
 {
@@ -88,9 +89,26 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     protected Renderer enemyRenderer;
     protected Animator animator;
 
-
     private bool deathSequenceTriggered;
     private Coroutine deathFallbackRoutine;
+
+    /// <summary>
+    /// Event fired when this enemy dies. Subscribers receive this enemy instance.
+    /// Fired once when the death sequence begins (before destruction).
+    /// </summary>
+    public event System.Action<BaseEnemy<TState, TTrigger>> OnDeath;
+
+    /// <summary>
+    /// Event fired when this enemy begins its spawn sequence.
+    /// Subscribers receive this enemy instance. Use for encounter tracking.
+    /// </summary>
+    public event System.Action<BaseEnemy<TState, TTrigger>> OnSpawn;
+
+    /// <summary>
+    /// Event fired when this enemy is reset (e.g., player left encounter zone).
+    /// Subscribers receive this enemy instance. Fired after reset logic completes.
+    /// </summary>
+    public event System.Action<BaseEnemy<TState, TTrigger>> OnReset;
 
     // Cached animator parameter checks to avoid allocations from repeated animator.parameters access
     private bool _hasIsMovingParam;
@@ -136,6 +154,72 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         get => playerTarget;
         set => playerTarget = value;
     }
+
+    #region IQueuedAttacker Implementation
+    
+    /// <summary>
+    /// Override in derived class to return true for boss enemies.
+    /// Default is false (regular enemy).
+    /// </summary>
+    public virtual bool IsBoss => false;
+    
+    /// <summary>
+    /// Returns true if this enemy is alive and able to attack.
+    /// </summary>
+    public bool IsAlive => currentHealth > 0f && gameObject != null && gameObject.activeInHierarchy;
+    
+    /// <summary>
+    /// Returns the GameObject for the queue manager.
+    /// </summary>
+    public GameObject AttackerGameObject => gameObject;
+    
+    /// <summary>
+    /// Check if this enemy can attack right now (is at front of queue).
+    /// Call this before starting an attack.
+    /// </summary>
+    public bool CanAttackFromQueue()
+    {
+        if (EnemyAttackQueueManager.Instance == null) return true; // No queue manager = free for all
+        return EnemyAttackQueueManager.Instance.CanAttack(this);
+    }
+    
+    /// <summary>
+    /// Notify the queue that this enemy is beginning an attack.
+    /// Call this when the attack starts.
+    /// </summary>
+    public void NotifyAttackBegin()
+    {
+        EnemyAttackQueueManager.Instance?.BeginAttack(this);
+    }
+    
+    /// <summary>
+    /// Notify the queue that this enemy finished attacking.
+    /// Call this when the attack ends (hit or miss).
+    /// </summary>
+    public void NotifyAttackEnd()
+    {
+        EnemyAttackQueueManager.Instance?.FinishAttack(this);
+    }
+    
+    /// <summary>
+    /// Register this enemy with the attack queue.
+    /// Called automatically in Start, but can be called manually for pooled enemies.
+    /// </summary>
+    public void RegisterWithAttackQueue()
+    {
+        EnemyAttackQueueManager.Instance?.Register(this);
+    }
+    
+    /// <summary>
+    /// Unregister this enemy from the attack queue.
+    /// Called automatically in OnDestroy, but can be called manually for pooled enemies.
+    /// </summary>
+    public void UnregisterFromAttackQueue()
+    {
+        EnemyAttackQueueManager.Instance?.Unregister(this);
+    }
+    
+    #endregion
 
     /// <summary>
     /// Ensures an EnemyHealthBar exists and is bound to this enemy's IHealthSystem implementation.
@@ -206,6 +290,12 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         // Intentionally left blank for derived class override
     }
 
+    protected virtual void Start()
+    {
+        // Register with the attack queue system
+        RegisterWithAttackQueue();
+    }
+
     // Update is called once per frame
     protected virtual void Update()
     {
@@ -225,6 +315,11 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     protected virtual void PlayIdleAnim()
     {
         PlayState(idleStateName);
+    }
+
+    protected void PlayIdleAnimOn(Animator target)
+    {
+        PlayStateOn(target, idleStateName);
     }
 
     protected void RegisterExternalHelper(GameObject helper)
@@ -295,7 +390,7 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         }
 
         detectionCollider.isTrigger = true;
-        detectionCollider.radius = detectionRange;
+        detectionCollider.radius = GetUnscaledRadiusForRange(detectionCollider, detectionRange);
     }
 
     private void EnsureAttackCollider()
@@ -365,6 +460,9 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     {
         SceneManager.sceneLoaded -= HandleSceneLoaded;
         CleanupExternalHelpers();
+        
+        // Unregister from the attack queue system
+        UnregisterFromAttackQueue();
     }
 
     protected virtual void PlayLocomotionAnim(float moveSpeed)
@@ -408,11 +506,27 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         }
     }
 
+    protected void PlayAttackAnimOn(Animator target)
+    {
+        if (!TrySetTriggerOn(target, attackTriggerName))
+        {
+            PlayStateOn(target, attackStateName);
+        }
+    }
+
     protected virtual void PlayHitAnim()
     {
         if (!TrySetTrigger(hitTriggerName))
         {
             PlayState(hitStateName);
+        }
+    }
+
+    protected void PlayHitAnimOn(Animator target)
+    {
+        if (!TrySetTriggerOn(target, hitTriggerName))
+        {
+            PlayStateOn(target, hitStateName);
         }
     }
 
@@ -424,25 +538,43 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         }
     }
 
+    protected void PlayDieAnimOn(Animator target)
+    {
+        if (!TrySetTriggerOn(target, dieTriggerName))
+        {
+            PlayStateOn(target, dieStateName);
+        }
+    }
+
     private bool TrySetTrigger(string triggerName)
     {
-        if (animator == null || string.IsNullOrEmpty(triggerName))
+        return TrySetTriggerOn(animator, triggerName);
+    }
+
+    private bool TrySetTriggerOn(Animator target, string triggerName)
+    {
+        if (target == null || string.IsNullOrEmpty(triggerName))
             return false;
 
-        if (!AnimatorHasParameter(triggerName, AnimatorControllerParameterType.Trigger))
+        if (!AnimatorHasParameter(target, triggerName, AnimatorControllerParameterType.Trigger))
             return false;
 
-        animator.ResetTrigger(triggerName);
-        animator.SetTrigger(triggerName);
+        target.ResetTrigger(triggerName);
+        target.SetTrigger(triggerName);
         return true;
     }
 
     private bool AnimatorHasParameter(string parameterName, AnimatorControllerParameterType type)
     {
-        if (animator == null || string.IsNullOrEmpty(parameterName))
+        return AnimatorHasParameter(animator, parameterName, type);
+    }
+
+    private bool AnimatorHasParameter(Animator target, string parameterName, AnimatorControllerParameterType type)
+    {
+        if (target == null || string.IsNullOrEmpty(parameterName))
             return false;
 
-        foreach (var parameter in animator.parameters)
+        foreach (var parameter in target.parameters)
         {
             if (parameter.type == type && parameter.name == parameterName)
                 return true;
@@ -452,20 +584,30 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
 
     private bool AnimatorHasState(string stateName, int layerIndex = 0)
     {
-        if (animator == null || string.IsNullOrEmpty(stateName))
+        return AnimatorHasState(animator, stateName, layerIndex);
+    }
+
+    private bool AnimatorHasState(Animator target, string stateName, int layerIndex = 0)
+    {
+        if (target == null || string.IsNullOrEmpty(stateName))
             return false;
 
         // Check if the state exists by trying to get its hash
         int stateHash = Animator.StringToHash(stateName);
-        return animator.HasState(layerIndex, stateHash);
+        return target.HasState(layerIndex, stateHash);
     }
 
     private void PlayState(string stateName)
     {
-        if (animator == null || string.IsNullOrEmpty(stateName))
+        PlayStateOn(animator, stateName);
+    }
+
+    private void PlayStateOn(Animator target, string stateName)
+    {
+        if (target == null || string.IsNullOrEmpty(stateName))
             return;
 
-        animator.Play(stateName, 0, 0f);
+        target.Play(stateName, 0, 0f);
     }
 
     public virtual void TriggerAttackAnimation()
@@ -553,6 +695,10 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
             if (!deathSequenceTriggered)
             {
                 deathSequenceTriggered = true;
+                
+                // Fire the OnDeath event for any listeners
+                InvokeOnDeath();
+                
                 bool fired = TryFireTriggerByName("Die");
                 if (!fired)
                 {
@@ -570,6 +716,119 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
             hasFiredLowHealth = true;
             TryFireTriggerByName("LowHealth");
         }
+    }
+    
+    /// <summary>
+    /// Invokes the OnDeath event. Called automatically when health reaches zero.
+    /// Can be called manually if needed for custom death sequences.
+    /// </summary>
+    protected void InvokeOnDeath()
+    {
+        try
+        {
+            OnDeath?.Invoke(this);
+        }
+        catch (System.Exception ex)
+        {
+#if UNITY_EDITOR
+            Debug.LogError($"[{name}] Exception in OnDeath event handler: {ex}");
+#endif
+        }
+    }
+
+    /// <summary>
+    /// Invokes the OnSpawn event. Called by Spawn() when the spawn sequence begins.
+    /// </summary>
+    protected void InvokeOnSpawn()
+    {
+        try
+        {
+            OnSpawn?.Invoke(this);
+        }
+        catch (System.Exception ex)
+        {
+#if UNITY_EDITOR
+            Debug.LogError($"[{name}] Exception in OnSpawn event handler: {ex}");
+#endif
+        }
+    }
+
+    /// <summary>
+    /// Invokes the OnReset event. Called by ResetEnemy() after reset logic completes.
+    /// </summary>
+    protected void InvokeOnReset()
+    {
+        try
+        {
+            OnReset?.Invoke(this);
+        }
+        catch (System.Exception ex)
+        {
+#if UNITY_EDITOR
+            Debug.LogError($"[{name}] Exception in OnReset event handler: {ex}");
+#endif
+        }
+    }
+
+    /// <summary>
+    /// Called when the enemy should begin its spawn sequence (e.g., play spawn animation).
+    /// Override in derived classes for custom spawn behavior.
+    /// Call base.Spawn() to fire the OnSpawn event.
+    /// </summary>
+    public virtual void Spawn()
+    {
+        // Fire the spawn event for encounter tracking
+        InvokeOnSpawn();
+        
+        // Derived classes can override to play spawn animations, enable AI, etc.
+#if UNITY_EDITOR
+        Debug.Log($"[{name}] Spawn() called. Override in derived class for custom spawn animation.");
+#endif
+    }
+
+    /// <summary>
+    /// Resets the enemy to its initial state (e.g., when player leaves encounter zone).
+    /// Restores health, clears flags, and resets state machine if applicable.
+    /// Override in derived classes for additional reset behavior.
+    /// Call base.ResetEnemy() to ensure proper reset and event firing.
+    /// </summary>
+    public virtual void ResetEnemy()
+    {
+        // Restore health to max
+        currentHealth = maxHealth;
+        
+        // Clear death and low health flags
+        deathSequenceTriggered = false;
+        hasFiredLowHealth = false;
+        
+        // Stop any death fallback routine
+        if (deathFallbackRoutine != null)
+        {
+            StopCoroutine(deathFallbackRoutine);
+            deathFallbackRoutine = null;
+        }
+        
+        // Re-enable the agent if it was disabled
+        if (agent != null && !agent.enabled)
+        {
+            agent.enabled = true;
+        }
+        
+        // Ensure the GameObject is active
+        if (!gameObject.activeSelf)
+        {
+            gameObject.SetActive(true);
+        }
+        
+        // Re-register with attack queue if needed
+        RegisterWithAttackQueue();
+        
+        // Fire the reset event for encounter tracking
+        InvokeOnReset();
+        
+#if UNITY_EDITOR
+        Debug.Log($"[{name}] ResetEnemy() called. Health restored to {maxHealth}.");
+#endif
     }
 
     // Method to fire triggers safely by value, returns true if fired
@@ -649,7 +908,8 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         {
             // Use sqrMagnitude for faster distance check instead of bounds.Contains
             float sqrDist = (other.transform.position - transform.position).sqrMagnitude;
-            float sqrRange = detectionRange * detectionRange;
+            float effectiveRange = GetEffectiveDetectionRange();
+            float sqrRange = effectiveRange * effectiveRange;
             
             if (sqrDist <= sqrRange)
             {
@@ -681,10 +941,11 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         // Detection range gizmo (sphere)
         if (showDetectionGizmo)
         {
+            float effectiveRange = GetEffectiveDetectionRange();
             Gizmos.color = new Color(0f, 0.7f, 1f, 0.3f); // Cyan, semi-transparent
-            Gizmos.DrawWireSphere(transform.position, detectionRange);
+            Gizmos.DrawWireSphere(transform.position, effectiveRange);
             Gizmos.color = new Color(0f, 0.7f, 1f, 0.1f);
-            Gizmos.DrawSphere(transform.position, detectionRange);
+            Gizmos.DrawSphere(transform.position, effectiveRange);
         }
 
         // Attack range gizmo (box)
@@ -709,7 +970,7 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     {
         var detectionRef = detectionCollider != null ? detectionCollider : detectionColliderOverride;
         if (detectionRef != null)
-            detectionRef.radius = detectionRange;
+            detectionRef.radius = GetUnscaledRadiusForRange(detectionRef, detectionRange);
 
         var attackRef = attackCollider != null ? attackCollider : attackColliderOverride;
         if (attackRef != null)
@@ -722,6 +983,43 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         EnsurePlayerTargetReference();
+    }
+
+    protected float GetEffectiveDetectionRange()
+    {
+        if (detectionCollider != null)
+            return GetScaledRadius(detectionCollider);
+
+        if (detectionColliderOverride != null)
+            return GetScaledRadius(detectionColliderOverride);
+
+        return detectionRange;
+    }
+
+    private static float GetScaledRadius(SphereCollider collider)
+    {
+        if (collider == null)
+            return 0f;
+
+        Vector3 lossy = collider.transform.lossyScale;
+        float maxScale = Mathf.Max(Mathf.Abs(lossy.x), Mathf.Abs(lossy.y), Mathf.Abs(lossy.z));
+        if (maxScale <= 0f)
+            return collider.radius;
+
+        return collider.radius * maxScale;
+    }
+
+    private static float GetUnscaledRadiusForRange(SphereCollider collider, float worldRange)
+    {
+        if (collider == null)
+            return worldRange;
+
+        Vector3 lossy = collider.transform.lossyScale;
+        float maxScale = Mathf.Max(Mathf.Abs(lossy.x), Mathf.Abs(lossy.y), Mathf.Abs(lossy.z));
+        if (maxScale <= 0f)
+            return worldRange;
+
+        return worldRange / maxScale;
     }
 }
 

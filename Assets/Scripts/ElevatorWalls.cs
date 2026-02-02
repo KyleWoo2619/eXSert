@@ -35,7 +35,16 @@ public class ElevatorWalls : MonoBehaviour
     [Tooltip("The y position where walls start after reset")]
     [SerializeField] [Range(0f, 100f)] internal float restartPoint = 28f;
 
-    internal float endYPos = 0.6072998f;
+    [SerializeField] private GameObject elevatorPlatform;
+    internal float endYPos;
+
+    private void Awake()
+    {
+        if(elevatorPlatform != null)
+        {
+            endYPos = elevatorPlatform.transform.position.y - 0.5f; // assuming platform height is 1 unit
+        }
+    }
 
     private void Start()
     {

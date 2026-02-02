@@ -62,6 +62,10 @@ public class TempSceneTransitionTrigger : MonoBehaviour
             return;
 
         consumed = true;
+        if (TryGetComponent(out Collider col))
+        {
+            col.enabled = false;
+        }
 
         switch (mode)
         {
@@ -119,6 +123,21 @@ public class TempSceneTransitionTrigger : MonoBehaviour
             yield break;
         }
 
+        var activeScene = SceneManager.GetActiveScene();
+        if (activeScene == scene)
+        {
+            var fallback = FindFallbackActiveScene(scene);
+            if (fallback.IsValid())
+            {
+                SceneManager.SetActiveScene(fallback);
+            }
+            else
+            {
+                Debug.LogWarning($"[TempSceneTransitionTrigger] Cannot unload active scene '{sceneName}' because no fallback scene is loaded.", this);
+                yield break;
+            }
+        }
+
         var op = SceneManager.UnloadSceneAsync(scene);
         if (op == null)
         {
@@ -132,6 +151,20 @@ public class TempSceneTransitionTrigger : MonoBehaviour
         }
 
         Debug.Log($"[TempSceneTransitionTrigger] Unloaded scene '{sceneName}'.");
+    }
+
+    private static Scene FindFallbackActiveScene(Scene excludedScene)
+    {
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            var candidate = SceneManager.GetSceneAt(i);
+            if (candidate.IsValid() && candidate.isLoaded && candidate != excludedScene)
+            {
+                return candidate;
+            }
+        }
+
+        return default;
     }
 
     private void ActivateDoor()

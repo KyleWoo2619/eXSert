@@ -87,10 +87,26 @@ public abstract class InteractionManager : MonoBehaviour, IInteractable
     
     public void SwapBasedOnInputMethod()
     {
+        if (_interactInputAction == null || _interactInputAction.action == null || _interactInputAction.action.controls.Count == 0)
+        {
+            // Fallback if input action is not properly configured
+            if(InteractionUI.Instance._interactText != null)
+            {
+                InteractionUI.Instance._interactText.text = "Press to interact";
+                InteractionUI.Instance._interactText.gameObject.SetActive(true);
+            }
+            if(InteractionUI.Instance._interactIcon != null)
+                InteractionUI.Instance._interactIcon.gameObject.SetActive(false);
+            return;
+        }
+
         if (IsUsingKeyboard())
         {
             if(InteractionUI.Instance._interactText != null)
+            {
                 InteractionUI.Instance._interactText.text = $"Press {(_interactInputAction.action.controls[0].name).ToUpperInvariant()} to interact";
+                InteractionUI.Instance._interactText.gameObject.SetActive(true);
+            }
             if(InteractionUI.Instance._interactIcon != null)
                 InteractionUI.Instance._interactIcon.gameObject.SetActive(false);
         }
@@ -110,7 +126,10 @@ public abstract class InteractionManager : MonoBehaviour, IInteractable
                 }
             }
             if(InteractionUI.Instance._interactText != null)
+            {
                 InteractionUI.Instance._interactText.text = "Press \n\n to interact";
+                InteractionUI.Instance._interactText.gameObject.SetActive(true);
+            }
         }
     }
 
@@ -123,10 +142,21 @@ public abstract class InteractionManager : MonoBehaviour, IInteractable
 
             SwapBasedOnInputMethod();
 
-            if(InteractionUI.Instance._interactText != null)
-                InteractionUI.Instance._interactText.gameObject.SetActive(true);
-            if(InteractionUI.Instance._interactIcon != null && !IsUsingKeyboard())
-                InteractionUI.Instance._interactIcon.gameObject.SetActive(true);
+            if(InteractionUI.Instance != null)
+            {
+                if(InteractionUI.Instance._interactText != null)
+                {
+                    InteractionUI.Instance._interactText.gameObject.SetActive(true);
+                    if(InteractionUI.Instance._interactText.transform.parent != null)
+                        InteractionUI.Instance._interactText.transform.parent.gameObject.SetActive(true);
+                }
+                if(InteractionUI.Instance._interactIcon != null && !IsUsingKeyboard())
+                {
+                    InteractionUI.Instance._interactIcon.gameObject.SetActive(true);
+                    if(InteractionUI.Instance._interactIcon.transform.parent != null)
+                        InteractionUI.Instance._interactIcon.transform.parent.gameObject.SetActive(true);
+                }
+            }
         }
     }
 
