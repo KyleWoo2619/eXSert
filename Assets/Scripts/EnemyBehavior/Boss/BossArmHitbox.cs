@@ -20,12 +20,18 @@ namespace EnemyBehavior.Boss
         
         [SerializeField, Tooltip("Root transform to search for colliders. If null, uses this GameObject. Use this for complex arm hierarchies where colliders are spread across multiple bones.")]
         private Transform colliderSearchRoot;
+        
+        [Header("Knockback")]
+        [SerializeField, Tooltip("If true, this hitbox applies knockback (for dashes/charges)")]
+        private bool applyKnockback = false;
+        [SerializeField, Tooltip("Override knockback force (0 = use brain's default)")]
+        private float knockbackForceOverride = 0f;
 
         private Collider[] hitboxColliders;
         private bool isActive;
         private bool hasHitThisActivation;
 
-        public enum ArmSide { Left, Right, Center }
+        public enum ArmSide { Left, Right, Center, Charge }
 
         private void Awake()
         {
@@ -89,6 +95,8 @@ namespace EnemyBehavior.Boss
 
         private void ApplyDamageToPlayer(GameObject player)
         {
+            Debug.Log($"[BossArmHitbox] {armSide} ATTEMPTING TO HIT PLAYER");
+            
             var healthSystem = player.GetComponent<IHealthSystem>();
             if (healthSystem != null)
             {
@@ -98,7 +106,7 @@ namespace EnemyBehavior.Boss
                     if (currentAttack != null && currentAttack.Parryable)
                     {
                         CombatManager.ParrySuccessful();
-                        Debug.Log($"Player parried {currentAttack.Id}");
+                        Debug.Log($"[BossArmHitbox] Player PARRIED {currentAttack.Id}");
                         DisableHitbox();
                         return;
                     }
@@ -108,14 +116,87 @@ namespace EnemyBehavior.Boss
                 if (CombatManager.isGuarding)
                 {
                     finalDamage *= 0.5f;
-                    Debug.Log($"Player guarded - damage reduced to {finalDamage}");
+                    Debug.Log($"[BossArmHitbox] Player GUARDED - damage reduced to {finalDamage}");
                 }
 
                 healthSystem.LoseHP(finalDamage);
-                Debug.Log($"Boss arm hit player for {finalDamage} damage");
+                Debug.Log($"[BossArmHitbox] {armSide} HIT PLAYER for {finalDamage} damage!");
+                
+                // Apply knockback if enabled
+                if (applyKnockback && bossBrain != null)
+                {
+                    ApplyKnockbackToPlayer(player);
+                }
 
                 DisableHitbox();
             }
+            else
+            {
+                Debug.LogWarning($"[BossArmHitbox] Player has no IHealthSystem component!");
+            }
+        }
+        
+        private void ApplyKnockbackToPlayer(GameObject player)
+        {
+            // Calculate knockback direction (from boss to player)
+            Vector3 knockbackDir = (player.transform.position - bossBrain.transform.position).normalized;
+            knockbackDir.y = 0f; // Keep horizontal
+            knockbackDir.Normalize();
+            
+            // Determine force and upward component based on attack type
+            float force;
+            float upwardForce;
+            
+            // Check if this is a charge attack (use higher force and upward)
+            if (armSide == ArmSide.Charge && bossBrain.IsCharging)
+            {
+                force = bossBrain.IsTargetedCharge ? bossBrain.ChargeKnockbackForce : bossBrain.DashKnockbackForce;
+                upwardForce = bossBrain.IsTargetedCharge ? bossBrain.ChargeKnockbackUpwardForce : bossBrain.DashKnockbackUpwardForce;
+            }
+            else
+            {
+                force = knockbackForceOverride > 0 ? knockbackForceOverride : bossBrain.DashKnockbackForce;
+                upwardForce = bossBrain.DashKnockbackUpwardForce;
+            }
+            
+            // Add upward component
+            knockbackDir = (knockbackDir + Vector3.up * (upwardForce / 10f)).normalized;
+            
+            Vector3 knockbackImpulse = knockbackDir * force;
+            
+            // PREFER PlayerMovement's knockback system (handles wall collision and CharacterController properly)
+            var playerMovement = player.GetComponent<PlayerMovement>();
+            if (playerMovement == null)
+                playerMovement = player.GetComponentInParent<PlayerMovement>();
+            if (playerMovement == null)
+                playerMovement = player.GetComponentInChildren<PlayerMovement>();
+                
+            if (playerMovement != null)
+            {
+                playerMovement.ApplyKnockback(knockbackImpulse);
+                Debug.Log($"[BossArmHitbox] Applied knockback via PlayerMovement.ApplyKnockback: impulse={knockbackImpulse}, magnitude={knockbackImpulse.magnitude:F1}");
+                return;
+            }
+            
+            // Fallback: try Rigidbody (non-kinematic only)
+            var rb = player.GetComponent<Rigidbody>();
+            if (rb != null && !rb.isKinematic)
+            {
+                rb.AddForce(knockbackImpulse, ForceMode.Impulse);
+                Debug.Log($"[BossArmHitbox] Applied knockback via Rigidbody: dir={knockbackDir}, force={force}");
+                return;
+            }
+            
+            // Last resort: try CharacterController directly (single frame push)
+            var cc = player.GetComponent<CharacterController>();
+            if (cc != null)
+            {
+                cc.Move(knockbackDir * force * Time.deltaTime);
+                Debug.Log($"[BossArmHitbox] Applied knockback via CharacterController.Move (single frame)");
+                return;
+            }
+            
+            Debug.LogWarning($"[BossArmHitbox] Could not apply knockback - no PlayerMovement, Rigidbody, or CharacterController found on {player.name}");
         }
 
         private void OnDisable()

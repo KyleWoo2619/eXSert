@@ -154,6 +154,30 @@ public class PlayerMovement : MonoBehaviour
     [Header("External Reactions")]
     [SerializeField, Range(0.05f, 1.5f)]
     private float defaultExternalStunDuration = 0.35f;
+    
+    [Header("Knockback / Wall Collision")]
+    [SerializeField, Tooltip("Enable wall collision detection and resolution during knockback")]
+    private bool enableKnockbackWallCollision = true;
+    [SerializeField, Tooltip("Layer mask for wall collision detection (set to Environment/Wall layers, NOT enemy layers)")]
+    private LayerMask knockbackWallMask = 1; // Default to layer 0 only, user should configure
+    [SerializeField, Tooltip("Radius for wall collision detection sphere")]
+    private float knockbackCollisionRadius = 0.5f;
+    [SerializeField, Tooltip("How quickly knockback velocity decays (0 = instant stop, 1 = no decay). 0.92 = ~0.5 second knockback, 0.97 = ~1.5 second knockback.")]
+    private float knockbackDecayRate = 0.97f;
+    [SerializeField, Tooltip("Minimum velocity to continue knockback (below this, knockback stops)")]
+    private float knockbackMinVelocity = 0.5f;
+    [SerializeField, Tooltip("Delay before wall collision checks begin (lets player clear attacker's hitbox and travel some distance). 0.25 = 250ms delay.")]
+    private float knockbackWallCheckDelay = 0.25f;
+    
+    [Header("Wall Impact Damage (Optional)")]
+    [SerializeField, Tooltip("Enable damage when player hits wall at high velocity during knockback")]
+    private bool enableWallImpactDamage = false;
+    [SerializeField, Tooltip("Minimum impact velocity to trigger wall damage")]
+    private float wallDamageVelocityThreshold = 10f;
+    [SerializeField, Tooltip("Damage per unit of impact velocity above threshold")]
+    private float wallDamagePerVelocity = 0.5f;
+    [SerializeField, Tooltip("Maximum wall impact damage")]
+    private float wallDamageMax = 5f;
 
     [Header("Launcher Settings")]
     [SerializeField, Range(1f, 25f)]
@@ -210,6 +234,10 @@ public class PlayerMovement : MonoBehaviour
     // External velocity injection (used by vacuum suction, knockback, etc.)
     private Vector3 externalVelocity = Vector3.zero;
     private bool externalVelocityActive;
+    private bool isKnockbackActive;
+    private Vector3 knockbackVelocity;
+    private float knockbackStartMagnitude;
+    private float knockbackStartTime;
 
     private Transform ResolveCameraTransform()
     {
@@ -899,6 +927,12 @@ public class PlayerMovement : MonoBehaviour
             horizontalMovement += new Vector3(externalVelocity.x, 0, externalVelocity.z);
         }
         
+        // Handle knockback with wall collision
+        if (isKnockbackActive)
+        {
+            horizontalMovement = HandleKnockbackWithWallCollision();
+        }
+        
         Vector3 finalVelocity = horizontalMovement + Vector3.up * currentMovement.y;
 
         // move the character controller
@@ -1274,6 +1308,133 @@ public class PlayerMovement : MonoBehaviour
         
         externalVelocity = velocity;
         externalVelocityActive = true;
+    }
+    
+    /// <summary>
+    /// Applies a knockback impulse to the player with wall collision handling.
+    /// Unlike SetExternalVelocity, this decays over time and handles wall impacts.
+    /// The Y component is applied immediately as vertical velocity for launch effect.
+    /// </summary>
+    public void ApplyKnockback(Vector3 impulse)
+    {
+        knockbackVelocity = impulse;
+        knockbackStartMagnitude = impulse.magnitude;
+        knockbackStartTime = Time.time;
+        isKnockbackActive = true;
+        
+        // Apply Y component as immediate vertical velocity for launch effect
+        // This makes the knockback launch the player upward, not just push horizontally
+        if (impulse.y > 0f)
+        {
+            currentMovement.y = impulse.y;
+        }
+        
+        // CRITICAL FIX: Apply an immediate position offset to "punch" through any blocking colliders
+        // This prevents the CharacterController from getting stuck on the boss's body
+        Vector3 immediateOffset = new Vector3(impulse.x, 0f, impulse.z).normalized * 0.5f;
+        if (characterController != null && immediateOffset.sqrMagnitude > 0.001f)
+        {
+            // Temporarily disable CharacterController to allow direct position manipulation
+            bool wasEnabled = characterController.enabled;
+            characterController.enabled = false;
+            transform.position += immediateOffset;
+            characterController.enabled = wasEnabled;
+        }
+        
+#if UNITY_EDITOR
+        Debug.Log($"[PlayerMovement] ApplyKnockback: {impulse}, magnitude={knockbackStartMagnitude:F2}, applied Y velocity={impulse.y:F2}, immediate offset={immediateOffset}");
+#endif
+    }
+    
+    /// <summary>
+    /// Handles knockback movement with wall collision detection and optional damage.
+    /// </summary>
+    private Vector3 HandleKnockbackWithWallCollision()
+    {
+        // Check minimum velocity threshold using horizontal components only (Y is for visual arc, not travel)
+        float horizontalSqrMag = knockbackVelocity.x * knockbackVelocity.x + knockbackVelocity.z * knockbackVelocity.z;
+        
+        if (!isKnockbackActive || horizontalSqrMag < knockbackMinVelocity * knockbackMinVelocity)
+        {
+            // Knockback finished
+#if UNITY_EDITOR
+            if (isKnockbackActive)
+            {
+                Debug.Log($"[PlayerMovement] Knockback finished - horizontal velocity {Mathf.Sqrt(horizontalSqrMag):F2} below threshold {knockbackMinVelocity:F2}");
+            }
+#endif
+            isKnockbackActive = false;
+            knockbackVelocity = Vector3.zero;
+            return Vector3.zero;
+        }
+        
+        // Get horizontal knockback direction for wall checks (ignore Y)
+        Vector3 horizontalKnockback = new Vector3(knockbackVelocity.x, 0, knockbackVelocity.z);
+        Vector3 movement = horizontalKnockback * Time.deltaTime;
+        
+        // Check for wall collision if enabled AND after the delay period
+        // The delay prevents immediately hitting the attacker's collider
+        float timeSinceKnockback = Time.time - knockbackStartTime;
+        if (enableKnockbackWallCollision && timeSinceKnockback >= knockbackWallCheckDelay)
+        {
+            // Check horizontally only (at character center height) to avoid hitting ground
+            Vector3 checkPos = transform.position + Vector3.up * (characterController.height * 0.5f);
+            Vector3 moveDir = horizontalKnockback.normalized;
+            float checkDist = movement.magnitude + knockbackCollisionRadius;
+            
+            if (moveDir.sqrMagnitude > 0.001f && Physics.SphereCast(checkPos, knockbackCollisionRadius, moveDir, out RaycastHit hit, checkDist, knockbackWallMask, QueryTriggerInteraction.Ignore))
+            {
+                // Wall collision detected
+                float impactVelocity = horizontalKnockback.magnitude;
+                
+#if UNITY_EDITOR
+                Debug.Log($"[PlayerMovement] Knockback wall collision! Impact velocity: {impactVelocity:F2}, hit: {hit.collider.name} (layer: {hit.collider.gameObject.layer})");
+#endif
+                
+                // Apply wall damage if enabled and above threshold
+                if (enableWallImpactDamage && impactVelocity >= wallDamageVelocityThreshold)
+                {
+                    float damageAmount = (impactVelocity - wallDamageVelocityThreshold) * wallDamagePerVelocity;
+                    damageAmount = Mathf.Min(damageAmount, wallDamageMax);
+                    
+                    // Apply damage to player
+                    var healthSystem = GetComponent<IHealthSystem>();
+                    if (healthSystem != null && damageAmount > 0)
+                    {
+                        healthSystem.LoseHP(damageAmount);
+                        Debug.Log($"[PlayerMovement] Wall impact damage: {damageAmount:F1}");
+                    }
+                }
+                
+                // Stop knockback and push player away from wall
+                isKnockbackActive = false;
+                knockbackVelocity = Vector3.zero;
+                
+                // Calculate push-out direction (away from wall)
+                Vector3 pushOut = hit.normal * 0.1f;
+                characterController.Move(pushOut);
+                
+                return Vector3.zero;
+            }
+        }
+        
+        // Store current velocity before decay for this frame's movement
+        Vector3 thisFrameMovement = horizontalKnockback;
+        
+        // Apply knockback decay (TIME-BASED, not frame-based)
+        // This makes decay rate frame-rate independent
+        float decayThisFrame = Mathf.Pow(knockbackDecayRate, Time.deltaTime * 60f);
+        knockbackVelocity *= decayThisFrame;
+        
+#if UNITY_EDITOR
+        // Log every 10 frames to track knockback progress
+        if (Time.frameCount % 10 == 0)
+        {
+            Debug.Log($"[PlayerMovement] Knockback active: horizontal vel={thisFrameMovement.magnitude:F2}, after decay={Mathf.Sqrt(knockbackVelocity.x*knockbackVelocity.x + knockbackVelocity.z*knockbackVelocity.z):F2}");
+        }
+#endif
+        
+        return thisFrameMovement;
     }
 
     /// <summary>
