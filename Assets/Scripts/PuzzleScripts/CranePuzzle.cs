@@ -64,7 +64,7 @@ public class ShowIfXAttribute : PropertyAttribute { }
 public class ShowIfYAttribute : PropertyAttribute { }
 public class ShowIfZAttribute : PropertyAttribute { }
 
-public class CranePuzzle : MonoBehaviour, IPuzzleInterface
+public class CranePuzzle : PuzzlePart
 {
     // Cache of the player's movement component so it can be re-enabled later
     private PlayerMovement cachedPlayerMovement;
@@ -112,8 +112,6 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     private InputAction runtimeCraneMoveAction;
 
     internal readonly Dictionary<CranePart, Vector3> cranePartStartLocalPositions = new Dictionary<CranePart, Vector3>();
-
-    public bool isCompleted { get; set; }
 
     private void Awake()
     {
@@ -232,7 +230,7 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     #region IPuzzleInterface Methods
 
     // Called by whatever system starts this puzzle
-    public virtual void StartPuzzle()
+    public override void StartPuzzle()
     {   
         CacheCranePartStartPositions();
 
@@ -297,30 +295,18 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
 
         // Finds the player
         var player = GameObject.FindWithTag("Player");
-        Debug.Log($"Player found: {(player != null ? player.name : "NULL")}");
-        
+
         if (player != null)
         {
             // Try to find PlayerMovement on the player, its children, or parent; fallback to any active instance
             var pm = player.GetComponent<PlayerMovement>();
-
-            Debug.Log($"PlayerMovement found: {(pm != null ? "YES" : "NO")}");
 
             // If found, disable movement and cache for restoration
             if (pm != null)
             {
                 cachedPlayerMovement = pm;
                 pm.enabled = false;
-                Debug.Log($"PlayerMovement disabled on {(pm.gameObject != null ? pm.gameObject.name : player.name)}");
             }
-            else
-            {
-                Debug.LogError($"PlayerMovement NOT FOUND on {player.name} or its hierarchy; gameplay movement will remain enabled.");
-            }
-        }
-        else
-        {
-            Debug.LogError("Player with 'Player' tag not found!");
         }
 
         // Changes camera priority to switch to puzzle camera
@@ -331,7 +317,7 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     }
 
     // Call this when the puzzle is finished or cancelled
-    public virtual void EndPuzzle()
+    public override void EndPuzzle()
     {
             foreach (GameObject img in craneUI)
             {

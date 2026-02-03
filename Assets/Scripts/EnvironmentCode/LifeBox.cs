@@ -57,9 +57,9 @@ public class LifeBox : MonoBehaviour
     {
         if (showHitBox)
         {
-            Gizmos.color = Color.purple * new Color(1, 1, 1, 0.25f);
+            Gizmos.color = Color.yellow * new Color(1, 1, 1, 0.25f);
             Gizmos.DrawCube(transform.position, boxSize);
-            Gizmos.color = Color.yellow;
+            Gizmos.color = Color.blanchedAlmond;
             Gizmos.DrawWireCube(transform.position, boxSize);
         }
     }

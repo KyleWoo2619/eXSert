@@ -180,7 +180,6 @@ public class CargoBayCrane : CranePuzzle
     // Moves the crane parts to position the magnet above the target world position
     private IEnumerator MoveCraneToMagnetTarget(Vector3 magnetTargetWorldPos)
     {
-        Debug.Log("[CargoBayCrane] MoveCraneToMagnetTarget: Case 2A (part 0 parent == part 1 transform)");
 
         // Gets the target position in part 1's parent space
         Vector3 targetInPart1ParentSpace = craneParts[1].partObject.transform.parent != null
@@ -341,19 +340,14 @@ public class CargoBayCrane : CranePuzzle
 
     protected DetectionResult DetectDesiredObjectBelow()
     {
-        Debug.Log(targetObject != null ? $"Detecting object: {targetObject.name} (Layer: {LayerMask.LayerToName(targetObject.layer)})" : "No target object set for detection");
-        Debug.Log($"GrabLayerMask value: {grabLayerMask.value} (Layers: {GetLayerMaskNames(grabLayerMask)})");
 
         GetRayData(out var originA, out var originB, out var originC, out var originD, out var castDir);
 
-        Debug.Log($"Magnet position: {magnetExtender.transform.position}, Cast direction: {castDir}, Detect length: {magnetDetectLength}");
         if (targetObject != null)
         {
             float distanceToTarget = Vector3.Distance(magnetExtender.transform.position, targetObject.transform.position);
-            Debug.Log($"Distance to target: {distanceToTarget}, Target position: {targetObject.transform.position}");
             
             Collider targetCollider = targetObject.GetComponent<Collider>();
-            Debug.Log($"Target has collider: {targetCollider != null}, Collider enabled: {(targetCollider != null ? targetCollider.enabled.ToString() : "N/A")}");
         }
 
         // Raycast with all layers to detect any object below, not just grabLayerMask
@@ -362,30 +356,18 @@ public class CargoBayCrane : CranePuzzle
         bool hitSecond = Physics.Raycast(originB, castDir, out var hit2, magnetDetectLength, allLayersMask);
         bool hitThird = Physics.Raycast(originC, castDir, out var hit3, magnetDetectLength, allLayersMask);
         bool hitFourth = Physics.Raycast(originD, castDir, out var hit4, magnetDetectLength, allLayersMask);
-        
-        Debug.Log($"Raycast hits: A={hitFirst}, B={hitSecond}, C={hitThird}, D={hitFourth}");
-        if (hitFirst) Debug.Log($"Hit A: {hit.collider.gameObject.name} at distance {hit.distance}");
-        if (hitSecond) Debug.Log($"Hit B: {hit2.collider.gameObject.name} at distance {hit2.distance}");
-        if (hitThird) Debug.Log($"Hit C: {hit3.collider.gameObject.name} at distance {hit3.distance}");
-        if (hitFourth) Debug.Log($"Hit D: {hit4.collider.gameObject.name} at distance {hit4.distance}");
-        
+
         if(hitFirst || hitSecond || hitThird || hitFourth)
         {
             
             if((hitFirst && hit.collider.gameObject == targetObject) || (hitSecond && hit2.collider.gameObject == targetObject) 
                 || (hitThird && hit3.collider.gameObject == targetObject) || (hitFourth && hit4.collider.gameObject == targetObject))
             {
-                Debug.Log("Desired object detected below magnet");
                 
                 if (craneGrabObjectScript != null)
                 {
                     craneGrabObjectScript.GrabObject(targetObject);
                     isGrabbed = true;
-                    Debug.Log($"Successfully grabbed {targetObject.name}");
-                }
-                else
-                {
-                    Debug.LogError("CraneGrabObject script is not assigned! Cannot grab object.");
                 }
                 
                 return DetectionResult.Target;
@@ -394,13 +376,8 @@ public class CargoBayCrane : CranePuzzle
             {
                 string hitName = hitFirst ? hit.collider.gameObject.name : hitSecond ? hit2.collider.gameObject.name 
                     : hitThird ? hit3.collider.gameObject.name : hit4.collider.gameObject.name;
-                Debug.Log($"Object detected below magnet: {hitName}, but it is not the desired object - bouncing off!");
                 return DetectionResult.Wrong;
             }
-        }
-        else
-        {
-            Debug.Log("Raycast did not hit anything");
         }
 
         return DetectionResult.None;
