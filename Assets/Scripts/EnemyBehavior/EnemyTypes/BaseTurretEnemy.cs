@@ -45,10 +45,30 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
     [Header("Firing")]
     [Tooltip("Spawn the projectile slightly forward from the muzzle to avoid self-collision at spawn.")]
     [SerializeField] private float muzzleForwardOffset = 0.1f;
+    [Tooltip("Sound effect played on each shot.")]
+    [SerializeField] private AudioClip gunfireSfx;
+    [Tooltip("Optional AudioSource to play gunfire SFX. If empty, will use one on this object or create one.")]
+    [SerializeField] private AudioSource gunfireSource;
 
     [Header("Projectile Pool")]
     [Tooltip("How many projectiles to pre-instantiate for this turret.")]
     [SerializeField] private int projectilePoolSize = 16;
+
+    [Header("Telegraph Line")]
+    [Tooltip("Show a red telegraph line from the fire point while aiming.")]
+    [SerializeField] private bool showTelegraphLine = true;
+    [Tooltip("Line color used before firing.")]
+    [SerializeField] private Color telegraphColor = new Color(1f, 0.15f, 0.15f, 1f);
+    [Tooltip("Line width for the telegraph.")]
+    [SerializeField] private float telegraphWidth = 0.03f;
+    [Tooltip("How far the telegraph line extends from the fire point.")]
+    [SerializeField] private float telegraphDistance = 12f;
+    [Tooltip("Flicker speed (cycles per second).")]
+    [SerializeField] private float telegraphFlickerSpeed = 8f;
+    [Tooltip("Flicker strength (0 = steady, 1 = max flicker).")]
+    [SerializeField, Range(0f, 1f)] private float telegraphFlickerStrength = 0.5f;
+    [Tooltip("Seconds the line stays hidden right after a shot.")]
+    [SerializeField] private float telegraphHideAfterShot = 0.6f;
 
     [Header("Detection Hysteresis")]
     [Tooltip("Enter Attack when player is within detectionRange + this.")]
@@ -70,6 +90,8 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
     private Coroutine attackLoop;
     private Coroutine detectLoop;
     private Coroutine animationRestoreRoutine;
+    private Coroutine telegraphHideRoutine;
+    private float telegraphCycleStartTime = -1e9f;
 
     private IEnemyStateBehavior<EnemyState, EnemyTrigger> deathBehavior;
 
@@ -86,6 +108,7 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
     private bool suppressIdleWhileTargeting = true;
 
     private bool isTargetEngaged;
+    private LineRenderer telegraphLine;
 
     // IProjectileShooter implementation
     public GameObject ProjectilePrefab => projectilePrefab;
@@ -105,6 +128,15 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
 
         // Turn off melee attack collider for turrets
         if (attackCollider != null) attackCollider.enabled = false;
+
+        if (gunfireSource == null)
+        {
+            gunfireSource = GetComponent<AudioSource>();
+            if (gunfireSource == null)
+                gunfireSource = gameObject.AddComponent<AudioSource>();
+        }
+
+        telegraphCycleStartTime = Time.time;
 
         // Cache player - use PlayerPresenceManager if available
         if (PlayerPresenceManager.IsPlayerPresent)
@@ -130,6 +162,7 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
         deathBehavior = new DeathBehavior<EnemyState, EnemyTrigger>();
 
         InitializeProjectilePool();
+        EnsureTelegraphLine();
 
         // Start state machine
         InitializeStateMachine(EnemyState.Idle);
@@ -154,6 +187,8 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
         {
             AimAtTarget(player);
         }
+
+        UpdateTelegraphLine();
     }
 
     protected override void ConfigureStateMachine()
@@ -165,6 +200,7 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
                 isTargetEngaged = false;
                 RequestIdlePose(force: true);
                 StopAttackLoop();
+                SetTelegraphVisible(false);
             })
             .Permit(EnemyTrigger.SeePlayer, EnemyState.Attack)
             .Permit(EnemyTrigger.InAttackRange, EnemyState.Attack)
@@ -177,12 +213,14 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
                 isTargetEngaged = true;
                 PlayAttackAnim();
                 StartAttackLoop();
+                SetTelegraphVisible(showTelegraphLine);
             })
             .OnExit(() =>
             {
                 isTargetEngaged = false;
                 StopAttackLoop();
                 RequestIdlePose();
+                SetTelegraphVisible(false);
             })
             .Permit(EnemyTrigger.LosePlayer, EnemyState.Idle)
             .Permit(EnemyTrigger.OutOfAttackRange, EnemyState.Idle)
@@ -243,8 +281,9 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
             float dist = Vector3.Distance(transform.position, player.position);
 
             // Compute thresholds and enforce exit > enter
-            float enterThreshold = Mathf.Max(0f, detectionRange + Mathf.Max(0f, enterBuffer));
-            float exitThreshold = detectionRange + Mathf.Max(exitBuffer, enterBuffer + 0.5f);
+            float effectiveRange = GetEffectiveDetectionRange();
+            float enterThreshold = Mathf.Max(0f, effectiveRange + Mathf.Max(0f, enterBuffer));
+            float exitThreshold = effectiveRange + Mathf.Max(exitBuffer, enterBuffer + 0.5f);
             if (exitThreshold <= enterThreshold)
                 exitThreshold = enterThreshold + 0.5f;
 
@@ -307,6 +346,12 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
         {
             StopCoroutine(attackLoop);
             attackLoop = null;
+        }
+
+        if (telegraphHideRoutine != null)
+        {
+            StopCoroutine(telegraphHideRoutine);
+            telegraphHideRoutine = null;
         }
     }
 
@@ -399,6 +444,19 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
     protected virtual void OnProjectileFired()
     {
         PlayAttackAnim();
+        lastShotTime = Time.time;
+        telegraphCycleStartTime = Time.time;
+        PlayGunfireSfx();
+        if (showTelegraphLine)
+            HideTelegraphTemporarily(telegraphHideAfterShot);
+    }
+
+    private void PlayGunfireSfx()
+    {
+        if (gunfireSfx == null || gunfireSource == null)
+            return;
+
+        gunfireSource.PlayOneShot(gunfireSfx);
     }
 
     // Permanently ignore collisions between this turret's colliders and this projectile's colliders
@@ -456,6 +514,132 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
         return proj;
     }
 
+    private void EnsureTelegraphLine()
+    {
+        if (!showTelegraphLine)
+            return;
+
+        if (telegraphLine != null)
+            return;
+
+        var lineObj = new GameObject("TelegraphLine");
+        lineObj.transform.SetParent(transform);
+        lineObj.transform.localPosition = Vector3.zero;
+        lineObj.transform.localRotation = Quaternion.identity;
+        lineObj.transform.localScale = Vector3.one;
+
+        telegraphLine = lineObj.AddComponent<LineRenderer>();
+        telegraphLine.useWorldSpace = true;
+        telegraphLine.positionCount = 2;
+        telegraphLine.startWidth = Mathf.Max(0.001f, telegraphWidth);
+        telegraphLine.endWidth = Mathf.Max(0.001f, telegraphWidth);
+        telegraphLine.material = new Material(Shader.Find("Sprites/Default"));
+        telegraphLine.startColor = telegraphColor;
+        telegraphLine.endColor = telegraphColor;
+        telegraphLine.enabled = false;
+    }
+
+    private void SetTelegraphVisible(bool visible)
+    {
+        if (telegraphLine == null)
+            return;
+
+        telegraphLine.enabled = visible;
+        if (visible)
+            telegraphCycleStartTime = Time.time;
+    }
+
+    private void HideTelegraphTemporarily(float duration)
+    {
+        if (telegraphLine == null)
+            return;
+
+        if (telegraphHideRoutine != null)
+            StopCoroutine(telegraphHideRoutine);
+
+        telegraphHideRoutine = StartCoroutine(HideTelegraphRoutine(duration));
+    }
+
+    private IEnumerator HideTelegraphRoutine(float duration)
+    {
+        SetTelegraphVisible(false);
+        if (duration > 0f)
+            yield return WaitForSecondsCache.Get(duration);
+
+        if (enemyAI != null && enemyAI.State.Equals(EnemyState.Attack))
+            SetTelegraphVisible(showTelegraphLine);
+
+        telegraphHideRoutine = null;
+    }
+
+    private void UpdateTelegraphLine()
+    {
+        if (!showTelegraphLine || telegraphLine == null || !telegraphLine.enabled)
+            return;
+
+        Transform origin = firePoint != null ? firePoint : transform;
+        Vector3 start = origin.position;
+        Vector3 dir = origin.forward;
+
+        if (player != null)
+        {
+            Vector3 targetPos = player.position + Vector3.up * aimYOffset;
+            Vector3 toTarget = targetPos - start;
+            if (toTarget.sqrMagnitude > 0.0001f)
+                dir = toTarget.normalized;
+        }
+
+        if (rotateYawOnly)
+        {
+            dir.y = 0f;
+            if (dir.sqrMagnitude <= 0.0001f)
+                dir = origin.forward;
+            else
+                dir.Normalize();
+        }
+
+        Vector3 end;
+        if (Physics.Raycast(start, dir, out var hit, Mathf.Infinity, ~0, QueryTriggerInteraction.Ignore))
+        {
+            end = hit.point;
+        }
+        else
+        {
+            float fallbackDistance = GetEffectiveDetectionRange();
+            end = start + dir * fallbackDistance;
+        }
+
+        telegraphLine.SetPosition(0, start);
+        telegraphLine.SetPosition(1, end);
+
+        float flickerSpeed = Mathf.Max(0f, telegraphFlickerSpeed);
+        float strength = Mathf.Clamp01(telegraphFlickerStrength);
+        float flicker = 1f;
+        if (fireCooldown > 0f)
+        {
+            float timeSinceLastShot = Time.time - lastShotTime;
+            float timeToShot = fireCooldown - timeSinceLastShot;
+            const float noFlickerWindow = 0.5f;
+
+            if (timeToShot > noFlickerWindow)
+            {
+                float rampDuration = Mathf.Max(0.01f, fireCooldown - noFlickerWindow);
+                float progress = Mathf.Clamp01(timeSinceLastShot / rampDuration);
+                flickerSpeed = Mathf.Lerp(1f, 5f, progress);
+                float flickerTime = Mathf.Max(0f, Time.time - telegraphCycleStartTime);
+                flicker = flickerSpeed > 0f
+                    ? (Mathf.Sin(flickerTime * flickerSpeed * Mathf.PI * 2f) * 0.5f + 0.5f)
+                    : 1f;
+            }
+        }
+        float alpha = Mathf.Lerp(1f - strength, 1f, flicker) * telegraphColor.a;
+        Color c = new Color(telegraphColor.r, telegraphColor.g, telegraphColor.b, alpha);
+        telegraphLine.startColor = c;
+        telegraphLine.endColor = c;
+        telegraphLine.startWidth = Mathf.Max(0.001f, telegraphWidth);
+        telegraphLine.endWidth = Mathf.Max(0.001f, telegraphWidth);
+    }
+
     private void OnDisable()
     {
         if (detectLoop != null)
@@ -464,6 +648,7 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
             detectLoop = null;
         }
         StopAttackLoop();
+        SetTelegraphVisible(false);
     }
 
     protected bool AimAtTarget(Transform target)

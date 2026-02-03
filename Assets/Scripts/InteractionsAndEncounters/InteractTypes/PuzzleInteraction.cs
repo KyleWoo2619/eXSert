@@ -11,12 +11,12 @@ using UnityEngine;
 
 public class PuzzleInteraction : UnlockableInteraction
 {
-    [Tooltip("Insert puzzle script that implements IPuzzleInterface")]
+    [Tooltip("Insert puzzle script that derives from PuzzlePart")]
     [SerializeField] private MonoBehaviour puzzleScript;
 
     private bool inProgress;
 
-    private IPuzzleInterface _puzzleInterface;
+    private PuzzlePart _puzzlePart;
 
     protected override void Awake()
     {
@@ -24,25 +24,25 @@ public class PuzzleInteraction : UnlockableInteraction
         
         // Cache interface reference
         if (puzzleScript != null)
-            _puzzleInterface = puzzleScript.GetComponent<IPuzzleInterface>();
+            _puzzlePart = puzzleScript.GetComponent<PuzzlePart>();
     }
 
     protected override void ExecuteInteraction()
     {
-        if (_puzzleInterface == null)
+        if (_puzzlePart == null)
         {
             Debug.LogError($"Puzzle script does not implement IPuzzleInterface on {gameObject.name}");
             return;
         }
 
-        if (_puzzleInterface.isCompleted)
+        if (_puzzlePart.isCompleted)
         {
-            _puzzleInterface.EndPuzzle();
+            _puzzlePart.EndPuzzle();
             inProgress = false;
         }
         else if(!inProgress)
         {
-            _puzzleInterface.StartPuzzle();
+            _puzzlePart.StartPuzzle();
             inProgress = true;
         }
     }

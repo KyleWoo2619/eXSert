@@ -60,13 +60,15 @@ public class PlayerAnimationController : MonoBehaviour
             internal const string Light3 = "SX3";
             internal const string Light4 = "SX4";
             internal const string Light5 = "SX5";
-            internal const string Heavy1 = "SY1";
-            internal const string Heavy2 = "SY2";
-            internal const string Heavy3 = "SY3";
+            // Heavy chain now uses AY1-AY3 (legacy SY1-3 retired).
+            internal const string Heavy1 = "AY1";
+            internal const string Heavy2 = "AY2";
+            internal const string Heavy3 = "AY3";
         }
 
         internal static class AreaOfEffectAttacks
         {
+            // Legacy AOE light chain (AX1-AX4) is currently unused.
             internal const string Light1 = "AX1";
             internal const string Light2 = "AX2";
             internal const string Light3 = "AX3";
@@ -198,9 +200,9 @@ public class PlayerAnimationController : MonoBehaviour
 
     public void PlaySingleTargetHeavy(int comboIndex) => CrossFade(GetSingleTargetHeavy(comboIndex), 0.04f, true);
 
-    public void PlayAoeLight(int comboIndex) => CrossFade(GetAoeLight(comboIndex), 0.04f, true);
-
-    public void PlayAoeHeavy(int comboIndex) => CrossFade(GetAoeHeavy(comboIndex), 0.04f, true);
+    // AOE light/heavy helpers disabled with stance removal (kept for reference).
+    // public void PlayAoeLight(int comboIndex) => CrossFade(GetAoeLight(comboIndex), 0.04f, true);
+    // public void PlayAoeHeavy(int comboIndex) => CrossFade(GetAoeHeavy(comboIndex), 0.04f, true);
 
     public void PlayLauncher() => CrossFade(PlayerAnim.Specials.Launcher, 0.04f, true);
 
@@ -313,18 +315,18 @@ public class PlayerAnimationController : MonoBehaviour
         _ => PlayerAnim.SingleTargetAttacks.Heavy3,
     };
 
-    private static string GetAoeLight(int comboIndex) => comboIndex switch
-    {
-        <= 1 => PlayerAnim.AreaOfEffectAttacks.Light1,
-        2 => PlayerAnim.AreaOfEffectAttacks.Light2,
-        3 => PlayerAnim.AreaOfEffectAttacks.Light3,
-        _ => PlayerAnim.AreaOfEffectAttacks.Light4,
-    };
+    // private static string GetAoeLight(int comboIndex) => comboIndex switch
+    // {
+    //     <= 1 => PlayerAnim.AreaOfEffectAttacks.Light1,
+    //     2 => PlayerAnim.AreaOfEffectAttacks.Light2,
+    //     3 => PlayerAnim.AreaOfEffectAttacks.Light3,
+    //     _ => PlayerAnim.AreaOfEffectAttacks.Light4,
+    // };
 
-    private static string GetAoeHeavy(int comboIndex) => comboIndex switch
-    {
-        <= 1 => PlayerAnim.AreaOfEffectAttacks.Heavy1,
-        2 => PlayerAnim.AreaOfEffectAttacks.Heavy2,
-        _ => PlayerAnim.AreaOfEffectAttacks.Heavy3,
-    };
+    // private static string GetAoeHeavy(int comboIndex) => comboIndex switch
+    // {
+    //     <= 1 => PlayerAnim.AreaOfEffectAttacks.Heavy1,
+    //     2 => PlayerAnim.AreaOfEffectAttacks.Heavy2,
+    //     _ => PlayerAnim.AreaOfEffectAttacks.Heavy3,
+    // };
 }
