@@ -9,10 +9,16 @@ using UnityEngine.Audio;
 
 public class SoundManager : Singleton<SoundManager>
 {
+    // Main Categories
     public AudioSource masterSource;
     public AudioSource musicSource;
     public AudioSource sfxSource;
     public AudioSource voiceSource;
+
+    // Sub Categories
+    public AudioSource ambienceSource;
+    public AudioSource uiSource;
+    public AudioSource puzzleSource;
 
     //Debug logs
     override protected void Awake()

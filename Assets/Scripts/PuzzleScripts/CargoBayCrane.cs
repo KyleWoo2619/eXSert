@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.InputSystem;
 
 public class CargoBayCrane : CranePuzzle
 {
@@ -24,35 +26,32 @@ public class CargoBayCrane : CranePuzzle
     [SerializeField] protected LayerMask grabLayerMask;
     [SerializeField] protected float magnetDetectLength;
     [SerializeField] protected GameObject targetDropZone;
+
+    [Space(10)]
+    [Header("Crane Ambience/SFX")]
+    [SerializeField] private UnityEvent playCraneAmbience;
     
     protected Coroutine retractCoroutine;
     internal bool isGrabbed;
-
-    private void Update()
+    
+    private void Start()
     {
+        if(playCraneAmbience != null)
+            playCraneAmbience.Invoke();
+    }
+
+    protected override void Update()
+    {
+        // Call base Update() to handle crane movement with WASD
+        base.Update();
+        
         if(_confirmPuzzleAction != null && _confirmPuzzleAction.action != null && !isExtending && !AmIMoving())
         {
             CheckForConfirm();
         }
     }
 
-    protected bool AmIMoving()
-    {
-        foreach (CranePart part in craneParts)
-        {
-            if (part.partObject == null) continue;
-
-            Vector3 currentPos = part.partObject.transform.localPosition;
-            if (cranePartStartLocalPositions.TryGetValue(part, out Vector3 startPos))
-            {
-                if (currentPos != startPos)
-                {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
+    
 
     protected IEnumerator AnimateMagnet(GameObject magnet, Vector3 targetPosition, float duration, bool magnetRetract = true)
     {
@@ -72,6 +71,7 @@ public class CargoBayCrane : CranePuzzle
             if (detectionResult == DetectionResult.Wrong && elapsed > 0.1f) // Small delay to avoid instant bounce
             {
                 isExtending = false;
+                isRetracting = true;
                 
                 if (retractCoroutine != null)
                 {
@@ -83,6 +83,7 @@ public class CargoBayCrane : CranePuzzle
             else if (detectionResult == DetectionResult.Target) // Target found
             {
                 isExtending = false;
+                isRetracting = true;
                 if (magnetRetract)
                 {
                     if (retractCoroutine != null)
@@ -109,6 +110,7 @@ public class CargoBayCrane : CranePuzzle
             {
                 StopCoroutine(retractCoroutine);
             }
+            isRetracting = true;
             float retractDuration = finalCheck == DetectionResult.Wrong ? duration * 0.5f : duration;
             retractCoroutine = StartCoroutine(RetractMagnet(magnet, startPosition, retractDuration));
         }
@@ -271,6 +273,7 @@ public class CargoBayCrane : CranePuzzle
 
     protected IEnumerator RetractMagnet(GameObject magnet, Vector3 originalPosition, float duration)
     {
+        isRetracting = true;
         Vector3 startPosition = magnet.transform.localPosition;
         float elapsed = 0f;
 
@@ -320,6 +323,8 @@ public class CargoBayCrane : CranePuzzle
             isCompleted = true;
             EndPuzzle();
         }
+
+        isRetracting = false;
     }
 
     // Checks for confirm input to start magnet extension
@@ -416,6 +421,7 @@ public class CargoBayCrane : CranePuzzle
     {
         // Called by MagnetCollisionHandler when magnet hits a non-target object
         isExtending = false;
+        isRetracting = true;
         
         if (retractCoroutine != null)
         {

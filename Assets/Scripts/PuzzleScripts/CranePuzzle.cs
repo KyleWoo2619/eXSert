@@ -70,6 +70,7 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     private PlayerMovement cachedPlayerMovement;
 
     [Header("Input Actions")]
+     [SerializeField] protected InputActionReference craneMoveAction;
     [SerializeField] protected InputActionReference _escapePuzzleAction;
     [SerializeField] protected InputActionReference _confirmPuzzleAction;
 
@@ -98,7 +99,6 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     [SerializeField] private GameObject[] craneUI; // UI elements to show/hide during puzzle
 
     [Space(10)]
-    
     [Header("Crane Control Settings")]
     [Tooltip("Invert horizontal input (A/D) so A acts as right and D as left when enabled")]
     [SerializeField] private bool invertHorizontal = false;
@@ -107,6 +107,9 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     private bool puzzleActive = false;
     internal bool isExtending = false;
     protected bool isAutomatedMovement = false;
+    internal bool isRetracting;
+
+    private InputAction runtimeCraneMoveAction;
 
     internal readonly Dictionary<CranePart, Vector3> cranePartStartLocalPositions = new Dictionary<CranePart, Vector3>();
 
@@ -122,13 +125,21 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
         CacheCranePartStartPositions();
     }
     
-    private void Update()
+    protected virtual void Update()
     {
         // If not active or automated movement is running, skip processing
         if (!puzzleActive || isAutomatedMovement || isExtending || craneParts == null || craneParts.Count == 0) return;   
 
-        // Read centralized input
+        // Read CranePuzzle move action when available (prefer runtime action from PlayerInput)
         Vector2 move = InputReader.MoveInput;
+        if (runtimeCraneMoveAction != null && runtimeCraneMoveAction.enabled)
+        {
+            move = runtimeCraneMoveAction.ReadValue<Vector2>();
+        }
+        else if (craneMoveAction != null && craneMoveAction.action != null && craneMoveAction.action.enabled)
+        {
+            move = craneMoveAction.action.ReadValue<Vector2>();
+        }
 
         // Ignore small input within deadzone
         if (move.sqrMagnitude < InputReader.Instance.leftStickDeadzoneValue * InputReader.Instance.leftStickDeadzoneValue)
@@ -208,6 +219,8 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
                 newPos.z = startPos.z;
             }
 
+            partTransform.localPosition = newPos;
+
         }
 
         if(isCompleted || _escapePuzzleAction != null && _escapePuzzleAction.action != null && _escapePuzzleAction.action.triggered)
@@ -242,6 +255,39 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
         }
 
         SwapActionMaps("CranePuzzle");
+
+        if (InputReader.Instance != null && InputReader.Instance._playerInput != null)
+        {
+            var actions = InputReader.Instance._playerInput.actions;
+            var craneMap = actions.FindActionMap("CranePuzzle");
+            if (craneMap != null && !craneMap.enabled)
+            {
+                craneMap.Enable();
+            }
+
+            // Prefer runtime action instance from the CranePuzzle map (asset is cloned at runtime)
+            if (craneMap != null)
+            {
+                string moveActionName = (craneMoveAction != null && craneMoveAction.action != null)
+                    ? craneMoveAction.action.name
+                    : "Move";
+                runtimeCraneMoveAction = craneMap.FindAction(moveActionName);
+            }
+            else
+            {
+                runtimeCraneMoveAction = null;
+            }
+
+            if (runtimeCraneMoveAction != null && !runtimeCraneMoveAction.enabled)
+            {
+                runtimeCraneMoveAction.Enable();
+            }
+
+            if (craneMoveAction != null && craneMoveAction.action != null && !craneMoveAction.action.enabled)
+            {
+                craneMoveAction.action.Enable();
+            }
+        }
 
         _escapePuzzleAction.action.Enable(); // Make sure enabled
         puzzleActive = true;
@@ -311,6 +357,16 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
                 _confirmPuzzleAction.action.Disable();
             }
 
+            if (craneMoveAction != null && craneMoveAction.action != null)
+            {
+                craneMoveAction.action.Disable();
+            }
+            if (runtimeCraneMoveAction != null)
+            {
+                runtimeCraneMoveAction.Disable();
+                runtimeCraneMoveAction = null;
+            }
+
             // Sets camera priority back to normal
             if(puzzleCamera != null)
             {
@@ -344,6 +400,34 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
             
     }
     #endregion
+
+    internal bool AmIMoving()
+    {
+        foreach (CranePart part in craneParts)
+        {
+            if (part.partObject == null) continue;
+
+            Vector3 currentPos = part.partObject.transform.localPosition;
+            if (cranePartStartLocalPositions.TryGetValue(part, out Vector3 startPos))
+            {
+                if (currentPos != startPos)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    public bool IsMoving()
+    {
+        return AmIMoving();
+    }
+
+    
+    public bool IsRetracting()
+    {
+        return isRetracting;
+    }
 
     #region Restrict/Restore Movement
     //After puzzle ends, restore player movement if it was disabled
