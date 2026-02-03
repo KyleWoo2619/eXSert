@@ -8,18 +8,18 @@ using UnityEngine;
 
 public class CraneGrabObject : MonoBehaviour
 {
-    [SerializeField] private CranePuzzle cranePuzzle;
+    [SerializeField] private CargoBayCrane cargoBayCrane;
 
     private void Start()
     {
         // Verify setup
-        if (cranePuzzle == null)
+        if (cargoBayCrane == null)
         {
             Debug.LogError("CraneGrabObject: CranePuzzle reference not set!");
             return;
         }
         
-        if (cranePuzzle.magnetExtender == null)
+        if (cargoBayCrane.magnetExtender == null)
         {
             Debug.LogError("CraneGrabObject: magnetExtender not set on CranePuzzle!");
             return;
@@ -32,27 +32,18 @@ public class CraneGrabObject : MonoBehaviour
             Debug.LogError($"CraneGrabObject: {gameObject.name} has no Collider component!");
             return;
         }
-        
-        if (!col.isTrigger)
-        {
-            Debug.LogWarning($"CraneGrabObject: {gameObject.name} Collider is not set as trigger!");
-        }
-
-        Debug.Log("CraneGrabObject initialized successfully");
     }
 
     public void GrabObject(GameObject obj)
     {
         // Parent to the magnet extender while preserving world position
-        obj.transform.SetParent(cranePuzzle.magnetExtender.transform, true);
-        Debug.Log($"Object parented to magnet: {obj.name}");
+        obj.transform.SetParent(cargoBayCrane.magnetExtender.transform, true);;
     }
 
     public void ReleaseObject(GameObject obj)
     {
         // Unparent the object
-        obj.transform.SetParent(null, true);
-        Debug.Log($"Object released from magnet: {obj.name}");
+        obj.transform.SetParent(null, true);;
     }
 
 }
