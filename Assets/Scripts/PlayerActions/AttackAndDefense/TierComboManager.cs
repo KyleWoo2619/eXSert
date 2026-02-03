@@ -1,17 +1,12 @@
 /*
  * Tier-Based Combo Manager
  * 
- * Handles 3-tier combo progression with stance swapping support.
+ * Handles 3-tier combo progression (stance swapping removed).
  * Provides attack routing data for PlayerAttackManager without needing AnimFacade.
  * 
  * Tier Structure:
- * Single: SX1,SX2 | SX3,SX4 | SX5   and  SY1 | SY2 | SY3
- * AOE:    AX1,AX2 | AX3     | AX4   and  AY1 | AY2 | AY3
- * 
- * Cross-stance routing:
- * - Tier-1 attacks progress to Tier-2 on next input
- * - Tier-2 attacks progress to Tier-3 on next input
- * - Stance swaps jump to the equivalent tier in the new stance
+ * Light:  SX1,SX2 | SX3,SX4 | SX5
+ * Heavy:  AY1 | AY2 | AY3
  */
 
 using UnityEngine;
@@ -32,7 +27,7 @@ public class TierComboManager : MonoBehaviour
     private int currentTier = 1;          // 1, 2, or 3
     private bool isHeavyChain = false;    // tracking if we're in a heavy (Y) chain
     private int fastAttackIndex = 0;      // within tier: 0 or 1 for tier-1, 0 for tier-2/3
-    private AttackStance lastStance = AttackStance.Single;
+    // private AttackStance lastStance = AttackStance.Single; // Stance tracking disabled.
     
     private float lastAttackTime = -999f;
     private Coroutine resetCoroutine;
@@ -59,7 +54,8 @@ public class TierComboManager : MonoBehaviour
     /// </summary>
     public string RequestFastAttack(AttackStance currentStance)
     {
-        string attackId = GetNextFastAttack(currentStance);
+        // Light attacks always use the single-target chain now.
+        string attackId = GetNextFastAttack(AttackStance.Single);
         PlayerAttack attackData = attackDatabase != null ? attackDatabase.GetAttack(attackId) : null;
         int executedStage = ResolveComboStageFromData(attackData, currentTier);
         bool isFinisher = attackData != null && attackData.isFinisher;
@@ -78,7 +74,8 @@ public class TierComboManager : MonoBehaviour
     /// </summary>
     public string RequestHeavyAttack(AttackStance currentStance)
     {
-        string attackId = GetNextHeavyAttack(currentStance, out int resolvedTier);
+        // Heavy attacks always use the AY chain now.
+        string attackId = GetNextHeavyAttack(AttackStance.AOE, out int resolvedTier);
         PlayerAttack attackData = attackDatabase != null ? attackDatabase.GetAttack(attackId) : null;
         int executedStage = ResolveComboStageFromData(attackData, resolvedTier);
         bool isFinisher = attackData != null && attackData.isFinisher;
@@ -97,24 +94,8 @@ public class TierComboManager : MonoBehaviour
     /// </summary>
     private string GetNextFastAttack(AttackStance currentStance)
     {
-        // Check if we're switching stances mid-combo
-        bool stanceChanged = (currentStance != lastStance) && (currentTier > 1);
-
-        if (stanceChanged)
-        {
-            // Cross-stance routing: jump to equivalent tier in new stance
-            return GetCrossStanceFastAttack(currentStance, currentTier);
-        }
-
-        // Same stance progression
-        if (currentStance == AttackStance.Single)
-        {
-            return GetSingleFastAttack();
-        }
-        else // AOE
-        {
-            return GetAOEFastAttack();
-        }
+        // Stance swapping removed: always use the single-target light chain.
+        return GetSingleFastAttack();
     }
 
     private string GetSingleFastAttack()
@@ -188,8 +169,7 @@ public class TierComboManager : MonoBehaviour
     {
         resolvedTier = ResolveHeavyTier(currentStance);
 
-        string prefix = currentStance == AttackStance.Single ? "SY" : "AY";
-        return prefix + Mathf.Clamp(resolvedTier, 1, 3);
+        return "AY" + Mathf.Clamp(resolvedTier, 1, 3);
     }
 
     private int ResolveHeavyTier(AttackStance currentStance)
@@ -218,7 +198,7 @@ public class TierComboManager : MonoBehaviour
         lastAttackTime = Time.time;
         
         // Update stance tracking
-        lastStance = currentStance;
+        // lastStance = currentStance;
         isHeavyChain = isHeavy;
 
         if (forceFinisher || executedStage >= 3)

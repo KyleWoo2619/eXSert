@@ -33,8 +33,9 @@ public class PlayerAttackManager : MonoBehaviour
     private bool guardAttackAutoGenerateHitbox = false;
 
     [Header("Stance Switching")]
-    [SerializeField, Range(0.1f, 5f)] private float stanceCooldownTime = 1f;
-    [SerializeField] private AudioClip changeStanceAudio;
+    // Stance swapping removed (kept for reference).
+    // [SerializeField, Range(0.1f, 5f)] private float stanceCooldownTime = 1f;
+    // [SerializeField] private AudioClip changeStanceAudio;
 
     [Header("Aerial Attack Recovery")]
     [SerializeField, Tooltip("Additional lockout applied after landing a plunge attack.")]
@@ -46,13 +47,15 @@ public class PlayerAttackManager : MonoBehaviour
     [SerializeField, Tooltip("Primary AudioSource for attack and stance SFX. Defaults to SoundManager's SFX source when unset.")]
     private AudioSource attackAudioSource;
     private AudioSource fallbackSfxSource;
-    private Coroutine stanceCooldownRoutine;
+    // private Coroutine stanceCooldownRoutine;
     private GameObject activeHitbox;
     private PlayerAttack currentAttack;
     private Coroutine hitboxLifetimeRoutine;
     private Coroutine plungeRecoveryRoutine;
     private Coroutine guardAttackFlowRoutine;
     private Coroutine specialAttackAutoCancelRoutine;
+    private Coroutine heavyMoveRoutine;
+    private bool lastAttackWasAoe;
 
     [Header("Input Buffering")]
     [SerializeField, Range(0.05f, 0.6f)] private float inputBufferWindow = 0.25f;
@@ -94,11 +97,12 @@ public class PlayerAttackManager : MonoBehaviour
 
     private void OnDisable()
     {
-        if (stanceCooldownRoutine != null)
-        {
-            StopCoroutine(stanceCooldownRoutine);
-            stanceCooldownRoutine = null;
-        }
+        // Stance switching removed.
+        // if (stanceCooldownRoutine != null)
+        // {
+        //     StopCoroutine(stanceCooldownRoutine);
+        //     stanceCooldownRoutine = null;
+        // }
         if (hitboxLifetimeRoutine != null)
         {
             StopCoroutine(hitboxLifetimeRoutine);
@@ -108,6 +112,11 @@ public class PlayerAttackManager : MonoBehaviour
         {
             StopCoroutine(plungeRecoveryRoutine);
             plungeRecoveryRoutine = null;
+        }
+        if (heavyMoveRoutine != null)
+        {
+            StopCoroutine(heavyMoveRoutine);
+            heavyMoveRoutine = null;
         }
         StopGuardAttackFlowRoutine();
         StopSpecialAttackAutoCancelRoutine();
@@ -135,8 +144,9 @@ public class PlayerAttackManager : MonoBehaviour
             ProcessAttackInput(false);
         }
 
-        if (InputReader.ChangeStanceTriggered)
-            TryChangeStance();
+        // Stance swapping removed.
+        // if (InputReader.ChangeStanceTriggered)
+        //     TryChangeStance();
     }
 
     private void HandleGuardStateAttacks()
@@ -216,23 +226,23 @@ public class PlayerAttackManager : MonoBehaviour
         return true;
     }
 
-    private void TryChangeStance()
-    {
-        if (stanceCooldownRoutine != null)
-            return;
+    // private void TryChangeStance()
+    // {
+    //     if (stanceCooldownRoutine != null)
+    //         return;
 
-        CombatManager.ChangeStance();
+    //     CombatManager.ChangeStance();
 
-        PlaySfx(changeStanceAudio);
+    //     PlaySfx(changeStanceAudio);
 
-        stanceCooldownRoutine = StartCoroutine(StanceChangeCooldown());
-    }
+    //     stanceCooldownRoutine = StartCoroutine(StanceChangeCooldown());
+    // }
 
-    private IEnumerator StanceChangeCooldown()
-    {
-        yield return new WaitForSeconds(stanceCooldownTime);
-        stanceCooldownRoutine = null;
-    }
+    // private IEnumerator StanceChangeCooldown()
+    // {
+    //     yield return new WaitForSeconds(stanceCooldownTime);
+    //     stanceCooldownRoutine = null;
+    // }
 
     public void OnLightAttack()
     {
@@ -318,7 +328,7 @@ public class PlayerAttackManager : MonoBehaviour
             return null;
         }
 
-        TierComboManager.AttackStance stance = CombatManager.singleTargetMode
+        TierComboManager.AttackStance stance = lightAttack
             ? TierComboManager.AttackStance.Single
             : TierComboManager.AttackStance.AOE;
 
@@ -382,7 +392,11 @@ public class PlayerAttackManager : MonoBehaviour
         currentAttack = attackData;
         InputReader.inputBusy = true;
 
+        UpdateLastAttackType(attackData);
+
         PlaySfx(attackData.attackSFX);
+
+        ApplyHeavyAttackForwardMove(attackData);
 
         if (animationOverride != null)
             animationOverride(animationController);
@@ -392,6 +406,87 @@ public class PlayerAttackManager : MonoBehaviour
         OnAttack?.Invoke(attackData);
 
         Debug.Log($"[PlayerAttackManager] Executing attack {attackData.attackName} ({attackId})");
+    }
+
+    private void ApplyHeavyAttackForwardMove(PlayerAttack attackData)
+    {
+        if (attackData == null)
+            return;
+
+        if (!IsHeavyAttack(attackData))
+            return;
+
+        float distance = attackData.forwardMoveDistance;
+        if (distance <= 0f)
+            return;
+
+        Vector3 forward = transform.forward;
+        forward.y = 0f;
+        if (forward.sqrMagnitude <= 0.0001f)
+            return;
+        forward.Normalize();
+
+        float duration = attackData.forwardMoveDuration;
+        if (duration <= 0f)
+        {
+            MoveXZ(forward * distance);
+            return;
+        }
+
+        if (heavyMoveRoutine != null)
+            StopCoroutine(heavyMoveRoutine);
+
+        heavyMoveRoutine = StartCoroutine(HeavyAttackForwardMoveRoutine(forward, distance, duration));
+    }
+
+    private IEnumerator HeavyAttackForwardMoveRoutine(Vector3 forward, float distance, float duration)
+    {
+        float elapsed = 0f;
+        Vector3 totalMove = forward * distance;
+        Vector3 moved = Vector3.zero;
+
+        while (elapsed < duration)
+        {
+            float t = Mathf.Clamp01(elapsed / duration);
+            Vector3 target = totalMove * t;
+            Vector3 delta = target - moved;
+            if (delta.sqrMagnitude > 0f)
+            {
+                MoveXZ(delta);
+                moved += delta;
+            }
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        Vector3 finalDelta = totalMove - moved;
+        if (finalDelta.sqrMagnitude > 0f)
+            MoveXZ(finalDelta);
+
+        heavyMoveRoutine = null;
+    }
+
+    private void MoveXZ(Vector3 delta)
+    {
+        Vector3 planarDelta = new Vector3(delta.x, 0f, delta.z);
+        if (planarDelta.sqrMagnitude <= 0f)
+            return;
+
+        if (characterController != null)
+            characterController.Move(planarDelta);
+        else
+            transform.position += planarDelta;
+    }
+
+    private static bool IsHeavyAttack(PlayerAttack attackData)
+    {
+        if (attackData == null)
+            return false;
+
+        return attackData.attackType == AttackType.HeavySingle
+            || attackData.attackType == AttackType.HeavyAOE
+            || attackData.attackType == AttackType.HeavyAerial;
     }
 
     private bool IsGrounded()
@@ -677,10 +772,27 @@ public class PlayerAttackManager : MonoBehaviour
         if (animationController == null)
             return;
 
-        if (CombatManager.singleTargetMode)
-            animationController.PlaySingleTargetIdleCombat(transition);
-        else
+        if (lastAttackWasAoe)
             animationController.PlayAoeIdleCombat(transition);
+        else
+            animationController.PlaySingleTargetIdleCombat(transition);
+    }
+
+    private void UpdateLastAttackType(PlayerAttack attackData)
+    {
+        if (attackData == null)
+            return;
+
+        switch (attackData.attackType)
+        {
+            case AttackType.LightSingle:
+            case AttackType.HeavySingle:
+                lastAttackWasAoe = false;
+                break;
+            case AttackType.HeavyAOE:
+                lastAttackWasAoe = true;
+                break;
+        }
     }
 
     private bool TryConsumeBufferedAttack()

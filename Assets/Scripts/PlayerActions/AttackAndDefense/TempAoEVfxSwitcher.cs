@@ -19,7 +19,7 @@ public sealed class TempAoEVfxSwitcher : MonoBehaviour
     private GameObject[] attackVfxObjects = Array.Empty<GameObject>();
     [SerializeField, Tooltip("Duration before attack VFX are hidden again.")]
     private float attackDuration = 1f;
-    [SerializeField, Tooltip("Toggle when attacks are tagged as AoE (LightAOE/HeavyAOE).")]
+    [SerializeField, Tooltip("Toggle when attacks are tagged as HeavyAOE (AY1-AY3).")]
     private bool includeAoEAttacks = true;
     [SerializeField, Tooltip("Toggle when the heavy aerial plunge attack fires.")]
     private bool includePlungeAttacks = true;
@@ -142,7 +142,7 @@ public sealed class TempAoEVfxSwitcher : MonoBehaviour
 
     private bool ShouldReactToAttack(AttackType attackType)
     {
-        bool isAoE = attackType == AttackType.LightAOE || attackType == AttackType.HeavyAOE;
+        bool isAoE = attackType == AttackType.HeavyAOE;
         bool isPlunge = attackType == AttackType.HeavyAerial;
 
         return (includeAoEAttacks && isAoE)

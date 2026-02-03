@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine.AI;
 
 namespace Behaviors
@@ -15,8 +16,8 @@ namespace Behaviors
         {
             this.enemy = enemy;
             // Removed SetEnemyColor - using animations instead
-            Zone[] otherZones = GetOtherZones();
-            if (otherZones.Length == 0)
+            var otherZones = GetOtherZones();
+            if (otherZones.Count == 0)
             {
                 // No other zones to relocate to, transition back to Idle
                 enemy.TryFireTriggerByName("ReachZone");
@@ -24,7 +25,7 @@ namespace Behaviors
             }
 
             // Pick a random other zone and set as target
-            Zone targetZone = otherZones[Random.Range(0, otherZones.Length)];
+            Zone targetZone = otherZones[Random.Range(0, otherZones.Count)];
             // Move to a random point in the target zone
             Vector3 target = targetZone.GetRandomPointInZone();
             UnityEngine.AI.NavMeshHit hit;
@@ -46,7 +47,11 @@ namespace Behaviors
             }
         }
         public virtual void Tick(BaseEnemy<TState, TTrigger> enemy) { }
-        private Zone[] GetOtherZones()
+        
+        // Reusable list to avoid allocations in fallback path
+        private readonly List<Zone> fallbackZoneList = new List<Zone>(16);
+        
+        private IReadOnlyList<Zone> GetOtherZones()
         {
             // Use ZoneManager if available for cached zones (avoids FindObjectsByType allocation)
             if (ZoneManager.Instance != null)
@@ -56,16 +61,13 @@ namespace Behaviors
             
             // Fallback to FindObjectsByType if ZoneManager not present
             Zone[] allZones = Object.FindObjectsByType<Zone>(FindObjectsSortMode.None);
-            if (enemy.currentZone == null)
-                return allZones;
-            // Exclude the current zone
-            var otherZones = new System.Collections.Generic.List<Zone>();
+            fallbackZoneList.Clear();
             foreach (var zone in allZones)
             {
                 if (zone != enemy.currentZone)
-                    otherZones.Add(zone);
+                    fallbackZoneList.Add(zone);
             }
-            return otherZones.ToArray();
+            return fallbackZoneList;
         }
         private IEnumerator WaitForArrivalAndUpdateZone()
         {

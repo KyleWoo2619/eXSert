@@ -11,8 +11,8 @@ The door consists of a top and bottom part that slide apart vertically when open
 public class DoorTriggerZone : MonoBehaviour
 {
     [Header("Door Pieces")]
-    [SerializeField] private Transform topDoor;      // top slab/panel
-    [SerializeField] private Transform bottomDoor;   // bottom slab/panel
+    [SerializeField] private GameObject topDoor;      // top slab/panel
+    [SerializeField] private GameObject bottomDoor;   // bottom slab/panel
 
     [Header("Motion")]
     [SerializeField] private float topOpenDistance = 2.0f;     // meters upward
@@ -23,9 +23,9 @@ public class DoorTriggerZone : MonoBehaviour
     [Header("Player Filter")]
     [SerializeField] private string playerTag = "Player";       // set your player’s tag
 
-    // cached start/end positions
-    private Vector3 _topClosedPos, _bottomClosedPos;
-    private Vector3 _topOpenPos, _bottomOpenPos;
+    // cached start/end positions (local space to avoid parent movement jumps)
+    private Vector3 _topClosedLocal, _bottomClosedLocal;
+    private Vector3 _topOpenLocal, _bottomOpenLocal;
 
     private Coroutine _motion;
     private int _overlapCount = 0;   // supports multiple colliders entering (player + weapon, etc.)
@@ -38,11 +38,18 @@ public class DoorTriggerZone : MonoBehaviour
 
     private void Awake()
     {
-        _topClosedPos = topDoor.position;
-        _bottomClosedPos = bottomDoor.position;
+        if (topDoor == null || bottomDoor == null)
+        {
+            Debug.LogError($"{nameof(DoorTriggerZone)} on {name} is missing door references. Disabling to prevent crash.", this);
+            enabled = false;
+            return;
+        }
+        // Work in local space so elevator/platform movement doesn't cause snapping
+        _topClosedLocal = topDoor.transform.localPosition;
+        _bottomClosedLocal = bottomDoor.transform.localPosition;
 
-        _topOpenPos = _topClosedPos + Vector3.up * topOpenDistance;
-        _bottomOpenPos = _bottomClosedPos + Vector3.down * bottomOpenDistance;
+        _topOpenLocal = _topClosedLocal + Vector3.up * topOpenDistance;
+        _bottomOpenLocal = _bottomClosedLocal + Vector3.down * bottomOpenDistance;
     }
 
     private void OnTriggerEnter(Collider other)
@@ -67,24 +74,26 @@ public class DoorTriggerZone : MonoBehaviour
 
     private IEnumerator MoveDoors(bool open)
     {
-        Vector3 topFrom = topDoor.position;
-        Vector3 botFrom = bottomDoor.position;
+        // Start from current local positions to avoid a visible jump when reversing or interrupting
+        Vector3 topFrom = topDoor.transform.localPosition;
+        Vector3 botFrom = bottomDoor.transform.localPosition;
 
-        Vector3 topTo = open ? _topOpenPos : _topClosedPos;
-        Vector3 botTo = open ? _bottomOpenPos : _bottomClosedPos;
+        Vector3 topTo = open ? _topOpenLocal : _topClosedLocal;
+        Vector3 botTo = open ? _bottomOpenLocal : _bottomClosedLocal;
 
         float t = 0f;
         while (t < 1f)
         {
             t += Time.deltaTime / Mathf.Max(0.0001f, moveDuration);
             float k = ease.Evaluate(Mathf.Clamp01(t));
-            topDoor.position    = Vector3.LerpUnclamped(topFrom, topTo, k);
-            bottomDoor.position = Vector3.LerpUnclamped(botFrom, botTo, k);
+            // Lerp in local space; k is clamped so standard Lerp avoids overshoot
+            topDoor.transform.localPosition    = Vector3.Lerp(topFrom, topTo, k);
+            bottomDoor.transform.localPosition = Vector3.Lerp(botFrom, botTo, k);
             yield return null;
         }
-
-        topDoor.position    = topTo;
-        bottomDoor.position = botTo;
+        
+        topDoor.transform.localPosition    = topTo;
+        bottomDoor.transform.localPosition = botTo;
         _motion = null;
     }
 }

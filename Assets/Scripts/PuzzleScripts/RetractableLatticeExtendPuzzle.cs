@@ -8,7 +8,7 @@
 using System.Collections;
 using UnityEngine;
 
-public class RetractableLatticeExtendPuzzle : MonoBehaviour, IPuzzleInterface
+public class RetractableLatticeExtendPuzzle : PuzzlePart
 {
     #region Platform Variables
     [Header("Platform Variables")]
@@ -42,8 +42,6 @@ public class RetractableLatticeExtendPuzzle : MonoBehaviour, IPuzzleInterface
 
     private bool isExtending = false;
 
-    public bool isCompleted { get; set; }
-
     private void Awake()
     {
         // Cache original positions once
@@ -52,7 +50,7 @@ public class RetractableLatticeExtendPuzzle : MonoBehaviour, IPuzzleInterface
         magnetTwoOrigin = magnetTwo != null ? magnetTwo.transform.position : Vector3.zero;
     }
 
-    public void StartPuzzle()
+    public override void StartPuzzle()
     {
         // Prepare start/target positions
         platformStartPos = platformOrigin;
@@ -99,7 +97,7 @@ public class RetractableLatticeExtendPuzzle : MonoBehaviour, IPuzzleInterface
         StartCoroutine(ExtendLatticeParts());
     }
 
-    public void EndPuzzle()
+    public override void EndPuzzle()
     {
         if (isCompleted)
         {

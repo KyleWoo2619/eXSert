@@ -8,7 +8,7 @@
 
 using UnityEngine;
 
-public class HangarPlatformRotationPuzzle : MonoBehaviour, IPuzzleInterface
+public class HangarPlatformRotationPuzzle : PuzzlePart
 {
     [SerializeField] private float lerpSpeed;
 
@@ -23,8 +23,6 @@ public class HangarPlatformRotationPuzzle : MonoBehaviour, IPuzzleInterface
     private Quaternion targetPos;
 
     protected Quaternion origin;
-    
-    public bool isCompleted { get; set; }
 
 
     private void Awake()
@@ -43,7 +41,7 @@ public class HangarPlatformRotationPuzzle : MonoBehaviour, IPuzzleInterface
         }
     }
 
-    public void StartPuzzle()
+    public override void StartPuzzle()
     {
         if(!isCompleted)
         {
@@ -62,7 +60,7 @@ public class HangarPlatformRotationPuzzle : MonoBehaviour, IPuzzleInterface
         }
     }
 
-    public void EndPuzzle()
+    public override void EndPuzzle()
     {
         if(isCompleted)
         {
