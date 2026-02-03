@@ -8,18 +8,18 @@ using UnityEngine;
 
 public class CraneGrabObject : MonoBehaviour
 {
-    [SerializeField] private CranePuzzle cranePuzzle;
+    [SerializeField] private CargoBayCrane cargoBayCrane;
 
     private void Start()
     {
         // Verify setup
-        if (cranePuzzle == null)
+        if (cargoBayCrane == null)
         {
             Debug.LogError("CraneGrabObject: CranePuzzle reference not set!");
             return;
         }
         
-        if (cranePuzzle.magnetExtender == null)
+        if (cargoBayCrane.magnetExtender == null)
         {
             Debug.LogError("CraneGrabObject: magnetExtender not set on CranePuzzle!");
             return;
@@ -44,7 +44,7 @@ public class CraneGrabObject : MonoBehaviour
     public void GrabObject(GameObject obj)
     {
         // Parent to the magnet extender while preserving world position
-        obj.transform.SetParent(cranePuzzle.magnetExtender.transform, true);
+        obj.transform.SetParent(cargoBayCrane.magnetExtender.transform, true);
         Debug.Log($"Object parented to magnet: {obj.name}");
     }
 

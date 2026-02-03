@@ -13,15 +13,7 @@ using Unity.Cinemachine;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
-using TMPro;
 using UnityEngine.InputSystem;
-using Unity.VisualScripting;
-
-
-
-
-
-
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -74,21 +66,12 @@ public class ShowIfZAttribute : PropertyAttribute { }
 
 public class CranePuzzle : MonoBehaviour, IPuzzleInterface
 {
-    private enum DetectionResult
-    {
-        None,
-        Target,
-        Wrong
-    }
     // Cache of the player's movement component so it can be re-enabled later
     private PlayerMovement cachedPlayerMovement;
 
-    [Header("References")]
-    [SerializeField] private CraneGrabObject craneGrabObjectScript;
-
     [Header("Input Actions")]
-    [SerializeField] private InputActionReference _escapePuzzleAction;
-    [SerializeField] private InputActionReference _confirmPuzzleAction;
+    [SerializeField] protected InputActionReference _escapePuzzleAction;
+    [SerializeField] protected InputActionReference _confirmPuzzleAction;
 
     [Space(10)]
     [Header("Camera")]
@@ -99,8 +82,7 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
 
     // List of crane parts to move
     [Header("Crane Parts")]
-    [SerializeField] private List<CranePart> craneParts = new List<CranePart>();
-    [SerializeField] public GameObject magnetExtender;
+    [SerializeField] protected List<CranePart> craneParts = new List<CranePart>();
 
     [Space(10)]
 
@@ -109,43 +91,24 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     [SerializeField] private bool swapXZControls = false;
 
     [Space(10)]
-    
-    [Header("Smoothing - Optional")]
-    [Tooltip("Enable smooth interpolation when moving crane parts")]
-    [SerializeField] private bool useLerp = true;
-
-    [Tooltip("Higher values = snappier movement. Should be between 5-20")]
-    [SerializeField] private float lerpSpeed = 10f;
-
-    [Space(10)]
 
     [Header("Crane Settings")]
     [SerializeField] private float craneMoveSpeed = 2f;
     [Tooltip("Height to which the magnet extends")]
-    [SerializeField] private float magnetExtendHeight;
     [SerializeField] private GameObject[] craneUI; // UI elements to show/hide during puzzle
+
+    [Space(10)]
+    
+    [Header("Crane Control Settings")]
     [Tooltip("Invert horizontal input (A/D) so A acts as right and D as left when enabled")]
     [SerializeField] private bool invertHorizontal = false;
 
-
-    [Space(10)]
-
-    [Header("Puzzle Settings")]
-    [Tooltip("Object crane needs to grab")]
-    [SerializeField] internal GameObject targetObject;
-    [SerializeField] private GameObject targetDropZone;
-    private Vector3 targetEndPos;
-    [SerializeField] private LayerMask grabLayerMask;
-    [SerializeField] private float magnetDetectLength;
-    private Vector3 magnetStartPos;
-    internal bool isGrabbed;
-
+    private bool isMoving = false;
     private bool puzzleActive = false;
     internal bool isExtending = false;
-    private bool isAutomatedMovement = false;
+    protected bool isAutomatedMovement = false;
 
-    // Coroutines for magnet animation
-    private Coroutine retractCoroutine;
+    internal readonly Dictionary<CranePart, Vector3> cranePartStartLocalPositions = new Dictionary<CranePart, Vector3>();
 
     public bool isCompleted { get; set; }
 
@@ -155,27 +118,25 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
         {
             img.SetActive(false);
         }
+
+        CacheCranePartStartPositions();
     }
     
     private void Update()
     {
-        // Visualize both detection rays with colors that reflect hit state
-        AssignRayData();
-
-
         // If not active or automated movement is running, skip processing
-        if (!puzzleActive || isAutomatedMovement || craneParts == null || craneParts.Count == 0) return;
-
-        if(_confirmPuzzleAction != null && _confirmPuzzleAction.action != null && !isExtending)
-        {
-            CheckForConfirm();
-        }
+        if (!puzzleActive || isAutomatedMovement || isExtending || craneParts == null || craneParts.Count == 0) return;   
 
         // Read centralized input
         Vector2 move = InputReader.MoveInput;
 
         // Ignore small input within deadzone
-        if (move.sqrMagnitude < InputReader.Instance.leftStickDeadzoneValue * InputReader.Instance.leftStickDeadzoneValue) return;
+        if (move.sqrMagnitude < InputReader.Instance.leftStickDeadzoneValue * InputReader.Instance.leftStickDeadzoneValue)
+        {
+            // No input, so reset cached start positions so AmIMoving() returns false
+            CacheCranePartStartPositions();
+            return;
+        }
 
         // Optionally invert only horizontal input (A/D)
         if (invertHorizontal)
@@ -194,6 +155,12 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
             Vector3 currentPos = partTransform.localPosition;
             Vector3 newPos = currentPos;
 
+            if (!cranePartStartLocalPositions.TryGetValue(part, out Vector3 startPos))
+            {
+                startPos = currentPos;
+                cranePartStartLocalPositions[part] = startPos;
+            }
+
             // Determine input mapping depending on swap controls bool
             float inputForX = swapXZControls ? move.y : move.x;
             float inputForY = move.y;
@@ -204,34 +171,43 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
             {
                 newPos.x += inputForX * craneMoveSpeed * Time.deltaTime;
                 newPos.x = Mathf.Clamp(newPos.x, part.minX, part.maxX);
+                
             }
 
             if (part.moveY)
             {
                 newPos.y += inputForY * craneMoveSpeed * Time.deltaTime;
                 newPos.y = Mathf.Clamp(newPos.y, part.minY, part.maxY);
+                
             }
 
             if (part.moveZ)
             {
                 newPos.z += inputForZ * craneMoveSpeed * Time.deltaTime;
                 newPos.z = Mathf.Clamp(newPos.z, part.minZ, part.maxZ);
-            }
-
-            // Lerps to new position if enabled
-            if (useLerp)
-            {
-                Vector3 targetPos = newPos;
-                // Clamp before lerping to ensure we don't exceed bounds
-                targetPos.x = Mathf.Clamp(targetPos.x, part.minX, part.maxX);
-                targetPos.y = Mathf.Clamp(targetPos.y, part.minY, part.maxY);
-                targetPos.z = Mathf.Clamp(targetPos.z, part.minZ, part.maxZ);
-                partTransform.localPosition = Vector3.Lerp(currentPos, targetPos, Mathf.Clamp01(lerpSpeed * Time.deltaTime));
+                
             }
             else
             {
-                partTransform.localPosition = newPos;
+                newPos.z = Mathf.Clamp(newPos.z, part.minZ, part.maxZ);
             }
+
+            if (!part.moveX)
+            {
+                newPos.x = startPos.x;
+                
+            }
+
+            if (!part.moveY)
+            {
+                newPos.y = startPos.y;
+            }
+
+            if (!part.moveZ)
+            {
+                newPos.z = startPos.z;
+            }
+
         }
 
         if(isCompleted || _escapePuzzleAction != null && _escapePuzzleAction.action != null && _escapePuzzleAction.action.triggered)
@@ -243,15 +219,26 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     #region IPuzzleInterface Methods
 
     // Called by whatever system starts this puzzle
-    public void StartPuzzle()
+    public virtual void StartPuzzle()
     {   
-        if(InputReader.Instance.activeControlScheme == "Gamepad")
+        CacheCranePartStartPositions();
+
+        if (craneUI != null && craneUI.Length > 0)
         {
-            craneUI[1].SetActive(true);
-        } 
-        else if (InputReader.Instance.activeControlScheme == "Keyboard&Mouse")
-        {
-            craneUI[0].SetActive(true);
+            if(InputReader.Instance.activeControlScheme == "Gamepad")
+            {
+                if (craneUI.Length > 1 && craneUI[1] != null)
+                {
+                    craneUI[1].SetActive(true);
+                }
+            } 
+            else if (InputReader.Instance.activeControlScheme == "Keyboard&Mouse")
+            {
+                if (craneUI[0] != null)
+                {
+                    craneUI[0].SetActive(true);
+                }
+            }
         }
 
         SwapActionMaps("CranePuzzle");
@@ -298,7 +285,7 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     }
 
     // Call this when the puzzle is finished or cancelled
-    public void EndPuzzle()
+    public virtual void EndPuzzle()
     {
             foreach (GameObject img in craneUI)
             {
@@ -358,251 +345,6 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     }
     #endregion
 
-    private DetectionResult DetectDesiredObjectBelow()
-    {
-        RaycastHit hit;
-        RaycastHit hit2;
-
-        Debug.Log(targetObject != null ? $"Detecting object: {targetObject.name}" : "No target object set for detection");
-
-        GetRayData(out var originA, out var originB, out var originC, out var originD, out var castDir);
-
-        bool hitFirst = Physics.Raycast(originA, castDir, out hit, magnetDetectLength);
-        bool hitSecond = Physics.Raycast(originB, castDir, out hit2, magnetDetectLength);
-        bool hitThird = Physics.Raycast(originC, castDir, out var hit3, magnetDetectLength);
-        bool hitFourth = Physics.Raycast(originD, castDir, out var hit4, magnetDetectLength);
-        
-        if(hitFirst || hitSecond || hitThird || hitFourth)
-        {
-            
-            if((hitFirst && hit.collider.gameObject == targetObject) || (hitSecond && hit2.collider.gameObject == targetObject) 
-                || (hitThird && hit3.collider.gameObject == targetObject) || (hitFourth && hit4.collider.gameObject == targetObject))
-            {
-                Debug.Log("Desired object detected below magnet");
-                craneGrabObjectScript.GrabObject(targetObject);
-                isGrabbed = true;
-                
-                return DetectionResult.Target;
-            }
-            else
-            {
-                string hitName = hitFirst ? hit.collider.gameObject.name : hitSecond ? hit2.collider.gameObject.name 
-                    : hitThird ? hit3.collider.gameObject.name : hit4.collider.gameObject.name;
-                Debug.Log($"Object detected below magnet: {hitName}, but it is not the desired object - bouncing off!");
-                return DetectionResult.Wrong;
-            }
-        }
-        else
-        {
-            Debug.Log("Raycast did not hit anything on grabLayerMask");
-        }
-
-        return DetectionResult.None;
-    }
-
-    #region Coroutine Animations
-    private IEnumerator AnimateMagnet(GameObject magnet, Vector3 targetPosition, float duration, bool magnetRetract = true)
-    {
-        LockOrUnlockMovement(true);
-        Vector3 startPosition = magnet.transform.localPosition;
-        targetPosition = new Vector3(magnet.transform.localPosition.x, magnetExtendHeight, magnet.transform.localPosition.z);
-        float elapsed = 0f;
-
-        while (elapsed < duration)
-        {
-            magnet.transform.localPosition = Vector3.Lerp(startPosition, targetPosition, elapsed / duration);
-            
-            // Check continuously during extension for objects below
-            DetectionResult detectionResult = DetectDesiredObjectBelow();
-            
-            // If hit wrong object, bounce back immediately
-            if (detectionResult == DetectionResult.Wrong && elapsed > 0.1f) // Small delay to avoid instant bounce
-            {
-                Debug.Log("Hit wrong object during extension - bouncing back!");
-                isExtending = false;
-                
-                if (retractCoroutine != null)
-                {
-                    StopCoroutine(retractCoroutine);
-                }
-                retractCoroutine = StartCoroutine(RetractMagnet(magnet, startPosition, duration * 0.5f));
-                yield break;
-            }
-            else if (detectionResult == DetectionResult.Target) // Target found
-            {
-                isExtending = false;
-                if (magnetRetract)
-                {
-                    if (retractCoroutine != null)
-                    {
-                        StopCoroutine(retractCoroutine);
-                    }
-                    retractCoroutine = StartCoroutine(RetractMagnet(magnet, startPosition, duration));
-                }
-                yield break;
-            }
-            
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        magnet.transform.localPosition = targetPosition;
-
-        // Final check at full extension
-        DetectionResult finalCheck = DetectDesiredObjectBelow();
-        
-        if (magnetRetract)
-        {
-            if (retractCoroutine != null)
-            {
-                StopCoroutine(retractCoroutine);
-            }
-            float retractDuration = finalCheck == DetectionResult.Wrong ? duration * 0.5f : duration;
-            retractCoroutine = StartCoroutine(RetractMagnet(magnet, startPosition, retractDuration));
-        }
-        else
-        {
-            isExtending = false;
-        }
-    }
-
-    private IEnumerator RetractMagnet(GameObject magnet, Vector3 originalPosition, float duration)
-    {
-        Vector3 startPosition = magnet.transform.localPosition;
-        float elapsed = 0f;
-
-        while (elapsed < duration)
-        {
-            magnet.transform.localPosition = Vector3.Lerp(startPosition, originalPosition, elapsed / duration);
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        if(!isCompleted)
-            magnet.transform.localPosition = originalPosition;
-        
-        isExtending = false;
-        
-        if(isGrabbed)
-        {
-            isAutomatedMovement = true;
-            LockOrUnlockMovement(false);
-            
-            // Convert world position of target drop zone to local space
-            Vector3 targetWorldPos = targetDropZone.transform.position;
-            Vector3 targetLocalPos = targetWorldPos;
-            
-            // If crane parts have a parent, convert world to local
-            if (craneParts.Count > 0 && craneParts[0].partObject != null && craneParts[0].partObject.transform.parent != null)
-            {
-                targetLocalPos = craneParts[0].partObject.transform.parent.InverseTransformPoint(targetWorldPos);
-            }
-
-            yield return StartCoroutine(MoveCraneToPosition(craneParts[1].partObject, new Vector3(0, 0, targetLocalPos.z), 1));
-            yield return StartCoroutine(MoveCraneToPosition(craneParts[0].partObject, new Vector3(targetLocalPos.x, 0, 0), 1));
-            yield return new WaitForSeconds(0.5f);
-            
-            // Lower magnet to place the object - extend down to drop position
-            Vector3 dropStartPos = magnetExtender.transform.localPosition;
-            Vector3 dropTargetPos = new Vector3(dropStartPos.x, targetDropZone.transform.position.y, dropStartPos.z);
-            float dropElapsed = 0f;
-            float dropDuration = 1f;
-            bool droppedEarly = false;
-            
-            while (dropElapsed < dropDuration && !droppedEarly)
-            {
-                magnetExtender.transform.localPosition = Vector3.Lerp(dropStartPos, dropTargetPos, dropElapsed / dropDuration);
-                
-                // Check if object hits something during descent
-                if (Physics.Raycast(magnetExtender.transform.position, Vector3.down, out RaycastHit hitInfo, 2f, grabLayerMask))
-                {
-                    // If we hit something that's not the target drop zone, drop here
-                    if (hitInfo.collider.gameObject != targetDropZone)
-                    {
-                        Debug.Log($"Object hit {hitInfo.collider.gameObject.name} during descent - dropping here!");
-                        droppedEarly = true;
-                        StartCoroutine(ReturnCraneToStartPosition(craneParts[1].partObject, magnetStartPos, 2f));
-                        break;
-
-                    }
-                }
-                
-                dropElapsed += Time.deltaTime;
-                yield return null;
-            }
-            
-            magnetExtender.transform.localPosition = new Vector3(dropStartPos.x, magnetExtender.transform.localPosition.y, dropStartPos.z);
-            
-            // Release the object before clearing reference
-            if (craneGrabObjectScript != null && targetObject != null)
-            {
-                craneGrabObjectScript.ReleaseObject(targetObject);
-            }
-            
-            // Clear grab state
-            GameObject releasedObject = targetObject;
-            isGrabbed = false;
-            targetObject = null;
-            
-            // Retract to original position after releasing the object
-            yield return StartCoroutine(RetractMagnet(magnetExtender, originalPosition, 1f));
-
-            isAutomatedMovement = false;
-            isCompleted = true;
-            EndPuzzle();
-        } 
-        else 
-        {
-            LockOrUnlockMovement(false); // Unlock movement if nothing was grabbed
-        }
-       
-    }
-
-    private IEnumerator ReturnCraneToStartPosition(GameObject crane, Vector3 startPosition, float duration)
-    {
-        Vector3 currentPos = crane.transform.localPosition;
-        float elapsed = 0f;
-
-        while (elapsed < duration)
-        {
-            crane.transform.localPosition = Vector3.Lerp(currentPos, startPosition, elapsed / duration);
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        crane.transform.localPosition = startPosition;
-    }
-
-    private IEnumerator MoveCraneToPosition(GameObject crane, Vector3 targetPosition, float duration)
-    {
-        Vector3 startPosition = crane.transform.localPosition;
-        CranePart cranePart = craneParts.Find(p => p.partObject == crane);
-
-        Vector3 finalTarget = new Vector3(
-            cranePart.moveX ? targetPosition.x : startPosition.x,
-            cranePart.moveY ? targetPosition.y : startPosition.y,
-            cranePart.moveZ ? targetPosition.z : startPosition.z
-        );
-        
-        if (cranePart.moveX)
-            finalTarget.x = Mathf.Clamp(finalTarget.x, cranePart.minX, cranePart.maxX);
-        if (cranePart.moveY)
-            finalTarget.y = Mathf.Clamp(finalTarget.y, cranePart.minY, cranePart.maxY);
-        if (cranePart.moveZ)
-            finalTarget.z = Mathf.Clamp(finalTarget.z, cranePart.minZ, cranePart.maxZ);
-        float elapsed = 0f;
-
-        while (elapsed < duration)
-        {
-            crane.transform.localPosition = Vector3.Lerp(startPosition, finalTarget, elapsed / duration);
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        crane.transform.localPosition = finalTarget;
-    }
-    #endregion
-    
     #region Restrict/Restore Movement
     //After puzzle ends, restore player movement if it was disabled
     private void RestorePlayerMovement()
@@ -628,7 +370,7 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
             cachedPlayerMovement = null;
     }
 
-    private void LockOrUnlockMovement(bool lockMovement)
+    protected void LockOrUnlockMovement(bool lockMovement)
     {
         for (int i = 0; i < craneParts.Count; i++)
         {
@@ -659,6 +401,23 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
     }
     #endregion
 
+    private void CacheCranePartStartPositions()
+    {
+        cranePartStartLocalPositions.Clear();
+        if (craneParts == null)
+        {
+            return;
+        }
+
+        foreach (CranePart part in craneParts)
+        {
+            if (part != null && part.partObject != null)
+            {
+                cranePartStartLocalPositions[part] = part.partObject.transform.localPosition;
+            }
+        }
+    }
+
     #region Utility Scripts
     // Swaps action maps
     private void SwapActionMaps(string actionMapName)
@@ -666,67 +425,29 @@ public class CranePuzzle : MonoBehaviour, IPuzzleInterface
         InputReader.Instance._playerInput.SwitchCurrentActionMap(actionMapName);
     }
 
+    private string GetLayerMaskNames(LayerMask mask)
+    {
+        List<string> layers = new List<string>();
+        for (int i = 0; i < 32; i++)
+        {
+            if ((mask.value & (1 << i)) != 0)
+            {
+                string layerName = LayerMask.LayerToName(i);
+                if (!string.IsNullOrEmpty(layerName))
+                {
+                    layers.Add(layerName);
+                }
+            }
+        }
+        return layers.Count > 0 ? string.Join(", ", layers) : "None";
+    }
+
     // Checks for confirm input to start magnet extension
-    private void CheckForConfirm()
+    protected virtual void CheckForConfirm()
     {
-        if (_confirmPuzzleAction.action.triggered && targetObject != null && !isExtending)
-        {
-            isExtending = true;
-            StartCoroutine(AnimateMagnet(magnetExtender, new Vector3(targetObject.transform.position.x, magnetExtender.transform.position.y, targetObject.transform.position.z), 2f, true));
-        }
+        // Override in derived classes
     }
 
-    private void GetRayData(out Vector3 originA, out Vector3 originB, out Vector3 originC, out Vector3 originD, out Vector3 castDir)
-    {
-        Vector3 offset = magnetExtender.transform.TransformDirection(Vector3.forward * 2f);
-        Vector3 offset2 = magnetExtender.transform.TransformDirection(Vector3.right * 2f);
-        originA = magnetExtender.transform.position + offset;
-        originB = magnetExtender.transform.position - offset;
-        originC = magnetExtender.transform.position + offset2;
-        originD = magnetExtender.transform.position - offset2;
-        castDir = magnetExtender.transform.TransformDirection(Vector3.down);
-    }
-
-    private void AssignRayData()
-    {
-        GetRayData(out var originA, out var originB, out var originC, out var originD, out var castDir);
-
-        if (Physics.Raycast(originA, castDir, out var dbgHitA, magnetDetectLength, grabLayerMask))
-        {
-            Debug.DrawRay(originA, castDir * dbgHitA.distance, dbgHitA.collider.gameObject == targetObject ? Color.cyan : Color.red);
-        }
-        else
-        {
-            Debug.DrawRay(originA, castDir * magnetDetectLength, Color.yellow);
-        }
-
-        if (Physics.Raycast(originB, castDir, out var dbgHitB, magnetDetectLength, grabLayerMask))
-        {
-            Debug.DrawRay(originB, castDir * dbgHitB.distance, dbgHitB.collider.gameObject == targetObject ? Color.cyan : Color.red);
-        }
-        else
-        {
-            Debug.DrawRay(originB, castDir * magnetDetectLength, Color.yellow);
-        }
-
-        if (Physics.Raycast(originC, castDir, out var dbgHitC, magnetDetectLength, grabLayerMask))
-        {
-            Debug.DrawRay(originC, castDir * dbgHitC.distance, dbgHitC.collider.gameObject == targetObject ? Color.cyan : Color.red);
-        }
-        else
-        {
-            Debug.DrawRay(originC, castDir * magnetDetectLength, Color.yellow);
-        }
-
-        if (Physics.Raycast(originD, castDir, out var dbgHitD, magnetDetectLength, grabLayerMask))
-        {
-            Debug.DrawRay(originD, castDir * dbgHitD.distance, dbgHitD.collider.gameObject == targetObject ? Color.cyan : Color.red);
-        }
-        else
-        {
-            Debug.DrawRay(originD, castDir * magnetDetectLength, Color.yellow);
-        }
-    }
     #endregion
 
 }
