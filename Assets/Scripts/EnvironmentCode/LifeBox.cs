@@ -20,6 +20,7 @@ public class LifeBox : MonoBehaviour
 
     private BoxCollider boxCollider;
 
+
     private void Awake()
     {
         this.tag = "LifeBox";
@@ -58,7 +59,7 @@ public class LifeBox : MonoBehaviour
         {
             Gizmos.color = Color.purple * new Color(1, 1, 1, 0.25f);
             Gizmos.DrawCube(transform.position, boxSize);
-            Gizmos.color = Color.purple;
+            Gizmos.color = Color.yellow;
             Gizmos.DrawWireCube(transform.position, boxSize);
         }
     }
