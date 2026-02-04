@@ -1,31 +1,36 @@
-using Behaviors;
+using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace Progression.Encounters
 {
     public class CombatEncounter : BasicEncounter
     {
+        /// <summary>
+        /// Subclass Wave to hold the data for the individual waves for encounters.
+        /// Additionally holds wave specific functionality.
+        /// </summary>
         private class Wave
         {
             // Holds all the enemy game objects in this wave, and whether they are alive
-            private Dictionary<GameObject, bool> enemies = new Dictionary<GameObject, bool>();
+            private List<BaseEnemyCore> enemies = new List<BaseEnemyCore>();
+
+            public event Action<Wave> OnWaveComplete;
 
             // class constructor
             public Wave(List<GameObject> _enemies)
             {
                 foreach (var enemy in _enemies)
                 {
-                    // verifies that the gameobject is an enemy
-                    /*
-                    if (enemy.GetComponent<BaseEnemy< , >> != null)
+                    BaseEnemyCore enemyCore = enemy.GetComponent<BaseEnemyCore>();
+                    if (enemyCore != null)
                     {
+                        enemies.Add(enemyCore);
 
+                        enemyCore.OnDeath += OnEnemyDefeated;
                     }
-                    */
-
-                    enemies.Add(enemy, true);
+                    else
+                        Debug.LogWarning($"[CombatEncounter] Detected nonenemy gameobject {enemy.name} attached to encounter. Skipping object");
                 }
             }
 
@@ -35,9 +40,9 @@ namespace Progression.Encounters
             /// </summary>
             public void SpawnEnemies()
             {
-                foreach (KeyValuePair<GameObject, bool> pair in enemies)
+                foreach (BaseEnemyCore enemy in enemies)
                 {
-                    pair.Key.SetActive(true);
+                    enemy.Spawn();
                 }
             }
 
@@ -47,9 +52,9 @@ namespace Progression.Encounters
             /// </summary>
             public void ResetEnemies()
             {
-                foreach (KeyValuePair<GameObject, bool> pair in enemies)
+                foreach (BaseEnemyCore enemy in enemies)
                 {
-                    pair.Key.SetActive(false);
+                    enemy.ResetEnemy();
                 }
             }
 
@@ -58,22 +63,15 @@ namespace Progression.Encounters
             /// Function should be subscribed to the enemy's OnDefeated event
             /// </summary>
             /// <param name="enemy"></param>
-            private void OnEnemyDefeated(GameObject enemy)
+            private void OnEnemyDefeated(BaseEnemyCore enemy)
             {
-                if (enemies.ContainsKey(enemy))
-                {
-                    enemies[enemy] = false;
-                    // check if all enemies are defeated
-                    if (AreAllEnemiesDefeated())
-                    {
-                        // trigger next wave or end encounter
-                    }
-                }
+                if (enemies.Contains(enemy) && AreAllEnemiesDefeated()) // check if all enemies are defeated
+                    OnWaveComplete?.Invoke(this); // trigger next wave or end encounter
 
                 bool AreAllEnemiesDefeated()
                 {
-                    foreach (var status in enemies.Values)
-                        if (status) // if any enemy is still alive
+                    foreach (var enemy in enemies)
+                        if (enemy.isAlive) // if any enemy is still alive
                             return false;
                     return true;
                 }
@@ -82,8 +80,15 @@ namespace Progression.Encounters
 
         protected override Color DebugColor { get => Color.red; }
 
-        // the full list of each wave in the encounter
-        private List<Wave> waves = new();
+        /// <summary>
+        /// The entire list of each wave. All waves persist even once they are compleated
+        /// </summary>
+        private List<Wave> allWaves = new();
+
+        /// <summary>
+        /// The queue of the incoming waves. Waves are removed once they are compleated
+        /// </summary>
+        private Queue<Wave> wavesQueue = new();
 
         protected override void SetupEncounter()
         {
@@ -92,10 +97,12 @@ namespace Progression.Encounters
             {
                 Wave newWave = CreateWave(child);
 
-                newWave.ResetEnemies();
+                newWave.OnWaveComplete += WaveComplete;
 
-                waves.Add(newWave);
+                allWaves.Add(newWave);
             }
+
+            ResetWaves();
 
             // sub function to create a new wave of enemies using all the gameobjects childed to an empty gameobject
             Wave CreateWave(Transform parentObject)
@@ -108,28 +115,52 @@ namespace Progression.Encounters
             }
         }
 
+        private void WaveComplete(Wave compleatedWave)
+        {
+            if(wavesQueue.Peek() == compleatedWave)
+            {
+                compleatedWave.OnWaveComplete -= WaveComplete;
+                wavesQueue.Dequeue();
+
+                SpawnNextWave();
+            }
+        }
+
+        private void SpawnNextWave()
+        {
+            wavesQueue.Peek().SpawnEnemies();
+        }
+
+        private void ResetWaves()
+        {
+            wavesQueue.Clear();
+
+            foreach (Wave wave in allWaves)
+            {
+                wavesQueue.Enqueue(wave);
+                wave.ResetEnemies();
+            }
+        }
+
         #region Trigger Events
         protected override void OnTriggerEnter(Collider other)
         {
             base.OnTriggerEnter(other);
 
-            // enable all enemies
-            waves[0].SpawnEnemies();
+            SpawnNextWave();
         }
 
         protected override void OnTriggerExit(Collider other)
         {
             base.OnTriggerExit(other);
 
+            ResetWaves();
+
             // reset enemies
-            foreach (var wave in waves)
-            {
+            foreach (var wave in allWaves)
                 wave.ResetEnemies();
-            }
         }
         #endregion
-
-
     }
 }
 
