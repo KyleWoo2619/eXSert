@@ -7204,9 +7204,11 @@ MonoBehaviour:
       data:
         shaderGraph: {fileID: 4333940904281232215, guid: f11f18ba40c8559438ab36504161ce16, type: 3}
         materialSettings:
-          m_PropertyNames: []
-          m_PropertyValues: []
-          renderQueue: -1
+          m_PropertyNames:
+          - _AlphaClip
+          m_PropertyValues:
+          - 0
+          renderQueue: 2450
 --- !u!114 &8926484042661615508
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9196,7 +9198,7 @@ MonoBehaviour:
   - {fileID: 8926484042661615607}
   m_ExposedName: EmberLifeTime
   m_Exposed: 1
-  m_Order: 5
+  m_Order: 6
   m_Category: 
   m_Min:
     m_Type:
@@ -9280,7 +9282,7 @@ MonoBehaviour:
   - {fileID: 8926484042661615609}
   m_ExposedName: EmberRate
   m_Exposed: 0
-  m_Order: 5
+  m_Order: 7
   m_Category: 
   m_Min:
     m_Type:
@@ -10558,7 +10560,7 @@ MonoBehaviour:
   - {fileID: 8926484042661615914}
   m_ExposedName: EmberTorusSize
   m_Exposed: 1
-  m_Order: 6
+  m_Order: 8
   m_Category: 
   m_Min:
     m_Type:
