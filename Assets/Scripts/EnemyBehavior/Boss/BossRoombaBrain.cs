@@ -133,8 +133,12 @@ namespace EnemyBehavior.Boss
         public float SpinAfterLastPokeDelay = 0.75f;
         [Tooltip("If the mounted state flickers off, continue treating as mounted for this many seconds.")]
         public float MountedGraceSeconds = 0.2f;
-        [Tooltip("Force range applied to fling player off during knock-off spin")]
+        [Tooltip("Force range applied to fling player off during knock-off spin (legacy - uses Rigidbody)")]
         public Vector2 FlingForceRange = new Vector2(800f, 1200f);
+        [Tooltip("Knockback velocity applied to player during knock-off spin (for CharacterController)")]
+        public float SpinKnockbackForce = 20f;
+        [Tooltip("Radius around boss to check for player when applying spin knockback (in addition to top zone)")]
+        public float SpinKnockbackRadius = 5f;
 
         [Header("Vacuum & Form Change")]
         [Tooltip("Min/Max attack count before vacuum triggers")]
@@ -181,8 +185,8 @@ namespace EnemyBehavior.Boss
         [Tooltip("Angular speed multiplier for TARGETED charges (low = commits to direction, can miss)")]
         [Range(0.05f, 0.5f)] public float TargetedChargeAngularMultiplier = 0.15f;
         
-        [Tooltip("Angular speed multiplier during turn phase (high = snappy turns)")]
-        [Range(2f, 20f)] public float TurnAngularMultiplier = 5f;
+        [Tooltip("Angular speed multiplier during turn phase (1 = normal, higher = faster turns but may look instant)")]
+        [Range(0.5f, 3f)] public float TurnAngularMultiplier = 1f;
         
         [Tooltip("Max time to wait at start position before charging (seconds)")]
         [Range(0f, 2f)] public float MaxDelayAtChargeStart = 0.5f;
@@ -191,8 +195,8 @@ namespace EnemyBehavior.Boss
         public float ChargeOvershootDistance = 5f;
         [Tooltip("Rest time between static charges and targeted charge")]
         public float ChargeRestDuration = 1.5f;
-        [Tooltip("Number of static charge cycles before targeted charge")]
-        public int StaticChargeCount = 3;
+        [Tooltip("Min/Max number of static charge combos before targeted charge")]
+        public Vector2Int StaticChargeCountRange = new Vector2Int(3, 5);
         [Tooltip("Distance threshold to consider 'arrived' at charge destination")]
         public float ChargeArrivalThreshold = 1.5f;
 
@@ -201,6 +205,60 @@ namespace EnemyBehavior.Boss
         public float DashSpeed = 15f;
         [Tooltip("Overshoot distance past player for dashes")]
         public float DashOvershootDistance = 3f;
+        [Tooltip("If dash destination is off NavMesh, fall back to melee attack instead")]
+        public bool ValidateDashDestination = true;
+        [Tooltip("Sample radius for NavMesh validation")]
+        public float DashNavMeshSampleRadius = 2f;
+        
+        [Header("Knockback Settings")]
+        [Tooltip("Force applied to push player when hit by dash attacks")]
+        public float DashKnockbackForce = 15f;
+        [Tooltip("Force applied to push player when hit by targeted charge")]
+        public float ChargeKnockbackForce = 25f;
+        [Tooltip("Upward component of knockback force for dash attacks")]
+        public float DashKnockbackUpwardForce = 3f;
+        [Tooltip("Upward component of knockback force for targeted charge (higher = more dramatic launch)")]
+        public float ChargeKnockbackUpwardForce = 8f;
+        
+        [Header("Attack Lunge Settings")]
+        [Tooltip("Enable forward lunge during melee attacks")]
+        public bool EnableAttackLunge = true;
+        [Tooltip("Distance to lunge forward during melee attack active phase")]
+        public float AttackLungeDistance = 3f;
+        [Tooltip("Speed of the lunge motion (units per second)")]
+        public float AttackLungeSpeed = 8f;
+        [Tooltip("Should the boss return to original position after lunge?")]
+        public bool ReturnAfterLunge = true;
+        [Tooltip("Speed of return motion after lunge")]
+        public float LungeReturnSpeed = 4f;
+
+
+
+
+        [Header("=== NavMeshAgent Base Settings (READ-ONLY, FROM PROFILE) ===")]
+        [Tooltip("Base speed loaded from profile. Used by charge speed multipliers.")]
+        [SerializeField, ReadOnly] private float _baseSpeed = 12f;
+        [Tooltip("Base angular speed loaded from profile. Used by charge angular multipliers.")]
+        [SerializeField, ReadOnly] private float _baseAngularSpeed = 120f;
+        [Tooltip("Base acceleration loaded from profile.")]
+        [SerializeField, ReadOnly] private float _baseAcceleration = 8f;
+        
+        // Public read-only properties for Base values (set internally from profile)
+        public float BaseSpeed { get => _baseSpeed; private set => _baseSpeed = value; }
+        public float BaseAngularSpeed { get => _baseAngularSpeed; private set => _baseAngularSpeed = value; }
+        public float BaseAcceleration { get => _baseAcceleration; private set => _baseAcceleration = value; }
+        
+        [Header("Duelist/Summoner Form Overrides")]
+        [Tooltip("Speed applied during normal Duelist/Summoner combat. Can differ from BaseSpeed.")]
+        public float DuelistFollowSpeed = 12f;
+        [Tooltip("Angular speed during Duelist/Summoner form.")]
+        public float DuelistAngularSpeed = 120f;
+        
+        [Header("Top Wander Settings")]
+        [Tooltip("Speed when player is on top and boss is wandering")]
+        public float TopWanderSpeed = 8f;
+        [Tooltip("Angular speed during top wander")]
+        public float TopWanderAngularSpeed = 90f;
 
         [Header("Side Panels")]
         public List<SidePanel> SidePanels = new List<SidePanel>();
@@ -232,6 +290,7 @@ namespace EnemyBehavior.Boss
         private Transform player;
         private PlayerMovement playerMovement; // Cached PlayerMovement component
         private RoombaForm form;
+        public RoombaForm CurrentForm => form; // Expose current form for external checks
         private Coroutine loop;
         private bool alarmDestroyed;
         private Animator animator;
@@ -665,6 +724,7 @@ namespace EnemyBehavior.Boss
 
         void Update()
         {
+            // Idle intensity animation blending
             if (animator != null && agent != null && !string.IsNullOrEmpty(ParamIdleIntensity))
             {
                 float speed = agent.velocity.magnitude;
@@ -735,7 +795,7 @@ namespace EnemyBehavior.Boss
 
         private IEnumerator FormLoop()
         {
-            while (true)
+            while (!isDefeated)
             {
                 switch (form)
                 {
@@ -752,9 +812,14 @@ namespace EnemyBehavior.Boss
 
         private IEnumerator DuelistSummonerLoop()
         {
-            ctrl.ActivateAlarm();
+            // Activate alarm with delay (for form change or fight start)
+            if (!alarmDestroyed)
+            {
+                ctrl.ActivateAlarmWithDelay();
+            }
 
-            while (form == RoombaForm.DuelistSummoner)
+
+            while (form == RoombaForm.DuelistSummoner && !isDefeated)
             {
                 if (isStunned)
                 {
@@ -967,55 +1032,28 @@ namespace EnemyBehavior.Boss
             // Stop movement before starting the attack
             agent.isStopped = true;
 
-            // Execute vacuum attack WITHOUT incrementing the attack counter
-            // (it's a special transition attack, not part of the regular attack cycle)
-            yield return ExecuteVacuumAttackWithoutCounter();
+            // Execute vacuum attack - walls raise DURING suction, not after!
+            yield return ExecuteVacuumAttackWithWallRaise();
 
-            // Resume movement
-            agent.isStopped = false;
-
-            bool playerInCenter = false;
-            if (player != null && ArenaCenterBounds != null)
+            // Resume movement only if we're NOT in CageBull form
+            // (CageBull has its own movement logic via charges)
+            if (form != RoombaForm.CageBull)
             {
-                playerInCenter = ArenaCenterBounds.bounds.Contains(player.position);
-                Debug.Log($"[Boss] Player in center bounds: {playerInCenter} (player pos: {player.position})");
+                agent.isStopped = false;
+                // Resume the controller's follow behavior now that vacuum is complete
+                ctrl.StartFollowingPlayer(0.1f);
             }
-
-            if (playerInCenter)
-            {
-                if (ArenaManager != null)
-                {
-                    ArenaManager.RaiseWalls(true);
-                    PushAction("Walls RAISED");
-                }
-
-                form = RoombaForm.CageBull;
-                PushAction("Form changed to CAGE BULL");
-
-                // Duelist → CageBull: Raise horns (if not already raised from vacuum)
-                // This is safe because RaiseHornsIfNeeded() has guards
-                StartCoroutine(RaiseHornsIfNeeded());
-
-                if (!alarmDestroyed)
-                {
-                    ctrl.DeactivateAlarm();
-                }
-            }
-            else
-            {
-                PushAction("Player not in center - vacuum failed");
-                attackCounter = 0;
-                attackThresholdForVacuum = Random.Range(AttackCountForVacuumRange.x, AttackCountForVacuumRange.y + 1);
-            }
-
-            // Resume the controller's follow behavior now that vacuum is complete
-            ctrl.StartFollowingPlayer(0.1f);
+            
 #if UNITY_EDITOR
-            Debug.Log("[Boss] Vacuum sequence END - follow behavior restarted");
+            Debug.Log($"[Boss] Vacuum sequence END - form is {form}");
 #endif
         }
-
-        private IEnumerator ExecuteVacuumAttackWithoutCounter()
+        
+        /// <summary>
+        /// Executes vacuum attack with integrated wall raising during suction.
+        /// Walls raise as soon as player enters center bounds during suction.
+        /// </summary>
+        private IEnumerator ExecuteVacuumAttackWithWallRaise()
         {
             var a = VacuumSuction;
             currentAttack = a;
@@ -1040,7 +1078,7 @@ namespace EnemyBehavior.Boss
                 PushAction("Arms retract complete, continuing vacuum setup");
             }
 
-            // PROPERLY HANDLED: Raise horns BEFORE vacuum attack (just like arms deploy/retract)
+            // PROPERLY HANDLED: Raise horns BEFORE vacuum attack
             yield return RaiseHornsIfNeeded();
 
             Debug.Log($"[Boss] Starting vacuum attack animations - Windup trigger: {a.AnimatorTriggerOnWindup}");
@@ -1060,17 +1098,65 @@ namespace EnemyBehavior.Boss
             StartVacuumSuction(suctionDuration);
             PushAction($"Vacuum suction ACTIVE for {suctionDuration}s");
             
-            // Wait for the active phase to complete
-            yield return WaitForSecondsCache.Get(Mathf.Max(activePhaseDuration, suctionDuration));
+            // CRITICAL: During suction, continuously check if player enters center bounds
+            // Raise walls IMMEDIATELY when player is in bounds
+            bool wallsRaised = false;
+            float elapsed = 0f;
+            float waitDuration = Mathf.Max(activePhaseDuration, suctionDuration);
             
-            // Stop suction if still active
+            while (elapsed < waitDuration)
+            {
+                // Check if player is in center bounds
+                if (!wallsRaised && player != null && ArenaCenterBounds != null)
+                {
+                    if (ArenaCenterBounds.bounds.Contains(player.position))
+                    {
+                        // RAISE WALLS IMMEDIATELY!
+                        if (ArenaManager != null)
+                        {
+                            ArenaManager.RaiseWalls(true);
+                            PushAction("Walls RAISED (player in center during suction)");
+                        }
+                        
+                        // Despawn any adds that got inside the cage
+                        ctrl.OnCageMatchStart();
+                        
+                        form = RoombaForm.CageBull;
+                        PushAction("Form changed to CAGE BULL");
+                        
+                        // Stop following - CageBull uses charge movement
+                        ctrl.StopFollowing();
+                        
+                        // Deactivate alarm during cage match
+                        if (!alarmDestroyed)
+                        {
+                            ctrl.DeactivateAlarm();
+                        }
+                        
+                        wallsRaised = true;
+                    }
+                }
+                
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+            
+            // Stop suction
             StopVacuumSuction();
             
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnRecovery)) animator.SetTrigger(a.AnimatorTriggerOnRecovery);
             yield return WaitForSecondsCache.Get(a.RecoverySpeedMultiplier * GetClipLength(animator, a.RecoveryClipName));
 
-            // PROPERLY HANDLED: Lower horns AFTER vacuum attack (just like arms deploy/retract)
-            yield return LowerHornsIfNeeded();
+            // NOTE: Do NOT lower horns here! Horns should stay raised during CageBull form.
+            // They will only be lowered when the boss hits a pillar (in OnPillarCollision).
+
+            // If walls weren't raised (player escaped), reset attack counter
+            if (!wallsRaised)
+            {
+                PushAction("Player not in center - vacuum failed");
+                attackCounter = 0;
+                attackThresholdForVacuum = Random.Range(AttackCountForVacuumRange.x, AttackCountForVacuumRange.y + 1);
+            }
 
             MarkCooldown(a);
         }
@@ -1152,28 +1238,48 @@ namespace EnemyBehavior.Boss
         private IEnumerator CageBullLoop()
         {
             PushAction("Cage Bull loop START");
+            
+            // Early exit if defeated
+            if (isDefeated) yield break;
 
             // Cache base agent settings for charge modifications
             CacheAgentSettings();
+            
+            // IMPORTANT: Stop following player - CageBull uses charge movement only!
+            ctrl.StopFollowing();
+            
+            // Also stop top wander if active - player shouldn't be riding during cage match
+            ctrl.StopTopWander();
 
-            if (RequirePlayerOnTopForSpin && IsMountedWithGrace())
-            {
-                yield return ExecuteArmPokeSequenceThenSpin();
-                yield break;
-            }
+            // NOTE: During CageBull form, we do NOT check for player mounting
+            // The player should be on the ground dodging charges, not riding the boss
+            // If they somehow get on top, they'll just be along for the ride but we won't
+            // interrupt the charge sequence for arm pokes
 
-            // Execute the charge combo system
-            if (ArenaManager != null && ArenaManager.HasValidCombos)
+            // Execute multiple random charge combos (3-5 by default)
+            if (!isDefeated && ArenaManager != null && ArenaManager.HasValidCombos)
             {
-                yield return ExecuteChargeCombo();
+                int comboCount = Random.Range(StaticChargeCountRange.x, StaticChargeCountRange.y + 1);
+                PushAction($"Cage Bull: Executing {comboCount} random charge combos");
+                
+                for (int i = 0; i < comboCount && !isStunned && !isDefeated; i++)
+                {
+                    yield return ExecuteRandomChargeCombo(i + 1, comboCount);
+                    
+                    // Brief rest between combos
+                    if (i < comboCount - 1 && !isStunned && !isDefeated)
+                    {
+                        yield return WaitForSecondsCache.Get(0.5f);
+                    }
+                }
             }
-            else
+            else if (!ArenaManager?.HasValidCombos ?? true)
             {
                 PushAction("No valid combos configured - skipping static charges");
             }
 
             // Brief rest before targeted charge
-            if (!isStunned)
+            if (!isStunned && !isDefeated)
             {
                 yield return WaitForSecondsCache.Get(ChargeRestDuration);
                 // Targeted charge at player with overshoot (can hit pillars!)
@@ -1182,11 +1288,11 @@ namespace EnemyBehavior.Boss
 
             yield return null;
         }
-
+        
         /// <summary>
-        /// Executes a random charge combo from the ArenaManager's combo list.
+        /// Executes a single random charge combo from the ArenaManager's combo list.
         /// </summary>
-        private IEnumerator ExecuteChargeCombo()
+        private IEnumerator ExecuteRandomChargeCombo(int comboNumber, int totalCombos)
         {
             if (ArenaManager == null)
             {
@@ -1197,11 +1303,11 @@ namespace EnemyBehavior.Boss
             var combo = ArenaManager.GetRandomCombo();
             if (combo == null || !combo.IsValid)
             {
-                PushAction("No valid combo found - skipping combo");
+                PushAction("No valid combo found - skipping");
                 yield break;
             }
 
-            PushAction($"Executing combo: {combo.ComboName} ({combo.SegmentCount} segments)");
+            PushAction($"Combo {comboNumber}/{totalCombos}: {combo.ComboName} ({combo.SegmentCount} segments)");
 
             var segments = ArenaManager.GetComboSegments(combo);
             if (segments == null)
@@ -1210,34 +1316,34 @@ namespace EnemyBehavior.Boss
                 yield break;
             }
 
-            // Execute each segment in the combo
+            // Execute each segment in this combo
             for (int i = 0; i < segments.Length; i++)
             {
-                if (isStunned) break;
+                if (isStunned || isDefeated) break;
 
                 var (start, end) = segments[i];
-                PushAction($"Combo segment {i + 1}/{segments.Length}: charging...");
-
-                // Check if we need to move to start position
-                // (skip if we're already there from the previous segment's end)
+                
+                // Move to start position if needed
                 float distToStart = Vector3.Distance(transform.position, start);
                 if (distToStart > ChargeArrivalThreshold)
                 {
-                    // Move to start position
+                    // Apply approach settings for moving to charge start
+                    ApplyApproachSettings();
                     agent.isStopped = false;
                     agent.SetDestination(start);
-                    while (Vector3.Distance(transform.position, start) > ChargeArrivalThreshold && !isStunned)
+                    
+                    while (Vector3.Distance(transform.position, start) > ChargeArrivalThreshold && !isStunned && !isDefeated)
                     {
                         yield return null;
                     }
                 }
 
-                if (isStunned) break;
+                if (isStunned || isDefeated) break;
 
                 // Turn to face end position
                 yield return TurnToFacePosition(end);
 
-                if (isStunned) break;
+                if (isStunned || isDefeated) break;
 
                 // Charge to end
                 yield return ExecuteChargeDash(end, isTargeted: false);
@@ -1248,8 +1354,8 @@ namespace EnemyBehavior.Boss
         }
 
         /// <summary>
-        /// Caches the original NavMeshAgent settings. Only caches ONCE to prevent
-        /// storing modified values when called multiple times.
+        /// Caches the original NavMeshAgent settings. Loads from BossRoombaController's profile
+        /// if available, otherwise uses the serialized BaseSpeed/BaseAngularSpeed/BaseAcceleration values.
         /// </summary>
         private void CacheAgentSettings()
         {
@@ -1259,26 +1365,39 @@ namespace EnemyBehavior.Boss
             
             if (agent != null)
             {
-                baseAgentSpeed = agent.speed;
-                baseAgentAngularSpeed = agent.angularSpeed;
-                baseAgentAcceleration = agent.acceleration;
+                // Try to load from the BossRoombaController's profile first
+                if (ctrl != null && ctrl.profile != null)
+                {
+                    var profile = ctrl.profile;
+                    
+                    // Load base values from profile
+                    BaseSpeed = UnityEngine.Random.Range(profile.SpeedRange.x, profile.SpeedRange.y);
+                    BaseAngularSpeed = profile.AngularSpeed;
+                    BaseAcceleration = profile.Acceleration;
+                    
+                    // Also update Duelist form defaults to match profile (can be overridden in Inspector)
+                    // Only update if they're still at default values
+                    if (Mathf.Approximately(DuelistFollowSpeed, 12f))
+                        DuelistFollowSpeed = BaseSpeed;
+                    if (Mathf.Approximately(DuelistAngularSpeed, 120f))
+                        DuelistAngularSpeed = BaseAngularSpeed;
+                    
+                    Debug.Log($"[BossRoombaBrain] Loaded settings from profile: BaseSpeed={BaseSpeed:F1}, BaseAngular={BaseAngularSpeed}, BaseAccel={BaseAcceleration}");
+                }
+                else
+                {
+                    Debug.LogWarning("[BossRoombaBrain] No profile found on BossRoombaController - using serialized Base values");
+                }
                 
-                // Validate - if any value is 0 or very low, use sensible defaults
-                if (baseAgentSpeed < 1f)
-                {
-                    Debug.LogWarning($"[BossRoombaBrain] Agent base speed was {baseAgentSpeed}, using default 5");
-                    baseAgentSpeed = 5f;
-                }
-                if (baseAgentAngularSpeed < 10f)
-                {
-                    Debug.LogWarning($"[BossRoombaBrain] Agent base angular speed was {baseAgentAngularSpeed}, using default 120");
-                    baseAgentAngularSpeed = 120f;
-                }
-                if (baseAgentAcceleration < 1f)
-                {
-                    Debug.LogWarning($"[BossRoombaBrain] Agent base acceleration was {baseAgentAcceleration}, using default 8");
-                    baseAgentAcceleration = 8f;
-                }
+                // Cache the base values for use by charge multipliers
+                baseAgentSpeed = BaseSpeed;
+                baseAgentAngularSpeed = BaseAngularSpeed;
+                baseAgentAcceleration = BaseAcceleration;
+                
+                // Apply these values to the agent
+                agent.speed = baseAgentSpeed;
+                agent.angularSpeed = baseAgentAngularSpeed;
+                agent.acceleration = baseAgentAcceleration;
                 
                 agentSettingsCached = true;
                 Debug.Log($"[BossRoombaBrain] Cached agent settings - Speed: {baseAgentSpeed}, Angular: {baseAgentAngularSpeed}, Accel: {baseAgentAcceleration}");
@@ -1289,15 +1408,56 @@ namespace EnemyBehavior.Boss
         {
             if (agent != null)
             {
-                agent.speed = baseAgentSpeed;
-                agent.angularSpeed = baseAgentAngularSpeed;
-                agent.acceleration = baseAgentAcceleration;
+                // Restore to form-appropriate settings
+                if (form == RoombaForm.DuelistSummoner)
+                {
+                    ApplyDuelistFormSettings();
+                }
+                else
+                {
+                    // For CageBull, use base settings (charge methods will override)
+                    agent.speed = baseAgentSpeed;
+                    agent.angularSpeed = baseAgentAngularSpeed;
+                    agent.acceleration = baseAgentAcceleration;
+                }
                 agent.updateRotation = true; // Re-enable auto-rotation
             }
             isCharging = false;
             isTargetedCharge = false;
         }
 
+        /// <summary>
+        /// Apply settings for Duelist/Summoner form - normal combat movement.
+        /// </summary>
+        private void ApplyDuelistFormSettings()
+        {
+            if (agent != null)
+            {
+                agent.speed = DuelistFollowSpeed;
+                agent.angularSpeed = DuelistAngularSpeed;
+                agent.acceleration = BaseAcceleration;
+                agent.autoBraking = true;
+                agent.updateRotation = true;
+                Debug.Log($"[Boss] Applied Duelist form settings: speed={DuelistFollowSpeed}, angular={DuelistAngularSpeed}");
+            }
+        }
+        
+        /// <summary>
+        /// Apply settings for top wander behavior (player mounted).
+        /// </summary>
+        private void ApplyTopWanderSettings()
+        {
+            if (agent != null)
+            {
+                agent.speed = TopWanderSpeed;
+                agent.angularSpeed = TopWanderAngularSpeed;
+                agent.acceleration = BaseAcceleration;
+                agent.autoBraking = false;
+                agent.updateRotation = true;
+                Debug.Log($"[Boss] Applied Top Wander settings: speed={TopWanderSpeed}, angular={TopWanderAngularSpeed}");
+            }
+        }
+        
         /// <summary>
         /// Apply settings for approaching charge start positions (fast movement).
         /// </summary>
@@ -1514,6 +1674,11 @@ namespace EnemyBehavior.Boss
                 agent.isStopped = false;
                 agent.SetDestination(destination);
 
+                // Enable charge hitbox for static charges too (animation events may not do this)
+                if (animMediator != null)
+                {
+                    animMediator.EnableCharge();
+                }
 
                 PushAction($"Static charge DASH to {destination}");
 
@@ -1533,6 +1698,12 @@ namespace EnemyBehavior.Boss
 
                     chargeTimer += Time.deltaTime;
                     yield return null;
+                }
+                
+                // Disable charge hitbox after static charge completes
+                if (animMediator != null)
+                {
+                    animMediator.DisableCharge();
                 }
             }
 
@@ -1569,6 +1740,15 @@ namespace EnemyBehavior.Boss
             Vector3 playerPos = player.position;
             Vector3 dirToPlayer = (playerPos - transform.position).normalized;
             Vector3 overshootTarget = playerPos + dirToPlayer * ChargeOvershootDistance;
+            
+            // Check if the target is reachable - if not, try charging directly at the player
+            float distToTarget = Vector3.Distance(transform.position, overshootTarget);
+            if (distToTarget < 2f)
+            {
+                // Too close to overshoot target, charge directly at player instead
+                PushAction("Overshoot target too close - charging directly at player");
+                overshootTarget = playerPos;
+            }
 
             // Turn to face player
             yield return TurnToFacePosition(playerPos);
@@ -1631,7 +1811,11 @@ namespace EnemyBehavior.Boss
             // CageBull → Duelist: Lower horns
             StartCoroutine(LowerHornsIfNeeded());
 
-            ctrl.ActivateAlarm();
+            // Activate alarm with delay (not immediately)
+            if (!alarmDestroyed)
+            {
+                ctrl.ActivateAlarmWithDelay();
+            }
         }
 
         private IEnumerator ExecuteArmPokeSequenceThenSpin()
@@ -1715,6 +1899,9 @@ namespace EnemyBehavior.Boss
                 cancelArmsRetract = true;
                 StopCoroutine(armsRetractRoutine);
                 armsRetractRoutine = null;
+                // CRITICAL FIX: Also clear the in-progress flag since we're forcibly stopping the routine
+                // This prevents DeployArmsIfNeeded from waiting forever
+                armsRetractInProgress = false;
                 PushAction("Arms retraction routine STOPPED by new attack");
             }
 
@@ -1738,11 +1925,64 @@ namespace EnemyBehavior.Boss
             }
 
             // Horns deployment/retraction handled within attack timings
+            
+            // CRITICAL: Turn to face player BEFORE starting the attack windup (prevents swiping at air)
+            if (player != null && a.RequiresArms)
+            {
+                Vector3 toPlayer = player.position - transform.position;
+                toPlayer.y = 0f;
+                if (toPlayer.sqrMagnitude > 0.1f)
+                {
+                    // Quick turn toward player before attack
+                    yield return TurnToFacePosition(player.position);
+                }
+            }
+            
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnWindup)) animator.SetTrigger(a.AnimatorTriggerOnWindup);
             yield return WaitForSecondsCache.Get(a.WindupSpeedMultiplier * GetClipLength(animator, a.WindupClipName));
+            
+            // Store starting position for lunge
+            Vector3 lungeStartPos = transform.position;
+            bool didLunge = false;
+            
+            // Start attack lunge during active phase (if enabled and this is a melee attack)
+            if (EnableAttackLunge && player != null && a.RequiresArms)
+            {
+                // Calculate lunge direction toward player
+                Vector3 toPlayer = player.position - transform.position;
+                toPlayer.y = 0f;
+                float distToPlayer = toPlayer.magnitude;
+                
+                // Only lunge if player is within reasonable range
+                if (distToPlayer > 1f && distToPlayer < 15f)
+                {
+                    Vector3 lungeDir = toPlayer.normalized;
+                    float lungeAmount = Mathf.Min(AttackLungeDistance, distToPlayer - 1f); // Don't lunge INTO the player
+                    Vector3 lungeTarget = transform.position + lungeDir * lungeAmount;
+                    
+                    // Validate lunge target is on NavMesh
+                    if (NavMesh.SamplePosition(lungeTarget, out var lungeHit, 2f, NavMesh.AllAreas))
+                    {
+                        lungeTarget = lungeHit.position;
+                        didLunge = true;
+                        
+                        // Start the lunge using agent.Move (doesn't need path, just moves directly)
+                        StartCoroutine(PerformAttackLunge(lungeDir, lungeAmount, lungeStartPos));
+                        Debug.Log($"[Boss] Attack lunge toward player: {lungeAmount:F1}m");
+                    }
+                }
+            }
+            
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnActive)) animator.SetTrigger(a.AnimatorTriggerOnActive);
             yield return WaitForSecondsCache.Get(a.ActiveSpeedMultiplier * GetClipLength(animator, a.ActiveClipName));
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnRecovery)) animator.SetTrigger(a.AnimatorTriggerOnRecovery);
+            
+            // Return from lunge during recovery (if we lunged)
+            if (didLunge && ReturnAfterLunge)
+            {
+                StartCoroutine(ReturnFromLunge(lungeStartPos));
+            }
+            
             yield return WaitForSecondsCache.Get(a.RecoverySpeedMultiplier * GetClipLength(animator, a.RecoveryClipName));
 
             ApplyBossDamageIfPlayerPresent(1.0f);
@@ -1770,10 +2010,42 @@ namespace EnemyBehavior.Boss
             if (isStunned || a == null) yield break;
             if (player == null) yield break;
 
+            // Pre-calculate the overshoot target to validate if it's on NavMesh
+            Vector3 dirToPlayer = (player.position - transform.position).normalized;
+            Vector3 overshootTarget = player.position + dirToPlayer * DashOvershootDistance;
+            
+            // Validate dash destination is on NavMesh
+            if (ValidateDashDestination)
+            {
+                if (!NavMesh.SamplePosition(overshootTarget, out var hit, DashNavMeshSampleRadius, NavMesh.AllAreas))
+                {
+                    // Dash target is off NavMesh - fall back to a melee attack instead
+                    Debug.Log($"[Boss] Dash target {overshootTarget} is OFF NavMesh - falling back to melee");
+                    PushAction("Dash blocked (off NavMesh) - using melee");
+                    
+                    // Pick a melee attack instead
+                    var meleeAttack = SelectCloseRangeAttack(Vector3.Distance(transform.position, player.position));
+                    if (meleeAttack != null)
+                    {
+                        yield return ExecuteAttackChain(meleeAttack);
+                    }
+                    yield break;
+                }
+                else
+                {
+                    // Adjust target to the valid NavMesh position
+                    overshootTarget = hit.position;
+                    Debug.Log($"[Boss] Dash target adjusted to NavMesh position: {overshootTarget}");
+                }
+            }
+
             currentAttack = a;
             PushAction($"Attack: {a.Id}");
 
             IncrementAttackCounter();
+            
+            // CRITICAL: Stop following during dash - prevents destination fighting
+            ctrl.StopFollowing();
 
             // ALWAYS cancel pending retraction when ANY attack starts
             if (armsRetractRoutine != null)
@@ -1781,6 +2053,9 @@ namespace EnemyBehavior.Boss
                 cancelArmsRetract = true;
                 StopCoroutine(armsRetractRoutine);
                 armsRetractRoutine = null;
+                // CRITICAL FIX: Also clear the in-progress flag since we're forcibly stopping the routine
+                // This prevents DeployArmsIfNeeded from waiting forever
+                armsRetractInProgress = false;
                 PushAction("Arms retraction routine STOPPED by dash attack");
             }
 
@@ -1803,24 +2078,58 @@ namespace EnemyBehavior.Boss
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnWindup)) animator.SetTrigger(a.AnimatorTriggerOnWindup);
             yield return WaitForSecondsCache.Get(a.WindupSpeedMultiplier * GetClipLength(animator, a.WindupClipName));
 
-            Vector3 dirToPlayer = (player.position - transform.position).normalized;
-            Vector3 overshootTarget = player.position + dirToPlayer * DashOvershootDistance;
+            // Recalculate direction to player at dash moment (they may have moved during windup)
+            dirToPlayer = (player.position - transform.position).normalized;
+            overshootTarget = player.position + dirToPlayer * DashOvershootDistance;
+            
+            // Re-validate NavMesh position
+            if (ValidateDashDestination && NavMesh.SamplePosition(overshootTarget, out var navHit, DashNavMeshSampleRadius, NavMesh.AllAreas))
+            {
+                overshootTarget = navHit.position;
+            }
+            
+            Debug.Log($"[Boss] Dash: boss at {transform.position}, player at {player.position}, overshoot target at {overshootTarget}");
 
-            float baseSpeed = agent.speed;
+            // Store and modify agent settings for dash
+            float originalSpeed = agent.speed;
+            float originalStoppingDistance = agent.stoppingDistance;
             agent.speed = DashSpeed;
+            agent.stoppingDistance = 0.5f; // Very small - we want to go THROUGH the player
+            agent.isStopped = false;
 
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnActive)) animator.SetTrigger(a.AnimatorTriggerOnActive);
 
             agent.SetDestination(overshootTarget);
+            
+            // Wait for dash to complete - either animation time OR arrival, whichever is longer
+            float dashTime = a.ActiveSpeedMultiplier * GetClipLength(animator, a.ActiveClipName);
+            float elapsed = 0f;
+            float maxDashTime = Mathf.Max(dashTime, 3f); // At least animation time, max 3 seconds
+            
+            while (elapsed < maxDashTime)
+            {
+                // Check if we've reached the overshoot target
+                float distToTarget = Vector3.Distance(transform.position, overshootTarget);
+                if (distToTarget < 1f && elapsed >= dashTime * 0.5f) // At least half animation time
+                {
+                    Debug.Log($"[Boss] Dash arrived at overshoot target");
+                    break;
+                }
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
 
-            yield return WaitForSecondsCache.Get(a.ActiveSpeedMultiplier * GetClipLength(animator, a.ActiveClipName));
-
-            agent.speed = baseSpeed;
+            // Restore agent settings
+            agent.speed = originalSpeed;
+            agent.stoppingDistance = originalStoppingDistance;
 
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnRecovery)) animator.SetTrigger(a.AnimatorTriggerOnRecovery);
             yield return WaitForSecondsCache.Get(a.RecoverySpeedMultiplier * GetClipLength(animator, a.RecoveryClipName));
 
             MarkCooldown(a);
+            
+            // Resume following after dash completes
+            ctrl.StartFollowingPlayer(0.1f);
 
             // Only schedule auto-retract if arms are currently deployed
             if (armsDeployed)
@@ -1851,9 +2160,22 @@ namespace EnemyBehavior.Boss
             yield return WaitForSecondsCache.Get(a.WindupSpeedMultiplier * GetClipLength(animator, a.WindupClipName));
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnActive)) animator.SetTrigger(a.AnimatorTriggerOnActive);
 
-            if (player != null && IsPlayerMounted())
+            // Apply knockback to player if they're mounted OR within the spin knockback radius
+            if (player != null)
             {
-                FlingPlayer();
+                bool shouldFling = IsPlayerMounted();
+                
+                // Also check if player is within knockback radius (not just mounted)
+                if (!shouldFling && SpinKnockbackRadius > 0f)
+                {
+                    float distToPlayer = Vector3.Distance(transform.position, player.position);
+                    shouldFling = distToPlayer <= SpinKnockbackRadius;
+                }
+                
+                if (shouldFling)
+                {
+                    FlingPlayer();
+                }
             }
 
             yield return WaitForSecondsCache.Get(a.ActiveSpeedMultiplier * GetClipLength(animator, a.ActiveClipName));
@@ -1868,16 +2190,31 @@ namespace EnemyBehavior.Boss
         {
             if (player == null) return;
 
-            var rb = player.GetComponent<Rigidbody>();
-            if (rb != null)
+            // Generate random horizontal direction away from boss
+            Vector2 randomDir = Random.insideUnitCircle.normalized;
+            Vector3 flingDir = new Vector3(randomDir.x, 0.3f, randomDir.y).normalized;
+
+            // Try to use PlayerMovement's ApplyKnockback for CharacterController-based movement
+            if (playerMovement != null)
             {
-                Vector2 randomDir = Random.insideUnitCircle.normalized;
-                Vector3 flingDir = new Vector3(randomDir.x, 1f, randomDir.y).normalized;
-
-                float force = Random.Range(FlingForceRange.x, FlingForceRange.y);
-                rb.AddForce(flingDir * force, ForceMode.Impulse);
-
-                PushAction($"Player flung with force {force}");
+                Vector3 knockbackVelocity = flingDir * SpinKnockbackForce;
+                playerMovement.ApplyKnockback(knockbackVelocity);
+                PushAction($"Player knocked back (spin) with velocity {SpinKnockbackForce:F1}");
+            }
+            else
+            {
+                // Fallback to legacy Rigidbody method
+                var rb = player.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    float force = Random.Range(FlingForceRange.x, FlingForceRange.y);
+                    rb.AddForce(flingDir * force, ForceMode.Impulse);
+                    PushAction($"Player flung (legacy) with force {force}");
+                }
+                else
+                {
+                    Debug.LogWarning("[BossRoombaBrain] FlingPlayer: No PlayerMovement or Rigidbody found on player!");
+                }
             }
         }
 
@@ -2331,7 +2668,10 @@ namespace EnemyBehavior.Boss
                 form = RoombaForm.DuelistSummoner;
                 attackCounter = 0;
                 attackThresholdForVacuum = Random.Range(AttackCountForVacuumRange.x, AttackCountForVacuumRange.y + 1);
-                ctrl.ActivateAlarm();
+                if (!alarmDestroyed)
+                {
+                    ctrl.ActivateAlarmWithDelay();
+                }
                 StartCoroutine(LowerHornsIfNeeded());
                 PushAction("DEBUG: Returned to Duelist form");
             }
@@ -2995,6 +3335,70 @@ namespace EnemyBehavior.Boss
         }
         
         #endregion
+        
+        #region Debug Add Spawning Methods
+        
+        [ContextMenu("Debug: Destroy Alarm")]
+        public void DebugDestroyAlarmContextMenu()
+        {
+            if (!Application.isPlaying)
+            {
+                Debug.LogWarning("[BossRoombaBrain] Debug: Destroy Alarm requires Play Mode!");
+                return;
+            }
+            
+            if (ctrl != null)
+            {
+                ctrl.DestroyAlarm();
+                PushAction("DEBUG: Alarm destroyed");
+            }
+            else
+            {
+                Debug.LogError("[BossRoombaBrain] DEBUG: No BossRoombaController reference!");
+            }
+        }
+        
+        [ContextMenu("Debug: Kill One Random Add")]
+        public void DebugKillOneRandomAddContextMenu()
+        {
+            if (!Application.isPlaying)
+            {
+                Debug.LogWarning("[BossRoombaBrain] Debug: Kill One Random Add requires Play Mode!");
+                return;
+            }
+            
+            if (ctrl != null)
+            {
+                ctrl.DebugKillOneRandomAdd();
+                PushAction("DEBUG: Killed one random add");
+            }
+            else
+            {
+                Debug.LogError("[BossRoombaBrain] DEBUG: No BossRoombaController reference!");
+            }
+        }
+        
+        [ContextMenu("Debug: Kill All Adds")]
+        public void DebugKillAllAddsContextMenu()
+        {
+            if (!Application.isPlaying)
+            {
+                Debug.LogWarning("[BossRoombaBrain] Debug: Kill All Adds requires Play Mode!");
+                return;
+            }
+            
+            if (ctrl != null)
+            {
+                ctrl.DebugKillAllAdds();
+                PushAction("DEBUG: Killed all adds");
+            }
+            else
+            {
+                Debug.LogError("[BossRoombaBrain] DEBUG: No BossRoombaController reference!");
+            }
+        }
+        
+        #endregion
 
         private IEnumerator DeployArmsIfNeeded()
         {
@@ -3093,6 +3497,59 @@ namespace EnemyBehavior.Boss
 #if UNITY_EDITOR
             Debug.Log($"[Boss] RetractArms() complete");
 #endif
+        }
+        
+        /// <summary>
+        /// Performs a forward lunge during an attack using NavMeshAgent.Move().
+        /// This moves the boss forward without pathfinding.
+        /// </summary>
+        private IEnumerator PerformAttackLunge(Vector3 direction, float distance, Vector3 startPos)
+        {
+            float traveled = 0f;
+            
+            while (traveled < distance && !isStunned && !isDefeated)
+            {
+                float moveStep = AttackLungeSpeed * Time.deltaTime;
+                moveStep = Mathf.Min(moveStep, distance - traveled);
+                
+                // Use agent.Move for direct movement (respects NavMesh but doesn't path)
+                if (agent != null && agent.enabled)
+                {
+                    agent.Move(direction * moveStep);
+                }
+                
+                traveled += moveStep;
+                yield return null;
+            }
+        }
+        
+        /// <summary>
+        /// Returns the boss to the pre-lunge position during attack recovery.
+        /// </summary>
+        private IEnumerator ReturnFromLunge(Vector3 originalPosition)
+        {
+            float returnDistance = Vector3.Distance(transform.position, originalPosition);
+            if (returnDistance < 0.5f) yield break; // Already close enough
+            
+            Vector3 returnDir = (originalPosition - transform.position).normalized;
+            returnDir.y = 0f;
+            
+            float traveled = 0f;
+            
+            while (traveled < returnDistance && !isStunned && !isDefeated)
+            {
+                float moveStep = LungeReturnSpeed * Time.deltaTime;
+                moveStep = Mathf.Min(moveStep, returnDistance - traveled);
+                
+                // Use agent.Move for direct movement (respects NavMesh but doesn't path)
+                if (agent != null && agent.enabled)
+                {
+                    agent.Move(returnDir * moveStep);
+                }
+                
+                traveled += moveStep;
+                yield return null;
+            }
         }
 
         private IEnumerator RaiseHornsIfNeeded()
@@ -3259,8 +3716,18 @@ namespace EnemyBehavior.Boss
 
         public void SetPlayerOnTop(bool value)
         {
-            Debug.Log($"[BossRoombaBrain] SetPlayerOnTop called: {value}, playerOnTop was: {playerOnTop}");
+            Debug.Log($"[BossRoombaBrain] SetPlayerOnTop called: {value}, playerOnTop was: {playerOnTop}, form: {form}");
             playerOnTop = value;
+            
+            // During CageBull form (cage match with charges), ignore top mounting
+            // Player shouldn't be able to ride the boss during the charge phase
+            if (form == RoombaForm.CageBull)
+            {
+                Debug.Log("[BossRoombaBrain] Ignoring top mount during CageBull form - player should be dodging charges!");
+                // Still track the mount state, but don't trigger wander behavior
+                return;
+            }
+            
             if (value)
             {
                 lastMountedTime = Time.time;
@@ -3308,13 +3775,70 @@ namespace EnemyBehavior.Boss
         {
             PushAction("BOSS DEFEATED!");
             
-            // Stop all coroutines
-            if (loop != null) { StopCoroutine(loop); loop = null; }
-            if (currentAttackRoutine != null) { StopCoroutine(currentAttackRoutine); currentAttackRoutine = null; }
-            if (armsRetractRoutine != null) { StopCoroutine(armsRetractRoutine); armsRetractRoutine = null; }
+            // Prevent multiple death calls
+            if (isDefeated) return;
+            isDefeated = true;
             
-            // Stop movement
-            if (agent != null) agent.isStopped = true;
+            // Stop all coroutines
+            StopAllCoroutines();
+            loop = null;
+            currentAttackRoutine = null;
+            armsRetractRoutine = null;
+            debugVacuumCoroutine = null;
+            debugTestCoroutine = null;
+            
+            // Stop movement and disable agent
+            if (agent != null)
+            {
+                agent.isStopped = true;
+                agent.enabled = false;
+            }
+            
+            // Stop controller behaviors
+            if (ctrl != null)
+            {
+                ctrl.StopFollowing();
+                ctrl.StopTopWander();
+                ctrl.DeactivateAlarm();
+            }
+            
+            // Lower walls if raised
+            if (ArenaManager != null)
+            {
+                ArenaManager.RaiseWalls(false);
+            }
+            
+            // Play death animation if available - MUST disable all other layers first
+            if (animator != null)
+            {
+                // Stop all animator parameters that drive movement/idle
+                animator.SetFloat("Speed", 0f);
+                animator.SetBool("IsMoving", false);
+                if (!string.IsNullOrEmpty(ParamIdleIntensity))
+                    animator.SetFloat(ParamIdleIntensity, 0f);
+                
+                // Disable all additive/overlay layers so only base layer plays
+                for (int i = 1; i < animator.layerCount; i++)
+                {
+                    animator.SetLayerWeight(i, 0f);
+                }
+                
+                // Force the animator to an empty/stopped state first
+                // This stops any currently playing animations including idle
+                animator.enabled = false;
+                animator.enabled = true;
+                
+                // Now try to trigger death animation
+                animator.SetTrigger("Die");
+                
+                Debug.Log("[BossRoombaBrain] Death animations stopped, Die trigger set");
+            }
+            
+            // Disable all hitboxes
+            if (animMediator != null)
+            {
+                animMediator.DisableAllHitboxes();
+            }
             
             // Release player back to DontDestroyOnLoad
             if (PlayerManager != null)
@@ -3326,9 +3850,34 @@ namespace EnemyBehavior.Boss
                 Debug.LogWarning("[BossRoombaBrain] PlayerManager not assigned! Player will not be released to DontDestroyOnLoad.");
             }
             
-            // Optional: Play death animation, spawn loot, etc.
-            // You can add that logic here or trigger it via events
+            // Unregister from attack queue
+            UnregisterFromAttackQueue();
+            
+            // Start death cleanup coroutine (since we stopped all coroutines, start this fresh)
+            StartCoroutine(DeathCleanupSequence());
         }
+        
+        private bool isDefeated = false;
+        
+        /// <summary>
+        /// Coroutine that handles the death cleanup after a delay.
+        /// </summary>
+        private IEnumerator DeathCleanupSequence()
+        {
+            // Wait for death animation to play (adjust as needed)
+            yield return WaitForSecondsCache.Get(3f);
+            
+            // Log final state
+            Debug.Log("[BossRoombaBrain] Death sequence complete - destroying boss");
+            
+            // Destroy the boss GameObject
+            Destroy(gameObject);
+        }
+        
+        /// <summary>
+        /// Check if the boss is defeated (for external queries).
+        /// </summary>
+        public bool IsDefeated => isDefeated;
 
         public void OnArmsDeployComplete()
         {

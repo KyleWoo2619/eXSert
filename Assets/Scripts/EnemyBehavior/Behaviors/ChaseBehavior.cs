@@ -78,9 +78,32 @@ namespace Behaviors
         // Blob chase for crawlers
         private IEnumerator CrawlerChaseBlob(BaseCrawlerEnemy crawler)
         {
-            Transform player = crawler.PlayerTarget;
-            while (crawler.enemyAI.State.Equals(CrawlerEnemyState.Chase) && player != null)
+            // Wait one frame to ensure state transition is complete
+            yield return null;
+            
+            // For boss fight crawlers with ForceChasePlayer, run indefinitely until attack/death
+            // For normal crawlers, check state normally
+            bool shouldContinue = crawler.ForceChasePlayer 
+                ? (crawler.enemyAI.State == CrawlerEnemyState.Chase || 
+                   crawler.enemyAI.State == CrawlerEnemyState.Attack ||
+                   crawler.enemyAI.State == CrawlerEnemyState.Swarm) // Any active state
+                : crawler.enemyAI.State.Equals(CrawlerEnemyState.Chase);
+                
+            while (shouldContinue && crawler != null && crawler.gameObject != null)
             {
+                // Re-read PlayerTarget each frame to support late assignment from boss controller
+                Transform player = crawler.PlayerTarget;
+                
+                // If no player target, wait and retry (boss controller may assign it shortly)
+                if (player == null)
+                {
+                    yield return WaitForSecondsCache.Get(0.1f);
+                    shouldContinue = crawler.ForceChasePlayer 
+                        ? (crawler.enemyAI.State != CrawlerEnemyState.Death)
+                        : crawler.enemyAI.State.Equals(CrawlerEnemyState.Chase);
+                    continue;
+                }
+                
                 // Move as a blob toward the player, apply separation
                 if (crawler.agent != null && crawler.agent.enabled)
                 {
@@ -103,8 +126,10 @@ namespace Behaviors
 
                 // --- FIX: Only allow Flee if not forced to chase by alarm ---
                 // Only allow flee if not alarm-spawned or alarm is dead
-                bool ignoreFlee = false;
-                if (crawler.AlarmSource != null && crawler.AlarmSource.enemyAI != null)
+                // Also skip flee check entirely if ForceChasePlayer is true (boss fight spawned enemies)
+                bool ignoreFlee = crawler.ForceChasePlayer; // Boss-spawned crawlers should NEVER flee
+                
+                if (!ignoreFlee && crawler.AlarmSource != null && crawler.AlarmSource.enemyAI != null)
                 {
                     ignoreFlee = crawler.AlarmSource.enemyAI.State == AlarmCarrierState.Summoning;
                 }
@@ -121,6 +146,11 @@ namespace Behaviors
                 // else: do NOT fire Flee, keep swarming/chasing
 
                 yield return WaitForSecondsCache.Get(0.1f);
+                
+                // Update continue condition at end of loop
+                shouldContinue = crawler.ForceChasePlayer 
+                    ? (crawler.enemyAI.State != CrawlerEnemyState.Death)
+                    : crawler.enemyAI.State.Equals(CrawlerEnemyState.Chase);
             }
         }
 
