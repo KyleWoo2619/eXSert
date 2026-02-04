@@ -8,7 +8,7 @@ namespace Progression.Encounters
         protected override Color DebugColor { get => Color.purple; }
 
         private PuzzlePart part;
-        bool isCompleated => part.isCompleted;
+        public override bool isCompleted => part.isCompleted;
 
         protected override void SetupEncounter()
         {

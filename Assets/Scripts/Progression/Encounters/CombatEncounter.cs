@@ -6,11 +6,13 @@ namespace Progression.Encounters
 {
     public class CombatEncounter : BasicEncounter
     {
-        internal override bool isCompleted
+        [SerializeField] private bool tempIsCompleted;
+
+        public override bool isCompleted
         {
             get
             {
-                return wavesQueue.Count == 0;
+                return tempIsCompleted;
             }
         }
 

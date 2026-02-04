@@ -261,7 +261,7 @@ namespace Behaviors
             // Guard: half damage
             if (CombatManager.isGuarding)
             {
-                dmg *= 0.5f; // temporary guard mitigation
+                dmg *= 0.25f; // temporary guard mitigation
 #if UNITY_EDITOR
                 Debug.Log($"{enemy.gameObject.name} attack guarded. Applying reduced damage {dmg}.");
 #endif
