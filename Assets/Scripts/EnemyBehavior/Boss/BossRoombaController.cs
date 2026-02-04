@@ -18,6 +18,7 @@ public class BossRoombaController : MonoBehaviour
         "Values are applied to the boss NavMeshAgent on Start and passed to Crowd/Path systems.")]
     public EnemyBehaviorProfile profile;
 
+
     private NavMeshAgent agent;
     private Transform player;
     private Animator animator;
@@ -26,8 +27,22 @@ public class BossRoombaController : MonoBehaviour
     [Header("Alarm Settings")]
     [Tooltip("Time in seconds before alarm activates automatically (if player doesn't mount first)")]
     public float AlarmAutoActivateTime = 15f;
+    [Tooltip("Delay in seconds after fight start or form change before alarm activates (random range)")]
+    public Vector2 AlarmActivationDelayRange = new Vector2(3f, 5f);
+    [Tooltip("Maximum health of the alarm. When destroyed, no more adds spawn.")]
+    public float AlarmMaxHealth = 100f;
+    [Tooltip("Current health of the alarm (runtime).")]
+    [SerializeField] private float alarmCurrentHealth;
+    [Tooltip("Damage multiplier when attacking the alarm (e.g., 0.5 = half damage)")]
+    public float AlarmDamageMultiplier = 0.5f;
+    [Tooltip("Should the alarm object fall off and be destroyed visually when health reaches 0?")]
+    public bool AlarmFallsOffWhenDestroyed = true;
+    [Tooltip("Force applied when alarm breaks off")]
+    public float AlarmBreakOffForce = 200f;
     private bool alarmActivated;
+    private bool alarmDestroyed;
     private float alarmTimer;
+    private Coroutine alarmActivationDelayRoutine;
 
     [Header("Spawn Pockets")]
     [Tooltip("Pockets for drone spawns (flying)")]
@@ -51,7 +66,9 @@ public class BossRoombaController : MonoBehaviour
 
     [Header("Locomotion")]
     [Tooltip("Minimum stopping distance to avoid overlapping the player.")]
-    public float MinStoppingDistance = 2.0f;
+    public float MinStoppingDistance = 4.0f;
+    [Tooltip("Additional offset from player during combat approach (added to stopping distance).")]
+    public float CombatDistanceOffset = 2.0f;
     [Tooltip("Ensure a kinematic Rigidbody for stable collisions and platform carry.")]
     public bool EnsureKinematicRigidbody = true;
     [Tooltip("Skip automatic collider setup - user will configure colliders manually.")]
@@ -154,6 +171,9 @@ public class BossRoombaController : MonoBehaviour
                 crawlerPool.Enqueue(c);
             }
         }
+        
+        // Initialize alarm health
+        InitializeAlarmHealth();
     }
 
     void OnEnable()
@@ -163,6 +183,11 @@ public class BossRoombaController : MonoBehaviour
         
         alarmTimer = 0f;
         alarmActivated = false;
+        // Reset alarm on enable (in case of pooling/re-enabling)
+        if (!alarmDestroyed)
+        {
+            InitializeAlarmHealth();
+        }
     }
 
     void OnDisable()
@@ -218,9 +243,19 @@ public class BossRoombaController : MonoBehaviour
 
     void Update()
     {
-        // Handle alarm timing
-        if (!alarmActivated && alarm != null)
+        // Handle alarm timing - only during Duelist/Summoner form
+        // During CageBull, the alarm should stay deactivated
+        if (!alarmActivated && alarm != null && !alarmDestroyed)
         {
+            // Check if brain exists and is in CageBull form - if so, don't auto-activate
+            var brain = GetComponent<EnemyBehavior.Boss.BossRoombaBrain>();
+            if (brain != null && brain.CurrentForm == EnemyBehavior.Boss.RoombaForm.CageBull)
+            {
+                // Reset timer during CageBull so it doesn't immediately activate when returning to Duelist
+                alarmTimer = 0f;
+                return;
+            }
+            
             alarmTimer += Time.deltaTime;
             if (alarmTimer >= AlarmAutoActivateTime)
             {
@@ -259,7 +294,8 @@ public class BossRoombaController : MonoBehaviour
         float dist = toPlayer.magnitude;
         if (dist < 0.001f)
             return bossPos;
-        float ring = Mathf.Max(agent.stoppingDistance, MinStoppingDistance);
+        // Use both stopping distance and combat offset for the ring
+        float ring = Mathf.Max(agent.stoppingDistance, MinStoppingDistance) + CombatDistanceOffset;
         Vector3 candidate = playerPos - toPlayer.normalized * ring;
         if (NavMesh.SamplePosition(candidate, out var hit, ApproachSampleMaxDistance, NavMesh.AllAreas))
             return hit.position;
@@ -366,6 +402,9 @@ public class BossRoombaController : MonoBehaviour
 
     public void ActivateAlarm()
     {
+        // Don't activate if destroyed
+        if (alarmDestroyed) return;
+        
         if (alarmActivated) return;
         
         alarmActivated = true;
@@ -377,13 +416,48 @@ public class BossRoombaController : MonoBehaviour
         if (spawnManagementRoutine != null) StopCoroutine(spawnManagementRoutine);
         spawnManagementRoutine = StartCoroutine(ManageSpawnsRoutine());
     }
+    
+    /// <summary>
+    /// Activates the alarm after a random delay (for form changes or fight start).
+    /// </summary>
+    public void ActivateAlarmWithDelay()
+    {
+        if (alarmDestroyed) return;
+        if (alarmActivated) return;
+        
+        if (alarmActivationDelayRoutine != null)
+        {
+            StopCoroutine(alarmActivationDelayRoutine);
+        }
+        alarmActivationDelayRoutine = StartCoroutine(AlarmActivationDelayRoutine());
+    }
+    
+    private IEnumerator AlarmActivationDelayRoutine()
+    {
+        float delay = Random.Range(AlarmActivationDelayRange.x, AlarmActivationDelayRange.y);
+        Debug.Log($"Alarm will activate in {delay:F1} seconds...");
+        yield return WaitForSecondsCache.Get(delay);
+        
+        if (!alarmDestroyed && !alarmActivated)
+        {
+            ActivateAlarm();
+        }
+        alarmActivationDelayRoutine = null;
+    }
 
     public void DeactivateAlarm()
     {
         alarmActivated = false;
-        if (alarm != null) alarm.SetActive(false);
+        if (alarm != null && !alarmDestroyed) alarm.SetActive(false);
         
         Debug.Log("Alarm DEACTIVATED - Stopping spawn management");
+        
+        // Stop delayed activation if pending
+        if (alarmActivationDelayRoutine != null)
+        {
+            StopCoroutine(alarmActivationDelayRoutine);
+            alarmActivationDelayRoutine = null;
+        }
         
         if (spawnManagementRoutine != null)
         {
@@ -391,17 +465,324 @@ public class BossRoombaController : MonoBehaviour
             spawnManagementRoutine = null;
         }
     }
+    
+    /// <summary>
+    /// Returns true if the alarm is still functional (not destroyed).
+    /// </summary>
+    public bool IsAlarmAlive => !alarmDestroyed;
+    
+    /// <summary>
+    /// Apply damage to the alarm. Called by the damage system when player attacks the alarm.
+    /// </summary>
+    public void DamageAlarm(float damage)
+    {
+        if (alarmDestroyed) return;
+        
+        float actualDamage = damage * AlarmDamageMultiplier;
+        alarmCurrentHealth -= actualDamage;
+        
+        Debug.Log($"[BossRoombaController] Alarm took {actualDamage} damage ({alarmCurrentHealth}/{AlarmMaxHealth})");
+        
+        if (alarmCurrentHealth <= 0f)
+        {
+            DestroyAlarm();
+        }
+    }
+    
+    /// <summary>
+    /// Destroys the alarm permanently. No more adds will spawn.
+    /// Can be called from debug buttons or when alarm health reaches 0.
+    /// </summary>
+    public void DestroyAlarm()
+    {
+        if (alarmDestroyed) return;
+        
+        alarmDestroyed = true;
+        alarmActivated = false;
+        
+        Debug.Log("[BossRoombaController] ALARM DESTROYED - No more adds will spawn!");
+        
+        // Stop spawn management
+        if (spawnManagementRoutine != null)
+        {
+            StopCoroutine(spawnManagementRoutine);
+            spawnManagementRoutine = null;
+        }
+        
+        // Stop delayed activation if pending
+        if (alarmActivationDelayRoutine != null)
+        {
+            StopCoroutine(alarmActivationDelayRoutine);
+            alarmActivationDelayRoutine = null;
+        }
+        
+        // Handle visual destruction
+        if (alarm != null)
+        {
+            if (AlarmFallsOffWhenDestroyed)
+            {
+                // Detach and apply physics
+                alarm.transform.SetParent(null);
+                
+                var rb = alarm.GetComponent<Rigidbody>();
+                if (rb == null) rb = alarm.AddComponent<Rigidbody>();
+                rb.isKinematic = false;
+                rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+                
+                // Add collider if needed
+                if (alarm.GetComponent<Collider>() == null)
+                {
+                    var box = alarm.AddComponent<BoxCollider>();
+                    box.size = Vector3.one * 0.5f;
+                }
+                
+                // Apply break-off force
+                Vector3 breakDirection = (alarm.transform.position - transform.position).normalized;
+                breakDirection.y = 0.5f;
+                rb.AddForce(breakDirection.normalized * AlarmBreakOffForce, ForceMode.Impulse);
+                rb.AddTorque(Random.insideUnitSphere * AlarmBreakOffForce * 0.3f, ForceMode.Impulse);
+                
+                // Destroy after a delay
+                Destroy(alarm, 5f);
+            }
+            else
+            {
+                alarm.SetActive(false);
+            }
+        }
+        
+        // Notify the brain
+        var brain = GetComponent<EnemyBehavior.Boss.BossRoombaBrain>();
+        if (brain != null)
+        {
+            brain.OnAlarmDestroyed();
+        }
+    }
+    
+    #region Debug Methods
+    
+    /// <summary>
+    /// DEBUG: Kills one random active add (crawler or drone).
+    /// Tests object pooling and respawn functionality.
+    /// </summary>
+    public void DebugKillOneRandomAdd()
+    {
+        var allAdds = new List<GameObject>();
+        
+        // Collect all active drones
+        foreach (var kvp in activeDrones)
+        {
+            if (kvp.Value != null && kvp.Value.activeInHierarchy)
+                allAdds.Add(kvp.Value);
+        }
+        
+        // Collect all active crawlers
+        foreach (var kvp in activeCrawlers)
+        {
+            if (kvp.Value != null && kvp.Value.activeInHierarchy)
+                allAdds.Add(kvp.Value);
+        }
+        
+        if (allAdds.Count == 0)
+        {
+            Debug.Log("[Boss DEBUG] No active adds to kill!");
+            return;
+        }
+        
+        // Pick a random one
+        int index = UnityEngine.Random.Range(0, allAdds.Count);
+        GameObject target = allAdds[index];
+        
+        Debug.Log($"[Boss DEBUG] Killing add: {target.name}");
+        
+        // Try to kill it through its health system
+        var healthSystem = target.GetComponent<IHealthSystem>();
+        if (healthSystem != null)
+        {
+            healthSystem.LoseHP(9999f);
+        }
+        else
+        {
+            // Fallback: just deactivate it
+            target.SetActive(false);
+        }
+    }
+    
+    /// <summary>
+    /// DEBUG: Kills all active adds (crawlers and drones).
+    /// </summary>
+    public void DebugKillAllAdds()
+    {
+        int killCount = 0;
+        
+        // Kill all drones
+        foreach (var kvp in activeDrones)
+        {
+            if (kvp.Value != null && kvp.Value.activeInHierarchy)
+            {
+                var healthSystem = kvp.Value.GetComponent<IHealthSystem>();
+                if (healthSystem != null)
+                {
+                    healthSystem.LoseHP(9999f);
+                }
+                else
+                {
+                    kvp.Value.SetActive(false);
+                }
+                killCount++;
+            }
+        }
+        
+        // Kill all crawlers
+        foreach (var kvp in activeCrawlers)
+        {
+            if (kvp.Value != null && kvp.Value.activeInHierarchy)
+            {
+                var healthSystem = kvp.Value.GetComponent<IHealthSystem>();
+                if (healthSystem != null)
+                {
+                    healthSystem.LoseHP(9999f);
+                }
+                else
+                {
+                    kvp.Value.SetActive(false);
+                }
+                killCount++;
+            }
+        }
+        
+        Debug.Log($"[Boss DEBUG] Killed {killCount} adds!");
+    }
+    
+    #endregion
+    
+    /// <summary>
+    /// Called when cage match starts (walls go up). Despawns ALL active adds.
+    /// During the cage match, no adds should be present - it's a 1v1 with the boss.
+    /// </summary>
+    public void OnCageMatchStart()
+    {
+        Debug.Log("[BossRoombaController] OnCageMatchStart - despawning ALL active adds for 1v1 cage match");
+        
+        int despawnedDrones = 0;
+        int despawnedCrawlers = 0;
+        
+        // Despawn ALL active drones
+        foreach (var kvp in activeDrones)
+        {
+            if (kvp.Value != null && kvp.Value.activeInHierarchy)
+            {
+                // Return to pool
+                kvp.Value.SetActive(false);
+                dronePool.Enqueue(kvp.Value);
+                despawnedDrones++;
+                Debug.Log($"[BossRoombaController] Despawned drone for cage match: {kvp.Value.name}");
+            }
+        }
+        
+        // Despawn ALL active crawlers
+        foreach (var kvp in activeCrawlers)
+        {
+            if (kvp.Value != null && kvp.Value.activeInHierarchy)
+            {
+                // Return to pool
+                kvp.Value.SetActive(false);
+                crawlerPool.Enqueue(kvp.Value);
+                despawnedCrawlers++;
+                Debug.Log($"[BossRoombaController] Despawned crawler for cage match: {kvp.Value.name}");
+            }
+        }
+        
+        Debug.Log($"[BossRoombaController] Cage match started - despawned {despawnedDrones} drones and {despawnedCrawlers} crawlers");
+    }
+    
+    /// <summary>
+    /// Initialize alarm health on Awake/Start.
+    /// </summary>
+    private void InitializeAlarmHealth()
+    {
+        alarmCurrentHealth = AlarmMaxHealth;
+        alarmDestroyed = false;
+    }
 
     private IEnumerator ManageSpawnsRoutine()
     {
+        // Initial spawn wave - spawn all enemies immediately when alarm activates
+        Debug.Log("[BossRoombaController] Initial spawn wave starting...");
+        RespawnDeadEnemies(activeDrones, droneSpawnPoints, dronePrefab, maxDrones, dronePool);
+        RespawnDeadEnemies(activeCrawlers, crawlerSpawnPoints, crawlerPrefab, maxCrawlers, crawlerPool);
+        
+        // Respawn check cadence
         var wait = WaitForSecondsCache.Get(2f);
         
-        while (alarmActivated)
+        while (alarmActivated && !alarmDestroyed)
         {
+            yield return wait;
+            
+            // Check and respawn any dead enemies
             RespawnDeadEnemies(activeDrones, droneSpawnPoints, dronePrefab, maxDrones, dronePool);
             RespawnDeadEnemies(activeCrawlers, crawlerSpawnPoints, crawlerPrefab, maxCrawlers, crawlerPool);
             
-            yield return wait;
+            // Ensure all active enemies continue chasing player (backup for state machine issues)
+            if (player != null)
+            {
+                // Update crawler destinations
+                foreach (var kvp in activeCrawlers)
+                {
+                    if (kvp.Value != null && kvp.Value.activeInHierarchy)
+                    {
+                        var crawler = kvp.Value.GetComponent<BaseCrawlerEnemy>();
+                        if (crawler != null && crawler.agent != null && crawler.agent.enabled && crawler.agent.isOnNavMesh)
+                        {
+                            crawler.agent.isStopped = false;
+                            crawler.agent.SetDestination(player.position);
+                        }
+                    }
+                }
+                
+                // Update drone destinations - drones need continuous destination updates too
+                foreach (var kvp in activeDrones)
+                {
+                    if (kvp.Value != null && kvp.Value.activeInHierarchy)
+                    {
+                        var drone = kvp.Value.GetComponent<DroneEnemy>();
+                        if (drone != null && drone.agent != null && drone.agent.enabled && drone.agent.isOnNavMesh)
+                        {
+                            float distToPlayer = Vector3.Distance(drone.transform.position, player.position);
+                            
+                            // If drone is in Chase state and in attack range, transition to Fire
+                            if (drone.enemyAI != null && drone.enemyAI.State == DroneState.Chase)
+                            {
+                                if (distToPlayer <= drone.attackRange)
+                                {
+                                    drone.TryFireTriggerByName("InAttackRange");
+                                }
+                                else
+                                {
+                                    drone.agent.isStopped = false;
+                                    drone.agent.SetDestination(player.position);
+                                }
+                            }
+                            // If drone is in Fire state but too far, go back to Chase
+                            else if (drone.enemyAI != null && drone.enemyAI.State == DroneState.Fire)
+                            {
+                                if (distToPlayer > drone.chaseRange)
+                                {
+                                    drone.TryFireTriggerByName("OutOfAttackRange");
+                                }
+                                // Fire state handles its own shooting logic
+                            }
+                            // If drone is stuck in Idle, try to transition it to Chase
+                            else if (drone.enemyAI != null && drone.enemyAI.State == DroneState.Idle)
+                            {
+                                drone.TryFireTriggerByName("SeePlayer");
+                                drone.agent.isStopped = false;
+                                drone.agent.SetDestination(player.position);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -463,11 +844,18 @@ public class BossRoombaController : MonoBehaviour
         if (enemy == null)
         {
             enemy = Instantiate(prefab);
+            Debug.Log($"[BossRoombaController] Instantiated new {prefab.name}");
+        }
+        else
+        {
+            Debug.Log($"[BossRoombaController] Reused pooled {enemy.name}");
         }
 
         enemy.transform.position = position;
         enemy.transform.rotation = Quaternion.identity;
         enemy.SetActive(true);
+        
+        Debug.Log($"[BossRoombaController] Spawned {enemy.name} at {position}");
 
         RegisterSpawned(enemy);
 
@@ -514,6 +902,304 @@ public class BossRoombaController : MonoBehaviour
         {
             var ca = new EnemyBehavior.Crowd.CrowdAgent() { Agent = agentComp, Profile = profile };
             EnemyBehavior.Crowd.CrowdController.Instance.Register(ca);
+        }
+        
+        // Configure crawlers spawned by the boss alarm to skip Ambush state and go directly to Chase
+        // Check both on root and children (some prefabs have the component on a child)
+        var crawler = g.GetComponent<BaseCrawlerEnemy>();
+        if (crawler == null)
+            crawler = g.GetComponentInChildren<BaseCrawlerEnemy>();
+            
+        if (crawler != null)
+        {
+            Debug.Log($"[BossRoombaController] Found BaseCrawlerEnemy on {g.name}, configuring for boss fight...");
+            
+            // Clear pocket reference - boss-spawned crawlers don't have a pocket to return to
+            crawler.Pocket = null;
+            
+            // Force them to chase the player directly (no swarming/ambush behavior for boss adds)
+            crawler.ForceChasePlayer = true;
+            crawler.enableSwarmBehavior = false;
+            
+            // Reset health if the crawler has an IHealthSystem
+            var healthSystem = crawler as IHealthSystem;
+            if (healthSystem != null)
+            {
+                crawler.SetHealth(crawler.maxHealth);
+            }
+            
+            // Reinitialize state machine for re-pooled enemies
+            ResetCrawlerState(crawler);
+            
+            // Ensure the NavMeshAgent is properly configured - check crawler's own agent first
+            var crawlerAgent = crawler.GetComponent<NavMeshAgent>();
+            if (crawlerAgent == null)
+                crawlerAgent = crawler.GetComponentInParent<NavMeshAgent>();
+            if (crawlerAgent == null)
+                crawlerAgent = agentComp;
+                
+            if (crawlerAgent != null)
+            {
+                crawlerAgent.enabled = true;
+                if (crawlerAgent.isOnNavMesh && player != null)
+                {
+                    crawlerAgent.SetDestination(player.position);
+                    Debug.Log($"[BossRoombaController] Set crawler destination to player");
+                }
+                else
+                {
+                    Debug.LogWarning($"[BossRoombaController] Crawler agent not on NavMesh: isOnNavMesh={crawlerAgent.isOnNavMesh}");
+                }
+            }
+            
+            
+            // Force the crawler to skip Ambush and go to Chase after a frame
+            // (this allows the state machine to be fully initialized)
+            StartCoroutine(ForceCrawlerToChase(crawler));
+        }
+        else
+        {
+            Debug.Log($"[BossRoombaController] No BaseCrawlerEnemy found on {g.name} - checking for DroneEnemy...");
+            
+            // Try to configure drones to chase the player
+            var drone = g.GetComponent<DroneEnemy>();
+            if (drone == null)
+                drone = g.GetComponentInChildren<DroneEnemy>();
+                
+            if (drone != null)
+            {
+                Debug.Log($"[BossRoombaController] Found DroneEnemy on {g.name}, configuring for boss fight...");
+                
+                // Set the player reference so the drone can track them
+                if (player != null)
+                {
+                    drone.PlayerTarget = player;
+                }
+                
+                // Trigger the drone to see the player and start chasing
+                StartCoroutine(ForceDroneToChase(drone));
+            }
+            else
+            {
+                Debug.Log($"[BossRoombaController] No DroneEnemy found on {g.name} either");
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Resets a crawler's state for re-use from the pool.
+    /// </summary>
+    private void ResetCrawlerState(BaseCrawlerEnemy crawler)
+    {
+        if (crawler == null) return;
+        
+        // Reset health
+        crawler.SetHealth(crawler.maxHealth);
+        
+        // Reset any death/low health flags
+        crawler.hasFiredLowHealth = false;
+        
+        // CRITICAL: Force the state machine back to Ambush so we can transition to Chase
+        // The enemyAI might be in Death or some other state from previous use
+        if (crawler.enemyAI != null)
+        {
+            // Use reflection or a public method to reset state if needed
+            // For now, we'll let ForceCrawlerToChase handle the transition
+            Debug.Log($"[BossRoombaController] ResetCrawlerState: {crawler.gameObject.name} current state = {crawler.enemyAI.State}");
+        }
+    }
+    
+    private IEnumerator ForceCrawlerToChase(BaseCrawlerEnemy crawler)
+    {
+        // Wait a frame for full initialization
+        yield return null;
+        
+        if (crawler == null || crawler.gameObject == null)
+        {
+            Debug.LogWarning("[BossRoombaController] ForceCrawlerToChase: crawler is null after frame wait");
+            yield break;
+        }
+        
+        // Debug current state
+        Debug.Log($"[BossRoombaController] ForceCrawlerToChase: {crawler.gameObject.name} state={crawler.enemyAI?.State}, agent.enabled={crawler.agent?.enabled}, isOnNavMesh={crawler.agent?.isOnNavMesh}");
+        
+        // Ensure NavMeshAgent is on NavMesh
+        if (crawler.agent != null && !crawler.agent.isOnNavMesh)
+        {
+            Debug.LogWarning($"[BossRoombaController] {crawler.gameObject.name} not on NavMesh! Attempting to warp...");
+            
+            // Try to sample a valid position nearby
+            if (UnityEngine.AI.NavMesh.SamplePosition(crawler.transform.position, out var hit, 5f, UnityEngine.AI.NavMesh.AllAreas))
+            {
+                crawler.agent.Warp(hit.position);
+                Debug.Log($"[BossRoombaController] Warped {crawler.gameObject.name} to {hit.position}");
+            }
+            else
+            {
+                Debug.LogError($"[BossRoombaController] Could not find valid NavMesh position for {crawler.gameObject.name}!");
+                yield break;
+            }
+        }
+        
+        // Ensure agent is enabled and not stopped
+        if (crawler.agent != null)
+        {
+            crawler.agent.enabled = true;
+            crawler.agent.isStopped = false;
+        }
+        
+        // CRITICAL: Set PlayerTarget BEFORE state transition so ChaseBehavior.OnEnter can capture it
+        if (player != null)
+        {
+            crawler.PlayerTarget = player;
+            Debug.Log($"[BossRoombaController] Set {crawler.gameObject.name} PlayerTarget to {player.name} BEFORE state transition");
+        }
+        else
+        {
+            Debug.LogError($"[BossRoombaController] player reference is NULL! Crawlers won't be able to chase.");
+            yield break;
+        }
+        
+        // Handle different starting states - we need to get the crawler into Chase
+        if (crawler.enemyAI != null)
+        {
+            var currentState = crawler.enemyAI.State;
+            Debug.Log($"[BossRoombaController] Crawler {crawler.gameObject.name} is in state: {currentState}");
+            
+            // If in Ambush, fire LosePlayer to go to Chase
+            if (currentState == CrawlerEnemyState.Ambush)
+            {
+                bool fired = crawler.TryFireTriggerByName("LosePlayer");
+                Debug.Log($"[BossRoombaController] Fired LosePlayer trigger: {fired}");
+                
+                // IMPORTANT: Also directly set the destination immediately, don't wait for the behavior
+                // This ensures the crawler starts moving even if the state transition is delayed
+                if (crawler.agent != null && crawler.agent.enabled && crawler.agent.isOnNavMesh && player != null)
+                {
+                    crawler.agent.isStopped = false;
+                    crawler.agent.SetDestination(player.position);
+                    Debug.Log($"[BossRoombaController] Set immediate destination for {crawler.gameObject.name}");
+                }
+            }
+            // If in Death state, we need to reinitialize
+            else if (currentState == CrawlerEnemyState.Death)
+            {
+                Debug.LogWarning($"[BossRoombaController] Crawler {crawler.gameObject.name} is in Death state! Cannot force to Chase - needs full reset.");
+                // The crawler should have been properly reset before spawning
+                yield break;
+            }
+            // If already in Chase, just ensure destination is set
+            else if (currentState == CrawlerEnemyState.Chase)
+            {
+                Debug.Log($"[BossRoombaController] Crawler already in Chase state");
+            }
+            // For other states (Swarm, Attack, Flee), try to transition to Chase via LosePlayer
+            else
+            {
+                bool fired = crawler.TryFireTriggerByName("LosePlayer");
+                Debug.Log($"[BossRoombaController] Attempted LosePlayer trigger from {currentState}: {fired}");
+            }
+            
+            // Wait another frame for state transition
+            yield return null;
+            
+            // Verify and set destination
+            if (crawler.enemyAI.State == CrawlerEnemyState.Chase || 
+                crawler.enemyAI.State == CrawlerEnemyState.Attack ||
+                crawler.enemyAI.State == CrawlerEnemyState.Swarm)
+            {
+                Debug.Log($"[BossRoombaController] SUCCESS: {crawler.gameObject.name} is now in state {crawler.enemyAI.State}");
+                
+                // Ensure destination is set (PlayerTarget was already set before transition)
+                if (crawler.agent != null && crawler.agent.isOnNavMesh && player != null)
+                {
+                    crawler.agent.SetDestination(player.position);
+                    Debug.Log($"[BossRoombaController] Set {crawler.gameObject.name} destination to player at {player.position}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"[BossRoombaController] {crawler.gameObject.name} still in state {crawler.enemyAI.State} - manually starting chase behavior");
+                
+                // Last resort: directly start the chase behavior
+                if (crawler.agent != null && crawler.agent.isOnNavMesh && player != null)
+                {
+                    crawler.agent.isStopped = false;
+                    crawler.agent.SetDestination(player.position);
+                }
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Forces a drone to start chasing the player immediately after spawn.
+    /// </summary>
+    private IEnumerator ForceDroneToChase(DroneEnemy drone)
+    {
+        // Wait a frame for full initialization
+        yield return null;
+        
+        if (drone == null || drone.gameObject == null)
+        {
+            Debug.LogWarning("[BossRoombaController] ForceDroneToChase: drone is null after frame wait");
+            yield break;
+        }
+        
+        // Debug current state
+        Debug.Log($"[BossRoombaController] ForceDroneToChase: {drone.gameObject.name} state={drone.enemyAI?.State}, agent.enabled={drone.agent?.enabled}, isOnNavMesh={drone.agent?.isOnNavMesh}");
+        
+        // Ensure NavMeshAgent is on NavMesh
+        if (drone.agent != null && !drone.agent.isOnNavMesh)
+        {
+            Debug.LogWarning($"[BossRoombaController] {drone.gameObject.name} not on NavMesh! Attempting to warp...");
+            
+            // Try to sample a valid position nearby
+            if (UnityEngine.AI.NavMesh.SamplePosition(drone.transform.position, out var hit, 5f, UnityEngine.AI.NavMesh.AllAreas))
+            {
+                drone.agent.Warp(hit.position);
+                Debug.Log($"[BossRoombaController] Warped {drone.gameObject.name} to {hit.position}");
+            }
+            else
+            {
+                Debug.LogError($"[BossRoombaController] Could not find valid NavMesh position for {drone.gameObject.name}!");
+                yield break;
+            }
+        }
+        
+        // Ensure agent is enabled and not stopped
+        if (drone.agent != null)
+        {
+            drone.agent.enabled = true;
+            drone.agent.isStopped = false;
+        }
+        
+        // Set the player target
+        if (player != null)
+        {
+            drone.PlayerTarget = player;
+        }
+        
+        // Fire the SeePlayer trigger to transition from Idle to Chase
+        if (drone.enemyAI != null && drone.enemyAI.State == DroneState.Idle)
+        {
+            bool fired = drone.TryFireTriggerByName("SeePlayer");
+            Debug.Log($"[BossRoombaController] Fired SeePlayer trigger on {drone.gameObject.name}: {fired}");
+        }
+        
+        // Wait another frame for state transition
+        yield return null;
+        
+        // Verify state
+        if (drone.enemyAI != null)
+        {
+            Debug.Log($"[BossRoombaController] Drone {drone.gameObject.name} is now in state: {drone.enemyAI.State}");
+            
+            // Set destination to player
+            if (drone.agent != null && drone.agent.isOnNavMesh && player != null)
+            {
+                drone.agent.SetDestination(player.position);
+                Debug.Log($"[BossRoombaController] Set {drone.gameObject.name} destination to player at {player.position}");
+            }
         }
     }
 

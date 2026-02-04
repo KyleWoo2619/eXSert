@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 using EnemyBehavior;
 
 // BaseEnemy is generic so derived classes can define their own states and triggers
-public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem, IQueuedAttacker
+public abstract class BaseEnemy<TState, TTrigger> : BaseEnemyCore, IQueuedAttacker
     where TState : struct, System.Enum
     where TTrigger : struct, System.Enum
 {
@@ -92,24 +92,6 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     private bool deathSequenceTriggered;
     private Coroutine deathFallbackRoutine;
 
-    /// <summary>
-    /// Event fired when this enemy dies. Subscribers receive this enemy instance.
-    /// Fired once when the death sequence begins (before destruction).
-    /// </summary>
-    public event System.Action<BaseEnemy<TState, TTrigger>> OnDeath;
-
-    /// <summary>
-    /// Event fired when this enemy begins its spawn sequence.
-    /// Subscribers receive this enemy instance. Use for encounter tracking.
-    /// </summary>
-    public event System.Action<BaseEnemy<TState, TTrigger>> OnSpawn;
-
-    /// <summary>
-    /// Event fired when this enemy is reset (e.g., player left encounter zone).
-    /// Subscribers receive this enemy instance. Fired after reset logic completes.
-    /// </summary>
-    public event System.Action<BaseEnemy<TState, TTrigger>> OnReset;
-
     // Cached animator parameter checks to avoid allocations from repeated animator.parameters access
     private bool _hasIsMovingParam;
     private bool _hasMoveSpeedParam;
@@ -139,6 +121,11 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     private string dieTriggerName = "Die";
     [SerializeField, Tooltip("Animator float parameter name for locomotion speed (optional).")]
     private string moveSpeedParameterName = "MoveSpeed";
+    
+    [Header("Behavior Profile")]
+    [SerializeField, Tooltip("Optional behavior profile for NavMeshAgent settings. If assigned, these settings will be applied on Awake.")]
+    public EnemyBehaviorProfile behaviorProfile;
+    
     [HideInInspector]
     public Color patrolColor = Color.green;
     [HideInInspector]
@@ -259,6 +246,9 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         SceneManager.sceneLoaded += HandleSceneLoaded;
 
         agent = this.gameObject.GetComponent<NavMeshAgent>();
+        
+        // Apply behavior profile if assigned
+        ApplyBehaviorProfile();
 
         EnsureRigidBodyForTriggers();
         EnsureDetectionCollider();
@@ -270,6 +260,27 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         {
             animator = GetComponentInParent<Animator>();
         }
+    }
+    
+    /// <summary>
+    /// Applies the behavior profile settings to the NavMeshAgent.
+    /// Called automatically in Awake if a profile is assigned.
+    /// </summary>
+    protected virtual void ApplyBehaviorProfile()
+    {
+        if (behaviorProfile == null || agent == null)
+            return;
+            
+        // Apply NavMeshAgent settings from profile
+        agent.speed = Random.Range(behaviorProfile.SpeedRange.x, behaviorProfile.SpeedRange.y);
+        agent.acceleration = behaviorProfile.Acceleration;
+        agent.angularSpeed = behaviorProfile.AngularSpeed;
+        agent.stoppingDistance = behaviorProfile.StoppingDistance;
+        agent.avoidancePriority = behaviorProfile.AvoidancePriority;
+        
+#if UNITY_EDITOR
+        Debug.Log($"[{name}] Applied behavior profile: speed={agent.speed:F1}, accel={behaviorProfile.Acceleration}, angular={behaviorProfile.AngularSpeed}, priority={behaviorProfile.AvoidancePriority}");
+#endif
     }
 
     // Helper to initialize the state machine and inspector state
@@ -645,13 +656,13 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     // --- HEALTH MANAGEMENT METHODS ---
     // --- IHealthSystem Implementation ---
     // Property for currentHP (read-only for interface, uses currentHealth internally)
-    public float currentHP => currentHealth;
+    public override float currentHP => currentHealth;
 
     // Property for maxHP (read-only for interface, uses maxHealth internally)
-    public float maxHP => maxHealth;
+    public override float maxHP => maxHealth;
 
     // LoseHP is called to apply damage to the enemy
-    public void LoseHP(float damage)
+    public override void LoseHP(float damage)
     {
         if (damage <= 0f)
             return;
@@ -667,7 +678,7 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     }
 
     // HealHP is called to restore health (used by RecoverBehavior)
-    public void HealHP(float hp)
+    public override void HealHP(float hp)
     {
         SetHealth(currentHealth + hp);
     }
@@ -717,68 +728,18 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
             TryFireTriggerByName("LowHealth");
         }
     }
-    
-    /// <summary>
-    /// Invokes the OnDeath event. Called automatically when health reaches zero.
-    /// Can be called manually if needed for custom death sequences.
-    /// </summary>
-    protected void InvokeOnDeath()
-    {
-        try
-        {
-            OnDeath?.Invoke(this);
-        }
-        catch (System.Exception ex)
-        {
-#if UNITY_EDITOR
-            Debug.LogError($"[{name}] Exception in OnDeath event handler: {ex}");
-#endif
-        }
-    }
-
-    /// <summary>
-    /// Invokes the OnSpawn event. Called by Spawn() when the spawn sequence begins.
-    /// </summary>
-    protected void InvokeOnSpawn()
-    {
-        try
-        {
-            OnSpawn?.Invoke(this);
-        }
-        catch (System.Exception ex)
-        {
-#if UNITY_EDITOR
-            Debug.LogError($"[{name}] Exception in OnSpawn event handler: {ex}");
-#endif
-        }
-    }
-
-    /// <summary>
-    /// Invokes the OnReset event. Called by ResetEnemy() after reset logic completes.
-    /// </summary>
-    protected void InvokeOnReset()
-    {
-        try
-        {
-            OnReset?.Invoke(this);
-        }
-        catch (System.Exception ex)
-        {
-#if UNITY_EDITOR
-            Debug.LogError($"[{name}] Exception in OnReset event handler: {ex}");
-#endif
-        }
-    }
 
     /// <summary>
     /// Called when the enemy should begin its spawn sequence (e.g., play spawn animation).
     /// Override in derived classes for custom spawn behavior.
     /// Call base.Spawn() to fire the OnSpawn event.
     /// </summary>
-    public virtual void Spawn()
+    public override void Spawn()
     {
         // Fire the spawn event for encounter tracking
         InvokeOnSpawn();
+
+        gameObject.SetActive(true);
         
         // Derived classes can override to play spawn animations, enable AI, etc.
 #if UNITY_EDITOR
@@ -792,7 +753,7 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
     /// Override in derived classes for additional reset behavior.
     /// Call base.ResetEnemy() to ensure proper reset and event firing.
     /// </summary>
-    public virtual void ResetEnemy()
+    public override void ResetEnemy()
     {
         // Restore health to max
         currentHealth = maxHealth;
@@ -815,9 +776,9 @@ public abstract class BaseEnemy<TState, TTrigger> : MonoBehaviour, IHealthSystem
         }
         
         // Ensure the GameObject is active
-        if (!gameObject.activeSelf)
+        if (gameObject.activeSelf)
         {
-            gameObject.SetActive(true);
+            gameObject.SetActive(false);
         }
         
         // Re-register with attack queue if needed

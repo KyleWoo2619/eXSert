@@ -204,31 +204,13 @@ MonoBehaviour:
     - model: {fileID: 8926484042661614736}
       id: 0
       isStickyNote: 0
-    - model: {fileID: 8926484042661614941}
-      id: 0
-      isStickyNote: 0
     - model: {fileID: 8926484042661615096}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661615109}
       id: 0
       isStickyNote: 0
     - model: {fileID: 8926484042661614717}
       id: 0
       isStickyNote: 0
-    - model: {fileID: 8926484042661614752}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661614759}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661614863}
-      id: 0
-      isStickyNote: 0
     - model: {fileID: 8926484042661614747}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661614749}
       id: 0
       isStickyNote: 0
   - title: Burst Color/Shape
@@ -285,31 +267,13 @@ MonoBehaviour:
     - model: {fileID: 8926484042661615165}
       id: 0
       isStickyNote: 0
-    - model: {fileID: 8926484042661615197}
-      id: 0
-      isStickyNote: 0
     - model: {fileID: 8926484042661615182}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661615200}
       id: 0
       isStickyNote: 0
     - model: {fileID: 8926484042661615184}
       id: 0
       isStickyNote: 0
     - model: {fileID: 8926484042661615167}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661615209}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661615335}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661615205}
-      id: 0
-      isStickyNote: 0
-    - model: {fileID: 8926484042661615329}
       id: 0
       isStickyNote: 0
   stickyNoteInfos: []
@@ -330,7 +294,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7d4c867f6b72b714dbb5fd1780afe208, type: 3}
-  m_Name: FlameVFX Moving
+  m_Name: Fire Shoot
   m_EditorClassIdentifier: 
   m_UIIgnoredErrors: []
   m_Parent: {fileID: 0}
@@ -405,8 +369,8 @@ MonoBehaviour:
     max: Infinity
     enumValues: []
     descendantCount: 0
-  - name: '"Fire" Color'
-    path: '"Fire" Color'
+  - name: '"Fire/Ember" Color'
+    path: '"Fire/Ember" Color'
     tooltip: 
     space: -1
     spaceable: 0
@@ -421,8 +385,8 @@ MonoBehaviour:
     max: Infinity
     enumValues: []
     descendantCount: 0
-  - name: FlameeVelocity
-    path: FlameeVelocity
+  - name: FlameVelocity
+    path: FlameVelocity
     tooltip: 
     space: -1
     spaceable: 0
@@ -449,38 +413,6 @@ MonoBehaviour:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
       m_SerializableObject: 1.2
-    min: -Infinity
-    max: Infinity
-    enumValues: []
-    descendantCount: 0
-  - name: FlameAngle
-    path: FlameAngle
-    tooltip: 
-    space: -1
-    spaceable: 0
-    sheetType: m_Vector3f
-    realType: Vector3
-    defaultValue:
-      m_Type:
-        m_SerializableType: UnityEngine.Vector3, UnityEngine.CoreModule, Version=0.0.0.0,
-          Culture=neutral, PublicKeyToken=null
-      m_SerializableObject: '{"x":0.0,"y":0.0,"z":360.0}'
-    min: -Infinity
-    max: Infinity
-    enumValues: []
-    descendantCount: 0
-  - name: FlameSize
-    path: FlameSize
-    tooltip: 
-    space: -1
-    spaceable: 0
-    sheetType: m_Float
-    realType: Single
-    defaultValue:
-      m_Type:
-        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-          PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 0.4
     min: -Infinity
     max: Infinity
     enumValues: []
@@ -513,22 +445,6 @@ MonoBehaviour:
         m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
           PublicKeyToken=b77a5c561934e089
       m_SerializableObject: 1
-    min: -Infinity
-    max: Infinity
-    enumValues: []
-    descendantCount: 0
-  - name: BurstRate
-    path: BurstRate
-    tooltip: 
-    space: -1
-    spaceable: 0
-    sheetType: m_Float
-    realType: Single
-    defaultValue:
-      m_Type:
-        m_SerializableType: System.Single, mscorlib, Version=4.0.0.0, Culture=neutral,
-          PublicKeyToken=b77a5c561934e089
-      m_SerializableObject: 5
     min: -Infinity
     max: Infinity
     enumValues: []
@@ -644,7 +560,7 @@ VisualEffectResource:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: FlameVFX Moving
+  m_Name: Fire Shoot
   m_Graph: {fileID: 114350483966674976}
   m_Infos:
     m_RendererSettings:
@@ -3575,12 +3491,12 @@ MonoBehaviour:
   m_Parent: {fileID: 114350483966674976}
   m_Children: []
   m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 0
+  m_UICollapsed: 1
   m_UISuperCollapsed: 0
   m_InputSlots: []
   m_OutputSlots:
   - {fileID: 8926484042661614632}
-  m_ExposedName: FlameeVelocity
+  m_ExposedName: FlameVelocity
   m_Exposed: 1
   m_Order: 2
   m_Category: 
@@ -4140,7 +4056,7 @@ MonoBehaviour:
   m_OutputSlots:
   - {fileID: 8926484042661614650}
   m_ExposedName: FlameSize
-  m_Exposed: 1
+  m_Exposed: 0
   m_Order: 5
   m_Category: 
   m_Min:
@@ -4360,7 +4276,7 @@ MonoBehaviour:
   m_OutputSlots:
   - {fileID: 8926484042661614657}
   m_ExposedName: FlameAngle
-  m_Exposed: 1
+  m_Exposed: 0
   m_Order: 4
   m_Category: 
   m_Min:
@@ -4933,12 +4849,12 @@ MonoBehaviour:
   m_Parent: {fileID: 114350483966674976}
   m_Children: []
   m_UIPosition: {x: 0, y: 0}
-  m_UICollapsed: 1
+  m_UICollapsed: 0
   m_UISuperCollapsed: 0
   m_InputSlots: []
   m_OutputSlots:
   - {fileID: 8926484042661614704}
-  m_ExposedName: '"Fire" Color'
+  m_ExposedName: '"Fire/Ember" Color'
   m_Exposed: 1
   m_Order: 1
   m_Category: 
@@ -11653,7 +11569,7 @@ MonoBehaviour:
   m_OutputSlots:
   - {fileID: 8926484042661615375}
   m_ExposedName: BurstRate
-  m_Exposed: 1
+  m_Exposed: 0
   m_Order: 8
   m_Category: 
   m_Min:
