@@ -6,6 +6,14 @@ namespace Progression.Encounters
 {
     public class CombatEncounter : BasicEncounter
     {
+        internal override bool isCompleted
+        {
+            get
+            {
+                return wavesQueue.Count == 0;
+            }
+        }
+
         /// <summary>
         /// Subclass Wave to hold the data for the individual waves for encounters.
         /// Additionally holds wave specific functionality.

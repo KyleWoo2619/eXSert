@@ -57,6 +57,9 @@ public abstract class BaseEnemy<TState, TTrigger> : BaseEnemyCore, IQueuedAttack
     [SerializeField, Tooltip("Show the attack range gizmo in the Scene view.")]
     protected bool showAttackGizmo = true;
 
+    [SerializeField, Tooltip("Determines whether their attack can be parried")]
+    public bool canBeParried = true;
+
     [Header("Enemy Health Bar")]
     [SerializeField, Tooltip("Prefab for the enemy's health bar UI.")]
     public GameObject healthBarPrefab;

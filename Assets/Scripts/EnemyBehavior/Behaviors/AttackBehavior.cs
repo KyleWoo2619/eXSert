@@ -235,13 +235,16 @@ namespace Behaviors
 
             if (!playerCollider.CompareTag("Player")) return;
 
+            float dmg = enemy.damage;
+
             // Parry: no damage
-            if (CombatManager.isParrying)
+            if (CombatManager.isParrying && enemy.canBeParried)
             {
                 CombatManager.ParrySuccessful();
 #if UNITY_EDITOR
                 Debug.Log($"{enemy.gameObject.name} attack parried by player.");
 #endif
+                dmg = 0;
                 return;
             }
 
@@ -254,7 +257,7 @@ namespace Behaviors
                 return;
             }
 
-            float dmg = enemy.damage;
+            
             // Guard: half damage
             if (CombatManager.isGuarding)
             {
