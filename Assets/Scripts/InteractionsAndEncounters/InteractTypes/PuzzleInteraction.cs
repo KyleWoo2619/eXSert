@@ -35,12 +35,12 @@ public class PuzzleInteraction : UnlockableInteraction
             return;
         }
 
-        if (_puzzlePart.isCompleted)
+        if (_puzzlePart.isCompleted )
         {
             _puzzlePart.EndPuzzle();
             inProgress = false;
         }
-        else if(!inProgress)
+        else
         {
             _puzzlePart.StartPuzzle();
             inProgress = true;

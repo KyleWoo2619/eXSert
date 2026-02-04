@@ -22,6 +22,8 @@ public class DoorHandler : MonoBehaviour
     public DoorState currentDoorState;
     public DoorType doorType;
 
+    
+
     private Vector3 doorPosOrigin;
     private Quaternion doorRotOrigin;
     private Vector3 targetDoorPos;
@@ -29,8 +31,12 @@ public class DoorHandler : MonoBehaviour
     private Vector3 targetPos;
 
     [Tooltip("Height to which the door will open when using OpenUp door type.")]
-    [SerializeField] private float doorUpTargetHeight;
+    [SerializeField] private GameObject topDoorPart;
+    [SerializeField] private GameObject bottomDoorPart;
+    [SerializeField] private float distToOpenParts = 2.0f;
     [SerializeField] private float openSpeed = 2f;
+
+    public bool openDoor;
 
     private bool isOpening = false;
     private bool isOpened = false;
@@ -56,6 +62,15 @@ public class DoorHandler : MonoBehaviour
         if (hingePivot != null)
         {
             hingeOriginalRot = hingePivot.rotation;
+        }
+    }
+
+    private void Update()
+    {
+        // For testing purposes: open/close door with the O key
+        if (Input.GetKeyDown(KeyCode.O))
+        {
+            Interact();
         }
     }
 
@@ -207,18 +222,21 @@ public class DoorHandler : MonoBehaviour
     // Coroutines for opening and closing the door upwards
     private IEnumerator OpenUpCoroutine()
     {
-        targetDoorPos = doorPosOrigin + new Vector3(0f, doorUpTargetHeight, 0f);
+        Vector3 topTartetPos = topDoorPart.transform.position + new Vector3(0f, distToOpenParts, 0f);
+        Vector3 bottomTargetPos = bottomDoorPart.transform.position - new Vector3(0f, distToOpenParts, 0f);
 
-        if(this.transform.position == targetDoorPos)
+        if(topDoorPart.transform.position == topTartetPos && bottomDoorPart.transform.position == bottomTargetPos)
         {
             isOpened = true;
             yield break;
         }
 
-        while (Vector3.Distance(this.transform.position, targetDoorPos) > 0.01f)
+        while (Vector3.Distance(topDoorPart.transform.position, topTartetPos) > 0.01f || 
+        Vector3.Distance(bottomDoorPart.transform.position, bottomTargetPos) > 0.01f)
         {
             float t = Mathf.Clamp01(openSpeed * Time.deltaTime);
-            this.transform.position = Vector3.Lerp(this.transform.position, targetDoorPos, t);
+            topDoorPart.transform.position = Vector3.Lerp(topDoorPart.transform.position, topTartetPos, t);
+            bottomDoorPart.transform.position = Vector3.Lerp(bottomDoorPart.transform.position, bottomTargetPos, t);
             yield return null;
         }
         // mark opened when finished
@@ -228,19 +246,22 @@ public class DoorHandler : MonoBehaviour
 
     private IEnumerator CloseUpCoroutine()
     {
-        targetDoorPos = doorPosOrigin;
-
+        Vector3 topTartetPos = topDoorPart.transform.position;
+        Vector3 bottomTargetPos = bottomDoorPart.transform.position;
     
-        if(this.transform.position == targetDoorPos)
+        if(topDoorPart .transform.position == doorPosOrigin + new Vector3(0f, distToOpenParts, 0f) &&
+           bottomDoorPart.transform.position == doorPosOrigin - new Vector3(0f, distToOpenParts, 0f))
         {
             isOpened = false;
             yield break;
         }
 
-        while (Vector3.Distance(this.transform.position, targetDoorPos) > 0.01f)
+        while (Vector3.Distance(topDoorPart.transform.position, topTartetPos) > 0.01f || 
+        Vector3.Distance(bottomDoorPart.transform.position, bottomTargetPos) > 0.01f)
         {
             float t = Mathf.Clamp01(openSpeed * Time.deltaTime);
-            this.transform.position = Vector3.Lerp(this.transform.position, targetDoorPos, t);
+            topDoorPart.transform.position = Vector3.Lerp(topDoorPart.transform.position, topTartetPos, t);
+            bottomDoorPart.transform.position = Vector3.Lerp(bottomDoorPart.transform.position, bottomTargetPos, t);
             yield return null;
         }
         // mark closed when finished

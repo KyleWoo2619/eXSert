@@ -41,8 +41,12 @@ namespace Progression.Encounters
         /// <summary>
         /// Indicates whether the encounter has been completed
         /// </summary>
-        protected virtual bool isCompleted { get; set; } = false;
+        public bool isCompleted = false;
 
+        private void Update()
+            {
+                Debug.Log(isCompleted);
+            }
         protected BoxCollider encounterZone;
 
         protected virtual void Awake()
