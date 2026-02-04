@@ -10,7 +10,7 @@ namespace Progression.Encounters
         private PuzzlePart _partPuzzle;
         private PuzzleInteraction _puzzleInteraction;
 
-        protected override bool isCompleted => _partPuzzle?.isCompleted ?? false;
+        public override bool isCompleted => _partPuzzle?.isCompleted ?? false;
 
         protected override void SetupEncounter()
         {
