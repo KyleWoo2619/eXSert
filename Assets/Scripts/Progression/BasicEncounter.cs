@@ -43,10 +43,6 @@ namespace Progression.Encounters
         /// </summary>
         public virtual bool isCompleted { get; protected set; } = false;
 
-        private void Update()
-            {
-                Debug.Log(isCompleted);
-            }
         protected BoxCollider encounterZone;
 
         protected virtual void Awake()

@@ -20,9 +20,6 @@ using eXsert;
 
 public class InputReader : Singleton<InputReader>
 {
-    [SerializeField] private InputActionAsset _playerControls;
-    [SerializeField] internal PlayerInput _playerInput;
-
     [SerializeField] internal string activeControlScheme;
 
     private static InputActionAsset playerControls;
@@ -31,22 +28,9 @@ public class InputReader : Singleton<InputReader>
     
     internal float mouseSens;
 
-    private InputAction moveAction;
-    private InputAction jumpAction;
-    private InputAction lookAction;
-    private InputAction changeStanceAction;
-    private InputAction guardAction;
-    private InputAction lightAttackAction;
-    private InputAction heavyAttackAction;
-    private InputAction dashAction;
-    private InputAction navigationMenuAction;
-    private InputAction interactAction;
-    private InputAction escapePuzzleAction;
-    private InputAction lockOnAction;
-    private InputAction leftTargetAction;
-    private InputAction rightTargetAction;
-    private InputAction loadingLookAction;
-    private InputAction loadingZoomAction;
+    private InputAction moveAction, jumpAction, lookAction, changeStanceAction, guardAction, lightAttackAction, heavyAttackAction, 
+        dashAction, navigationMenuAction, interactAction, escapePuzzleAction, lockOnAction, leftTargetAction, 
+        rightTargetAction, loadingLookAction, loadingZoomAction;
     
 
     private bool callbacksRegistered = false;
@@ -132,36 +116,18 @@ public class InputReader : Singleton<InputReader>
     {
         base.Awake();
 
-        // If a different InputReader instance already exists, destroy this one to
-        // avoid duplicate singletons and conflicting PlayerInput bindings.
-        if (Instance != this)
+        SceneManager.sceneLoaded += HandleSceneLoaded;
+
+        playerControls = Resources.Load<InputActionAsset>("PlayerControls");
+        if(playerControls == null)
         {
-            Destroy(gameObject);
+            Debug.LogError("player controls still null. Darn");
             return;
         }
 
-        SceneManager.sceneLoaded += HandleSceneLoaded;
-
-        // Use the serialized InputActionAsset if assigned. Do not auto-create
-        // a runtime copy if one already exists; that caused duplicate assets
-        // when moving from main menu to gameplay.
-        if (_playerControls != null)
+        if (playerInput != null)
         {
-            playerControls = _playerControls;
-        }
-        else if (playerControls == null)
-        {
-            // As a last resort (e.g., first scene missing a reference), create
-            // a single runtime controls asset that will be reused.
-            runtimeGeneratedControls = new PlayerControls();
-            _playerControls = runtimeGeneratedControls.asset;
-            playerControls = _playerControls;
-            Debug.LogWarning("Player Controls Input Action asset not assigned on InputReader; creating a runtime copy so gameplay actions remain available.");
-        }
-
-        if (_playerInput != null)
-        {
-            RebindTo(_playerInput, switchToGameplay: true);
+            RebindTo(playerInput, switchToGameplay: true);
         }
         else if (!TryAutoBindFromLoadedScenes())
         {
@@ -393,7 +359,6 @@ public class InputReader : Singleton<InputReader>
 
         UnregisterActionCallbacks();
 
-        _playerInput = newPlayerInput;
         playerInput = newPlayerInput;
 
         if (playerInput.actions == null)
