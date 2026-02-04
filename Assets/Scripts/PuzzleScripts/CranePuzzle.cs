@@ -14,6 +14,8 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
 using UnityEngine.InputSystem;
+using Unity.VisualScripting;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -70,9 +72,9 @@ public class CranePuzzle : PuzzlePart
     private PlayerMovement cachedPlayerMovement;
 
     [Header("Input Actions")]
-     [SerializeField] protected InputActionReference craneMoveAction;
-    [SerializeField] protected InputActionReference _escapePuzzleAction;
-    [SerializeField] protected InputActionReference _confirmPuzzleAction;
+     [SerializeField] internal InputActionReference craneMoveAction;
+    [SerializeField] internal InputActionReference _escapePuzzleAction;
+    [SerializeField] internal InputActionReference _confirmPuzzleAction;
 
     [Space(10)]
     [Header("Camera")]
@@ -110,6 +112,10 @@ public class CranePuzzle : PuzzlePart
     internal bool isRetracting;
 
     private InputAction runtimeCraneMoveAction;
+    protected InputAction runtimeConfirmAction;
+    protected InputAction runtimeEscapeAction;
+    private Vector2 cachedMoveInput;
+    private Coroutine moveCoroutine;
 
     internal readonly Dictionary<CranePart, Vector3> cranePartStartLocalPositions = new Dictionary<CranePart, Vector3>();
 
@@ -122,110 +128,7 @@ public class CranePuzzle : PuzzlePart
 
         CacheCranePartStartPositions();
     }
-    
-    protected virtual void Update()
-    {
-        // If not active or automated movement is running, skip processing
-        if (!puzzleActive || isAutomatedMovement || isExtending || craneParts == null || craneParts.Count == 0) return;   
 
-        // Read CranePuzzle move action when available (prefer runtime action from PlayerInput)
-        Vector2 move = InputReader.MoveInput;
-        if (runtimeCraneMoveAction != null && runtimeCraneMoveAction.enabled)
-        {
-            move = runtimeCraneMoveAction.ReadValue<Vector2>();
-        }
-        else if (craneMoveAction != null && craneMoveAction.action != null && craneMoveAction.action.enabled)
-        {
-            move = craneMoveAction.action.ReadValue<Vector2>();
-        }
-
-        // Ignore small input within deadzone
-        if (move.sqrMagnitude < InputReader.Instance.leftStickDeadzoneValue * InputReader.Instance.leftStickDeadzoneValue)
-        {
-            // No input, so reset cached start positions so AmIMoving() returns false
-            CacheCranePartStartPositions();
-            return;
-        }
-
-        // Optionally invert only horizontal input (A/D)
-        if (invertHorizontal)
-        {
-            move.x = -move.x;
-        }
-
-        // Move all crane parts simultaneously based on their enabled axes
-        foreach (CranePart part in craneParts)
-        {
-            // Skip if no part object assigned
-            if (part.partObject == null) continue;
-
-            // Work entirely in local space so designer-entered limits are relative to the crane hierarchy
-            Transform partTransform = part.partObject.transform;
-            Vector3 currentPos = partTransform.localPosition;
-            Vector3 newPos = currentPos;
-
-            if (!cranePartStartLocalPositions.TryGetValue(part, out Vector3 startPos))
-            {
-                startPos = currentPos;
-                cranePartStartLocalPositions[part] = startPos;
-            }
-
-            // Determine input mapping depending on swap controls bool
-            float inputForX = swapXZControls ? move.y : move.x;
-            float inputForY = move.y;
-            float inputForZ = swapXZControls ? move.x : (part.moveY ? 0f : move.y);
-
-            // Apply movement based on which axes are enabled, respecting bounds
-            if (part.moveX)
-            {
-                newPos.x += inputForX * craneMoveSpeed * Time.deltaTime;
-                newPos.x = Mathf.Clamp(newPos.x, part.minX, part.maxX);
-                
-            }
-
-            if (part.moveY)
-            {
-                newPos.y += inputForY * craneMoveSpeed * Time.deltaTime;
-                newPos.y = Mathf.Clamp(newPos.y, part.minY, part.maxY);
-                
-            }
-
-            if (part.moveZ)
-            {
-                newPos.z += inputForZ * craneMoveSpeed * Time.deltaTime;
-                newPos.z = Mathf.Clamp(newPos.z, part.minZ, part.maxZ);
-                
-            }
-            else
-            {
-                newPos.z = Mathf.Clamp(newPos.z, part.minZ, part.maxZ);
-            }
-
-            if (!part.moveX)
-            {
-                newPos.x = startPos.x;
-                
-            }
-
-            if (!part.moveY)
-            {
-                newPos.y = startPos.y;
-            }
-
-            if (!part.moveZ)
-            {
-                newPos.z = startPos.z;
-            }
-
-            partTransform.localPosition = newPos;
-
-        }
-
-        if(isCompleted || _escapePuzzleAction != null && _escapePuzzleAction.action != null && _escapePuzzleAction.action.triggered)
-        {
-            EndPuzzle();
-        }
-    }
 
     #region IPuzzleInterface Methods
 
@@ -270,15 +173,37 @@ public class CranePuzzle : PuzzlePart
                     ? craneMoveAction.action.name
                     : "Move";
                 runtimeCraneMoveAction = craneMap.FindAction(moveActionName);
+
+                string confirmActionName = (_confirmPuzzleAction != null && _confirmPuzzleAction.action != null)
+                    ? _confirmPuzzleAction.action.name
+                    : "Confirm";
+                runtimeConfirmAction = craneMap.FindAction(confirmActionName);
+
+                string escapeActionName = (_escapePuzzleAction != null && _escapePuzzleAction.action != null)
+                    ? _escapePuzzleAction.action.name
+                    : "EscapePuzzle";
+                runtimeEscapeAction = craneMap.FindAction(escapeActionName);
             }
             else
             {
                 runtimeCraneMoveAction = null;
+                runtimeConfirmAction = null;
+                runtimeEscapeAction = null;
             }
 
             if (runtimeCraneMoveAction != null && !runtimeCraneMoveAction.enabled)
             {
                 runtimeCraneMoveAction.Enable();
+            }
+
+            if (runtimeConfirmAction != null && !runtimeConfirmAction.enabled)
+            {
+                runtimeConfirmAction.Enable();
+            }
+
+            if (runtimeEscapeAction != null && !runtimeEscapeAction.enabled)
+            {
+                runtimeEscapeAction.Enable();
             }
 
             if (craneMoveAction != null && craneMoveAction.action != null && !craneMoveAction.action.enabled)
@@ -288,6 +213,10 @@ public class CranePuzzle : PuzzlePart
         }
 
         _escapePuzzleAction.action.Enable(); // Make sure enabled
+        if (_confirmPuzzleAction != null && _confirmPuzzleAction.action != null)
+        {
+            _confirmPuzzleAction.action.Enable();
+        }
         puzzleActive = true;
 
         // Prevent player input reads (used across movement, dash, etc.); Jump still wont deactivate idk why
@@ -314,12 +243,16 @@ public class CranePuzzle : PuzzlePart
        {
            puzzleCamera.Priority = 21;
        }
+
+       if (moveCoroutine == null)
+        {
+            moveCoroutine = StartCoroutine(MoveCraneCoroutine());
+        }
     }
 
-    // Call this when the puzzle is finished or cancelled
-    public override void EndPuzzle()
+    public void ExitPuzzle()
     {
-            foreach (GameObject img in craneUI)
+        foreach (GameObject img in craneUI)
             {
                 img.SetActive(false);
             }
@@ -327,6 +260,8 @@ public class CranePuzzle : PuzzlePart
             puzzleActive = false;
 
             StopAllCoroutines();
+            moveCoroutine = null;
+            isMoving = false;
 
             // Unlock crane movement
             LockOrUnlockMovement(false);
@@ -351,6 +286,16 @@ public class CranePuzzle : PuzzlePart
             {
                 runtimeCraneMoveAction.Disable();
                 runtimeCraneMoveAction = null;
+            }
+            if (runtimeConfirmAction != null)
+            {
+                runtimeConfirmAction.Disable();
+                runtimeConfirmAction = null;
+            }
+            if (runtimeEscapeAction != null)
+            {
+                runtimeEscapeAction.Disable();
+                runtimeEscapeAction = null;
             }
 
             // Sets camera priority back to normal
@@ -382,33 +327,120 @@ public class CranePuzzle : PuzzlePart
                     gameplayMap.Enable();
                 }
             }
+            isCompleted = false;
             RestorePlayerMovement();
-            
     }
-    #endregion
 
-    internal bool AmIMoving()
+    // Call this when the puzzle is finished or cancelled
+    public override void EndPuzzle()
     {
-        foreach (CranePart part in craneParts)
-        {
-            if (part.partObject == null) continue;
+        isCompleted = true;
+        ExitPuzzle();       
+    }
 
-            Vector3 currentPos = part.partObject.transform.localPosition;
-            if (cranePartStartLocalPositions.TryGetValue(part, out Vector3 startPos))
+    #endregion
+    // Read CranePuzzle move action when available (prefer runtime action from PlayerInput)
+    private void ReadMoveAction()
+    {
+        InputAction actionToRead = runtimeCraneMoveAction != null ? runtimeCraneMoveAction : (craneMoveAction != null ? craneMoveAction.action : null);
+        if (actionToRead != null)
+        {
+            cachedMoveInput = actionToRead.ReadValue<Vector2>();
+
+            if (invertHorizontal)
+                cachedMoveInput.x *= -1f; 
+        }
+    }
+
+    public IEnumerator MoveCraneCoroutine()
+    {
+        while (puzzleActive && !isAutomatedMovement && !isExtending)
+        {
+
+            ReadMoveAction();
+
+            if(_escapePuzzleAction != null && _escapePuzzleAction.action != null && _escapePuzzleAction.action.triggered)
             {
-                if (currentPos != startPos)
+                ExitPuzzle();
+                yield break;
+            }
+
+            CheckForConfirm();
+
+            CraneMovement();
+
+            yield return null;
+        }
+
+        isMoving = false;
+        moveCoroutine = null;
+    }
+
+    private void CraneMovement()
+    {
+        Vector2 input = cachedMoveInput;
+        float xInput = input.x;
+        float yInput = input.y;
+
+        if (swapXZControls)
+        {
+            float temp = xInput;
+            xInput = yInput;
+            yInput = temp;
+        }
+
+        bool hasInput = input.sqrMagnitude > 0.0001f;
+        isMoving = hasInput;
+
+        if (hasInput)
+        {
+            for (int i = 0; i < craneParts.Count; i++)
+            {
+                CranePart part = craneParts[i];
+                if (part == null || part.partObject == null) continue;
+
+                Vector3 localPos = part.partObject.transform.localPosition;
+                Vector3 delta = Vector3.zero;
+
+                if (part.moveX)
                 {
-                    return true;
+                    delta.x = xInput;
+                }
+                if (part.moveY)
+                {
+                    delta.y = yInput;
+                }
+                if (part.moveZ)
+                {
+                    delta.z = yInput;
+                }
+                if (delta != Vector3.zero)
+                {
+                    Vector3 next = localPos + delta * craneMoveSpeed * Time.deltaTime;
+
+                    if (part.moveX)
+                    {
+                        next.x = Mathf.Clamp(next.x, part.minX, part.maxX);
+                    }
+                    if (part.moveY)
+                    {
+                        next.y = Mathf.Clamp(next.y, part.minY, part.maxY);
+                    }
+                    if (part.moveZ)
+                    {
+                        next.z = Mathf.Clamp(next.z, part.minZ, part.maxZ);
+                    }
+
+                    part.partObject.transform.localPosition = next;
                 }
             }
         }
-        return false;
-    }
-    public bool IsMoving()
-    {
-        return AmIMoving();
     }
 
+    public bool IsMoving()
+    {
+        return isMoving;
+    }
     
     public bool IsRetracting()
     {
@@ -513,10 +545,7 @@ public class CranePuzzle : PuzzlePart
     }
 
     // Checks for confirm input to start magnet extension
-    protected virtual void CheckForConfirm()
-    {
-        // Override in derived classes
-    }
+    protected virtual void CheckForConfirm(){}
 
     #endregion
 

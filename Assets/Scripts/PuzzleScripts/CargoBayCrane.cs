@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
@@ -39,19 +40,6 @@ public class CargoBayCrane : CranePuzzle
         if(playCraneAmbience != null)
             playCraneAmbience.Invoke();
     }
-
-    protected override void Update()
-    {
-        // Call base Update() to handle crane movement with WASD
-        base.Update();
-        
-        if(_confirmPuzzleAction != null && _confirmPuzzleAction.action != null && !isExtending && !AmIMoving())
-        {
-            CheckForConfirm();
-        }
-    }
-
-    
 
     protected IEnumerator AnimateMagnet(GameObject magnet, Vector3 targetPosition, float duration, bool magnetRetract = true)
     {
@@ -231,40 +219,37 @@ public class CargoBayCrane : CranePuzzle
             {
                 // Check for collisions with objects other than the target and magnet
                 Bounds bounds = targetCollider.bounds;
-                // Gets all collider overlaps at the target object's bounds
-                Collider[] hits = Physics.OverlapBox(bounds.center, bounds.extents, targetObject.transform.rotation, ~0, QueryTriggerInteraction.Collide);
+                
+                // Gets all collider overlaps at the target object's bounds - only check Ground layer
+                Collider[] hits = Physics.OverlapBox(bounds.center, bounds.extents, targetObject.transform.rotation, LayerMask.GetMask("Ground"), QueryTriggerInteraction.Ignore);
                 for (int i = 0; i < hits.Length; i++)
                 {
                     Collider hitCol = hits[i];
-                    bool hitTargetObject = hitCol.gameObject == targetObject || hitCol.transform.IsChildOf(targetObject.transform);
-                    bool hitMagnet = hitCol.transform.IsChildOf(magnetExtender.transform);
-                    if (!hitTargetObject && !hitMagnet)
+                    
+                    // Skip the target's own collider
+                    if (hitCol == targetCollider) continue;
+                    
+                    // Check if hit is the target object or any child of it
+                    bool hitTargetObject = hitCol.gameObject == targetObject;
+                    
+                    if (!hitTargetObject)
                     {
-                        reachedDropTarget = true;
-                        break;
-                    }
-                }
-            }
-            // Fallback spherecast check directly below magnet
-            else
-            {
-                Vector3 castOrigin = magnetExtender.transform.position;
-                float castRadius = 0.3f;
-                float castDistance = step + 0.3f;
-                // Spherecast downwards to check for collisions
-                if (Physics.SphereCast(castOrigin, castRadius, Vector3.down, out RaycastHit hitInfo, castDistance, ~0, QueryTriggerInteraction.Collide))
-                {
-                    bool hitTargetObject = targetObject != null && (hitInfo.collider.gameObject == targetObject || hitInfo.collider.transform.IsChildOf(targetObject.transform));
-                    bool hitMagnet = hitInfo.collider.transform.IsChildOf(magnetExtender.transform);
-                    if (!hitTargetObject && !hitMagnet)
-                    {
-                        reachedDropTarget = true;
+                        // Calculate distance between bottom of target object and top of ground surface
+                        float distanceToGround = bounds.min.y - hitCol.bounds.max.y;
+                        
+                        // Stop when object is very close to ground (within 0.05 units)
+                        if (distanceToGround <= 0.05f)
+                        {
+                            reachedDropTarget = true;
+                            break;
+                        }
                     }
                 }
             }
 
             yield return null;
         }
+        
         // Snap magnet to final drop position
         magnetExtender.transform.localPosition = new Vector3(dropStartPos.x, magnetExtender.transform.localPosition.y, dropStartPos.z);
         onComplete?.Invoke(reachedDropTarget);
@@ -292,6 +277,7 @@ public class CargoBayCrane : CranePuzzle
         if(!isGrabbed)
         {
             LockOrUnlockMovement(false);
+            StartCoroutine(MoveCraneCoroutine());
         }
         
         if(isGrabbed)
@@ -309,13 +295,10 @@ public class CargoBayCrane : CranePuzzle
             yield return StartCoroutine(LowerMagnetUntilCollision(5f, 20f, result => reachedDropTarget = result));
 
             if (reachedDropTarget && craneGrabObjectScript != null && targetObject != null)
-            {
                 craneGrabObjectScript.ReleaseObject(targetObject);
-            }
 
             isGrabbed = false;
             targetObject = null;
-
             yield return StartCoroutine(RetractMagnet(magnetExtender, originalPosition, 1f));
 
             isAutomatedMovement = false;
@@ -329,7 +312,7 @@ public class CargoBayCrane : CranePuzzle
     // Checks for confirm input to start magnet extension
     protected override void CheckForConfirm()
     {
-        if (_confirmPuzzleAction.action.triggered && targetObject != null && !isExtending && !AmIMoving())
+        if (_confirmPuzzleAction != null && _confirmPuzzleAction.action.triggered && targetObject != null && !isExtending && !IsMoving())
         {
             isExtending = true;
             StartCoroutine(AnimateMagnet(magnetExtender, new Vector3(targetObject.transform.position.x, magnetExtender.transform.position.y, targetObject.transform.position.z), 2f, true));
@@ -410,6 +393,7 @@ public class CargoBayCrane : CranePuzzle
             Vector3 startPosition = magnetExtender.transform.localPosition;
             retractCoroutine = StartCoroutine(RetractMagnet(magnetExtender, startPosition, 0.5f));
         }
+
     }
 
     protected void AssignRayData()

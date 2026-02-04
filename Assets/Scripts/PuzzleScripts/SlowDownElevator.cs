@@ -9,12 +9,13 @@
 */
 
 using System.Collections;
+using Progression.Encounters;
 using UnityEngine;
-public class SlowDownElevator : PuzzlePart
+public class SlowDownElevator : MonoBehaviour
 {
     [Header("Required References")]
     [SerializeField, CriticalReference] private ElevatorWalls _elevatorWalls;
-    [SerializeField] private PlaySoundThroughManager elevatorAmbience;
+    [SerializeField] private BasicEncounter basicEncounter;
 
     [Header("Deceleration")]
     [SerializeField] [Range(0.1f, 10f)] private float decelerationDuration = 2f;
@@ -44,6 +45,7 @@ public class SlowDownElevator : PuzzlePart
     private float _distanceToSwap = 0f;
     private bool _soundFadeStarted = false;
     private bool _swapped = false;
+    private Coroutine _decelerationCoroutine;
 
     [SerializeField] private float _pointToSwitchWallsY;
 
@@ -57,46 +59,43 @@ public class SlowDownElevator : PuzzlePart
         _initialSpeed = 0f;
     }
 
-    // this should be changed to a coroutine to reduce performance impact
-    private void Update()
+    private void Start()
     {
-        if (_isDecelerating)
+        if (basicEncounter != null)
         {
-            SlowDownOnInteract();
+            StartCoroutine(WaitForEncounterCompletion());
         }
     }
 
+    private IEnumerator WaitForEncounterCompletion()
+    {
+        // Wait until all enemies are defeated
+        while (!basicEncounter.isCompleted)
+        {
+            yield return new WaitForSeconds(0.5f); // Check every half second
+        }
+
+        // All enemies dead, start the elevator slow down
+        SetUpStateToSlowWalls();
+    }
 
     /// <summary>
     /// Initiates the elevator deceleration puzzle.
-    /// When StartPuzzle is called, the elevator will begin to decelerate.
+    /// Automatically called when all enemies are defeated.
     /// </summary>
-    public override void StartPuzzle()
+    public void SetUpStateToSlowWalls()
     {
         _soundFadeStarted = false;
         _decelerationTimer = 0f;
         _isDecelerating = true;
         _swapped = false;
         _initialSpeed = _elevatorWalls.elevatorSpeed;
+        _elevatorWalls.isMoving = false;
         
         // Stop ElevatorWalls script from moving the walls immediately
         _elevatorWalls.elevatorSpeed = 0f;
         
-        // Ensure proper initial wall states
-        if(_elevatorWalls.elevatorWall != null)
-        {
-            _elevatorWalls.elevatorWall.SetActive(true);
-            _initialElevatorWallY = _elevatorWalls.elevatorWall.transform.position.y;
-        }
-        if(_elevatorWalls.wallWithDoor != null)
-        {
-            _elevatorWalls.wallWithDoor.SetActive(false); // Only show at swap
-            _initialDoorWallY = _elevatorWalls.wallWithDoor.transform.position.y;
-        }
-        if(_elevatorWalls.wallBelow != null)
-        {
-            _initialBelowWallY = _elevatorWalls.wallBelow.transform.position.y;
-        }
+        EnsureProperWallStates();
         
         Debug.Log($"[SlowDownElevator] Starting puzzle. ElevatorWall Y: {_initialElevatorWallY}, SwitchPoint: {_pointToSwitchWallsY}, EndYPos: {_elevatorWalls.endYPos}");
         
@@ -121,136 +120,112 @@ public class SlowDownElevator : PuzzlePart
 
         Debug.Log($"[SlowDownElevator] Dist to swap: {_distanceToSwap}, swap->end: {distanceSwapToEnd}, Total: {_totalDecelerationDistance}");
         _actualDecelerationDuration = (_initialSpeed > 0.01f) ? (2f * _totalDecelerationDistance / _initialSpeed) : decelerationDuration;
+        
+        if (_decelerationCoroutine != null)
+        {
+            StopCoroutine(_decelerationCoroutine);
+        }
+        _decelerationCoroutine = StartCoroutine(SlowDownWalls());
     }
 
-    /// <summary>
-    /// Called when the puzzle ends. Placeholder for future logic.
-    /// </summary>
-    public override void EndPuzzle()
+    private void EnsureProperWallStates()
     {
-        // Puzzle end logic (if needed in future)
-    }
-
-    private void SwapWalls(){
-
-        if(_elevatorWalls.elevatorWall == null)
+        // Ensure proper initial wall states
+        if(_elevatorWalls.elevatorWall != null)
         {
-            Debug.LogWarning("[SlowDownElevator] elevatorWall is null, cannot swap!");
-            return;
+            _elevatorWalls.elevatorWall.SetActive(true);
+            _initialElevatorWallY = _elevatorWalls.elevatorWall.transform.position.y;
         }
-
-        float currentY = _elevatorWalls.elevatorWall.transform.position.y;
-        
-        
-        if(currentY <= _pointToSwitchWallsY && !_swapped)
+        if(_elevatorWalls.wallWithDoor != null)
         {
-            Debug.Log($"[SlowDownElevator] Swapping elevator walls now. CurrentY: {currentY}, SwitchPoint: {_pointToSwitchWallsY}");
-            _swapped = true;
-            
-            if(_elevatorWalls.wallWithDoor != null && _elevatorWalls.elevatorWall != null)
-            {
-                // Position wallWithDoor at the same location as elevatorWall before swapping
-                Vector3 swapPosition = _elevatorWalls.elevatorWall.transform.position;
-                _elevatorWalls.wallWithDoor.transform.position = swapPosition;
-                
-                // Ensure wallWithDoor is active BEFORE we disable elevatorWall
-                _elevatorWalls.wallWithDoor.SetActive(true);
-                
-                // Store the position where door becomes active to use for remaining movement
-                _doorWallYAtSwap = _elevatorWalls.wallWithDoor.transform.position.y;
-                
-                Debug.Log($"[SlowDownElevator] Wall swap complete. DoorWall at Y: {_doorWallYAtSwap}, ElevatorWall disabled.");
-            }
-            
-            if(_elevatorWalls.elevatorWall != null)
-                _elevatorWalls.elevatorWall.SetActive(false);
+            _elevatorWalls.wallWithDoor.SetActive(false); // Only show at swap
+            _initialDoorWallY = _elevatorWalls.wallWithDoor.transform.position.y;
         }
+        if(_elevatorWalls.wallBelow != null)
+            _initialBelowWallY = _elevatorWalls.wallBelow.transform.position.y;
     }
 
     /// <summary>
     /// Updates the elevator deceleration over time.
     /// Smoothly reduces elevator speed and triggers follow-up animations when complete.
     /// </summary>
-    private void SlowDownOnInteract()
+    private IEnumerator SlowDownWalls()
     {
-        // Start fading sound when deceleration begins
-        if(!_soundFadeStarted && elevatorAmbience != null)
-        {
-            elevatorAmbience.StopSound();
-            _soundFadeStarted = true;
-        }
 
-        _decelerationTimer += Time.deltaTime;
-        float decelerationProgress = Mathf.Clamp01(_decelerationTimer / _actualDecelerationDuration);
-        
-        // Apply ease-out quadratic curve for smooth deceleration
-        float easedProgress = 1f - (1f - decelerationProgress) * (1f - decelerationProgress);
-        
-        if(_elevatorWalls != null)
+
+        while (_decelerationTimer < _actualDecelerationDuration)
         {
-            // Stop ElevatorWalls script from moving the walls 
-            _elevatorWalls.elevatorSpeed = 0f;
+            _decelerationTimer += Time.deltaTime;
+            float decelerationProgress = Mathf.Clamp01(_decelerationTimer / _actualDecelerationDuration);
             
-            // Calculate distance traveled based on eased deceleration progress
-            float distanceTraveled = _totalDecelerationDistance * easedProgress;
-            float loopHeight = _elevatorWalls.restartPoint - _elevatorWalls.yBounds;
-            float rawY = _initialElevatorWallY - distanceTraveled; // moving downward along virtual track
-            float currentY = WrapY(rawY, loopHeight);
-
-            // Before swap: move elevatorWall manually
-            if(!_swapped && _elevatorWalls.elevatorWall != null)
+            // Apply ease-out quadratic curve for smooth deceleration
+            float easedProgress = 1f - (1f - decelerationProgress) * (1f - decelerationProgress);
+            
+            if(_elevatorWalls != null)
             {
-                Vector3 elevatorPos = _elevatorWalls.elevatorWall.transform.position;
-                elevatorPos.y = currentY;  // wrapped movement
-                _elevatorWalls.elevatorWall.transform.position = elevatorPos;
+                // Stop ElevatorWalls script from moving the walls 
+                _elevatorWalls.elevatorSpeed = 0f;
                 
-                Debug.Log($"[BeforeSwap] Y: {currentY} (raw {rawY}), DistTraveled: {distanceTraveled}/{_totalDecelerationDistance}");
-            }
+                // Calculate distance traveled based on eased deceleration progress
+                float distanceTraveled = _totalDecelerationDistance * easedProgress;
+                float loopHeight = _elevatorWalls.restartPoint - _elevatorWalls.yBounds;
+                float rawY = _initialElevatorWallY - distanceTraveled; // moving downward along virtual track
+                float currentY = WrapY(rawY, loopHeight);
 
-            // Trigger swap the first time we pass the raw swap height (off-screen), before wrapping back
-            if(!_swapped && rawY <= _pointToSwitchWallsY)
-            {
-                _swapped = true;
-                if(_elevatorWalls.wallWithDoor != null && _elevatorWalls.elevatorWall != null)
+                // Before swap: move elevatorWall manually
+                if(!_swapped && _elevatorWalls.elevatorWall != null)
                 {
-                    _elevatorWalls.wallWithDoor.transform.position = new Vector3(
-                        _elevatorWalls.elevatorWall.transform.position.x,
-                        currentY,
-                        _elevatorWalls.elevatorWall.transform.position.z);
-                    _elevatorWalls.wallWithDoor.SetActive(true);
-                    _doorWallYAtSwap = currentY;
+                    Vector3 elevatorPos = _elevatorWalls.elevatorWall.transform.position;
+                    elevatorPos.y = currentY;  // wrapped movement
+                    _elevatorWalls.elevatorWall.transform.position = elevatorPos;
+                    
+                    Debug.Log($"[BeforeSwap] Y: {currentY} (raw {rawY}), DistTraveled: {distanceTraveled}/{_totalDecelerationDistance}");
                 }
-                if(_elevatorWalls.elevatorWall != null)
-                    _elevatorWalls.elevatorWall.SetActive(false);
 
-                Debug.Log($"[Swap] Triggered at distance {distanceTraveled}, Y={currentY}");
-            }
+                // Trigger swap the first time we pass the raw swap height (off-screen), before wrapping back
+                if(!_swapped && rawY <= _pointToSwitchWallsY)
+                {
+                    _swapped = true;
+                    if(_elevatorWalls.wallWithDoor != null && _elevatorWalls.elevatorWall != null)
+                    {
+                        _elevatorWalls.wallWithDoor.transform.position = new Vector3(
+                            _elevatorWalls.elevatorWall.transform.position.x,
+                            currentY,
+                            _elevatorWalls.elevatorWall.transform.position.z);
+                        _elevatorWalls.wallWithDoor.SetActive(true);
+                        _doorWallYAtSwap = currentY;
+                    }
+                    if(_elevatorWalls.elevatorWall != null)
+                        _elevatorWalls.elevatorWall.SetActive(false);
 
-            // Move wallWithDoor only after swap
-            if(_elevatorWalls.wallWithDoor != null)
-            {
-                Vector3 doorPos = _elevatorWalls.wallWithDoor.transform.position;
-                doorPos.y = currentY; // keep in sync after swap
-                _elevatorWalls.wallWithDoor.transform.position = doorPos;
+                    Debug.Log($"[Swap] Triggered at distance {distanceTraveled}, Y={currentY}");
+                }
+
+                // Move wallWithDoor only after swap
+                if(_elevatorWalls.wallWithDoor != null)
+                {
+                    Vector3 doorPos = _elevatorWalls.wallWithDoor.transform.position;
+                    doorPos.y = currentY; // keep in sync after swap
+                    _elevatorWalls.wallWithDoor.transform.position = doorPos;
+                }
+                
+                // Move wallBelow to maintain relative offset (one wall height below)
+                if(_elevatorWalls.wallBelow != null)
+                {
+                    Vector3 belowPos = _elevatorWalls.wallBelow.transform.position;
+                    float wallHeight = _initialBelowWallY - _initialDoorWallY;
+                    belowPos.y = WrapY(rawY + wallHeight, loopHeight);
+                    _elevatorWalls.wallBelow.transform.position = belowPos;
+                }
             }
             
-            // Move wallBelow to maintain relative offset (one wall height below)
-            if(_elevatorWalls.wallBelow != null)
-            {
-                Vector3 belowPos = _elevatorWalls.wallBelow.transform.position;
-                float wallHeight = _initialBelowWallY - _initialDoorWallY;
-                belowPos.y = WrapY(rawY + wallHeight, loopHeight);
-                _elevatorWalls.wallBelow.transform.position = belowPos;
-            }
+            yield return null;
         }
         
         // Complete when total distance traveled is done
-        if(decelerationProgress >= 1f)
-        {
-            _isDecelerating = false;
-            isCompleted = true;
-            StartCoroutine(DropRailAndExtendPlatform());
-        }
+        _isDecelerating = false;
+        _decelerationCoroutine = null;
+        yield return StartCoroutine(DropRailAndExtendPlatform());
     }
 
     /// <summary>
