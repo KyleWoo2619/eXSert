@@ -228,9 +228,9 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         Debug.Log("Pause Menu Opened");
         
         // Switch to UI input - make sure actions remain subscribed
-        if (InputReader.playerInput != null)
+        if (InputReader.PlayerInput != null)
         {
-            InputReader.playerInput.SwitchCurrentActionMap("UI");
+            InputReader.PlayerInput.SwitchCurrentActionMap("UI");
         }
     }
 
@@ -245,9 +245,9 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         Debug.Log("Navigation Menu Opened");
         
         // Switch to UI input
-        if (InputReader.playerInput != null)
+        if (InputReader.PlayerInput != null)
         {
-            InputReader.playerInput.SwitchCurrentActionMap("UI");
+            InputReader.PlayerInput.SwitchCurrentActionMap("UI");
         }
     }
 
@@ -280,9 +280,9 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         Debug.Log("Game Resumed");
         
         // Switch back to Gameplay input
-        if (InputReader.playerInput != null)
+        if (InputReader.PlayerInput != null)
         {
-            InputReader.playerInput.SwitchCurrentActionMap("Gameplay");
+            InputReader.PlayerInput.SwitchCurrentActionMap("Gameplay");
         }
     }
 
@@ -296,9 +296,9 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         currentActiveMenu = ActiveMenu.None;
         HideAllMenus();
 
-        if (InputReader.playerInput != null)
+        if (InputReader.PlayerInput != null)
         {
-            InputReader.playerInput.SwitchCurrentActionMap("Gameplay");
+            InputReader.PlayerInput.SwitchCurrentActionMap("Gameplay");
         }
     }
 

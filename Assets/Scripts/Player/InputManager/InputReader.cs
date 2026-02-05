@@ -18,14 +18,43 @@ using UnityEngine.SceneManagement;
 using Singletons;
 using eXsert;
 
+[Serializable]
 public class InputReader : Singleton<InputReader>
 {
     [SerializeField] internal string activeControlScheme;
 
-    private static InputActionAsset playerControls;
+    private static PlayerInput _playerInput;
+    public static InputActionAsset playerControls { get; private set; }
     private PlayerControls runtimeGeneratedControls;
-    public static PlayerInput playerInput {get; private set; }
-    
+    public static PlayerInput PlayerInput
+    {
+        get
+        {
+            if (Instance == null)
+                CreateInstance();
+
+            if (_playerInput != null)
+                return _playerInput;
+
+            // Try to find an existing instance of the singleton type T in the scene
+            GameObject player = GameObject.FindWithTag("Player");
+            if (player == null)
+                Debug.LogError("[InputReader] Could not find GameObject with tag 'Player' to get PlayerInput from.");
+            else
+                _playerInput = player.GetComponentInChildren<PlayerInput>();
+
+            // Return the found instance if it exists
+            if (_playerInput != null) return _playerInput;
+
+            // If no instance is found, create a new GameObject and attach the singleton component to it
+            Debug.LogError($"[InputReader] Could not get reference to PlayerInput. It may not exist or be accessible.");
+
+            return null;
+        }
+
+        private set { _playerInput = value; }
+    }
+
     internal float mouseSens;
 
     private InputAction moveAction, jumpAction, lookAction, changeStanceAction, guardAction, lightAttackAction, heavyAttackAction, 
@@ -54,6 +83,7 @@ public class InputReader : Singleton<InputReader>
     public InputAction LoadingLookAction => loadingLookAction;
     public InputAction LoadingZoomAction => loadingZoomAction;
 
+    #region Action Accessors
     // Centralized action accessors so gameplay scripts never touch InputActions directly
     public static bool JumpTriggered =>
         Instance != null
@@ -109,6 +139,7 @@ public class InputReader : Singleton<InputReader>
         Instance != null
         && Instance.navigationMenuAction != null
         && Instance.navigationMenuAction.triggered;
+    #endregion
 
     #region Unity Lifecycle
 
@@ -125,9 +156,9 @@ public class InputReader : Singleton<InputReader>
             return;
         }
 
-        if (playerInput != null)
+        if (PlayerInput != null)
         {
-            RebindTo(playerInput, switchToGameplay: true);
+            RebindTo(PlayerInput, switchToGameplay: true);
         }
         else if (!TryAutoBindFromLoadedScenes())
         {
@@ -151,7 +182,7 @@ public class InputReader : Singleton<InputReader>
 
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (playerInput != null)
+        if (PlayerInput != null)
             return;
 
         if (scene.isLoaded && TryBindFromScene(scene))
@@ -165,7 +196,7 @@ public class InputReader : Singleton<InputReader>
     {
         const float timeout = 10f;
         float elapsed = 0f;
-        while (playerInput == null && elapsed < timeout)
+        while (PlayerInput == null && elapsed < timeout)
         {
             if (TryAutoBindFromLoadedScenes())
                 yield break;
@@ -243,11 +274,11 @@ public class InputReader : Singleton<InputReader>
         else
             LookInput = Vector2.zero;
 
-        if (playerInput != null)
+        if (PlayerInput != null)
         {
             try
             {
-                activeControlScheme = playerInput.currentControlScheme;
+                activeControlScheme = PlayerInput.currentControlScheme;
             }
             catch
             {
@@ -312,10 +343,7 @@ public class InputReader : Singleton<InputReader>
     public static void AssignPlayerInput(PlayerInput newPlayerInput)
     {
         if (Instance == null)
-        {
-            Debug.LogError("InputReader: Instance not available, cannot assign PlayerInput!");
-            return;
-        }
+            CreateInstance();
 
         if (newPlayerInput == null)
         {
@@ -323,7 +351,6 @@ public class InputReader : Singleton<InputReader>
             return;
         }
 
-        Debug.Log("InputReader: Assigning new PlayerInput instance via AssignPlayerInput().");
         Instance.RebindTo(newPlayerInput, switchToGameplay: true);
     }
 
@@ -359,13 +386,13 @@ public class InputReader : Singleton<InputReader>
 
         UnregisterActionCallbacks();
 
-        playerInput = newPlayerInput;
+        PlayerInput = newPlayerInput;
 
-        if (playerInput.actions == null)
+        if (PlayerInput.actions == null)
         {
             if (playerControls != null)
             {
-                playerInput.actions = Instantiate(playerControls);
+                PlayerInput.actions = Instantiate(playerControls);
             }
             else
             {
@@ -374,41 +401,41 @@ public class InputReader : Singleton<InputReader>
             }
         }
 
-        if (!playerInput.enabled)
-            playerInput.enabled = true;
+        if (!PlayerInput.enabled)
+            PlayerInput.enabled = true;
 
-        playerInput.neverAutoSwitchControlSchemes = false;
+        PlayerInput.neverAutoSwitchControlSchemes = false;
 
         // Optionally set the correct map first so action lookups succeed
         if (switchToGameplay)
         {
-            try { playerInput.SwitchCurrentActionMap("Gameplay"); }
+            try { PlayerInput.SwitchCurrentActionMap("Gameplay"); }
             catch (System.Exception e) { Debug.LogWarning($"[InputReader] Failed to switch to Gameplay map during rebind: {e.Message}"); }
         }
 
         try
         {
-            moveAction = playerInput.actions["Move"];
-            jumpAction = playerInput.actions["Jump"];
-            lookAction = playerInput.actions["Look"];
-            changeStanceAction = playerInput.actions["ChangeStance"];
-            guardAction = playerInput.actions["Guard"];
-            lightAttackAction = playerInput.actions["LightAttack"];
-            heavyAttackAction = playerInput.actions["HeavyAttack"];
-            dashAction = playerInput.actions["Dash"];
-            interactAction = playerInput.actions["Interact"];
-            escapePuzzleAction = playerInput.actions["EscapePuzzle"];
-            lockOnAction = playerInput.actions["LockOn"];
-            leftTargetAction = playerInput.actions["LeftTarget"];
-            rightTargetAction = playerInput.actions["RightTarget"];
+            moveAction = PlayerInput.actions["Move"];
+            jumpAction = PlayerInput.actions["Jump"];
+            lookAction = PlayerInput.actions["Look"];
+            changeStanceAction = PlayerInput.actions["ChangeStance"];
+            guardAction = PlayerInput.actions["Guard"];
+            lightAttackAction = PlayerInput.actions["LightAttack"];
+            heavyAttackAction = PlayerInput.actions["HeavyAttack"];
+            dashAction = PlayerInput.actions["Dash"];
+            interactAction = PlayerInput.actions["Interact"];
+            escapePuzzleAction = PlayerInput.actions["EscapePuzzle"];
+            lockOnAction = PlayerInput.actions["LockOn"];
+            leftTargetAction = PlayerInput.actions["LeftTarget"];
+            rightTargetAction = PlayerInput.actions["RightTarget"];
 
-            try { navigationMenuAction = playerInput.actions["NavigationMenu"]; }
+            try { navigationMenuAction = PlayerInput.actions["NavigationMenu"]; }
             catch { navigationMenuAction = null; }
 
-            try { loadingLookAction = playerInput.actions["LoadingLook"]; }
+            try { loadingLookAction = PlayerInput.actions["LoadingLook"]; }
             catch { loadingLookAction = null; }
 
-            try { loadingZoomAction = playerInput.actions["LoadingZoom"]; }
+            try { loadingZoomAction = PlayerInput.actions["LoadingZoom"]; }
             catch { loadingZoomAction = null; }
 
             RegisterActionCallbacks();
@@ -439,7 +466,7 @@ public class InputReader : Singleton<InputReader>
 
         try
         {
-            activeControlScheme = playerInput.currentControlScheme;
+            activeControlScheme = PlayerInput.currentControlScheme;
         }
         catch
         {

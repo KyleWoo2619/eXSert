@@ -122,24 +122,78 @@ public class CranePuzzle : PuzzlePart
 
     private void Awake()
     {
-        foreach (GameObject img in craneUI)
+        // keep UI hidden initially (original behavior)
+        if (craneUI != null)
         {
-            img.SetActive(false);
+            foreach (GameObject img in craneUI)
+            {
+                if (img != null)
+                    img.SetActive(false);
+            }
         }
 
         CacheCranePartStartPositions();
 
-        var actions = InputReader.Instance._playerInput.actions;
+        // Safely obtain a PlayerInput reference from InputReader
+        PlayerInput playerInput = InputReader.PlayerInput;
+
+        if (playerInput == null)
+        {
+            Debug.LogError("[CranePuzzle] Awake: InputReader.playerInput is null. Ensure InputReader is initialized before CranePuzzle.Awake runs.");
+            // Prevent further null-reference issues by disabling this component
+            enabled = false;
+            return;
+        }
+
+        var actions = playerInput.actions;
+        if (actions == null)
+        {
+            Debug.LogError("[CranePuzzle] Awake: playerInput.actions is null.");
+            enabled = false;
+            return;
+        }
+
         craneMap = actions.FindActionMap("CranePuzzle");
+        if (craneMap == null)
+        {
+            Debug.LogError("[CranePuzzle] Awake: 'CranePuzzle' action map not found in playerInput.actions.");
+            enabled = false;
+            return;
+        }
 
-        string moveActionName = craneMoveAction.action.name;
-        runtimeCraneMoveAction = craneMap.FindAction(moveActionName);
+        // Safely resolve runtime actions (only if the serialized references and their .action are valid)
+        if (craneMoveAction != null && craneMoveAction.action != null)
+        {
+            runtimeCraneMoveAction = craneMap.FindAction(craneMoveAction.action.name);
+            if (runtimeCraneMoveAction == null)
+                Debug.LogWarning($"[CranePuzzle] Awake: Action '{craneMoveAction.action.name}' not found in CranePuzzle map.");
+        }
+        else
+        {
+            Debug.LogWarning("[CranePuzzle] Awake: craneMoveAction reference is null or has no action assigned.");
+        }
 
-        string confirmActionName = _confirmPuzzleAction.action.name;
-        runtimeConfirmAction = craneMap.FindAction(confirmActionName);
+        if (_confirmPuzzleAction != null && _confirmPuzzleAction.action != null)
+        {
+            runtimeConfirmAction = craneMap.FindAction(_confirmPuzzleAction.action.name);
+            if (runtimeConfirmAction == null)
+                Debug.LogWarning($"[CranePuzzle] Awake: Action '{_confirmPuzzleAction.action.name}' not found in CranePuzzle map.");
+        }
+        else
+        {
+            Debug.LogWarning("[CranePuzzle] Awake: _confirmPuzzleAction reference is null or has no action assigned.");
+        }
 
-        string escapeActionName = _escapePuzzleAction.action.name;
-        runtimeEscapeAction = craneMap.FindAction(escapeActionName);
+        if (_escapePuzzleAction != null && _escapePuzzleAction.action != null)
+        {
+            runtimeEscapeAction = craneMap.FindAction(_escapePuzzleAction.action.name);
+            if (runtimeEscapeAction == null)
+                Debug.LogWarning($"[CranePuzzle] Awake: Action '{_escapePuzzleAction.action.name}' not found in CranePuzzle map.");
+        }
+        else
+        {
+            Debug.LogWarning("[CranePuzzle] Awake: _escapePuzzleAction reference is null or has no action assigned.");
+        }
     }
 
     private int SetupCranePuzzle()
@@ -277,19 +331,19 @@ public class CranePuzzle : PuzzlePart
 
         SwapActionMaps(false);
 
-        if (InputReader.Instance != null && InputReader.Instance._playerInput != null)
+        if (InputReader.Instance != null && InputReader.PlayerInput != null)
         {
-            var cranePuzzleMap = InputReader.Instance._playerInput.actions.FindActionMap("CranePuzzle");
+            var cranePuzzleMap = InputReader.PlayerInput.actions.FindActionMap("CranePuzzle");
             if (cranePuzzleMap != null)
             {
                 cranePuzzleMap.Disable();
             }
 
-            InputReader.Instance._playerInput.enabled = true;
-            InputReader.Instance._playerInput.ActivateInput();
-            InputReader.Instance._playerInput.actions.Enable();
+            InputReader.PlayerInput.enabled = true;
+            InputReader.PlayerInput.ActivateInput();
+            InputReader.PlayerInput.actions.Enable();
 
-            var gameplayMap = InputReader.Instance._playerInput.actions.FindActionMap("Gameplay");
+            var gameplayMap = InputReader.PlayerInput.actions.FindActionMap("Gameplay");
             if (gameplayMap != null)
             {
                 gameplayMap.Enable();
@@ -510,7 +564,7 @@ public class CranePuzzle : PuzzlePart
         else craneMap.Disable();
 
         string map = (toCrane) ? "CranePuzzle" : "Gameplay";
-        InputReader.Instance._playerInput.SwitchCurrentActionMap(map);
+        InputReader.PlayerInput.SwitchCurrentActionMap(map);
     }
 
     private string GetLayerMaskNames(LayerMask mask)
