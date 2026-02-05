@@ -31,17 +31,19 @@ public class DoorHandler : MonoBehaviour
     private Vector3 targetPos;
 
     [Tooltip("Height to which the door will open when using OpenUp door type.")]
+    [ShowIfDoorType(DoorType.OpenUp)]
     [SerializeField] private GameObject topDoorPart;
+    [ShowIfDoorType(DoorType.OpenUp)]
     [SerializeField] private GameObject bottomDoorPart;
+    [ShowIfDoorType(DoorType.OpenUp)]
     [SerializeField] private float distToOpenParts = 2.0f;
     [SerializeField] private float openSpeed = 2f;
-
-    public bool openDoor;
 
     private bool isOpening = false;
     private bool isOpened = false;
 
     [Tooltip("Optional hinge pivot. If null, a pivot GameObject will be created at the door origin.")]
+    [ShowIfDoorType(DoorHandler.DoorType.OpenOut, DoorHandler.DoorType.OpenIn)]
     [SerializeField] private Transform hingePivot;
 
     // Hinge variables that are used for OpenIn and OpenOut door types
