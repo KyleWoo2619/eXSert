@@ -12,6 +12,9 @@ namespace Progression.Encounters
     [RequireComponent(typeof(BoxCollider))]
     public abstract class BasicEncounter : MonoBehaviour
     {
+        [SerializeField]
+        protected string objectiveText = "";
+
         private ProgressionManager progressionManager;
 
         public string encounterName => this.gameObject.name;
@@ -43,10 +46,6 @@ namespace Progression.Encounters
         /// </summary>
         public virtual bool isCompleted { get; protected set; } = false;
 
-        private void Update()
-            {
-                Debug.Log(isCompleted);
-            }
         protected BoxCollider encounterZone;
 
         protected virtual void Awake()
