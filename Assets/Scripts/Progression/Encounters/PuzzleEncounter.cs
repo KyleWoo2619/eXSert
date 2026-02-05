@@ -16,6 +16,23 @@ namespace Progression.Encounters
         {
             _partPuzzle = FindPiece<PuzzlePart>();
             _puzzleInteraction = FindPiece<PuzzleInteraction>();
+
+            if(_partPuzzle != null && _puzzleInteraction != null)
+            {
+                _puzzleInteraction.ButtonPressed += _partPuzzle.ConsoleInteracted; //associates the puzzleInteract point and the puzzlePart script together
+            }
+            else
+            {
+                Debug.LogError($"[PuzzleEncounter] Due to missing pieces. Puzzle encounter {gameObject.name}'s components were unable to be set up");
+            }
+        }
+
+        private void OnDisable()
+        {
+            if(_partPuzzle != null && _puzzleInteraction != null)
+            {
+                _puzzleInteraction.ButtonPressed -= _partPuzzle.ConsoleInteracted;
+            }
         }
 
         /// <summary>
