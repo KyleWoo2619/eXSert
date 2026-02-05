@@ -103,6 +103,7 @@ public class Guard : MonoBehaviour
 
     private void ExitGuard()
     {
+        
         guardActive = false;
         guardDashActive = false;
 

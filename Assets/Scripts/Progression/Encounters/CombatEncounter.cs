@@ -6,6 +6,16 @@ namespace Progression.Encounters
 {
     public class CombatEncounter : BasicEncounter
     {
+        [SerializeField] private bool tempIsCompleted;
+
+        public override bool isCompleted
+        {
+            get
+            {
+                return tempIsCompleted;
+            }
+        }
+
         /// <summary>
         /// Subclass Wave to hold the data for the individual waves for encounters.
         /// Additionally holds wave specific functionality.
