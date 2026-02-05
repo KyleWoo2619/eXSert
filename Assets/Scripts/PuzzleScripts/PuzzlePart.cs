@@ -13,4 +13,5 @@ public abstract class PuzzlePart : MonoBehaviour
 
     public abstract void EndPuzzle();
     public abstract void StartPuzzle();
+    public abstract void ConsoleInteracted();
 }
