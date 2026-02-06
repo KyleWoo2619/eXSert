@@ -51,6 +51,8 @@ public class PlayerCombatIdleController : MonoBehaviour
     private bool guardActiveLastFrame;
     private bool lastAttackWasAoe;
 
+    public bool IsInCombat => combatTimer > 0f;
+
     private void Awake()
     {
         animationController ??= GetComponent<PlayerAnimationController>();

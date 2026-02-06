@@ -10,6 +10,7 @@
  */
 
 using UnityEngine;
+using System;
 using System.Collections;
 using Utilities.Combat.Attacks;
 
@@ -31,6 +32,16 @@ public class TierComboManager : MonoBehaviour
     
     private float lastAttackTime = -999f;
     private Coroutine resetCoroutine;
+
+    public enum ComboResetReason
+    {
+        Forced,
+        Timeout,
+        Finisher
+    }
+
+    public event Action ComboReset;
+    public event Action<ComboResetReason> ComboResetDetailed;
 
     public enum AttackStance
     {
@@ -203,7 +214,7 @@ public class TierComboManager : MonoBehaviour
 
         if (forceFinisher || executedStage >= 3)
         {
-            ResetCombo();
+            ResetCombo(ComboResetReason.Finisher);
             return;
         }
 
@@ -252,7 +263,7 @@ public class TierComboManager : MonoBehaviour
         }
         else
         {
-            ResetCombo();
+            ResetCombo(ComboResetReason.Forced);
             return;
         }
 
@@ -292,13 +303,16 @@ public class TierComboManager : MonoBehaviour
     /// <summary>
     /// Resets combo to initial state.
     /// </summary>
-    public void ResetCombo()
+    public void ResetCombo(ComboResetReason reason = ComboResetReason.Forced)
     {
         currentTier = 1;
         fastAttackIndex = 0;
         isHeavyChain = false;
 
         CancelComboResetCountdown();
+
+        ComboReset?.Invoke();
+        ComboResetDetailed?.Invoke(reason);
         
         if (debugMode)
             Debug.Log("Combo Reset");
@@ -316,7 +330,7 @@ public class TierComboManager : MonoBehaviour
             yield return null;
         }
         
-        ResetCombo();
+        ResetCombo(ComboResetReason.Timeout);
     }
 
     /// <summary>
@@ -329,6 +343,6 @@ public class TierComboManager : MonoBehaviour
     // Call this from animation events if needed
     public void OnComboFinisher()
     {
-        ResetCombo();
+        ResetCombo(ComboResetReason.Finisher);
     }
 }
