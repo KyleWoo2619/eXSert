@@ -1,0 +1,484 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.InputSystem;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
+[CreateAssetMenu(menuName = "UI/Keybind Icon Set", fileName = "KeybindIconSet")]
+public class KeybindIconSet : ScriptableObject
+{
+    [Serializable]
+    public struct ControlIcon
+    {
+        public string controlPath;
+        public Sprite icon;
+    }
+
+    [Serializable]
+    public struct ActionBinding
+    {
+        public KeybindAction action;
+        public InputActionReference actionReference;
+        [Tooltip("Optional binding ID for keyboard/mouse. If empty, the first binding in the group is used.")]
+        public string keyboardBindingId;
+        [Tooltip("Optional binding ID for gamepad. If empty, the first binding in the group is used.")]
+        public string gamepadBindingId;
+        [Tooltip("Optional binding group override for keyboard/mouse (default uses Keyboard&Mouse).")]
+        public string keyboardBindingGroup;
+        [Tooltip("Optional binding group override for gamepad (default uses Gamepad).")]
+        public string gamepadBindingGroup;
+    }
+
+    [Header("Control Scheme Names")]
+    [SerializeField] private string keyboardMouseSchemeName = "Keyboard&Mouse";
+    [SerializeField] private string gamepadSchemeName = "Gamepad";
+
+    [Header("Action Bindings")]
+    [SerializeField] private List<ActionBinding> actionBindings = new List<ActionBinding>();
+
+    [Header("Keyboard/Mouse Icons")]
+    [SerializeField] private List<ControlIcon> keyboardIcons = new List<ControlIcon>();
+
+    [Header("Gamepad Icons")]
+    [SerializeField] private List<ControlIcon> gamepadIcons = new List<ControlIcon>();
+
+    [Header("Fallback Icons")]
+    [SerializeField] private Sprite keyboardFallbackIcon;
+    [SerializeField] private Sprite gamepadFallbackIcon;
+
+    [Header("Editor Helpers")]
+    [SerializeField] private bool autoSyncIconLists = true;
+    [SerializeField] private bool autoPopulateIconLibrary = true;
+    [SerializeField] private string keyboardIconsFolder = "Assets/eXSert Assets/2D Assets/UI/Icons/KeyboardIcons";
+    [SerializeField] private string gamepadIconsFolder = "Assets/eXSert Assets/2D Assets/UI/Icons/ControllerIcons";
+
+    public string KeyboardMouseSchemeName => keyboardMouseSchemeName;
+    public string GamepadSchemeName => gamepadSchemeName;
+
+    public bool TryGetIcon(KeybindAction actionId, bool useGamepad, out Sprite icon, out string controlPath)
+    {
+        icon = null;
+        controlPath = string.Empty;
+
+        if (!TryGetBindingPath(actionId, useGamepad, out controlPath))
+        {
+            icon = useGamepad ? gamepadFallbackIcon : keyboardFallbackIcon;
+            return icon != null;
+        }
+
+        icon = GetIconForControlPath(controlPath, useGamepad);
+        if (icon != null)
+            return true;
+
+        icon = useGamepad ? gamepadFallbackIcon : keyboardFallbackIcon;
+        return icon != null;
+    }
+
+    public bool TryGetBindingPath(KeybindAction actionId, bool useGamepad, out string controlPath)
+    {
+        controlPath = string.Empty;
+
+        if (!TryGetActionBinding(actionId, out ActionBinding bindingData))
+            return false;
+
+        if (bindingData.actionReference == null || bindingData.actionReference.action == null)
+            return false;
+
+        var action = bindingData.actionReference.action;
+        int bindingIndex = ResolveBindingIndex(action, bindingData, useGamepad);
+        if (bindingIndex < 0 || bindingIndex >= action.bindings.Count)
+            return false;
+
+        var binding = action.bindings[bindingIndex];
+        controlPath = string.IsNullOrEmpty(binding.effectivePath) ? binding.path : binding.effectivePath;
+        return !string.IsNullOrEmpty(controlPath);
+    }
+
+    public bool IsGamepadScheme(string schemeName)
+    {
+        if (string.IsNullOrEmpty(schemeName))
+            return false;
+
+        return string.Equals(schemeName, gamepadSchemeName, StringComparison.OrdinalIgnoreCase);
+    }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        if (actionBindings != null)
+        {
+            for (int i = 0; i < actionBindings.Count; i++)
+            {
+                ActionBinding binding = actionBindings[i];
+                bool changed = false;
+
+                if (string.IsNullOrEmpty(binding.keyboardBindingGroup))
+                {
+                    binding.keyboardBindingGroup = keyboardMouseSchemeName;
+                    changed = true;
+                }
+
+                if (string.IsNullOrEmpty(binding.gamepadBindingGroup))
+                {
+                    binding.gamepadBindingGroup = gamepadSchemeName;
+                    changed = true;
+                }
+
+                if (changed)
+                    actionBindings[i] = binding;
+            }
+        }
+
+        if (autoPopulateIconLibrary)
+        {
+            keyboardIcons = BuildKeyboardIconLibrary();
+            gamepadIcons = BuildGamepadIconLibrary();
+        }
+        else if (autoSyncIconLists)
+        {
+            keyboardIcons = SyncIconListFromBindings(keyboardIcons, useGamepad: false);
+            gamepadIcons = SyncIconListFromBindings(gamepadIcons, useGamepad: true);
+        }
+    }
+#endif
+
+    private bool TryGetActionBinding(KeybindAction actionId, out ActionBinding bindingData)
+    {
+        for (int i = 0; i < actionBindings.Count; i++)
+        {
+            if (actionBindings[i].action == actionId)
+            {
+                bindingData = actionBindings[i];
+                return true;
+            }
+        }
+
+        bindingData = default;
+        return false;
+    }
+
+    private int ResolveBindingIndex(InputAction action, ActionBinding bindingData, bool useGamepad)
+    {
+        string bindingId = useGamepad ? bindingData.gamepadBindingId : bindingData.keyboardBindingId;
+        if (!string.IsNullOrEmpty(bindingId))
+        {
+            if (Guid.TryParse(bindingId, out Guid id))
+                return action.bindings.IndexOf(x => x.id == id);
+        }
+
+        string groupName = useGamepad ? bindingData.gamepadBindingGroup : bindingData.keyboardBindingGroup;
+        if (string.IsNullOrEmpty(groupName))
+            groupName = useGamepad ? gamepadSchemeName : keyboardMouseSchemeName;
+
+        int fallbackIndex = -1;
+        int deviceMatchIndex = -1;
+
+        for (int i = 0; i < action.bindings.Count; i++)
+        {
+            var binding = action.bindings[i];
+            if (binding.isComposite || binding.isPartOfComposite)
+                continue;
+
+            if (fallbackIndex < 0)
+                fallbackIndex = i;
+
+            if (deviceMatchIndex < 0 && IsBindingForScheme(binding, useGamepad))
+                deviceMatchIndex = i;
+
+            if (string.IsNullOrEmpty(binding.groups))
+                continue;
+
+            if (binding.groups.Contains(groupName))
+                return i;
+        }
+
+        if (deviceMatchIndex >= 0)
+            return deviceMatchIndex;
+
+        return fallbackIndex;
+    }
+
+    private Sprite GetIconForControlPath(string controlPath, bool useGamepad)
+    {
+        if (string.IsNullOrEmpty(controlPath))
+            return null;
+
+        var iconList = useGamepad ? gamepadIcons : keyboardIcons;
+        string shortPath = ExtractControlName(controlPath);
+
+        for (int i = 0; i < iconList.Count; i++)
+        {
+            if (iconList[i].icon == null)
+                continue;
+
+            if (PathsMatch(iconList[i].controlPath, controlPath, shortPath))
+                return iconList[i].icon;
+        }
+
+        return null;
+    }
+
+    private static bool PathsMatch(string candidatePath, string fullPath, string shortPath)
+    {
+        if (string.IsNullOrEmpty(candidatePath))
+            return false;
+
+        if (string.Equals(candidatePath, fullPath, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (!string.IsNullOrEmpty(shortPath) && string.Equals(candidatePath, shortPath, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        string candidateShort = ExtractControlName(candidatePath);
+        return !string.IsNullOrEmpty(candidateShort)
+            && string.Equals(candidateShort, shortPath, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string ExtractControlName(string controlPath)
+    {
+        if (string.IsNullOrEmpty(controlPath))
+            return string.Empty;
+
+        int slashIndex = controlPath.LastIndexOf('/');
+        if (slashIndex < 0 || slashIndex == controlPath.Length - 1)
+            return controlPath;
+
+        return controlPath.Substring(slashIndex + 1);
+    }
+
+    private static bool IsBindingForScheme(InputBinding binding, bool useGamepad)
+    {
+        string path = string.IsNullOrEmpty(binding.effectivePath) ? binding.path : binding.effectivePath;
+        if (string.IsNullOrEmpty(path))
+            return false;
+
+        if (useGamepad)
+            return path.StartsWith("<Gamepad>", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith("<XInputController>", StringComparison.OrdinalIgnoreCase);
+
+        return path.StartsWith("<Keyboard>", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("<Mouse>", StringComparison.OrdinalIgnoreCase);
+    }
+
+#if UNITY_EDITOR
+    private List<ControlIcon> BuildKeyboardIconLibrary()
+    {
+        Dictionary<string, Sprite> spriteMap = LoadSpriteMap(keyboardIconsFolder);
+        List<ControlIcon> icons = new List<ControlIcon>();
+        Dictionary<string, Sprite> pathMap = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
+
+        for (int i = 0; i <= 9; i++)
+            AddIconBySpriteName(pathMap, spriteMap, $"KB_{i}", $"<Keyboard>/{i}");
+
+        for (char c = 'A'; c <= 'Z'; c++)
+            AddIconBySpriteName(pathMap, spriteMap, $"KB_{c}", $"<Keyboard>/{char.ToLowerInvariant(c)}");
+
+        for (int i = 1; i <= 12; i++)
+            AddIconBySpriteName(pathMap, spriteMap, $"KB_F{i}", $"<Keyboard>/f{i}");
+
+        AddIconBySpriteName(pathMap, spriteMap, "KB_ALT", "<Keyboard>/leftAlt");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_ALT", "<Keyboard>/rightAlt");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_CTRL", "<Keyboard>/leftCtrl");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_CTRL", "<Keyboard>/rightCtrl");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_SHIFT", "<Keyboard>/leftShift");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_SHIFT", "<Keyboard>/rightShift");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_SHIFT", "<Keyboard>/shift");
+
+        AddIconBySpriteName(pathMap, spriteMap, "KB_BACK", "<Keyboard>/backspace");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_CAPS", "<Keyboard>/capsLock");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_DEL", "<Keyboard>/delete");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_END", "<Keyboard>/end");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_ENTER", "<Keyboard>/enter");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_ESC", "<Keyboard>/escape");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_HOME", "<Keyboard>/home");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_INS", "<Keyboard>/insert");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_NUMLOCK", "<Keyboard>/numLock");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_PAGEDOWN", "<Keyboard>/pageDown");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_PAGEUP", "<Keyboard>/pageUp");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_SPACE", "<Keyboard>/space");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_TAB", "<Keyboard>/tab");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_Tab", "<Keyboard>/tab");
+
+        AddIconBySpriteName(pathMap, spriteMap, "KB_Comma", "<Keyboard>/comma");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_Period", "<Keyboard>/period");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_Colon", "<Keyboard>/semicolon");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_SemiColon", "<Keyboard>/semicolon");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_Dash", "<Keyboard>/minus");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_Equals", "<Keyboard>/equals");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_Plus", "<Keyboard>/equals");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_Tick", "<Keyboard>/backquote");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_Asterisk", "<Keyboard>/8");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_BackSlash", "<Keyboard>/backslash");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_FwdSlash", "<Keyboard>/slash");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_LeftBracket", "<Keyboard>/leftBracket");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_RightBracket", "<Keyboard>/rightBracket");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_LeftArrow", "<Keyboard>/leftArrow");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_RightArrow", "<Keyboard>/rightArrow");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_UpArrow", "<Keyboard>/upArrow");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_DownArrow", "<Keyboard>/downArrow");
+
+        AddIconBySpriteName(pathMap, spriteMap, "LeftMouseClick", "<Mouse>/leftButton");
+        AddIconBySpriteName(pathMap, spriteMap, "RightMouseClick", "<Mouse>/rightButton");
+        AddIconBySpriteName(pathMap, spriteMap, "MouseScroll", "<Mouse>/scroll");
+        AddIconBySpriteName(pathMap, spriteMap, "MouseDelta", "<Mouse>/delta");
+
+        if (keyboardFallbackIcon == null && spriteMap.TryGetValue("KB_EMPTY", out Sprite emptyKey))
+            keyboardFallbackIcon = emptyKey;
+
+        foreach (var entry in pathMap)
+            icons.Add(new ControlIcon { controlPath = entry.Key, icon = entry.Value });
+
+        return icons;
+    }
+
+    private List<ControlIcon> BuildGamepadIconLibrary()
+    {
+        Dictionary<string, Sprite> spriteMap = LoadSpriteMap(gamepadIconsFolder);
+        List<ControlIcon> icons = new List<ControlIcon>();
+        Dictionary<string, Sprite> pathMap = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
+
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_A", "<Gamepad>/buttonSouth");
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_B", "<Gamepad>/buttonEast");
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_X", "<Gamepad>/buttonWest");
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_Y", "<Gamepad>/buttonNorth");
+
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_LB", "<Gamepad>/leftShoulder");
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_RB", "<Gamepad>/rightShoulder");
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_LT", "<Gamepad>/leftTrigger");
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_RT", "<Gamepad>/rightTrigger");
+
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_LPress", "<Gamepad>/leftStickPress");
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_RPress", "<Gamepad>/rightStickPress");
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_LStick", "<Gamepad>/leftStick");
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_RStick", "<Gamepad>/rightStick");
+
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_DpadUp", "<Gamepad>/dpad/up");
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_DpadDown", "<Gamepad>/dpad/down");
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_DpadLeft", "<Gamepad>/dpad/left");
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_DpadRight", "<Gamepad>/dpad/right");
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_LeftArrow", "<Gamepad>/dpad/left");
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_RightArrow", "<Gamepad>/dpad/right");
+
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_Setting", "<Gamepad>/start");
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_Share", "<Gamepad>/select");
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_Setting", "<Gamepad>/select");
+
+        if (gamepadFallbackIcon == null && spriteMap.TryGetValue("Cont_Controller", out Sprite controllerIcon))
+            gamepadFallbackIcon = controllerIcon;
+
+        foreach (var entry in pathMap)
+            icons.Add(new ControlIcon { controlPath = entry.Key, icon = entry.Value });
+
+        return icons;
+    }
+
+    private static void AddIconBySpriteName(
+        Dictionary<string, Sprite> pathMap,
+        Dictionary<string, Sprite> spriteMap,
+        string spriteName,
+        string controlPath)
+    {
+        if (pathMap.ContainsKey(controlPath))
+            return;
+
+        if (spriteMap.TryGetValue(spriteName, out Sprite sprite) && sprite != null)
+            pathMap.Add(controlPath, sprite);
+    }
+
+    private static Dictionary<string, Sprite> LoadSpriteMap(string folderPath)
+    {
+        Dictionary<string, Sprite> map = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrEmpty(folderPath))
+            return map;
+
+        string[] guids = AssetDatabase.FindAssets("t:Sprite", new[] { folderPath });
+        HashSet<string> paths = new HashSet<string>();
+        for (int i = 0; i < guids.Length; i++)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guids[i]);
+            if (!string.IsNullOrEmpty(path))
+                paths.Add(path);
+        }
+
+        foreach (string path in paths)
+        {
+            UnityEngine.Object[] assets = AssetDatabase.LoadAllAssetsAtPath(path);
+            for (int i = 0; i < assets.Length; i++)
+            {
+                if (assets[i] is Sprite sprite && !map.ContainsKey(sprite.name))
+                    map.Add(sprite.name, sprite);
+            }
+        }
+
+        return map;
+    }
+
+    private List<ControlIcon> SyncIconListFromBindings(List<ControlIcon> existing, bool useGamepad)
+    {
+        Dictionary<string, Sprite> existingMap = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
+        if (existing != null)
+        {
+            for (int i = 0; i < existing.Count; i++)
+            {
+                if (string.IsNullOrEmpty(existing[i].controlPath))
+                    continue;
+
+                if (!existingMap.ContainsKey(existing[i].controlPath))
+                    existingMap.Add(existing[i].controlPath, existing[i].icon);
+            }
+        }
+
+        HashSet<string> paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < actionBindings.Count; i++)
+        {
+            var bindingData = actionBindings[i];
+            if (bindingData.actionReference == null || bindingData.actionReference.action == null)
+                continue;
+
+            var action = bindingData.actionReference.action;
+            int bindingIndex = ResolveBindingIndex(action, bindingData, useGamepad);
+            if (bindingIndex < 0 || bindingIndex >= action.bindings.Count)
+                continue;
+
+            var binding = action.bindings[bindingIndex];
+            string controlPath = string.IsNullOrEmpty(binding.effectivePath) ? binding.path : binding.effectivePath;
+            if (string.IsNullOrEmpty(controlPath))
+                continue;
+
+            paths.Add(controlPath);
+        }
+
+        List<ControlIcon> updated = new List<ControlIcon>();
+        foreach (string path in paths)
+        {
+            ControlIcon icon = new ControlIcon
+            {
+                controlPath = path,
+                icon = existingMap.TryGetValue(path, out Sprite sprite) ? sprite : null
+            };
+            updated.Add(icon);
+        }
+
+        return updated;
+    }
+#endif
+}
+
+public enum KeybindAction
+{
+    Dash,
+    Guard,
+    TargetLock,
+    NavigationMenu,
+    ChangeTarget,
+    PauseMenu,
+    HeavyAttackAoe,
+    FastAttackSingle,
+    Interact,
+    Jump,
+    Select,
+    Back,
+    Swap
+}
