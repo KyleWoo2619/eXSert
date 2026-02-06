@@ -177,9 +177,17 @@ namespace EnemyBehavior.Boss
             Debug.Log($"[BossTopZone] EnsureParented called - parentPlayerWhileOnTop: {parentPlayerWhileOnTop}, playerTransform: {(playerTransform != null ? playerTransform.name : "null")}, isParented: {isParented}");
             
             if (!parentPlayerWhileOnTop || playerTransform == null) return;
+            
+            // During CageBull form, DO NOT parent the player - they should be dodging charges, not riding
+            if (brain == null) brain = GetComponentInParent<BossRoombaBrain>();
+            if (brain != null && brain.CurrentForm == RoombaForm.CageBull)
+            {
+                Debug.Log($"[BossTopZone] Skipping parenting during CageBull form");
+                return;
+            }
+            
             if (!isParented)
             {
-                if (brain == null) brain = GetComponentInParent<BossRoombaBrain>();
                 originalParent = playerTransform.parent;
                 playerTransform.SetParent(brain != null ? brain.transform : transform.root, true);
                 isParented = true;

@@ -12,14 +12,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1942f2f1c6145a948b52e7ca3c842505, type: 3}
   m_Name: Boss_Roomba
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBehaviorProfile
-  SpeedRange: {x: 2.5, y: 3.5}
+  inspectorHelp: 'EnemyBehaviorProfile: central tuning for NavMeshAgent movement,
+    avoidance, and planner/crowd hints.
+
+    Assign this asset to enemies (BaseEnemy.behaviorProfile
+    or BossRoombaController.profile).
+
+    Reasonable starting values are provided
+    below; tweak per enemy type.'
+  SpeedRange: {x: 13, y: 15}
   Acceleration: 20
   AngularSpeed: 360
   StoppingDistance: 2
-  AvoidancePriority: 10
-  PersonalSpaceRadius: 2
+  AvoidancePriority: 0
+  PersonalSpaceRadius: 3
   PreferredAreas: []
   PreferredAreaCostMultiplier: 0.8
   ManyToOne: 1
-  AvoidCrowds: 1
+  AvoidCrowds: 0
   Importance: 3

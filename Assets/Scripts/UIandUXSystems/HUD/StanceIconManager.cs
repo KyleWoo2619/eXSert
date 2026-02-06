@@ -9,38 +9,49 @@ Active icons fade/wave between two colors.
 using UnityEngine;
 using UnityEngine.UI;
 
-using Utilities.Combat;
+using Utilities.Combat.Attacks;
 
 public class StanceIconManager : MonoBehaviour
 {
     [Header("UI Icon References")]
     [SerializeField] private GameObject pileDriverIcon;
     [SerializeField] private GameObject aoeIcon;
+
+    [Header("Combat State")]
+    [SerializeField] private PlayerCombatIdleController combatIdleController;
     
     [Header("Color Animation")]
     [SerializeField] private Color activeColor1 = Color.white;
     [SerializeField] private Color activeColor2 = Color.grey;
     [SerializeField] private Color inactiveColor = Color.grey;
-    [SerializeField] private float fadeSpeed = 2f;
 
-    private Image activeStance => CombatManager.singleTargetMode ? pileDriverImage : aoeImage;
-    private Image inactiveStance => CombatManager.singleTargetMode ? aoeImage : pileDriverImage;
+    [Header("Blink Settings")]
+    [SerializeField, Range(0.05f, 1f)] private float blinkDuration = 0.2f;
+    [SerializeField, Range(1f, 30f)] private float blinkSpeed = 16f;
+
+    [Header("Visibility")]
+    [SerializeField, Range(0f, 1f)] private float visibleAlpha = 1f;
+    [SerializeField, Range(0f, 1f)] private float inactiveAlpha = 0f;
+    [SerializeField, Range(0.5f, 20f)] private float visibilityFadeSpeed = 8f;
+
+    private Image activeStance => lastAttackWasAoe ? aoeImage : pileDriverImage;
+    private Image inactiveStance => lastAttackWasAoe ? pileDriverImage : aoeImage;
 
     // Component references for color animation
     private Image pileDriverImage;
     private Image aoeImage;
     private float colorTimer = 0f;
+    private float blinkTimer = 0f;
+    private bool lastAttackWasAoe = false;
 
     private void OnEnable()
     {
-        // Subscribe to stance change event
-        CombatManager.OnStanceChanged += UpdateStanceIcons;
+        PlayerAttackManager.OnAttack += HandleAttackEvent;
     }
 
     private void OnDisable()
     {
-        // Unsubscribe from stance change event
-        CombatManager.OnStanceChanged -= UpdateStanceIcons;
+        PlayerAttackManager.OnAttack -= HandleAttackEvent;
     }
 
     void Start()
@@ -68,34 +79,125 @@ public class StanceIconManager : MonoBehaviour
             Debug.LogWarning($"{gameObject.name}: AOE icon GameObject not assigned!");
         }
 
-        // Initialize icons based on starting stance
-        UpdateStanceIcons();
+        EnsureCombatIdleController();
+        InitializeIconAlpha();
     }
 
     void Update()
-    {        
-        // Animate active icon colors
+    {
+        EnsureCombatIdleController();
         AnimateActiveIcon();
     }
     
     private void AnimateActiveIcon()
     {
-        // Update color timer
-        colorTimer += Time.deltaTime * fadeSpeed;
-        
-        // Calculate fade between colors using sine wave for smooth back-and-forth
-        float fadeValue = (Mathf.Sin(colorTimer) + 1f) / 2f; // Convert -1,1 range to 0,1 range
-        Color animatedColor = Color.Lerp(activeColor1, activeColor2, fadeValue);
+        bool inCombat = combatIdleController != null && combatIdleController.IsInCombat;
+        UpdateIconVisibility(inCombat);
 
-        if (activeStance != null)
-            activeStance.color = animatedColor;
-        if (inactiveStance != null)
-            inactiveStance.color = inactiveColor;
+        if (!inCombat)
+        {
+            blinkTimer = 0f;
+            colorTimer = 0f;
+            return;
+        }
+
+        Image active = activeStance;
+        Image inactive = inactiveStance;
+
+        if (blinkTimer > 0f)
+        {
+            blinkTimer -= Time.deltaTime;
+            colorTimer += Time.deltaTime * blinkSpeed;
+        }
+        else
+        {
+            colorTimer = 0f;
+        }
+
+        if (active != null)
+        {
+            float fadeValue = blinkTimer > 0f
+                ? (Mathf.Sin(colorTimer) + 1f) / 2f
+                : 0f;
+
+            Color animatedColor = Color.Lerp(activeColor1, activeColor2, fadeValue);
+            animatedColor.a = active.color.a;
+            active.color = animatedColor;
+        }
+
+        if (inactive != null)
+        {
+            Color inactiveTint = inactiveColor;
+            inactiveTint.a = inactive.color.a;
+            inactive.color = inactiveTint;
+        }
     }
 
-    private void UpdateStanceIcons()
+    private void HandleAttackEvent(PlayerAttack attack)
     {
-        // Reset color timer for immediate color change on stance switch
+        if (attack == null)
+            return;
+
+        if (IsSingleAttack(attack.attackType))
+            lastAttackWasAoe = false;
+        else if (IsAoeAttack(attack.attackType))
+            lastAttackWasAoe = true;
+
+        blinkTimer = blinkDuration;
         colorTimer = 0f;
+    }
+
+    private bool IsSingleAttack(AttackType attackType)
+    {
+        return attackType == AttackType.LightSingle
+            || attackType == AttackType.HeavySingle
+            || attackType == AttackType.LightAerial
+            || attackType == AttackType.HeavyAerial;
+    }
+
+    private bool IsAoeAttack(AttackType attackType)
+    {
+        return attackType == AttackType.LightAOE
+            || attackType == AttackType.HeavyAOE;
+    }
+
+    private void UpdateIconVisibility(bool inCombat)
+    {
+        float targetActiveAlpha = inCombat ? visibleAlpha : 0f;
+        float targetInactiveAlpha = inCombat ? inactiveAlpha : 0f;
+
+        if (activeStance != null)
+            activeStance.color = ApplyAlpha(activeStance.color, targetActiveAlpha);
+        if (inactiveStance != null)
+            inactiveStance.color = ApplyAlpha(inactiveStance.color, targetInactiveAlpha);
+    }
+
+    private Color ApplyAlpha(Color color, float targetAlpha)
+    {
+        float nextAlpha = Mathf.MoveTowards(color.a, targetAlpha, Time.deltaTime * visibilityFadeSpeed);
+        color.a = nextAlpha;
+        return color;
+    }
+
+    private void InitializeIconAlpha()
+    {
+        if (pileDriverImage != null)
+            pileDriverImage.color = SetAlphaImmediate(pileDriverImage.color, 0f);
+        if (aoeImage != null)
+            aoeImage.color = SetAlphaImmediate(aoeImage.color, 0f);
+    }
+
+    private Color SetAlphaImmediate(Color color, float alpha)
+    {
+        color.a = alpha;
+        return color;
+    }
+
+    private void EnsureCombatIdleController()
+    {
+        if (combatIdleController != null)
+            return;
+
+        combatIdleController = FindObjectOfType<PlayerCombatIdleController>(true);
     }
 }

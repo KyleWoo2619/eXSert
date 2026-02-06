@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace Progression.Encounters
@@ -9,7 +8,7 @@ namespace Progression.Encounters
         protected override Color DebugColor { get => Color.purple; }
 
         private PuzzlePart part;
-        bool isCompleated => part.isCompleted;
+        public override bool isCompleted => part.isCompleted;
 
         protected override void SetupEncounter()
         {

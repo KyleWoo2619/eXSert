@@ -31,7 +31,7 @@ public class PlayerActionTracker : MonoBehaviour
         }
 
         // Get PlayerInput from InputReader
-        playerInput = InputReader.playerInput;
+        playerInput = InputReader.PlayerInput;
         
         if (playerInput != null)
         {
