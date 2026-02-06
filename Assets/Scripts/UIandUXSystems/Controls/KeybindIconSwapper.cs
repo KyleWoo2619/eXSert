@@ -97,7 +97,7 @@ public class KeybindIconSwapper : MonoBehaviour
     private string GetCurrentScheme()
     {
         if (InputReader.Instance != null)
-            return InputReader.Instance.activeControlScheme ?? string.Empty;
+            return InputReader.activeControlScheme ?? string.Empty;
 
         if (InputReader.PlayerInput != null)
             return InputReader.PlayerInput.currentControlScheme ?? string.Empty;
