@@ -42,6 +42,11 @@ public class WarningButtonFunctionality : MonoBehaviour
         OnConfirmPressed();
     }
 
+    private void EnsureNoOverlap(GameObject target)
+    {
+        
+    }
+
     public void ShowCheckpointWarning()
     {
         PrepareWarning(WarningAction.RestartCheckpoint, checkpointText);

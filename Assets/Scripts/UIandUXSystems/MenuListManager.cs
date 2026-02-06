@@ -29,6 +29,7 @@ public class MenuListManager : MonoBehaviour
         {
             menusToManage.Insert(0, menuToAdd);
             menuToAdd.SetActive(true);
+            menuToAdd.transform.SetAsLastSibling(); // Ensure the new menu is on top of the hierarchy
         }
 
         Debug.Log("Menu added to list. Current menus in list: " + menusToManage.Count);
