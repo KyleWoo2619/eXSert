@@ -6,14 +6,24 @@ namespace Progression.Encounters
 {
     public class CombatEncounter : BasicEncounter
     {
+        [SerializeField] private bool tempIsCompleted;
+
+        public override bool isCompleted
+        {
+            get
+            {
+                return tempIsCompleted;
+            }
+        }
+
         /// <summary>
         /// Subclass Wave to hold the data for the individual waves for encounters.
         /// Additionally holds wave specific functionality.
         /// </summary>
-        private class Wave
+        internal class Wave
         {
             // Holds all the enemy game objects in this wave, and whether they are alive
-            private List<BaseEnemyCore> enemies = new List<BaseEnemyCore>();
+            internal List<BaseEnemyCore> enemies = new List<BaseEnemyCore>();
 
             public event Action<Wave> OnWaveComplete;
 
@@ -33,6 +43,9 @@ namespace Progression.Encounters
                         Debug.LogWarning($"[CombatEncounter] Detected nonenemy gameobject {enemy.name} attached to encounter. Skipping object");
                 }
             }
+
+            
+
 
             /// <summary>
             /// Function to spawn all enemies in this wave

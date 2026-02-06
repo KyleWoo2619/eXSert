@@ -5,6 +5,7 @@
 
 */
 
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -18,12 +19,8 @@ public class ElevatorWalls : MonoBehaviour
     [SerializeField] internal GameObject elevatorWall;
     [SerializeField] internal GameObject wallBelow;
     [SerializeField] internal GameObject wallWithDoor;
-
     
-    [Header("Audio Events")]
-    [SerializeField] private UnityEvent playElevatorSound;
-    
-    private bool _isSoundPlaying = false;
+    internal bool isMoving = true;
 
     [Header("Movement Settings")]
     [Tooltip("The y position where walls reset to the top")]
@@ -49,42 +46,35 @@ public class ElevatorWalls : MonoBehaviour
     private void Start()
     {
         wallWithDoor.gameObject.SetActive(false);
-    } 
 
-    private void Update()
-    {
-        if(elevatorSpeed > 0)
-        {
-            if(!_isSoundPlaying)
-            {
-                playElevatorSound?.Invoke();
-                _isSoundPlaying = true;
-            }
-            
-            MoveWall(elevatorWall);
-            MoveWall(wallBelow);
-            MoveWall(wallWithDoor);
-        }
-    }
+        StartCoroutine(MoveWall(elevatorWall));
+        StartCoroutine(MoveWall(wallBelow));
+        StartCoroutine(MoveWall(wallWithDoor));
+    } 
 
     /// <summary>
     /// Moves a single elevator wall downward and resets it when it goes below bounds.
     /// </summary>
     /// <param name="wall">The wall GameObject to move</param>
-    private void MoveWall(GameObject wall)
+    private IEnumerator MoveWall(GameObject wall)
     {
         if(wall == null)
-            return;
+            yield break;
 
-        Vector3 position = wall.transform.position;
-        position.y -= elevatorSpeed * Time.deltaTime;
-        wall.transform.position = position;
-
-        // Reset wall to top when it goes below bounds - preserve original X and Z
-        if(position.y <= yBounds)
+        while(isMoving)
         {
-            position.y = restartPoint;
+            Vector3 position = wall.transform.position;
+            position.y -= elevatorSpeed * Time.deltaTime;
             wall.transform.position = position;
+
+            // Reset wall to top when it goes below bounds - preserve original X and Z
+            if(position.y <= yBounds)
+            {
+                position.y = restartPoint;
+                wall.transform.position = position;
+            }
+
+            yield return null;
         }
     }
 }

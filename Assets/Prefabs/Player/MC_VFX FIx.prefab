@@ -7687,7 +7687,6 @@ GameObject:
   - component: {fileID: 5378940107489749497}
   - component: {fileID: 2289477533837267770}
   - component: {fileID: 3564156978703942357}
-  - component: {fileID: 6830118084485983893}
   - component: {fileID: 6150044602222399215}
   - component: {fileID: 3007275964402751658}
   - component: {fileID: 8127531854480134888}
@@ -7770,36 +7769,6 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &6830118084485983893
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3646038222488559394}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.PlayerInput
-  m_Actions: {fileID: -944628639613478452, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
-  m_NotificationBehavior: 0
-  m_UIInputModule: {fileID: 0}
-  m_DeviceLostEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_DeviceRegainedEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_ControlsChangedEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_ActionEvents: []
-  m_NeverAutoSwitchControlSchemes: 0
-  m_DefaultControlScheme: Gamepad
-  m_DefaultActionMap: Gameplay
-  m_SplitScreenIndex: -1
-  m_Camera: {fileID: 0}
 --- !u!114 &6150044602222399215
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7849,6 +7818,18 @@ MonoBehaviour:
   dashDuration: 0.5
   dashCoolDown: 0.5
   defaultExternalStunDuration: 0.35
+  enableKnockbackWallCollision: 1
+  knockbackWallMask:
+    serializedVersion: 2
+    m_Bits: 1
+  knockbackCollisionRadius: 0.5
+  knockbackDecayRate: 0.97
+  knockbackMinVelocity: 0.5
+  knockbackWallCheckDelay: 0.25
+  enableWallImpactDamage: 0
+  wallDamageVelocityThreshold: 10
+  wallDamagePerVelocity: 0.5
+  wallDamageMax: 5
   launcherJumpVelocity: 12
   launcherForwardVelocity: 2.5
   invertYAxis: 0

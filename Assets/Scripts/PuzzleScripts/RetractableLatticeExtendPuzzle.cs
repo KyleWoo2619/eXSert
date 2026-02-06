@@ -50,6 +50,11 @@ public class RetractableLatticeExtendPuzzle : PuzzlePart
         magnetTwoOrigin = magnetTwo != null ? magnetTwo.transform.position : Vector3.zero;
     }
 
+    public override void ConsoleInteracted()
+    {
+        throw new System.NotImplementedException();
+    }
+
     public override void StartPuzzle()
     {
         // Prepare start/target positions
