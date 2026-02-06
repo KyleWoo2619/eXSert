@@ -124,6 +124,11 @@ public abstract class BaseEnemy<TState, TTrigger> : BaseEnemyCore, IQueuedAttack
     private string dieTriggerName = "Die";
     [SerializeField, Tooltip("Animator float parameter name for locomotion speed (optional).")]
     private string moveSpeedParameterName = "MoveSpeed";
+    
+    [Header("Behavior Profile")]
+    [SerializeField, Tooltip("Optional behavior profile for NavMeshAgent settings. If assigned, these settings will be applied on Awake.")]
+    public EnemyBehaviorProfile behaviorProfile;
+    
     [HideInInspector]
     public Color patrolColor = Color.green;
     [HideInInspector]
@@ -244,6 +249,9 @@ public abstract class BaseEnemy<TState, TTrigger> : BaseEnemyCore, IQueuedAttack
         SceneManager.sceneLoaded += HandleSceneLoaded;
 
         agent = this.gameObject.GetComponent<NavMeshAgent>();
+        
+        // Apply behavior profile if assigned
+        ApplyBehaviorProfile();
 
         EnsureRigidBodyForTriggers();
         EnsureDetectionCollider();
@@ -255,6 +263,27 @@ public abstract class BaseEnemy<TState, TTrigger> : BaseEnemyCore, IQueuedAttack
         {
             animator = GetComponentInParent<Animator>();
         }
+    }
+    
+    /// <summary>
+    /// Applies the behavior profile settings to the NavMeshAgent.
+    /// Called automatically in Awake if a profile is assigned.
+    /// </summary>
+    protected virtual void ApplyBehaviorProfile()
+    {
+        if (behaviorProfile == null || agent == null)
+            return;
+            
+        // Apply NavMeshAgent settings from profile
+        agent.speed = Random.Range(behaviorProfile.SpeedRange.x, behaviorProfile.SpeedRange.y);
+        agent.acceleration = behaviorProfile.Acceleration;
+        agent.angularSpeed = behaviorProfile.AngularSpeed;
+        agent.stoppingDistance = behaviorProfile.StoppingDistance;
+        agent.avoidancePriority = behaviorProfile.AvoidancePriority;
+        
+#if UNITY_EDITOR
+        Debug.Log($"[{name}] Applied behavior profile: speed={agent.speed:F1}, accel={behaviorProfile.Acceleration}, angular={behaviorProfile.AngularSpeed}, priority={behaviorProfile.AvoidancePriority}");
+#endif
     }
 
     // Helper to initialize the state machine and inspector state
