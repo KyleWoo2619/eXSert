@@ -202,6 +202,8 @@ namespace EnemyBehavior.Boss
         public float DashKnockbackForce = 15f;
         [Tooltip("Upward component of knockback force for dash attacks")]
         public float DashKnockbackUpwardForce = 3f;
+        [Tooltip("How much knockback direction is influenced by attack direction vs radial (0=radial, 1=attack direction)")]
+        [Range(0f, 1f)] public float KnockbackAttackDirectionWeight = 0.8f;
         
         [Header("Melee Attack Lunge (Duelist)")]
         [Tooltip("Enable forward lunge during melee attacks")]
@@ -360,10 +362,12 @@ namespace EnemyBehavior.Boss
         // Cage Bull charge tracking
         private bool isCharging;
         private bool isTargetedCharge;
+        private Vector3 currentAttackDirection; // Direction of current dash/charge for knockback
         private float baseAgentSpeed;
         private float baseAgentAngularSpeed;
         private float baseAgentAcceleration;
         private bool agentSettingsCached; // Ensures we only cache original settings once
+
 
         // Debug vacuum sequence tracking
         private Coroutine debugVacuumCoroutine;
@@ -371,6 +375,13 @@ namespace EnemyBehavior.Boss
         // Debug test mode - prevents normal AI from interfering
         private bool isDebugTestRunning;
         private Coroutine debugTestCoroutine;
+        
+        // Player ejector - disabled during dashes to allow hitbox contact
+        private BossPlayerEjector playerEjector;
+        
+        // Shared flag to prevent double-knockback during dashes
+        // Both manual collision check and trigger-based hitboxes check/set this
+        private bool dashHitAppliedThisAttack;
 
         #region IQueuedAttacker Implementation
         
@@ -439,6 +450,21 @@ namespace EnemyBehavior.Boss
             EnemyAttackQueueManager.Instance?.Unregister(this);
         }
         
+        /// <summary>
+        /// Called by BossArmHitbox when it applies knockback during a dash.
+        /// Prevents the manual collision check from also applying knockback.
+        /// </summary>
+        public void NotifyDashHitApplied()
+        {
+            dashHitAppliedThisAttack = true;
+        }
+        
+        /// <summary>
+        /// Check if a dash hit has already been applied this attack.
+        /// Used by both manual collision check and trigger-based hitboxes.
+        /// </summary>
+        public bool HasDashHitBeenApplied => dashHitAppliedThisAttack;
+        
         #endregion
 
         private bool IsPlayerMounted()
@@ -468,6 +494,8 @@ namespace EnemyBehavior.Boss
             animator = GetComponentInChildren<Animator>();
             // Mediator must be on same GameObject as Animator (or child of it) for Animation Events
             animMediator = GetComponentInChildren<BossAnimationEventMediator>(true);
+            // Player ejector is on same GameObject - disable during dashes
+            playerEjector = GetComponent<BossPlayerEjector>();
             
             // Cache player reference - search hierarchy for PlayerMovement
             CachePlayerReference();
@@ -900,9 +928,24 @@ namespace EnemyBehavior.Boss
             Debug.Log("[Boss] Stopped controller follow behavior for vacuum sequence");
 #endif
 
+            // CRITICAL: Deactivate alarm FIRST so no new adds spawn while existing ones flee
+            if (!alarmDestroyed)
+            {
+                ctrl.DeactivateAlarm();
+                PushAction("Alarm deactivated for vacuum sequence");
+            }
+
             // Order all adds to flee to their nearest spawn points BEFORE moving to vacuum position
             // This gives them time to clear out of the arena center before walls go up
-            ctrl.OrderAddsToFleeToSpawnPoints();
+            // Wrapped in try-catch to prevent exceptions from killing the vacuum sequence
+            try
+            {
+                ctrl.OrderAddsToFleeToSpawnPoints();
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[Boss] Failed to order adds to flee (continuing vacuum sequence): {e.Message}\n{e.StackTrace}");
+            }
 
             // Determine the target position for the vacuum attack
             // IMPORTANT: Cache the position as a Vector3, not a Transform reference
@@ -1149,7 +1192,8 @@ namespace EnemyBehavior.Boss
                             PushAction("Walls RAISED (player in center during suction)");
                         }
                         
-                        // Despawn any adds that got inside the cage
+                        // NOW despawn all remaining adds (crawlers waiting at spawn points, any stragglers)
+                        // This is when the cage match officially starts - 1v1 with the boss
                         ctrl.OnCageMatchStart();
                         
                         form = RoombaForm.CageBull;
@@ -1158,11 +1202,7 @@ namespace EnemyBehavior.Boss
                         // Stop following - CageBull uses charge movement
                         ctrl.StopFollowing();
                         
-                        // Deactivate alarm during cage match
-                        if (!alarmDestroyed)
-                        {
-                            ctrl.DeactivateAlarm();
-                        }
+                        // Alarm already deactivated at start of vacuum sequence
                         
                         wallsRaised = true;
                     }
@@ -1481,6 +1521,7 @@ namespace EnemyBehavior.Boss
             }
             isCharging = false;
             isTargetedCharge = false;
+            currentAttackDirection = Vector3.zero; // Clear attack direction when not attacking
         }
 
         /// <summary>
@@ -1646,6 +1687,13 @@ namespace EnemyBehavior.Boss
             isCharging = true;
             isTargetedCharge = isTargeted;
 
+            // Disable player ejector during charge to prevent interference with knockback
+            if (playerEjector != null)
+            {
+                playerEjector.enabled = false;
+                Debug.Log("[Boss] Player ejector DISABLED for charge");
+            }
+
             // Apply appropriate charge settings
             if (isTargeted)
             {
@@ -1668,6 +1716,9 @@ namespace EnemyBehavior.Boss
                 Vector3 startPos = transform.position;
                 Vector3 chargeDirection = (destination - startPos).normalized;
                 chargeDirection.y = 0; // Keep horizontal
+                
+                // Store the attack direction for directional knockback
+                currentAttackDirection = chargeDirection;
                 
                 float totalDistance = Vector3.Distance(startPos, destination);
                 float chargeSpeed = agent.speed; // Use the speed we set in ApplyTargetedChargeSettings
@@ -1740,6 +1791,11 @@ namespace EnemyBehavior.Boss
                 // STATIC CHARGE: Normal NavMeshAgent behavior with turning allowed
                 agent.isStopped = false;
                 agent.SetDestination(destination);
+                
+                // Store the initial attack direction for knockback (static charges can turn, so this is the initial direction)
+                Vector3 staticChargeDir = (destination - transform.position).normalized;
+                staticChargeDir.y = 0f;
+                currentAttackDirection = staticChargeDir;
 
                 // Enable charge hitbox for static charges too (animation events may not do this)
                 if (animMediator != null)
@@ -1755,6 +1811,13 @@ namespace EnemyBehavior.Boss
 
                 while (chargeTimer < maxChargeTime && !isStunned)
                 {
+                    // Update attack direction during static charge (since it can turn)
+                    if (agent.velocity.sqrMagnitude > 0.1f)
+                    {
+                        currentAttackDirection = agent.velocity.normalized;
+                        currentAttackDirection.y = 0f;
+                    }
+                    
                     float distToTarget = Vector3.Distance(transform.position, destination);
 
                     if (distToTarget <= ChargeArrivalThreshold)
@@ -1778,6 +1841,13 @@ namespace EnemyBehavior.Boss
             RestoreAgentSettings();
             agent.isStopped = true;
 
+            // Re-enable player ejector after charge completes with grace period
+            if (playerEjector != null)
+            {
+                playerEjector.enabled = true;
+                playerEjector.StartGracePeriod();
+                Debug.Log("[Boss] Player ejector RE-ENABLED after charge (with grace period)");
+            }
 
             // Trigger recovery animation
             if (animator != null && !string.IsNullOrEmpty(chargeAttack.AnimatorTriggerOnRecovery))
@@ -1794,6 +1864,7 @@ namespace EnemyBehavior.Boss
 
             PushAction("Targeted charge START (with overshoot)");
             currentAttack = TargetedCharge;
+
 
             // Windup animation
             if (animator != null && !string.IsNullOrEmpty(TargetedCharge.AnimatorTriggerOnWindup))
@@ -1837,6 +1908,12 @@ namespace EnemyBehavior.Boss
         /// Property to check if current charge is a targeted charge (can stun on pillar hit).
         /// </summary>
         public bool IsTargetedCharge => isTargetedCharge;
+
+        /// <summary>
+        /// Direction of the current dash/charge attack. Used for directional knockback.
+        /// Returns Vector3.zero when not in an attack.
+        /// </summary>
+        public Vector3 CurrentAttackDirection => currentAttackDirection;
 
         public void OnPillarCollision(int pillarIndex)
         {
@@ -2149,13 +2226,18 @@ namespace EnemyBehavior.Boss
             dirToPlayer = (player.position - transform.position).normalized;
             overshootTarget = player.position + dirToPlayer * DashOvershootDistance;
             
+            // Store the attack direction for directional knockback
+            currentAttackDirection = dirToPlayer;
+            currentAttackDirection.y = 0f;
+            currentAttackDirection.Normalize();
+            
             // Re-validate NavMesh position
             if (ValidateDashDestination && NavMesh.SamplePosition(overshootTarget, out var navHit, DashNavMeshSampleRadius, NavMesh.AllAreas))
             {
                 overshootTarget = navHit.position;
             }
             
-            Debug.Log($"[Boss] Dash: boss at {transform.position}, player at {player.position}, overshoot target at {overshootTarget}");
+            Debug.Log($"[Boss] Dash: boss at {transform.position}, player at {player.position}, overshoot target at {overshootTarget}, attackDir={currentAttackDirection}");
 
             // Store and modify agent settings for dash
             float originalSpeed = agent.speed;
@@ -2166,6 +2248,38 @@ namespace EnemyBehavior.Boss
 
             if (animator != null && !string.IsNullOrEmpty(a.AnimatorTriggerOnActive)) animator.SetTrigger(a.AnimatorTriggerOnActive);
 
+            // CRITICAL: Disable player ejector during dash so the hitbox can make contact
+            // The ejector normally pushes the player away, preventing the charge hitbox from hitting
+            if (playerEjector != null)
+            {
+                playerEjector.enabled = false;
+                Debug.Log("[Boss] Player ejector DISABLED for dash");
+            }
+
+            // CRITICAL: Enable dash hitbox (charge hitbox with dash parameters)
+            // This allows the boss to deal damage and knockback when hitting the player during dash
+            if (animMediator != null)
+            {
+                animMediator.EnableCharge();
+                Debug.Log("[Boss] Dash hitbox ENABLED (using charge hitbox)");
+                
+                // Enable arm hitboxes during dashes WITH arms (for frontal contact)
+                // The charge hitbox is at the back/center, but the arms are at the front
+                if (a == DashLungeLeft || a == DashLungeRight || a.RequiresArms)
+                {
+                    animMediator.EnableBothArmsWithDashKnockback();
+                    Debug.Log("[Boss] Arm hitboxes ENABLED with DASH KNOCKBACK for frontal contact");
+                }
+                else if (a == DashLungeNoArms)
+                {
+                    // DashLungeNoArms: Enable charge hitbox with DASH KNOCKBACK mode
+                    // Since arms are retracted, we rely on the charge hitbox for frontal contact
+                    // The charge hitbox should be sized/positioned to cover the front of the boss
+                    animMediator.EnableChargeWithDashKnockback();
+                    Debug.Log("[Boss] Charge hitbox ENABLED with DASH KNOCKBACK for DashLungeNoArms");
+                }
+            }
+
             agent.SetDestination(overshootTarget);
             
             // Wait for dash to complete - either animation time OR arrival, whichever is longer
@@ -2173,8 +2287,53 @@ namespace EnemyBehavior.Boss
             float elapsed = 0f;
             float maxDashTime = Mathf.Max(dashTime, 3f); // At least animation time, max 3 seconds
             
+            // Reset the shared hit flag at the start of each dash
+            // Both manual collision check and trigger-based hitboxes use this to prevent double-knockback
+            dashHitAppliedThisAttack = false;
+            const float dashHitRadius = 3.5f; // Distance at which we consider the boss "hitting" the player
+            
             while (elapsed < maxDashTime)
             {
+                // MANUAL COLLISION CHECK: Unity's trigger system can miss fast-moving objects
+                // Check if player is close enough to be hit by the dash
+                // Also check the shared flag in case the trigger-based hitbox already applied knockback
+                if (!dashHitAppliedThisAttack && player != null)
+                {
+                    float distToPlayer = Vector3.Distance(transform.position, player.position);
+                    if (distToPlayer < dashHitRadius)
+                    {
+                        // Check if player is roughly in front of us (within 90 degrees of attack direction)
+                        Vector3 toPlayer = (player.position - transform.position).normalized;
+                        float dot = Vector3.Dot(currentAttackDirection, toPlayer);
+                        
+                        if (dot > 0.2f) // Player is in front-ish
+                        {
+                            Debug.Log($"[Boss] DASH MANUAL HIT! Distance: {distToPlayer:F2}, Dot: {dot:F2}");
+                            dashHitAppliedThisAttack = true; // Set shared flag
+                            
+                            // Disable hitboxes immediately to prevent trigger-based hit from also firing
+                            if (animMediator != null)
+                            {
+                                animMediator.DisableCharge();
+                                animMediator.DisableBothArms();
+                            }
+                            
+                            // Apply knockback in attack direction
+                            Vector3 knockbackDir = Vector3.Lerp(toPlayer, currentAttackDirection, KnockbackAttackDirectionWeight);
+                            knockbackDir.y = 0;
+                            knockbackDir.Normalize();
+                            
+                            Vector3 knockbackVelocity = knockbackDir * DashKnockbackForce + Vector3.up * DashKnockbackUpwardForce;
+                            
+                            if (playerMovement != null)
+                            {
+                                playerMovement.ApplyKnockback(knockbackVelocity);
+                                Debug.Log($"[Boss] Applied dash knockback: {knockbackVelocity}, magnitude: {knockbackVelocity.magnitude:F1}");
+                            }
+                        }
+                    }
+                }
+                
                 // Check if we've reached the overshoot target
                 float distToTarget = Vector3.Distance(transform.position, overshootTarget);
                 if (distToTarget < 1f && elapsed >= dashTime * 0.5f) // At least half animation time
@@ -2184,6 +2343,24 @@ namespace EnemyBehavior.Boss
                 }
                 elapsed += Time.deltaTime;
                 yield return null;
+            }
+            
+            
+            // Disable dash hitbox
+            if (animMediator != null)
+            {
+                animMediator.DisableCharge();
+                animMediator.DisableBothArms(); // Also disable arm hitboxes
+                Debug.Log("[Boss] Dash hitboxes DISABLED (charge + arms)");
+            }
+            
+            // Re-enable player ejector after dash completes with grace period
+            // This prevents the player from being immediately ejected after knockback
+            if (playerEjector != null)
+            {
+                playerEjector.enabled = true;
+                playerEjector.StartGracePeriod(); // Start grace period to prevent immediate strong ejection
+                Debug.Log("[Boss] Player ejector RE-ENABLED after dash (with grace period)");
             }
 
             // Restore agent settings
