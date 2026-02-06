@@ -60,8 +60,14 @@ namespace Singletons {
             return newInstance;
         }
 
-        // Awake method to enforce the singleton pattern
-        virtual protected void Awake()
+        /// <summary>
+        /// Initializes the singleton instance and ensures only one instance of the component exists in the scene.
+        /// </summary>
+        /// <remarks>If no instance exists, this method assigns the current component as the singleton
+        /// instance. If <see cref="ShouldPersistAcrossScenes"/> is <see langword="true"/>, the component persists
+        /// across scene loads. If another instance already exists, this method destroys the duplicate component and
+        /// logs a warning.</remarks>
+        protected virtual void Awake()
         {
             if(_instance == null)
             {

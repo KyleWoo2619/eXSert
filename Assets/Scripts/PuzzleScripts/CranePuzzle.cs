@@ -540,14 +540,14 @@ public class CranePuzzle : PuzzlePart
         if (craneUI == null || craneUI.Length < 1)
             return;
 
-        if (InputReader.Instance.activeControlScheme == "Gamepad")
+        if (InputReader.activeControlScheme == "Gamepad")
         {
             if (craneUI.Length > 1 && craneUI[1] != null)
             {
                 craneUI[1].SetActive(true);
             }
         }
-        else if (InputReader.Instance.activeControlScheme == "Keyboard&Mouse")
+        else if (InputReader.activeControlScheme == "Keyboard&Mouse")
         {
             if (craneUI[0] != null)
             {

@@ -58,7 +58,7 @@ public abstract class InteractionManager : MonoBehaviour, IInteractable
     protected abstract void Interact();
     public bool IsUsingKeyboard()
     {
-        var scheme = InputReader.Instance != null ? InputReader.Instance.activeControlScheme ?? string.Empty : string.Empty;
+        var scheme = InputReader.Instance != null ? InputReader.activeControlScheme ?? string.Empty : string.Empty;
         return scheme.IndexOf("keyboard", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 

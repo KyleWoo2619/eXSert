@@ -1058,7 +1058,7 @@ public class PlayerMovement : MonoBehaviour
         if (InputReader.Instance == null)
             return false;
 
-        string scheme = InputReader.Instance.activeControlScheme;
+        string scheme = InputReader.activeControlScheme;
         if (string.IsNullOrEmpty(scheme))
             return false;
 
