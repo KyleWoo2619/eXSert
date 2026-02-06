@@ -12,55 +12,115 @@
 */
 
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using Singletons;
 using eXsert;
+using System.Runtime.CompilerServices;
+
+internal enum ActionMap
+{
+    Gameplay,
+    Menu,
+    Loading
+}
 
 [Serializable]
 public class InputReader : Singleton<InputReader>
 {
-    [SerializeField] internal string activeControlScheme;
+    internal static string activeControlScheme;
 
-    private static PlayerInput _playerInput;
+    /// <summary>
+    /// What the current action map being used is
+    /// </summary>
+    internal static ActionMap CurrentActionMap
+    {
+        get
+        {
+            /*
+             * implement this later to check if player scene is loaded
+             */
+
+            if (Instance == null)
+                CreateInstance();
+
+            try
+            {
+                string mapName = PlayerInput.currentActionMap.name;
+                return mapName switch
+                {
+                    "Gameplay" => ActionMap.Gameplay,
+                    "Menu" => ActionMap.Menu,
+                    "Loading" => ActionMap.Loading,
+                    _ => ActionMap.Gameplay,
+                };
+            }
+            catch (Exception)
+            {
+                return ActionMap.Menu;
+            }
+        }
+        private set
+        {
+            if (Instance == null)
+                CreateInstance();
+            try
+            {
+                string mapName = value switch
+                {
+                    ActionMap.Gameplay => "Gameplay",
+                    ActionMap.Menu => "Menu",
+                    ActionMap.Loading => "Loading",
+                    _ => "Gameplay",
+                };
+                PlayerInput.SwitchCurrentActionMap(mapName);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[InputReader] Failed to switch action map to {value}: {e.Message}");
+            }
+        }
+    }
+
     public static InputActionAsset playerControls { get; private set; }
     private PlayerControls runtimeGeneratedControls;
+
+    /// <summary>
+    /// Gets or sets the singleton <see cref="PlayerInput"/> instance associated with the current game context.
+    /// </summary>
+    /// <remarks>Accessing this property ensures that a <see cref="PlayerInput"/> component exists on the
+    /// singleton GameObject. If no instance is present, one will be created automatically. This property is intended
+    /// for global input management scenarios.</remarks>
     public static PlayerInput PlayerInput
     {
         get
         {
-            if (Instance == null)
-                CreateInstance();
+            // Ensure the singleton instance exists
+            if (Instance == null) CreateInstance();
 
-            if (_playerInput != null)
-                return _playerInput;
-
-            // Try to find an existing instance of the singleton type T in the scene
-            GameObject player = GameObject.FindWithTag("Player");
-            if (player == null)
-                Debug.LogError("[InputReader] Could not find GameObject with tag 'Player' to get PlayerInput from.");
-            else
-                _playerInput = player.GetComponentInChildren<PlayerInput>();
-
-            // Return the found instance if it exists
             if (_playerInput != null) return _playerInput;
 
-            // If no instance is found, create a new GameObject and attach the singleton component to it
-            Debug.LogError($"[InputReader] Could not get reference to PlayerInput. It may not exist or be accessible.");
+            // Tries to get PlayerInput from the singleton GameObject
+            _playerInput = Instance.GetComponent<PlayerInput>();
+            if (_playerInput != null) return _playerInput;
 
-            return null;
+            // Creates a PlayerInput component on the singleton GameObject if none exists
+            return _playerInput = Instance.gameObject.AddComponent<PlayerInput>();
         }
 
         private set { _playerInput = value; }
     }
+    private static PlayerInput _playerInput;
 
     internal float mouseSens;
 
-    private InputAction moveAction, jumpAction, lookAction, changeStanceAction, guardAction, lightAttackAction, heavyAttackAction, 
-        dashAction, navigationMenuAction, interactAction, escapePuzzleAction, lockOnAction, leftTargetAction, 
-        rightTargetAction, loadingLookAction, loadingZoomAction;
-    
+    // Input Actions
+    private InputAction moveAction, jumpAction, lookAction, changeStanceAction, guardAction,
+                        lightAttackAction, heavyAttackAction, dashAction, navigationMenuAction,
+                        interactAction, escapePuzzleAction, lockOnAction, leftTargetAction,
+                        rightTargetAction, loadingLookAction, loadingZoomAction;
 
     private bool callbacksRegistered = false;
     [SerializeField, Range(0f, 0.5f)] private float lockOnDashSuppressionWindow = 0.18f;
@@ -82,6 +142,27 @@ public class InputReader : Singleton<InputReader>
 
     public InputAction LoadingLookAction => loadingLookAction;
     public InputAction LoadingZoomAction => loadingZoomAction;
+
+    // Centralize action names to avoid typos and make maintenance easier
+    private static class ActionNames
+    {
+        public const string Move = "Move";
+        public const string Jump = "Jump";
+        public const string Look = "Look";
+        public const string ChangeStance = "ChangeStance";
+        public const string Guard = "Guard";
+        public const string LightAttack = "LightAttack";
+        public const string HeavyAttack = "HeavyAttack";
+        public const string Dash = "Dash";
+        public const string NavigationMenu = "NavigationMenu";
+        public const string Interact = "Interact";
+        public const string EscapePuzzle = "EscapePuzzle";
+        public const string LockOn = "LockOn";
+        public const string LeftTarget = "LeftTarget";
+        public const string RightTarget = "RightTarget";
+        public const string LoadingLook = "LoadingLook";
+        public const string LoadingZoom = "LoadingZoom";
+    }
 
     #region Action Accessors
     // Centralized action accessors so gameplay scripts never touch InputActions directly
@@ -142,30 +223,47 @@ public class InputReader : Singleton<InputReader>
     #endregion
 
     #region Unity Lifecycle
-
+    
     protected override void Awake()
     {
-        base.Awake();
+        base.Awake(); // Ensure singleton behavior
 
         SceneManager.sceneLoaded += HandleSceneLoaded;
 
         playerControls = Resources.Load<InputActionAsset>("PlayerControls");
-        if(playerControls == null)
+        if (playerControls == null)
         {
             Debug.LogError("player controls still null. Darn");
             return;
         }
 
-        if (PlayerInput != null)
+        // Try to bind to an existing PlayerInput found in loaded scenes first; if none found,
+        // ensure a PlayerInput component is attached to this InputReader singleton GameObject.
+        if (TryAutoBindFromLoadedScenes())
         {
-            RebindTo(PlayerInput, switchToGameplay: true);
+            // Bound to a PlayerInput on a scene object (likely the player prefab).
         }
-        else if (!TryAutoBindFromLoadedScenes())
+        else
         {
-            Debug.Log("[InputReader] No PlayerInput assigned; waiting for a Player scene to bind automatically.");
-            StartCoroutine(WaitForPlayerInputRoutine());
+            // Ensure the singleton GameObject has a PlayerInput component so menus and UI can use input
+            var singletonPlayerInput = GetComponent<PlayerInput>();
+            if (singletonPlayerInput == null)
+            {
+                singletonPlayerInput = gameObject.AddComponent<PlayerInput>();
+            }
+
+            if (singletonPlayerInput.actions == null && playerControls != null)
+            {
+                singletonPlayerInput.actions = Instantiate(playerControls);
+            }
+
+            // Do not force Gameplay map here; menus generally need Menu map available by default.
+            RebindTo(singletonPlayerInput, switchToGameplay: false);
+
+            Debug.Log("[InputReader] No scene PlayerInput found. Attached PlayerInput to InputReader singleton for consistent access.");
         }
 
+        // Use squared deadzone comparisons internally; set the default min to match the smallest deadzone
         InputSystem.settings.defaultDeadzoneMin = Mathf.Min(leftStickDeadzoneValue, rightStickDeadzoneValue);
     }
 
@@ -173,6 +271,7 @@ public class InputReader : Singleton<InputReader>
     {
         SceneManager.sceneLoaded -= HandleSceneLoaded;
         UnregisterActionCallbacks();
+
         if (runtimeGeneratedControls != null)
         {
             runtimeGeneratedControls.Dispose();
@@ -182,7 +281,7 @@ public class InputReader : Singleton<InputReader>
 
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (PlayerInput != null)
+        if (_playerInput != null)
             return;
 
         if (scene.isLoaded && TryBindFromScene(scene))
@@ -196,7 +295,7 @@ public class InputReader : Singleton<InputReader>
     {
         const float timeout = 10f;
         float elapsed = 0f;
-        while (PlayerInput == null && elapsed < timeout)
+        while (_playerInput == null && elapsed < timeout)
         {
             if (TryAutoBindFromLoadedScenes())
                 yield break;
@@ -263,25 +362,26 @@ public class InputReader : Singleton<InputReader>
 
     private void Update()
     {
-        // Null checks to prevent Input System errors before initialization
+        // Read move/look only when action exists and is enabled. Use optimized deadzone check.
         if (moveAction != null && moveAction.enabled)
             MoveInput = ApplyDeadzone(moveAction.ReadValue<Vector2>(), leftStickDeadzoneValue);
         else
             MoveInput = Vector2.zero;
-            
+
         if (lookAction != null && lookAction.enabled)
             LookInput = ApplyDeadzone(lookAction.ReadValue<Vector2>(), rightStickDeadzoneValue);
         else
             LookInput = Vector2.zero;
 
-        if (PlayerInput != null)
+        if (_playerInput != null)
         {
             try
             {
-                activeControlScheme = PlayerInput.currentControlScheme;
+                activeControlScheme = _playerInput.currentControlScheme;
             }
-            catch
+            catch (Exception e)
             {
+                Debug.LogWarning($"[InputReader] Failed to read currentControlScheme: {e.Message}");
                 activeControlScheme = string.Empty;
             }
         }
@@ -293,46 +393,15 @@ public class InputReader : Singleton<InputReader>
 
     #endregion
 
-
     //Turns the actions on
     private void OnEnable()
     {
-        if (moveAction != null) moveAction.Enable();
-        if (jumpAction != null) jumpAction.Enable();
-        if (lookAction != null) lookAction.Enable();
-        if (changeStanceAction != null) changeStanceAction.Enable();
-        if (guardAction != null) guardAction.Enable();
-        if (lightAttackAction != null) lightAttackAction.Enable();
-        if (heavyAttackAction != null) heavyAttackAction.Enable();
-        if (dashAction != null) dashAction.Enable();
-        if (navigationMenuAction != null) navigationMenuAction.Enable();
-        if (interactAction != null) interactAction.Enable();
-        if (escapePuzzleAction != null) escapePuzzleAction.Enable();
-        if (lockOnAction != null) lockOnAction.Enable();
-        if (leftTargetAction != null) leftTargetAction.Enable();
-        if (rightTargetAction != null) rightTargetAction.Enable();
-        if (loadingLookAction != null) loadingLookAction.Enable();
-        if (loadingZoomAction != null) loadingZoomAction.Enable();
+        SetAllActionsEnabled(true);
     }
 
     private void OnDisable()
     {
-        if (moveAction != null) moveAction.Disable();
-        if (jumpAction != null) jumpAction.Disable();
-        if (lookAction != null) lookAction.Disable();
-        if (changeStanceAction != null) changeStanceAction.Disable();
-        if (guardAction != null) guardAction.Disable();
-        if (lightAttackAction != null) lightAttackAction.Disable();
-        if (heavyAttackAction != null) heavyAttackAction.Disable();
-        if (dashAction != null) dashAction.Disable();
-        if (navigationMenuAction != null) navigationMenuAction.Disable();
-        if (interactAction != null) interactAction.Disable();
-        if (escapePuzzleAction != null) escapePuzzleAction.Disable();
-        if (lockOnAction != null) lockOnAction.Disable();
-        if (leftTargetAction != null) leftTargetAction.Disable();
-        if (rightTargetAction != null) rightTargetAction.Disable();
-        if (loadingLookAction != null) loadingLookAction.Disable();
-        if (loadingZoomAction != null) loadingZoomAction.Disable();
+        SetAllActionsEnabled(false);
     }
 
     /// <summary>
@@ -369,20 +438,7 @@ public class InputReader : Singleton<InputReader>
         }
 
         // Disable any old actions to avoid ghost reads
-        if (moveAction != null) moveAction.Disable();
-        if (jumpAction != null) jumpAction.Disable();
-        if (lookAction != null) lookAction.Disable();
-        if (changeStanceAction != null) changeStanceAction.Disable();
-        if (guardAction != null) guardAction.Disable();
-        if (lightAttackAction != null) lightAttackAction.Disable();
-        if (heavyAttackAction != null) heavyAttackAction.Disable();
-        if (dashAction != null) dashAction.Disable();
-        if (navigationMenuAction != null) navigationMenuAction.Disable();
-        if (interactAction != null) interactAction.Disable();
-        if (escapePuzzleAction != null) escapePuzzleAction.Disable();
-        if (lockOnAction != null) lockOnAction.Disable();
-        if (leftTargetAction != null) leftTargetAction.Disable();
-        if (rightTargetAction != null) rightTargetAction.Disable();
+        SetAllActionsEnabled(false);
 
         UnregisterActionCallbacks();
 
@@ -410,65 +466,45 @@ public class InputReader : Singleton<InputReader>
         if (switchToGameplay)
         {
             try { PlayerInput.SwitchCurrentActionMap("Gameplay"); }
-            catch (System.Exception e) { Debug.LogWarning($"[InputReader] Failed to switch to Gameplay map during rebind: {e.Message}"); }
+            catch (Exception e) { Debug.LogWarning($"[InputReader] Failed to switch to Gameplay map during rebind: {e.Message}"); }
         }
 
         try
         {
-            moveAction = PlayerInput.actions["Move"];
-            jumpAction = PlayerInput.actions["Jump"];
-            lookAction = PlayerInput.actions["Look"];
-            changeStanceAction = PlayerInput.actions["ChangeStance"];
-            guardAction = PlayerInput.actions["Guard"];
-            lightAttackAction = PlayerInput.actions["LightAttack"];
-            heavyAttackAction = PlayerInput.actions["HeavyAttack"];
-            dashAction = PlayerInput.actions["Dash"];
-            interactAction = PlayerInput.actions["Interact"];
-            escapePuzzleAction = PlayerInput.actions["EscapePuzzle"];
-            lockOnAction = PlayerInput.actions["LockOn"];
-            leftTargetAction = PlayerInput.actions["LeftTarget"];
-            rightTargetAction = PlayerInput.actions["RightTarget"];
-
-            try { navigationMenuAction = PlayerInput.actions["NavigationMenu"]; }
-            catch { navigationMenuAction = null; }
-
-            try { loadingLookAction = PlayerInput.actions["LoadingLook"]; }
-            catch { loadingLookAction = null; }
-
-            try { loadingZoomAction = PlayerInput.actions["LoadingZoom"]; }
-            catch { loadingZoomAction = null; }
+            // Use helper to safely look up actions and avoid repeated try/catch blocks
+            moveAction = GetAction(ActionNames.Move);
+            jumpAction = GetAction(ActionNames.Jump);
+            lookAction = GetAction(ActionNames.Look);
+            changeStanceAction = GetAction(ActionNames.ChangeStance);
+            guardAction = GetAction(ActionNames.Guard);
+            lightAttackAction = GetAction(ActionNames.LightAttack);
+            heavyAttackAction = GetAction(ActionNames.HeavyAttack);
+            dashAction = GetAction(ActionNames.Dash);
+            interactAction = GetAction(ActionNames.Interact);
+            escapePuzzleAction = GetAction(ActionNames.EscapePuzzle);
+            lockOnAction = GetAction(ActionNames.LockOn);
+            leftTargetAction = GetAction(ActionNames.LeftTarget);
+            rightTargetAction = GetAction(ActionNames.RightTarget);
+            navigationMenuAction = GetAction(ActionNames.NavigationMenu);
+            loadingLookAction = GetAction(ActionNames.LoadingLook);
+            loadingZoomAction = GetAction(ActionNames.LoadingZoom);
 
             RegisterActionCallbacks();
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             Debug.LogError($"[InputReader] Failed to assign actions during rebind: {e.Message}");
         }
 
         // Re-enable actions if this component is active
         if (isActiveAndEnabled)
-        {
-            if (moveAction != null) moveAction.Enable();
-            if (jumpAction != null) jumpAction.Enable();
-            if (lookAction != null) lookAction.Enable();
-            if (changeStanceAction != null) changeStanceAction.Enable();
-            if (guardAction != null) guardAction.Enable();
-            if (lightAttackAction != null) lightAttackAction.Enable();
-            if (heavyAttackAction != null) heavyAttackAction.Enable();
-            if (dashAction != null) dashAction.Enable();
-            if (navigationMenuAction != null) navigationMenuAction.Enable();
-            if (interactAction != null) interactAction.Enable();
-            if (escapePuzzleAction != null) escapePuzzleAction.Enable();
-            if (lockOnAction != null) lockOnAction.Enable();
-            if (leftTargetAction != null) leftTargetAction.Enable();
-            if (rightTargetAction != null) rightTargetAction.Enable();
-        }
+            SetAllActionsEnabled(true);
 
         try
         {
             activeControlScheme = PlayerInput.currentControlScheme;
         }
-        catch
+        catch (Exception)
         {
             activeControlScheme = string.Empty;
         }
@@ -481,14 +517,20 @@ public class InputReader : Singleton<InputReader>
         if (callbacksRegistered)
             return;
 
-        if (lockOnAction != null)
-            lockOnAction.performed += HandleLockOnPerformed;
-        if (leftTargetAction != null)
-            leftTargetAction.performed += HandleLeftTargetPerformed;
-        if (rightTargetAction != null)
-            rightTargetAction.performed += HandleRightTargetPerformed;
-        if (dashAction != null)
-            dashAction.performed += HandleDashPerformed;
+        // Map actions to handlers in a single place for clarity and maintainability
+        var mappings = new (InputAction Action, Action<InputAction.CallbackContext> Handler)[]
+        {
+            (lockOnAction, HandleLockOnPerformed),
+            (leftTargetAction, HandleLeftTargetPerformed),
+            (rightTargetAction, HandleRightTargetPerformed),
+            (dashAction, HandleDashPerformed)
+        };
+
+        foreach (var (action, handler) in mappings)
+        {
+            if (action != null && handler != null)
+                action.performed += handler;
+        }
 
         callbacksRegistered = true;
     }
@@ -498,14 +540,19 @@ public class InputReader : Singleton<InputReader>
         if (!callbacksRegistered)
             return;
 
-        if (lockOnAction != null)
-            lockOnAction.performed -= HandleLockOnPerformed;
-        if (leftTargetAction != null)
-            leftTargetAction.performed -= HandleLeftTargetPerformed;
-        if (rightTargetAction != null)
-            rightTargetAction.performed -= HandleRightTargetPerformed;
-        if (dashAction != null)
-            dashAction.performed -= HandleDashPerformed;
+        var mappings = new (InputAction Action, Action<InputAction.CallbackContext> Handler)[]
+        {
+            (lockOnAction, HandleLockOnPerformed),
+            (leftTargetAction, HandleLeftTargetPerformed),
+            (rightTargetAction, HandleRightTargetPerformed),
+            (dashAction, HandleDashPerformed)
+        };
+
+        foreach (var (action, handler) in mappings)
+        {
+            if (action != null && handler != null)
+                action.performed -= handler;
+        }
 
         callbacksRegistered = false;
     }
@@ -550,7 +597,58 @@ public class InputReader : Singleton<InputReader>
         if (deadzone <= 0f)
             return value;
 
-        return value.magnitude < deadzone ? Vector2.zero : value;
+        // Use squared magnitude to avoid an expensive sqrt call every frame
+        var threshold = deadzone * deadzone;
+        return value.sqrMagnitude < threshold ? Vector2.zero : value;
+    }
+
+    // Helper: safely get an action from the current PlayerInput actions asset
+    private InputAction GetAction(string name)
+    {
+        if (PlayerInput == null || PlayerInput.actions == null)
+            return null;
+
+        try
+        {
+            return PlayerInput.actions[name];
+        }
+        catch (Exception)
+        {
+            // The indexer throws when the action doesn't exist; swallow and return null.
+            return null;
+        }
+    }
+
+    // Helper: enable/disable every tracked action in one place to reduce duplication
+    private void SetAllActionsEnabled(bool enabled)
+    {
+        var actions = new InputAction[]
+        {
+            moveAction, jumpAction, lookAction, changeStanceAction, guardAction,
+            lightAttackAction, heavyAttackAction, dashAction, navigationMenuAction,
+            interactAction, escapePuzzleAction, lockOnAction, leftTargetAction,
+            rightTargetAction, loadingLookAction, loadingZoomAction
+        };
+
+        foreach (var a in actions)
+        {
+            if (a == null) continue;
+            try
+            {
+                if (enabled)
+                {
+                    if (!a.enabled) a.Enable();
+                }
+                else
+                {
+                    if (a.enabled) a.Disable();
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[InputReader] Failed to {(enabled ? "enable" : "disable")} action '{a.name}': {e.Message}");
+            }
+        }
     }
 }
 
