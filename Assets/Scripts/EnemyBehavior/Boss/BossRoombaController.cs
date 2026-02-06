@@ -656,6 +656,87 @@ public class BossRoombaController : MonoBehaviour
     
     #endregion
     
+    
+    /// <summary>
+    /// Orders all active adds to flee to their nearest spawn point.
+    /// Called when the boss starts moving towards the vacuum position,
+    /// giving adds time to clear the arena center before walls go up.
+    /// </summary>
+    public void OrderAddsToFleeToSpawnPoints()
+    {
+        Debug.Log("[BossRoombaController] Ordering all adds to flee to nearest spawn points");
+        
+        int dronesFleeing = 0;
+        int crawlersFleeing = 0;
+        
+        // Order all active drones to flee to nearest drone spawn point
+        foreach (var kvp in activeDrones)
+        {
+            if (kvp.Value != null && kvp.Value.activeInHierarchy)
+            {
+                Transform nearestSpawn = FindNearestSpawnPoint(kvp.Value.transform.position, droneSpawnPoints);
+                if (nearestSpawn != null)
+                {
+                    var droneAgent = kvp.Value.GetComponent<NavMeshAgent>();
+                    if (droneAgent != null && droneAgent.enabled && droneAgent.isOnNavMesh)
+                    {
+                        droneAgent.isStopped = false;
+                        droneAgent.SetDestination(nearestSpawn.position);
+                        dronesFleeing++;
+                        Debug.Log($"[BossRoombaController] Drone {kvp.Value.name} fleeing to spawn point at {nearestSpawn.position}");
+                    }
+                }
+            }
+        }
+        
+        // Order all active crawlers to flee to nearest crawler spawn point
+        foreach (var kvp in activeCrawlers)
+        {
+            if (kvp.Value != null && kvp.Value.activeInHierarchy)
+            {
+                Transform nearestSpawn = FindNearestSpawnPoint(kvp.Value.transform.position, crawlerSpawnPoints);
+                if (nearestSpawn != null)
+                {
+                    var crawlerAgent = kvp.Value.GetComponent<NavMeshAgent>();
+                    if (crawlerAgent != null && crawlerAgent.enabled && crawlerAgent.isOnNavMesh)
+                    {
+                        crawlerAgent.isStopped = false;
+                        crawlerAgent.SetDestination(nearestSpawn.position);
+                        crawlersFleeing++;
+                        Debug.Log($"[BossRoombaController] Crawler {kvp.Value.name} fleeing to spawn point at {nearestSpawn.position}");
+                    }
+                }
+            }
+        }
+        
+        Debug.Log($"[BossRoombaController] Ordered {dronesFleeing} drones and {crawlersFleeing} crawlers to flee to spawn points");
+    }
+    
+    /// <summary>
+    /// Finds the nearest spawn point from the given position.
+    /// </summary>
+    private Transform FindNearestSpawnPoint(Vector3 position, Transform[] spawnPoints)
+    {
+        if (spawnPoints == null || spawnPoints.Length == 0) return null;
+        
+        Transform nearest = null;
+        float nearestDist = float.MaxValue;
+        
+        foreach (var sp in spawnPoints)
+        {
+            if (sp == null) continue;
+            
+            float dist = Vector3.Distance(position, sp.position);
+            if (dist < nearestDist)
+            {
+                nearestDist = dist;
+                nearest = sp;
+            }
+        }
+        
+        return nearest;
+    }
+    
     /// <summary>
     /// Called when cage match starts (walls go up). Despawns ALL active adds.
     /// During the cage match, no adds should be present - it's a 1v1 with the boss.

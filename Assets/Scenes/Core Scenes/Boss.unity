@@ -68968,9 +68968,17 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 29310176}
     - target: {fileID: 2753735861455747003, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
+      propertyPath: _duelistFormHelp
+      value: Settings specific to the duelist/summoner form.
+      objectReference: {fileID: 0}
+    - target: {fileID: 2753735861455747003, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
       propertyPath: ArenaCenterBounds
       value: 
       objectReference: {fileID: 1966718067}
+    - target: {fileID: 2753735861455747003, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
+      propertyPath: _cageBullFormHelp
+      value: Settings specific to cage bull form.
+      objectReference: {fileID: 0}
     - target: {fileID: 2753735861455747003, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
       propertyPath: DashKnockbackForce
       value: 25
@@ -69002,6 +69010,12 @@ PrefabInstance:
     - target: {fileID: 2753735861455747003, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
       propertyPath: DashKnockbackUpwardForce
       value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2753735861455747003, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
+      propertyPath: _duelistFormMovementHelp
+      value: 'Overrides the base speed settings during duelist form. The base settings
+        (loaded from Roomba''s Profile) are used for the multipliers for the static/targeted
+        charges. Default: 12/120/8.'
       objectReference: {fileID: 0}
     - target: {fileID: 2753735861455747003, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
       propertyPath: ChargeKnockbackUpwardForce
@@ -69254,14 +69268,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c3fd5f5d6f89d53459ef4695d71ed661, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Boss.BossPlayerEjector
+  RepulsionOuterRadius: 5
+  RepulsionInnerRadius: 2
+  MaxRepulsionForce: 25
+  MinRepulsionForce: 5
   OverlapCheckRadius: 3.28
   OnTopHeightThreshold: 1.07
   BelowThreshold: 1
-  CheckInterval: 0.5
   EjectionForce: 15
   EjectionUpwardForce: 5
-  MinSafeDistance: 6
   BossCenter: {fileID: 1556584614}
+  ArenaManager: {fileID: 0}
 --- !u!114 &4051711074320609373 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4930849861261429573, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}

@@ -169,38 +169,27 @@ namespace EnemyBehavior.Boss
         [Tooltip("How close the boss must get to the vacuum position before starting the attack")]
         public float VacuumPositionThreshold = 2f;
 
-        [Header("Cage Bull Charges")]
-        [Tooltip("Speed multiplier when moving to charge start positions (higher = faster approach)")]
-        [Range(1f, 10f)] public float ChargeApproachSpeedMultiplier = 2.5f;
+        // =====================================================================
+        // DUELIST/SUMMONER FORM SETTINGS
+        // =====================================================================
         
-        [Tooltip("Speed multiplier during static charge dashes (should be VERY fast!)")]
-        [Range(2f, 20f)] public float StaticChargeSpeedMultiplier = 4f;
+        [Header("=== DUELIST/SUMMONER FORM ===")]
+        [SerializeField, TextArea(1, 2)] private string _duelistFormHelp = "Settings specific to the duelist/summoner form.";
         
-        [Tooltip("Speed multiplier during targeted charge at player")]
-        [Range(2f, 15f)] public float TargetedChargeSpeedMultiplier = 3f;
+        [Header("Movement")]
+        [SerializeField, TextArea(1, 5)] private string _duelistFormMovementHelp = "Overrides the base speed settings during duelist form.";
+        [Tooltip("Speed applied during normal Duelist/Summoner combat.")]
+        public float DuelistFollowSpeed = 12f;
+        [Tooltip("Angular speed during Duelist/Summoner form.")]
+        public float DuelistAngularSpeed = 120f;
+        [Tooltip("Acceleration during Duelist/Summoner form.")]
+        public float DuelistAcceleration = 8f;
         
-        [Tooltip("Angular speed multiplier for STATIC charges (high = can turn during dash)")]
-        [Range(1f, 10f)] public float StaticChargeAngularMultiplier = 3f;
+        [Header("Turn Settings (Duelist)")]
+        [Tooltip("Angular speed multiplier for turns before melee attacks (relative to base angular speed).")]
+        [Range(0.5f, 3f)] public float DuelistTurnSpeedMultiplier = 1f;
         
-        [Tooltip("Angular speed multiplier for TARGETED charges (low = commits to direction, can miss)")]
-        [Range(0.05f, 0.5f)] public float TargetedChargeAngularMultiplier = 0.15f;
-        
-        [Tooltip("Angular speed multiplier during turn phase (1 = normal, higher = faster turns but may look instant)")]
-        [Range(0.5f, 3f)] public float TurnAngularMultiplier = 1f;
-        
-        [Tooltip("Max time to wait at start position before charging (seconds)")]
-        [Range(0f, 2f)] public float MaxDelayAtChargeStart = 0.5f;
-        
-        [Tooltip("Overshoot distance past target for targeted charge")]
-        public float ChargeOvershootDistance = 5f;
-        [Tooltip("Rest time between static charges and targeted charge")]
-        public float ChargeRestDuration = 1.5f;
-        [Tooltip("Min/Max number of static charge combos before targeted charge")]
-        public Vector2Int StaticChargeCountRange = new Vector2Int(3, 5);
-        [Tooltip("Distance threshold to consider 'arrived' at charge destination")]
-        public float ChargeArrivalThreshold = 1.5f;
-
-        [Header("Dash Settings")]
+        [Header("Dash Attacks (Duelist)")]
         [Tooltip("Speed for dash attacks")]
         public float DashSpeed = 15f;
         [Tooltip("Overshoot distance past player for dashes")]
@@ -209,18 +198,12 @@ namespace EnemyBehavior.Boss
         public bool ValidateDashDestination = true;
         [Tooltip("Sample radius for NavMesh validation")]
         public float DashNavMeshSampleRadius = 2f;
-        
-        [Header("Knockback Settings")]
         [Tooltip("Force applied to push player when hit by dash attacks")]
         public float DashKnockbackForce = 15f;
-        [Tooltip("Force applied to push player when hit by targeted charge")]
-        public float ChargeKnockbackForce = 25f;
         [Tooltip("Upward component of knockback force for dash attacks")]
         public float DashKnockbackUpwardForce = 3f;
-        [Tooltip("Upward component of knockback force for targeted charge (higher = more dramatic launch)")]
-        public float ChargeKnockbackUpwardForce = 8f;
         
-        [Header("Attack Lunge Settings")]
+        [Header("Melee Attack Lunge (Duelist)")]
         [Tooltip("Enable forward lunge during melee attacks")]
         public bool EnableAttackLunge = true;
         [Tooltip("Distance to lunge forward during melee attack active phase")]
@@ -231,11 +214,67 @@ namespace EnemyBehavior.Boss
         public bool ReturnAfterLunge = true;
         [Tooltip("Speed of return motion after lunge")]
         public float LungeReturnSpeed = 4f;
-
-
-
-
-        [Header("=== NavMeshAgent Base Settings (READ-ONLY, FROM PROFILE) ===")]
+        
+        [Header("Top Wander (Player Mounted)")]
+        [Tooltip("Speed when player is on top and boss is wandering")]
+        public float TopWanderSpeed = 8f;
+        [Tooltip("Angular speed during top wander")]
+        public float TopWanderAngularSpeed = 90f;
+        
+        // =====================================================================
+        // CAGE BULL FORM SETTINGS
+        // =====================================================================
+        
+        [Header("=== CAGE BULL FORM ===")]
+        [SerializeField, TextArea(1, 2)] private string _cageBullFormHelp = "Settings specific to cage bull form.";
+        
+        [Header("Charge Speeds (Cage Bull)")]
+        [Tooltip("Speed multiplier when moving to charge start positions (first position of a combo) (higher = faster approach)")]
+        [Range(1f, 10f)] public float ChargeApproachSpeedMultiplier = 2.5f;
+        [Tooltip("Speed multiplier during static charge dashes")]
+        [Range(2f, 20f)] public float StaticChargeSpeedMultiplier = 4f;
+        [Tooltip("Speed multiplier during targeted charge at player")]
+        [Range(2f, 15f)] public float TargetedChargeSpeedMultiplier = 3f;
+        [Tooltip("Angular speed multiplier for STATIC charges (high = can turn during dash)")]
+        [Range(1f, 10f)] public float StaticChargeAngularMultiplier = 3f;
+        [Tooltip("Angular speed multiplier for TARGETED charges (low = commits to direction, can miss)")]
+        [Range(0.05f, 0.5f)] public float TargetedChargeAngularMultiplier = 0.15f;
+        
+        [Header("Charge Behavior (Cage Bull)")]
+        [Tooltip("Max time to wait at start position before charging (seconds)")]
+        [Range(0f, 2f)] public float MaxDelayAtChargeStart = 0.5f;
+        [Tooltip("Overshoot distance past target for targeted charge")]
+        public float ChargeOvershootDistance = 5f;
+        [Tooltip("Rest time between static charges and targeted charge")]
+        public float ChargeRestDuration = 1.5f;
+        [Tooltip("Min/Max number of static charge combos before targeted charge")]
+        public Vector2Int StaticChargeCountRange = new Vector2Int(3, 5);
+        [Tooltip("Distance threshold to consider 'arrived' at charge destination")]
+        public float ChargeArrivalThreshold = 1.5f;
+        [Tooltip("Force applied to push player when hit by targeted charge")]
+        public float ChargeKnockbackForce = 25f;
+        [Tooltip("Upward component of knockback force for targeted charge (higher = more dramatic launch)")]
+        public float ChargeKnockbackUpwardForce = 8f;
+        
+        [Header("Combo Point Approach (Cage Bull)")]
+        [Tooltip("Distance at which the boss starts decelerating when approaching a combo point")]
+        public float ComboApproachDecelerationDistance = 5f;
+        [Tooltip("Minimum speed multiplier when fully decelerated (0.1 = 10% of approach speed at destination)")]
+        [Range(0.05f, 0.5f)] public float ComboDecelerationMinSpeedMultiplier = 0.15f;
+        [Tooltip("Time in seconds to wait at each combo point before turning to face the next")]
+        public float ComboPointWaitDuration = 0.3f;
+        [Tooltip("Angular speed multiplier for turning at combo points (relative to base angular speed).")]
+        [Range(0.5f, 5f)] public float ComboTurnSpeedMultiplier = 1.5f;
+        
+        [Header("Targeted Charge Turn (Cage Bull)")]
+        [Tooltip("Angular speed multiplier for turning before targeted charge (relative to base angular speed).")]
+        [Range(0.5f, 3f)] public float TargetedChargeTurnSpeedMultiplier = 1f;
+        
+        // =====================================================================
+        // BASE SETTINGS (SHARED)
+        // =====================================================================
+        
+        [Header("=== BASE SETTINGS (READ-ONLY) ===")]
         [Tooltip("Base speed loaded from profile. Used by charge speed multipliers.")]
         [SerializeField, ReadOnly] private float _baseSpeed = 12f;
         [Tooltip("Base angular speed loaded from profile. Used by charge angular multipliers.")]
@@ -247,18 +286,6 @@ namespace EnemyBehavior.Boss
         public float BaseSpeed { get => _baseSpeed; private set => _baseSpeed = value; }
         public float BaseAngularSpeed { get => _baseAngularSpeed; private set => _baseAngularSpeed = value; }
         public float BaseAcceleration { get => _baseAcceleration; private set => _baseAcceleration = value; }
-        
-        [Header("Duelist/Summoner Form Overrides")]
-        [Tooltip("Speed applied during normal Duelist/Summoner combat. Can differ from BaseSpeed.")]
-        public float DuelistFollowSpeed = 12f;
-        [Tooltip("Angular speed during Duelist/Summoner form.")]
-        public float DuelistAngularSpeed = 120f;
-        
-        [Header("Top Wander Settings")]
-        [Tooltip("Speed when player is on top and boss is wandering")]
-        public float TopWanderSpeed = 8f;
-        [Tooltip("Angular speed during top wander")]
-        public float TopWanderAngularSpeed = 90f;
 
         [Header("Side Panels")]
         public List<SidePanel> SidePanels = new List<SidePanel>();
@@ -873,6 +900,10 @@ namespace EnemyBehavior.Boss
             Debug.Log("[Boss] Stopped controller follow behavior for vacuum sequence");
 #endif
 
+            // Order all adds to flee to their nearest spawn points BEFORE moving to vacuum position
+            // This gives them time to clear out of the arena center before walls go up
+            ctrl.OrderAddsToFleeToSpawnPoints();
+
             // Determine the target position for the vacuum attack
             // IMPORTANT: Cache the position as a Vector3, not a Transform reference
             // This prevents issues if VacuumPosition is parented to the boss
@@ -1316,7 +1347,7 @@ namespace EnemyBehavior.Boss
                 yield break;
             }
 
-            // Execute each segment in this combo
+        // Execute each segment in this combo
             for (int i = 0; i < segments.Length; i++)
             {
                 if (isStunned || isDefeated) break;
@@ -1329,19 +1360,43 @@ namespace EnemyBehavior.Boss
                 {
                     // Apply approach settings for moving to charge start
                     ApplyApproachSettings();
+                    float approachSpeed = agent.speed; // Cache the full approach speed for deceleration calculation
                     agent.isStopped = false;
                     agent.SetDestination(start);
                     
                     while (Vector3.Distance(transform.position, start) > ChargeArrivalThreshold && !isStunned && !isDefeated)
                     {
+                        // Apply deceleration as we get close to the destination
+                        float currentDist = Vector3.Distance(transform.position, start);
+                        if (currentDist <= ComboApproachDecelerationDistance)
+                        {
+                            // Lerp speed from full approach speed down to minimum as we get closer
+                            float decelerationT = currentDist / ComboApproachDecelerationDistance;
+                            float minSpeed = approachSpeed * ComboDecelerationMinSpeedMultiplier;
+                            agent.speed = Mathf.Lerp(minSpeed, approachSpeed, decelerationT);
+                        }
                         yield return null;
                     }
                 }
 
                 if (isStunned || isDefeated) break;
 
-                // Turn to face end position
-                yield return TurnToFacePosition(end);
+                // Stop agent and wait at combo point before turning
+                if (agent != null)
+                {
+                    agent.isStopped = true;
+                    agent.velocity = Vector3.zero;
+                }
+                
+                if (ComboPointWaitDuration > 0f)
+                {
+                    yield return WaitForSecondsCache.Get(ComboPointWaitDuration);
+                }
+
+                if (isStunned || isDefeated) break;
+
+                // Turn to face end position using combo-specific turn speed
+                yield return TurnToFacePositionWithSpeed(end, baseAgentAngularSpeed * ComboTurnSpeedMultiplier);
 
                 if (isStunned || isDefeated) break;
 
@@ -1381,6 +1436,8 @@ namespace EnemyBehavior.Boss
                         DuelistFollowSpeed = BaseSpeed;
                     if (Mathf.Approximately(DuelistAngularSpeed, 120f))
                         DuelistAngularSpeed = BaseAngularSpeed;
+                    if (Mathf.Approximately(DuelistAcceleration, 8f))
+                        DuelistAcceleration = BaseAcceleration;
                     
                     Debug.Log($"[BossRoombaBrain] Loaded settings from profile: BaseSpeed={BaseSpeed:F1}, BaseAngular={BaseAngularSpeed}, BaseAccel={BaseAcceleration}");
                 }
@@ -1435,10 +1492,10 @@ namespace EnemyBehavior.Boss
             {
                 agent.speed = DuelistFollowSpeed;
                 agent.angularSpeed = DuelistAngularSpeed;
-                agent.acceleration = BaseAcceleration;
+                agent.acceleration = DuelistAcceleration;
                 agent.autoBraking = true;
                 agent.updateRotation = true;
-                Debug.Log($"[Boss] Applied Duelist form settings: speed={DuelistFollowSpeed}, angular={DuelistAngularSpeed}");
+                Debug.Log($"[Boss] Applied Duelist form settings: speed={DuelistFollowSpeed}, angular={DuelistAngularSpeed}, accel={DuelistAcceleration}");
             }
         }
         
@@ -1512,16 +1569,26 @@ namespace EnemyBehavior.Boss
             if (agent != null)
             {
                 agent.speed = baseAgentSpeed * 0.1f; // Nearly stopped during turn
-                agent.angularSpeed = baseAgentAngularSpeed * TurnAngularMultiplier;
+                agent.angularSpeed = baseAgentAngularSpeed * DuelistTurnSpeedMultiplier;
                 agent.updateRotation = true; // Allow rotation during turns
             }
         }
 
         /// <summary>
         /// Turn in place to face a target position.
-        /// High angular speed, minimal movement.
+        /// Uses DuelistTurnSpeedMultiplier for Duelist form turns (melee attacks, targeted charges).
+        /// For combo point turns, use TurnToFacePositionWithSpeed directly with ComboTurnSpeedMultiplier.
         /// </summary>
         private IEnumerator TurnToFacePosition(Vector3 targetPosition)
+        {
+            yield return TurnToFacePositionWithSpeed(targetPosition, baseAgentAngularSpeed * DuelistTurnSpeedMultiplier);
+        }
+
+        /// <summary>
+        /// Turn in place to face a target position with a specific angular speed.
+        /// Used for combo turns which may have different speed requirements.
+        /// </summary>
+        private IEnumerator TurnToFacePositionWithSpeed(Vector3 targetPosition, float angularSpeed)
         {
             Vector3 dirToTarget = (targetPosition - transform.position).normalized;
             dirToTarget.y = 0f;
@@ -1532,12 +1599,13 @@ namespace EnemyBehavior.Boss
                 yield break;
             }
 
-            // Apply turn settings
-            ApplyTurnSettings();
-            
+            // Stop movement during turn
             if (agent != null)
             {
-                agent.isStopped = true; // Stop movement during turn
+                agent.isStopped = true;
+                agent.speed = baseAgentSpeed * 0.1f; // Nearly stopped during turn
+                agent.angularSpeed = angularSpeed;
+                agent.updateRotation = true;
             }
 
             Quaternion targetRotation = Quaternion.LookRotation(dirToTarget, Vector3.up);
@@ -1545,12 +1613,11 @@ namespace EnemyBehavior.Boss
             float turnTimer = 0f;
             float maxTurnTime = 1f; // Max 1 second to turn
 
-            Debug.Log($"[Boss] TIMING: TurnToFace - initial angle: {initialAngle:F1}°, angular speed: {(agent != null ? agent.angularSpeed : 0)}");
+            Debug.Log($"[Boss] TIMING: TurnToFace - initial angle: {initialAngle:F1}°, angular speed: {angularSpeed}");
 
             while (turnTimer < maxTurnTime && !isStunned)
             {
                 // Manually rotate towards target
-                float angularSpeed = agent != null ? agent.angularSpeed : 360f;
                 transform.rotation = Quaternion.RotateTowards(
                     transform.rotation,
                     targetRotation,
@@ -1750,8 +1817,8 @@ namespace EnemyBehavior.Boss
                 overshootTarget = playerPos;
             }
 
-            // Turn to face player
-            yield return TurnToFacePosition(playerPos);
+            // Turn to face player using Cage Bull turn speed
+            yield return TurnToFacePositionWithSpeed(playerPos, baseAgentAngularSpeed * TargetedChargeTurnSpeedMultiplier);
 
             if (isStunned) yield break;
 
