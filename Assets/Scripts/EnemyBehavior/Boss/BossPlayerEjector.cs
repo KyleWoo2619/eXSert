@@ -47,11 +47,19 @@ namespace EnemyBehavior.Boss
         
         [Tooltip("Reference to BossArenaManager for arena bounds (auto-found if null)")]
         public BossArenaManager ArenaManager;
+        
+        [Header("Post-Attack Grace Period")]
+        [Tooltip("Time in seconds after a dash attack completes before strong ejection is allowed")]
+        public float PostAttackGracePeriod = 1.0f;
 
         private Transform player;
         private PlayerMovement playerMovement;
         private CharacterController playerController;
         private bool isApplyingRepulsion;
+        
+        // Grace period tracking
+        private float graceEndTime;
+        private bool isInGracePeriod;
 
         private void Start()
         {
@@ -139,7 +147,17 @@ namespace EnemyBehavior.Boss
             // PREVENTION: Apply repulsion force when in repulsion zone
             if (distance2D < RepulsionOuterRadius && distance2D > 0.01f)
             {
-                ApplyRepulsionForce(bossPos, playerPos, distance2D);
+                // During grace period, only apply gentle repulsion (no strong ejection)
+                if (isInGracePeriod && Time.time < graceEndTime)
+                {
+                    // Reduced force during grace period
+                    ApplyRepulsionForce(bossPos, playerPos, distance2D, 0.3f);
+                }
+                else
+                {
+                    isInGracePeriod = false;
+                    ApplyRepulsionForce(bossPos, playerPos, distance2D, 1.0f);
+                }
             }
             else if (isApplyingRepulsion)
             {
@@ -149,17 +167,42 @@ namespace EnemyBehavior.Boss
             }
 
             // FALLBACK: Emergency ejection if player is fully inside
+            // Skip strong ejection during grace period
             if (distance2D < OverlapCheckRadius)
             {
-                EjectPlayerSafely(bossPos, playerPos);
+                if (isInGracePeriod && Time.time < graceEndTime)
+                {
+                    // During grace period, just apply gentle repulsion, not full ejection
+#if UNITY_EDITOR
+                    Debug.Log($"[BossPlayerEjector] Skipping strong ejection during grace period (ends in {graceEndTime - Time.time:F1}s)");
+#endif
+                }
+                else
+                {
+                    isInGracePeriod = false;
+                    EjectPlayerSafely(bossPos, playerPos);
+                }
             }
+        }
+        
+        /// <summary>
+        /// Call this when a dash attack ends to start a grace period.
+        /// During this period, the ejector won't fire strong ejections.
+        /// </summary>
+        public void StartGracePeriod()
+        {
+            graceEndTime = Time.time + PostAttackGracePeriod;
+            isInGracePeriod = true;
+#if UNITY_EDITOR
+            Debug.Log($"[BossPlayerEjector] Grace period STARTED - no strong ejection for {PostAttackGracePeriod}s");
+#endif
         }
 
         /// <summary>
         /// Applies a repulsion force that increases as the player gets closer to the boss center.
         /// This prevents the player from getting inside the boss in the first place.
         /// </summary>
-        private void ApplyRepulsionForce(Vector3 bossPos, Vector3 playerPos, float distance2D)
+        private void ApplyRepulsionForce(Vector3 bossPos, Vector3 playerPos, float distance2D, float forceMultiplier = 1.0f)
         {
             if (playerMovement == null)
                 return;
@@ -172,7 +215,7 @@ namespace EnemyBehavior.Boss
             // Calculate force strength based on distance (closer = stronger)
             // At outer radius: MinRepulsionForce, at inner radius: MaxRepulsionForce
             float t = Mathf.InverseLerp(RepulsionOuterRadius, RepulsionInnerRadius, distance2D);
-            float forceStrength = Mathf.Lerp(MinRepulsionForce, MaxRepulsionForce, t);
+            float forceStrength = Mathf.Lerp(MinRepulsionForce, MaxRepulsionForce, t) * forceMultiplier;
 
             // Apply the repulsion velocity
             Vector3 repulsionVelocity = repulsionDir * forceStrength;
