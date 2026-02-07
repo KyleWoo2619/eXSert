@@ -63,28 +63,38 @@ public class DiaryButton : MonoBehaviour, ISelectHandler
         // Add onClick listener so action triggers on click, not just select
         if (this.button != null && selectAction != null)
         {
-            this.button.onClick.AddListener(selectAction);
+            this.button.onClick.AddListener(() =>
+            {
+                // Ensure EventSystem selection updates for mouse clicks
+                var es = UnityEngine.EventSystems.EventSystem.current;
+                if (es != null)
+                {
+                    es.SetSelectedGameObject(this.gameObject);
+                }
+
+                selectAction();
+            });
         }
     }
 
     public void FindAddMenusToList()
     {
-        GameObject NavigationMenuObject = GameObject.FindGameObjectWithTag("NavigationMenu");
+        GameObject canvas = GameObject.FindGameObjectWithTag("Canvas");
 
         GameObject individualDiaryMenuObject = GameObject.FindGameObjectWithTag("IndividualDiaryMenu");
 
-        if(NavigationMenuObject != null)
+        if(canvas != null)
         {
-            var MenuToManage = NavigationMenuObject.GetComponent<MenuListManager>();
+            var menuToManage = canvas.GetComponent<MenuListManager>();
             if(individualDiaryMenuObject != null)
             {
                 Transform child = individualDiaryMenuObject.transform.GetChild(0);
-                MenuToManage.AddToMenuList(child.gameObject);
+                menuToManage.AddToMenuList(child.gameObject);
             }
         }
         else
         {
-            Debug.LogError("GameObject with tag 'NavigationMenu' not found");
+            Debug.LogError("GameObject with tag 'Canvas' not found");
         }
     }
         
@@ -98,13 +108,11 @@ public class DiaryButton : MonoBehaviour, ISelectHandler
     public void AddOverlay()
     {
 
-        GameObject overlayParent = GameObject.FindGameObjectWithTag("Overlay");
+        GameObject overlayParent = GameObject.FindGameObjectWithTag("IndividualDiaryMenu");
         if (overlayParent != null)
         {
             Transform child = overlayParent.transform.GetChild(0);
             child.gameObject.SetActive(true);
-        } else {
-            Debug.LogError("GameObject with tag 'Overlay' not found");
         }
     }
 }

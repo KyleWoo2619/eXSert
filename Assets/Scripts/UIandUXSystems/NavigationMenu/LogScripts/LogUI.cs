@@ -23,6 +23,11 @@ public class LogUI : MonoBehaviour
     private void OnEnable()
     {
         EventsManager.Instance.logEvents.onLogStateChange += LogStateChange;
+        // Refresh all logs to populate buttons when UI becomes active
+        if (LogManager.Instance != null)
+        {
+            LogManager.Instance.RefreshAllLogs();
+        }
     }
 
     private void OnDisable()
@@ -47,7 +52,16 @@ public class LogUI : MonoBehaviour
         logDescription.GetComponent<TMP_Text>().text = log.info.logDescription;
         logLocation.text = log.info.locationFound;
         logId_Date.text = log.info.logID;
-        logImage.sprite = log.info.logImage.sprite;
+        
+        if (log.info.logImage != null && log.info.logImage.sprite != null)
+        {
+            logImage.sprite = log.info.logImage.sprite;
+        }
+        else
+        {
+            logImage.sprite = null;
+            Debug.LogWarning($"Log {log.info.logID} has no image assigned");
+        }
     }
 
 }
