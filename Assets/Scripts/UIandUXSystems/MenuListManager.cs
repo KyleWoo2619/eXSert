@@ -6,15 +6,37 @@ using UnityEngine.EventSystems;
 
 public class MenuListManager : MonoBehaviour
 {
-    [SerializeField] private List<GameObject> menusToManage;
+    [SerializeField] internal List<GameObject> menusToManage;
 
     [SerializeField] private InputActionReference backButtonInputAction;
+    [SerializeField] private GameObject firstMenuToOpen;
+    [SerializeField] private GameObject canvas;
 
     // Tracks the last selected element before opening each menu (acts as a stack)
     private readonly List<Selectable> selectionHistory = new List<Selectable>();
 
+    private void Start()
+    {
+        AddToMenuList(canvas); // Add this menu to the list on start
+        if (firstMenuToOpen != null)
+        {
+            AddToMenuList(firstMenuToOpen);
+        }
+    }
+
+    public void SetAsLastSibling(GameObject menuToMove)
+    {
+        if (menuToMove.tag == "Untagged" || menuToMove.tag == "Canvas")
+            menuToMove.transform.SetAsLastSibling();
+    }
+
     public void AddToMenuList(GameObject menuToAdd)
     {
+        if (menuToAdd == null)
+        {
+            return;
+        }
+
         // Remember what was selected before opening this menu
         if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null)
         {
@@ -25,13 +47,72 @@ public class MenuListManager : MonoBehaviour
             }
         }
 
+        if (menusToManage.Count > 0)
+        {
+            GameObject currentTop = menusToManage[0];
+            if (currentTop != null)
+            {
+                bool sameParent = menuToAdd.transform.parent == currentTop.transform.parent;
+                bool keepCurrentTop = currentTop == firstMenuToOpen || currentTop == canvas;
+                if (sameParent && !keepCurrentTop)
+                {
+                    RemoveFirstItemInMenuList();
+                }
+            }
+        }
+
+        if (menusToManage.Contains(menuToAdd))
+        {
+            menusToManage.Remove(menuToAdd);
+        }
+
         if (!menusToManage.Contains(menuToAdd))
         {
             menusToManage.Insert(0, menuToAdd);
             menuToAdd.SetActive(true);
+            SetAsLastSibling(menusToManage[0]);
+            
+            // Select the first selectable in the new menu
+            Selectable firstSelectable = menuToAdd.GetComponent<Selectable>();
+            if (firstSelectable == null)
+            {
+                firstSelectable = menuToAdd.GetComponentInChildren<Selectable>();
+            }
+            
+            if (firstSelectable != null)
+            {
+                firstSelectable.Select();
+            }
         }
 
         Debug.Log("Menu added to list. Current menus in list: " + menusToManage.Count);
+    }
+
+    public void SelectFirstSelectOnBack(GameObject menuToAdd){
+        MenuEventSystemHandler menuHandler = menuToAdd.GetComponent<MenuEventSystemHandler>();
+        if(menuHandler != null)
+        {
+            if(menuHandler._firstSelected != null)
+            {
+                menuHandler._firstSelected.Select();
+            }
+            else
+            {
+                Debug.LogWarning("First Selected is not set for menu: " + menuToAdd.name);
+            }
+        }
+        else
+        {
+            Debug.LogWarning("MenuEventSystemHandler component not found on menu: " + menuToAdd.name);
+        }
+    }
+
+    public void CheckIfPreviousMenuSharesParent(GameObject menuToCheck, GameObject menuToOpen)
+    {
+        if(menuToCheck.transform.parent == menusToManage[0].transform.parent && menuToCheck != firstMenuToOpen && menuToCheck != canvas)
+        {
+            RemoveFirstItemInMenuList();
+        }
     }
 
     public void RemoveFirstItemInMenuList()
@@ -49,7 +130,7 @@ public class MenuListManager : MonoBehaviour
             selectionHistory.RemoveAt(0);
         }
 
-        // Fallback: select first selectable in the new top menu (if any)
+        // Fallback: select first selectable in the now-visible menu (if any)
         if (target == null && menusToManage.Count > 0)
         {
             target = menusToManage[0].GetComponent<Selectable>();
@@ -67,10 +148,8 @@ public class MenuListManager : MonoBehaviour
 
     public void SwapBetweenMenus()
     {
-        if(menusToManage.Count > 2)
-        {
-            menusToManage[1].SetActive(false);
-            menusToManage.RemoveAt(1);
+        if(menusToManage.Count >= 5){
+            RemoveFirstItemInMenuList();
         }
     }
 
@@ -84,11 +163,4 @@ public class MenuListManager : MonoBehaviour
         selectionHistory.Clear();
     }
 
-    private void Update()
-    {
-        if(backButtonInputAction != null && backButtonInputAction.action != null && backButtonInputAction.action.triggered)
-        {
-            RemoveFirstItemInMenuList();
-        }
-    }
 }
