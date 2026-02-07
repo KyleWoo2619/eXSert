@@ -68968,9 +68968,17 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 29310176}
     - target: {fileID: 2753735861455747003, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
+      propertyPath: _duelistFormHelp
+      value: Settings specific to the duelist/summoner form.
+      objectReference: {fileID: 0}
+    - target: {fileID: 2753735861455747003, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
       propertyPath: ArenaCenterBounds
       value: 
       objectReference: {fileID: 1966718067}
+    - target: {fileID: 2753735861455747003, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
+      propertyPath: _cageBullFormHelp
+      value: Settings specific to cage bull form.
+      objectReference: {fileID: 0}
     - target: {fileID: 2753735861455747003, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
       propertyPath: DashKnockbackForce
       value: 25
@@ -69004,6 +69012,12 @@ PrefabInstance:
       value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 2753735861455747003, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
+      propertyPath: _duelistFormMovementHelp
+      value: 'Overrides the base speed settings during duelist form. The base settings
+        (loaded from Roomba''s Profile) are used for the multipliers for the static/targeted
+        charges. Default: 12/120/8.'
+      objectReference: {fileID: 0}
+    - target: {fileID: 2753735861455747003, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
       propertyPath: ChargeKnockbackUpwardForce
       value: 2
       objectReference: {fileID: 0}
@@ -69027,6 +69041,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Boss_Roomba
       objectReference: {fileID: 0}
+    - target: {fileID: 4185494339532862923, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
+      propertyPath: applyKnockback
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4185494339532862923, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
+      propertyPath: knockbackForceOverride
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 4539484035008092346, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
       propertyPath: m_TagString
       value: Enemy
@@ -69044,8 +69066,20 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 282157131245461279, guid: cb54553a50bce4a478e1450299cc14c3, type: 3}
     - target: {fileID: 4930849861261429573, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
+      propertyPath: AddFleeDestroyDelay
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4930849861261429573, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
       propertyPath: MinStoppingDistance
       value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 4930849861261429573, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
+      propertyPath: AddFleeSpeedMultiplier
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4930849861261429573, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
+      propertyPath: AddFleeArrivalThreshold
+      value: 1.5
       objectReference: {fileID: 0}
     - target: {fileID: 4930849861261429573, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
       propertyPath: 'droneSpawnPoints.Array.data[0]'
@@ -69095,6 +69129,14 @@ PrefabInstance:
       propertyPath: m_TagString
       value: Enemy
       objectReference: {fileID: 0}
+    - target: {fileID: 7404797349569222291, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
+      propertyPath: applyKnockback
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7404797349569222291, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
+      propertyPath: knockbackForceOverride
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 7470240419559467308, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
       propertyPath: m_TagString
       value: Enemy
@@ -69114,6 +69156,26 @@ PrefabInstance:
     - target: {fileID: 7631148118547818447, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
       propertyPath: avoidancePriority
       value: 48
+      objectReference: {fileID: 0}
+    - target: {fileID: 8058011296821409572, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 4.7599998
+      objectReference: {fileID: 0}
+    - target: {fileID: 8058011296821409572, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1.2810392
+      objectReference: {fileID: 0}
+    - target: {fileID: 8058011296821409572, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 5.47
+      objectReference: {fileID: 0}
+    - target: {fileID: 8058011296821409572, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.43
+      objectReference: {fileID: 0}
+    - target: {fileID: 8058011296821409572, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8148200746123926222, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
       propertyPath: m_LocalPosition.y
@@ -69254,14 +69316,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c3fd5f5d6f89d53459ef4695d71ed661, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior.Boss.BossPlayerEjector
+  RepulsionOuterRadius: 5
+  RepulsionInnerRadius: 2
+  MaxRepulsionForce: 25
+  MinRepulsionForce: 5
   OverlapCheckRadius: 3.28
   OnTopHeightThreshold: 1.07
   BelowThreshold: 1
-  CheckInterval: 0.5
   EjectionForce: 15
   EjectionUpwardForce: 5
-  MinSafeDistance: 6
   BossCenter: {fileID: 1556584614}
+  ArenaManager: {fileID: 0}
 --- !u!114 &4051711074320609373 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4930849861261429573, guid: 7f130de0e64227240aaeb555b561d10a, type: 3}
