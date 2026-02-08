@@ -12,7 +12,7 @@ namespace Progression.Encounters
 
         [Header("Timing")]
         [SerializeField, Tooltip("Seconds to wait before advancing to the next wave.")]
-        private float nextWaveDelaySeconds = 0.15f;
+        private float nextWaveDelaySeconds = 3f;
 
         [Header("Progression")]
         [Tooltip("Enemies for this encounter. If empty and Auto Find is on, we'll find by tag.")]
@@ -150,8 +150,6 @@ namespace Progression.Encounters
         {
             base.Start();
 
-            SyncNextEncounterDelay();
-
             if (IsPlayerInsideZone())
                 BeginEncounter();
         }
@@ -171,8 +169,6 @@ namespace Progression.Encounters
             }
 
             ResetWaves();
-
-            SyncNextEncounterDelay();
 
             // sub function to create a new wave of enemies using all the gameobjects childed to an empty gameobject
             Wave CreateWave(Transform parentObject)
@@ -416,17 +412,7 @@ namespace Progression.Encounters
             return false;
         }
 
-        private void SyncNextEncounterDelay()
-        {
-            SetEnableNextEncounterDelaySeconds(nextWaveDelaySeconds);
-        }
-
 #if UNITY_EDITOR
-        private void OnValidate()
-        {
-            SyncNextEncounterDelay();
-        }
-
         [UnityEditor.MenuItem("GameObject/eXSert/Add Selected Enemies to Combat Encounter", false, 0)]
         private static void AddSelectedEnemiesToEncounter()
         {

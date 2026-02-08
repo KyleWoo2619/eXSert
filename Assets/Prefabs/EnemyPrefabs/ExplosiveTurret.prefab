@@ -513,6 +513,7 @@ MonoBehaviour:
   attackInterval: 1
   attackActiveDuration: 0.5
   showAttackGizmo: 1
+  canBeParried: 1
   healthBarPrefab: {fileID: 5126943973119965438, guid: ba84b42810b4ba14b8c277e64607a584, type: 3}
   healthBarAnchor: {fileID: 0}
   healthBarInstance: {fileID: 0}
@@ -533,15 +534,16 @@ MonoBehaviour:
   hitTriggerName: Hit
   dieTriggerName: Die
   moveSpeedParameterName: MoveSpeed
+  behaviorProfile: {fileID: 0}
   patrolColor: {r: 0, g: 1, b: 0, a: 1}
   chaseColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   attackColor: {r: 1, g: 0.5, b: 0, a: 1}
   hitboxActiveColor: {r: 1, g: 0, b: 0, a: 1}
   turnSpeed: 360
   fireCooldown: 1
-  projectilePrefab: {fileID: 12072098264220021, guid: 7b4aa8d82cd3ff542b0cc9e56ce38bf4, type: 3}
+  projectilePrefab: {fileID: 2499624202759768534, guid: 47a09bde03f77704a92b4a7d45cd169e, type: 3}
   projectileSpeed: 25
-  firePoint: {fileID: 0}
+  firePoint: {fileID: 6014760702953166162}
   rotateYawOnly: 1
   aimYOffset: 1
   clampYaw: 1
@@ -565,8 +567,8 @@ MonoBehaviour:
   hitAnimationRecoveryDelay: 0.15
   suppressIdleWhileTargeting: 1
   boxAnimator: {fileID: 1317396587936272542}
-  popupParameterName: PlayerDetected
-  popupAnimation: {fileID: 0}
+  popupStateName: Popup
+  popupAnimation: {fileID: 771474328594229211, guid: 19c3c3d0528f8df4eb99ecd98355e2cf, type: 3}
   popupFallbackDuration: 0.75
 --- !u!136 &7288010346531664217
 CapsuleCollider:
