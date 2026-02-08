@@ -31,6 +31,18 @@ namespace Progression
             this.gameObject.name = $"[{SceneAsset.GetSceneAssetOfObject(this.gameObject).name}] Progression Manager";
         }
 
+        private void OnDisable()
+        {
+            foreach (BasicEncounter encounter in encounterCompletionMap)
+            {
+                if (encounter != null && !encounter.isCleanedUp)
+                    encounter.ManualCleanUpCall();
+            }
+
+            encounterCompletionMap.Clear();
+        }
+        
+
         /// <summary>
         /// Adds the encounter to the manager's database
         /// </summary>

@@ -6390,7 +6390,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8530458340202710104, guid: efc588e010d594a4c94830813166a9e0, type: 3}
       propertyPath: loadAdditive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8530458340202710104, guid: efc588e010d594a4c94830813166a9e0, type: 3}
       propertyPath: objectToDrop
@@ -6399,6 +6399,14 @@ PrefabInstance:
     - target: {fileID: 8530458340202710104, guid: efc588e010d594a4c94830813166a9e0, type: 3}
       propertyPath: startEnabled
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8530458340202710104, guid: efc588e010d594a4c94830813166a9e0, type: 3}
+      propertyPath: nextSceneName
+      value: CargoBay
+      objectReference: {fileID: 0}
+    - target: {fileID: 8530458340202710104, guid: efc588e010d594a4c94830813166a9e0, type: 3}
+      propertyPath: loadSceneOnClear
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8530458340202710104, guid: efc588e010d594a4c94830813166a9e0, type: 3}
       propertyPath: dropObjectOnClear
@@ -6411,6 +6419,10 @@ PrefabInstance:
     - target: {fileID: 8530458340202710104, guid: efc588e010d594a4c94830813166a9e0, type: 3}
       propertyPath: nextWaveDelaySeconds
       value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 8530458340202710104, guid: efc588e010d594a4c94830813166a9e0, type: 3}
+      propertyPath: dropAtLastEnemyPosition
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8530458340202710104, guid: efc588e010d594a4c94830813166a9e0, type: 3}
       propertyPath: dropCandidates.Array.size
@@ -67953,7 +67965,6 @@ GameObject:
   m_Component:
   - component: {fileID: 3950156108789771571}
   - component: {fileID: 1117483936455629262}
-  - component: {fileID: 8592551858211786534}
   - component: {fileID: 8592551858211786535}
   m_Layer: 0
   m_Name: ElevatorSceneManager
@@ -68172,27 +68183,6 @@ MonoBehaviour:
   enableEncounterOnComplete: 0
   encounterToEnable: {fileID: 0}
   enableNextEncounterDelaySeconds: 0
---- !u!114 &8592551858211786534
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3653249168342974261}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b642c0eedb2e5494ba1ad24eccf70fbf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemiesClearedProgression
-  enemies: []
-  autoFindByTag: 1
-  enemyTag: Enemy
-  checkInterval: 0.2
-  nextSceneName: CargoBay
-  loadAdditive: 1
-  dropObjectOnClear: 1
-  objectToDrop: {fileID: 4223669033654689904}
-  dropAtLastEnemyPosition: 0
 --- !u!114 &8592551858211786535
 MonoBehaviour:
   m_ObjectHideFlags: 0
