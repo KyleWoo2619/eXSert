@@ -23,7 +23,7 @@ public abstract class InteractionManager : MonoBehaviour, IInteractable
     
     [Space(10)]
     [Header("Input Action Reference")]
-    [SerializeField] internal InputActionReference _interactInputAction;
+    [SerializeField, CriticalReference] internal InputActionReference _interactInputAction;
 
     protected virtual void Awake()
     {
@@ -40,14 +40,12 @@ public abstract class InteractionManager : MonoBehaviour, IInteractable
     }
     public void OnInteractButtonPressed()
     {
-        if (isPlayerNearby)
-        {
-            if(_interactInputAction != null && _interactInputAction.action != null && _interactInputAction.action.triggered)
-            {
-                Interact();
-                InteractionUI.Instance._interactEffect?.Play();
-            }
-        }
+        if (!isPlayerNearby || !_interactInputAction.action.triggered)
+            return;
+
+        Debug.Log($"Player interacted with {gameObject.name} using input action {_interactInputAction.action.name}");
+        Interact();
+        InteractionUI.Instance._interactEffect?.Play();
     }
 
     private void Update()
@@ -56,6 +54,7 @@ public abstract class InteractionManager : MonoBehaviour, IInteractable
     }
 
     protected abstract void Interact();
+
     public bool IsUsingKeyboard()
     {
         var scheme = InputReader.Instance != null ? InputReader.activeControlScheme ?? string.Empty : string.Empty;
@@ -135,42 +134,47 @@ public abstract class InteractionManager : MonoBehaviour, IInteractable
 
     protected virtual void OnTriggerEnter(Collider other)
     {
-        if(other.CompareTag("Player"))
+        // Ensure the collider belongs to the player character, checking the root object for the "Player" tag to account for child colliders.
+        if (!other.transform.root.CompareTag("Player"))
+            return;
+
+        Debug.Log($"Player entered interaction zone of {gameObject.name}");
+
+        isPlayerNearby = true;
+
+        SwapBasedOnInputMethod();
+
+        if (InteractionUI.Instance == null)
+            return;
+
+        if (InteractionUI.Instance._interactText != null)
         {
-
-            isPlayerNearby = true;
-
-            SwapBasedOnInputMethod();
-
-            if(InteractionUI.Instance != null)
-            {
-                if(InteractionUI.Instance._interactText != null)
-                {
-                    InteractionUI.Instance._interactText.gameObject.SetActive(true);
-                    if(InteractionUI.Instance._interactText.transform.parent != null)
-                        InteractionUI.Instance._interactText.transform.parent.gameObject.SetActive(true);
-                }
-                if(InteractionUI.Instance._interactIcon != null && !IsUsingKeyboard())
-                {
-                    InteractionUI.Instance._interactIcon.gameObject.SetActive(true);
-                    if(InteractionUI.Instance._interactIcon.transform.parent != null)
-                        InteractionUI.Instance._interactIcon.transform.parent.gameObject.SetActive(true);
-                }
-            }
+            InteractionUI.Instance._interactText.gameObject.SetActive(true);
+            if (InteractionUI.Instance._interactText.transform.parent != null)
+                InteractionUI.Instance._interactText.transform.parent.gameObject.SetActive(true);
+        }
+        if (InteractionUI.Instance._interactIcon != null && !IsUsingKeyboard())
+        {
+            InteractionUI.Instance._interactIcon.gameObject.SetActive(true);
+            if (InteractionUI.Instance._interactIcon.transform.parent != null)
+                InteractionUI.Instance._interactIcon.transform.parent.gameObject.SetActive(true);
         }
     }
 
     protected virtual void OnTriggerExit(Collider other)
     {
-        if(other.CompareTag("Player"))
-        {
-            isPlayerNearby = false;
-            if(InteractionUI.Instance._interactText != null)
-                InteractionUI.Instance._interactText.gameObject.SetActive(false);
+        if (!other.transform.root.CompareTag("Player"))
+            return;
 
-            if(InteractionUI.Instance._interactIcon != null)
-                InteractionUI.Instance._interactIcon.gameObject.SetActive(false);
-        }
+        isPlayerNearby = false;
+
+        if (InteractionUI.Instance == null)
+            return;
+        if (InteractionUI.Instance._interactText != null)
+            InteractionUI.Instance._interactText.gameObject.SetActive(false);
+
+        if (InteractionUI.Instance._interactIcon != null)
+            InteractionUI.Instance._interactIcon.gameObject.SetActive(false);
     }
 
     private void OnDrawGizmos()

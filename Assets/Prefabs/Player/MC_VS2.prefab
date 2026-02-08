@@ -1765,6 +1765,9 @@ MonoBehaviour:
   musicSource: {fileID: 0}
   sfxSource: {fileID: 2615875170084332285}
   voiceSource: {fileID: 5278611209026805003}
+  ambienceSource: {fileID: 0}
+  uiSource: {fileID: 0}
+  puzzleSource: {fileID: 0}
 --- !u!1 &592856173569754771
 GameObject:
   m_ObjectHideFlags: 0
@@ -3365,6 +3368,7 @@ MonoBehaviour:
   defaultTransition: 0.08
   fallingTransition: 0.5
   attackManager: {fileID: 2399395865534960612}
+  playerMovement: {fileID: 0}
   logAnimationEvents: 0
 --- !u!114 &2123084375608425823
 MonoBehaviour:
@@ -3380,8 +3384,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombatIdleController
   animationController: {fileID: 2785025275053764537}
   characterController: {fileID: 2401124706254803099}
+  playerMovement: {fileID: 0}
   combatDuration: 10
-  weaponCheckDelay: 15
   movementThreshold: 0.02
 --- !u!114 &5213312769042527271
 MonoBehaviour:
@@ -3398,12 +3402,9 @@ MonoBehaviour:
   attackManager: {fileID: 2399395865534960612}
   playerMovement: {fileID: 7264502727658182964}
   audioSource: {fileID: 7795024838701006850}
-  attackVfxObjects:
-  - {fileID: 1608310954423189324}
-  - {fileID: 5549553600122277503}
+  leftAttackVfx: {fileID: 0}
+  rightAttackVfx: {fileID: 0}
   attackDuration: 1
-  includeAoEAttacks: 1
-  includePlungeAttacks: 1
   attackAudioClip: {fileID: 0}
   airMoveVfxObjects:
   - {fileID: 5549553600122277503}
@@ -6615,7 +6616,6 @@ GameObject:
   - component: {fileID: 267604357236693129}
   - component: {fileID: 2401124706254803099}
   - component: {fileID: 2443857838182241153}
-  - component: {fileID: 2902241325345077673}
   - component: {fileID: 7264502727658182964}
   - component: {fileID: 8763132823076942836}
   - component: {fileID: 9094245328904240314}
@@ -6694,36 +6694,6 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &2902241325345077673
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2964100175291877921}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.PlayerInput
-  m_Actions: {fileID: -944628639613478452, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
-  m_NotificationBehavior: 0
-  m_UIInputModule: {fileID: 0}
-  m_DeviceLostEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_DeviceRegainedEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_ControlsChangedEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_ActionEvents: []
-  m_NeverAutoSwitchControlSchemes: 0
-  m_DefaultControlScheme: Gamepad
-  m_DefaultActionMap: Gameplay
-  m_SplitScreenIndex: -1
-  m_Camera: {fileID: 0}
 --- !u!114 &7264502727658182964
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6759,6 +6729,7 @@ MonoBehaviour:
   doubleJumpForce: 7
   airAttackHopForce: 5
   terminalVelocity: 20
+  jumpEventTimeout: 0.12
   canDoubleJump: 1
   aerialComboManager: {fileID: 887017138480786621}
   aerialLightAttackHangTime: 0.6
@@ -6773,6 +6744,18 @@ MonoBehaviour:
   dashDuration: 0.5
   dashCoolDown: 0.5
   defaultExternalStunDuration: 0.35
+  enableKnockbackWallCollision: 1
+  knockbackWallMask:
+    serializedVersion: 2
+    m_Bits: 1
+  knockbackCollisionRadius: 0.5
+  knockbackDecayRate: 0.97
+  knockbackMinVelocity: 0.5
+  knockbackWallCheckDelay: 0.25
+  enableWallImpactDamage: 0
+  wallDamageVelocityThreshold: 10
+  wallDamagePerVelocity: 0.5
+  wallDamageMax: 5
   launcherJumpVelocity: 12
   launcherForwardVelocity: 2.5
   invertYAxis: 0
@@ -14793,10 +14776,9 @@ MonoBehaviour:
   guardAttackAutoCancelDuration: 0.65
   launcherAutoCancelDuration: 0.9
   guardAttackAutoGenerateHitbox: 0
-  stanceCooldownTime: 1
-  changeStanceAudio: {fileID: 8300000, guid: c499d32b11e58a84089a5095ba2ad8d1, type: 3}
   plungeRecoveryDelay: 0
   plungeIdleBlendTime: 0.757
+  attackAudioSource: {fileID: 0}
   inputBufferWindow: 0.25
 --- !u!114 &7507798945099034496
 MonoBehaviour:
@@ -18856,11 +18838,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 473d36e9a1e206841ba24f53ad8a09e5, type: 3}
---- !u!1 &1608310954423189324 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 8769016902042026246, guid: 473d36e9a1e206841ba24f53ad8a09e5, type: 3}
-  m_PrefabInstance: {fileID: 8061461076398571082}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &3125519185989079031 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4935948494005596605, guid: 473d36e9a1e206841ba24f53ad8a09e5, type: 3}

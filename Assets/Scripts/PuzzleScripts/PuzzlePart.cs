@@ -9,9 +9,9 @@ using UnityEngine;
 
 public abstract class PuzzlePart : MonoBehaviour
 {
-    public bool isCompleted { get; set; }
-
-    public abstract void EndPuzzle();
+    public bool isCompleted { get; protected set; }
+    
     public abstract void StartPuzzle();
+    public abstract void EndPuzzle();
     public abstract void ConsoleInteracted();
 }
