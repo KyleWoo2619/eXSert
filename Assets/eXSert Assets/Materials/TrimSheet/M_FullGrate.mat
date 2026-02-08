@@ -26,10 +26,10 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _ALPHAPREMULTIPLY_ON
+  - _ALPHATEST_ON
   - _ENVIRONMENTREFLECTIONS_OFF
   - _METALLICSPECGLOSSMAP
   - _NORMALMAP
-  - _RECEIVE_SHADOWS_OFF
   - _SPECULARHIGHLIGHTS_OFF
   - _SURFACE_TYPE_TRANSPARENT
   m_InvalidKeywords: []
@@ -106,7 +106,7 @@ Material:
     m_Ints: []
     m_Floats:
     - _AddPrecomputedVelocity: 0
-    - _AlphaClip: 0
+    - _AlphaClip: 1
     - _AlphaToMask: 0
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
@@ -127,7 +127,7 @@ Material:
     - _OcclusionStrength: 1
     - _Parallax: 0.005
     - _QueueOffset: 0
-    - _ReceiveShadows: 0
+    - _ReceiveShadows: 1
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 0
