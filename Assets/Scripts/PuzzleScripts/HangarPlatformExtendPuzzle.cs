@@ -21,6 +21,11 @@ public class HangarPlatformExtendPuzzle : PuzzlePart
         origin = this.transform.position;
     }
 
+    public override void ConsoleInteracted()
+    {
+        throw new System.NotImplementedException();
+    }
+
     // Extends platform out to desired point
     public override void StartPuzzle()
     {

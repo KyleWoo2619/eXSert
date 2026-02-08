@@ -8,7 +8,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: G_Walk
-  m_Speed: 1
+  m_Speed: 1.25
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -34,7 +34,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Guard_Idle
-  m_Speed: 1
+  m_Speed: 1.63
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -60,7 +60,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: ST_Breathing
-  m_Speed: 1
+  m_Speed: 1.67
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -112,7 +112,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Walk
-  m_Speed: 1
+  m_Speed: 1.07
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -256,7 +256,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Sprint
-  m_Speed: 1
+  m_Speed: 0.95
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -282,7 +282,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: AC_X2
-  m_Speed: 1
+  m_Speed: 1.57
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -365,7 +365,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Flinch
-  m_Speed: 2
+  m_Speed: 2.25
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -417,7 +417,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Launcher
-  m_Speed: 1.5
+  m_Speed: 1.42
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -443,7 +443,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: AY2
-  m_Speed: 2
+  m_Speed: 1.35
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -469,7 +469,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Parry
-  m_Speed: 1
+  m_Speed: 2
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -495,7 +495,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Plunge
-  m_Speed: 1
+  m_Speed: 1.75
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -650,7 +650,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Guard_Up
-  m_Speed: 2
+  m_Speed: 0.9
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -790,7 +790,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Land
-  m_Speed: 1
+  m_Speed: 0.85
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -841,7 +841,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: AirJump_Start
-  m_Speed: 1
+  m_Speed: 1.14
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -936,10 +936,10 @@ AnimatorStateMachine:
     m_Position: {x: 610, y: 90, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 1519275673870685393}
-    m_Position: {x: 130, y: 970, z: 0}
+    m_Position: {x: 130, y: 2650, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -3888456926490587489}
-    m_Position: {x: 130, y: 910, z: 0}
+    m_Position: {x: 130, y: 2590, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 1690960497904678577}
     m_Position: {x: 610, y: 150, z: 0}
@@ -948,13 +948,13 @@ AnimatorStateMachine:
     m_Position: {x: 610, y: 270, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -5434755179960875151}
-    m_Position: {x: 130, y: 850, z: 0}
+    m_Position: {x: 130, y: 2530, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 3346601822196863852}
     m_Position: {x: 610, y: 210, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 6913825643005280454}
-    m_Position: {x: 130, y: 1030, z: 0}
+    m_Position: {x: 130, y: 2710, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 6114234053076302848}
     m_Position: {x: 340, y: 210, z: 0}
@@ -981,7 +981,7 @@ AnimatorStateMachine:
     m_Position: {x: -620, y: 210, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -781094396064026069}
-    m_Position: {x: 350, y: 1030, z: 0}
+    m_Position: {x: 350, y: 2710, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -8630355727111238561}
     m_Position: {x: 110, y: 90, z: 0}
@@ -1011,10 +1011,10 @@ AnimatorStateMachine:
     m_Position: {x: -620, y: 150, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -4250257384300162652}
-    m_Position: {x: 350, y: 910, z: 0}
+    m_Position: {x: 350, y: 2590, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 2036545554038281505}
-    m_Position: {x: 350, y: 850, z: 0}
+    m_Position: {x: 350, y: 2530, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 462924224129112338}
     m_Position: {x: 340, y: 470, z: 0}
@@ -1023,13 +1023,13 @@ AnimatorStateMachine:
     m_Position: {x: 340, y: 530, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 4406277788103619303}
-    m_Position: {x: 580, y: 850, z: 0}
+    m_Position: {x: 580, y: 2530, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -2964799667713198567}
-    m_Position: {x: 580, y: 910, z: 0}
+    m_Position: {x: 580, y: 2590, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -3430331023728253647}
-    m_Position: {x: 580, y: 970, z: 0}
+    m_Position: {x: 580, y: 2650, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 1224292177821789198}
     m_Position: {x: 610, y: 420, z: 0}
@@ -1056,7 +1056,7 @@ AnimatorStateMachine:
     m_Position: {x: -390, y: 150, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -3874875593551664632}
-    m_Position: {x: 350, y: 970, z: 0}
+    m_Position: {x: 350, y: 2650, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 1316726864401545717}
     m_Position: {x: 340, y: 360, z: 0}
@@ -1166,7 +1166,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Jog
-  m_Speed: 1
+  m_Speed: 1.03
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -1276,7 +1276,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: SX4
-  m_Speed: 1.5
+  m_Speed: 1.18
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -1302,7 +1302,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: AC_X1
-  m_Speed: 1
+  m_Speed: 1.81
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -1441,7 +1441,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: AY1
-  m_Speed: 2
+  m_Speed: 1.45
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -1467,7 +1467,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Death
-  m_Speed: 1
+  m_Speed: 0.88
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -1550,7 +1550,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: SX2
-  m_Speed: 1.5
+  m_Speed: 1.57
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -1576,7 +1576,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: AirDash
-  m_Speed: 1.5
+  m_Speed: 1.6
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -1659,7 +1659,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: SX3
-  m_Speed: 1.5
+  m_Speed: 1.36
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -1716,7 +1716,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: SX5
-  m_Speed: 1.5
+  m_Speed: 1.08
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -1804,7 +1804,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: ST_Idle_Combat
-  m_Speed: 1
+  m_Speed: 0.94
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -1918,7 +1918,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Knockback
-  m_Speed: 1
+  m_Speed: 1.57
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -1969,7 +1969,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: ST_Idle_WC
-  m_Speed: 1
+  m_Speed: 1.32
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -2026,7 +2026,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: AOE_Idle_Combat
-  m_Speed: 1
+  m_Speed: 0.88
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -2180,7 +2180,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: SX1
-  m_Speed: 1.5
+  m_Speed: 1.57
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []
@@ -2206,7 +2206,7 @@ AnimatorState:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: AOE_Idle_WC
-  m_Speed: 1
+  m_Speed: 1.35
   m_CycleOffset: 0
   m_Transitions: []
   m_StateMachineBehaviours: []

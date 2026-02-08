@@ -7,7 +7,7 @@ public class MenuUIIconSwapper : MonoBehaviour
 
     void Update()
     {
-        if(InputReader.Instance.activeControlScheme == "Gamepad")
+        if(InputReader.activeControlScheme == "Gamepad")
         {
            foreach(GameObject uiElement in gamepadUI)
            {
