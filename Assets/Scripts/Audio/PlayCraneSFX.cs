@@ -17,6 +17,14 @@ public class PlayCraneSFX : MonoBehaviour
     void Awake()
     {
         puzzleSource = SoundManager.Instance.puzzleSource;
+        
+        if (puzzleSource == null)
+        {
+            Debug.LogError("PuzzleSource is not assigned in SoundManager! Please assign it in the inspector.");
+            enabled = false;
+            return;
+        }
+        
         originalSourceVolume = puzzleSource.volume;
     }
 

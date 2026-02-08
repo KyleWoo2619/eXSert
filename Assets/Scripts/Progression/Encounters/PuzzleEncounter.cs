@@ -22,6 +22,10 @@ namespace Progression.Encounters
             {
                 Debug.LogWarning($"[PuzzleEncounter] Multiple PuzzlePart scripts found in child objects of encounter {gameObject.name}. Using the first one found.");
             }
+            else
+            {
+                Debug.Log($"[PuzzleEncounter] Found PuzzlePart script in encounter {gameObject.name}.");
+            }
             part = parts[0];
         }
     }
