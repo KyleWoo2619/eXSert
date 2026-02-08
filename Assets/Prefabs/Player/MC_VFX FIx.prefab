@@ -5395,6 +5395,7 @@ GameObject:
   - component: {fileID: 6348948781746406361}
   - component: {fileID: 5206229162919500938}
   - component: {fileID: 359929981503245092}
+  - component: {fileID: 5058666932746763221}
   m_Layer: 6
   m_Name: CombatManager
   m_TagString: Untagged
@@ -5516,6 +5517,24 @@ MonoBehaviour:
   playerMovement: {fileID: 6150044602222399215}
   attackManager: {fileID: 2445762002116463598}
   attackLockSystem: {fileID: 3007275964402751658}
+--- !u!114 &5058666932746763221
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2452212790660438460}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34e70bb17c3ba73478a8f20712811ec1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Parry
+  parrySoundEffect: {fileID: 0}
+  parryEffect: {fileID: 8926484042661614526, guid: 5c652b3d84f2d4f4eac03e01c6a0d1cc, type: 3}
+  parryEffectDuration: 1
+  pauseTimeOnParry: 1
+  parryPauseDuration: 0.05
+  howSlowTimeScales: 0.5
 --- !u!1 &2525516429101545011
 GameObject:
   m_ObjectHideFlags: 0

@@ -735,6 +735,8 @@ public class PlayerAttackManager : MonoBehaviour
     private void CompleteCancelWindow()
     {
         InputReader.inputBusy = false;
+        playerMovement?.SuppressLocomotionAnimations(false);
+        playerMovement?.ForceLocomotionRefresh();
 
         var finishedAttack = currentAttack;
 
@@ -837,6 +839,7 @@ public class PlayerAttackManager : MonoBehaviour
         ClearHitbox();
         currentAttack = null;
         InputReader.inputBusy = false;
+        playerMovement?.ForceLocomotionRefresh();
 
         if (resetCombo)
         {

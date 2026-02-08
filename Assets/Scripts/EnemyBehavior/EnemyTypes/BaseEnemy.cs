@@ -157,6 +157,7 @@ public abstract class BaseEnemy<TState, TTrigger> : BaseEnemyCore, IQueuedAttack
     /// Returns true if this enemy is alive and able to attack.
     /// </summary>
     public bool IsAlive => currentHealth > 0f && gameObject != null && gameObject.activeInHierarchy;
+    public override bool isAlive => IsAlive;
     
     /// <summary>
     /// Returns the GameObject for the queue manager.
