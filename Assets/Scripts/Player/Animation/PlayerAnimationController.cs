@@ -103,12 +103,14 @@ public class PlayerAnimationController : MonoBehaviour
     [SerializeField] private int layerIndex = 0;
 
     [Header("Crossfade Settings")]
-    [SerializeField, Range(0f, 0.3f)] private float defaultTransition = 0.08f;
+    [SerializeField, Range(0f, 0.3f)] private float defaultTransition = 0.16f;
     [SerializeField, Range(0f, 0.6f)] private float fallingTransition = 0.2f;
 
     [Header("Animation Events")]
     [Tooltip("Attack manager that receives hitbox/cancel callbacks.")]
     [SerializeField] private PlayerAttackManager attackManager;
+    [Tooltip("Player movement that receives jump event callbacks.")]
+    [SerializeField] private PlayerMovement playerMovement;
     [Tooltip("Optional: log animation event invocations for debugging.")]
     [SerializeField] private bool logAnimationEvents = false;
 
@@ -128,6 +130,13 @@ public class PlayerAnimationController : MonoBehaviour
             attackManager = GetComponent<PlayerAttackManager>();
             if (attackManager == null)
                 attackManager = GetComponentInParent<PlayerAttackManager>();
+        }
+
+        if (playerMovement == null)
+        {
+            playerMovement = GetComponent<PlayerMovement>()
+                ?? GetComponentInParent<PlayerMovement>()
+                ?? GetComponentInChildren<PlayerMovement>();
         }
     }
 
@@ -287,6 +296,22 @@ public class PlayerAnimationController : MonoBehaviour
             Debug.Log("[PlayerAnimationController] CancelWindowStart invoked");
 
         attackManager?.HandleAnimationCancelWindow();
+    }
+
+    public void MoveForward()
+    {
+        if (logAnimationEvents)
+            Debug.Log("[PlayerAnimationController] MoveForward invoked");
+
+        attackManager?.HandleAnimationMoveForward();
+    }
+
+    public void Jump()
+    {
+        if (logAnimationEvents)
+            Debug.Log("[PlayerAnimationController] Jump invoked");
+
+        playerMovement?.HandleAnimationJumpEvent();
     }
 
     // Legacy event names kept to avoid missing-method errors on existing clips

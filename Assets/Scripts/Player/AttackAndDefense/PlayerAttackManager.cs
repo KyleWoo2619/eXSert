@@ -396,8 +396,6 @@ public class PlayerAttackManager : MonoBehaviour
 
         PlaySfx(attackData.attackSFX);
 
-        ApplyHeavyAttackForwardMove(attackData);
-
         if (animationOverride != null)
             animationOverride(animationController);
         else if (playDefaultAnimation)
@@ -408,12 +406,9 @@ public class PlayerAttackManager : MonoBehaviour
         Debug.Log($"[PlayerAttackManager] Executing attack {attackData.attackName} ({attackId})");
     }
 
-    private void ApplyHeavyAttackForwardMove(PlayerAttack attackData)
+    private void ApplyAttackForwardMove(PlayerAttack attackData)
     {
         if (attackData == null)
-            return;
-
-        if (!IsHeavyAttack(attackData))
             return;
 
         float distance = attackData.forwardMoveDistance;
@@ -427,6 +422,12 @@ public class PlayerAttackManager : MonoBehaviour
         forward.Normalize();
 
         float duration = attackData.forwardMoveDuration;
+        if (playerMovement != null)
+        {
+            playerMovement.StartAttackForwardMove(forward, distance, duration);
+            return;
+        }
+
         if (duration <= 0f)
         {
             MoveXZ(forward * distance);
@@ -477,16 +478,6 @@ public class PlayerAttackManager : MonoBehaviour
             characterController.Move(planarDelta);
         else
             transform.position += planarDelta;
-    }
-
-    private static bool IsHeavyAttack(PlayerAttack attackData)
-    {
-        if (attackData == null)
-            return false;
-
-        return attackData.attackType == AttackType.HeavySingle
-            || attackData.attackType == AttackType.HeavyAOE
-            || attackData.attackType == AttackType.HeavyAerial;
     }
 
     private bool IsGrounded()
@@ -765,6 +756,17 @@ public class PlayerAttackManager : MonoBehaviour
             return;
 
         tierComboManager?.StartComboResetCountdown();
+    }
+
+    public void HandleAnimationMoveForward()
+    {
+        if (currentAttack == null)
+        {
+            Debug.LogWarning("[PlayerAttackManager] Animation requested a forward move but no attack is active.");
+            return;
+        }
+
+        ApplyAttackForwardMove(currentAttack);
     }
 
     private void PlayCombatIdle(float transition)

@@ -242,17 +242,6 @@
                 },
                 {
                     "name": "",
-                    "id": "c07f947f-a9b0-4821-8692-8ece383d545f",
-                    "path": "<Mouse>/leftButton",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Keyboard&Mouse",
-                    "action": "LightAttack",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "fe0f89c6-cb17-4d1b-a6de-4a34a98a7805",
                     "path": "<Gamepad>/buttonWest",
                     "interactions": "",
@@ -264,12 +253,12 @@
                 },
                 {
                     "name": "",
-                    "id": "cd69d440-de2d-425e-b3ba-767409a81a91",
-                    "path": "<Mouse>/rightButton",
+                    "id": "147c4b29-d9c2-47a8-a20c-792287bc384c",
+                    "path": "<Mouse>/leftButton",
                     "interactions": "",
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
-                    "action": "HeavyAttack",
+                    "action": "LightAttack",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -280,6 +269,17 @@
                     "interactions": "",
                     "processors": "",
                     "groups": ";Gamepad",
+                    "action": "HeavyAttack",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "715e0863-bc26-4125-b73a-5b222ba9fc7d",
+                    "path": "<Mouse>/rightButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
                     "action": "HeavyAttack",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -1313,6 +1313,11 @@
             "devices": [
                 {
                     "devicePath": "<Keyboard>",
+                    "isOptional": false,
+                    "isOR": false
+                },
+                {
+                    "devicePath": "<Mouse>",
                     "isOptional": false,
                     "isOR": false
                 }

@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 /*
 Written by Kyle Woo
@@ -10,54 +12,107 @@ Manages the cursor visibility and lock state based on the current input scheme a
 [RequireComponent(typeof(PlayerInput))]
 public class CursorBySchemeAndMap : MonoBehaviour
 {
-    [SerializeField] private string uiActionMapName = "UI";
-    [SerializeField] private string gameplayActionMapName = "Gameplay";
-    [SerializeField] private string keyboardMouseSchemeName = "Keyboard&Mouse"; // match your scheme name
+    [SerializeField] private string[] uiActionMapNames = new[] { "UI", "Menu" };
+    [SerializeField] private string loadingActionMapName = "Loading";
+    [SerializeField] private string[] keyboardMouseSchemeNames = new[] { "Keyboard&Mouse", "KeyboardMouse" };
+    [SerializeField] private string[] forceShowCursorScenes = new[] { "MainMenu" };
     [SerializeField] private CursorLockMode lockModeWhenHidden = CursorLockMode.Locked;
+
+    private static bool forceHidden;
+    private static readonly List<CursorBySchemeAndMap> Instances = new();
 
     private PlayerInput playerInput;
     private string lastMap;
     private string lastScheme;
 
-    void Awake()
+    public static void SetForceHidden(bool hidden)
+    {
+        forceHidden = hidden;
+        foreach (var instance in Instances)
+        {
+            if (instance != null)
+                instance.ApplyCursorPolicy();
+        }
+    }
+
+    private void Awake()
     {
         playerInput = GetComponent<PlayerInput>();
-        lastMap = playerInput.currentActionMap != null ? playerInput.currentActionMap.name : "";
-        lastScheme = playerInput.currentControlScheme;
+        CacheState();
         ApplyCursorPolicy();
-        
-        // Update when devices change (keyboard ↔ gamepad swap)
-        playerInput.onControlsChanged += _ => OnControlsOrMapPossiblyChanged();
+
+        if (playerInput != null)
+            playerInput.onControlsChanged += HandleControlsChanged;
     }
 
-    void OnDestroy()
+    private void OnDestroy()
     {
         if (playerInput != null)
-            playerInput.onControlsChanged -= _ => OnControlsOrMapPossiblyChanged();
+            playerInput.onControlsChanged -= HandleControlsChanged;
+        Instances.Remove(this);
     }
 
-    void Update()
+    private void OnEnable()
+    {
+        if (!Instances.Contains(this))
+            Instances.Add(this);
+    }
+
+    private void OnDisable()
+    {
+        Instances.Remove(this);
+    }
+
+    private void Update()
     {
         // Detect manual SwitchCurrentActionMap calls
-        var mapName = playerInput.currentActionMap != null ? playerInput.currentActionMap.name : "";
-        if (mapName != lastMap)
+        var mapName = playerInput != null && playerInput.currentActionMap != null ? playerInput.currentActionMap.name : string.Empty;
+        if (!string.Equals(mapName, lastMap, System.StringComparison.Ordinal))
             OnControlsOrMapPossiblyChanged();
+    }
+
+    private void HandleControlsChanged(PlayerInput _)
+    {
+        OnControlsOrMapPossiblyChanged();
     }
 
     private void OnControlsOrMapPossiblyChanged()
     {
-        lastMap = playerInput.currentActionMap != null ? playerInput.currentActionMap.name : "";
-        lastScheme = playerInput.currentControlScheme;
+        CacheState();
         ApplyCursorPolicy();
+    }
+
+    private void CacheState()
+    {
+        lastMap = playerInput != null && playerInput.currentActionMap != null ? playerInput.currentActionMap.name : string.Empty;
+        lastScheme = playerInput != null ? playerInput.currentControlScheme : string.Empty;
     }
 
     private void ApplyCursorPolicy()
     {
-        bool inUI = playerInput.currentActionMap != null &&
-                    playerInput.currentActionMap.name == uiActionMapName;
+        if (forceHidden)
+        {
+            HideCursor();
+            return;
+        }
 
-        bool onKeyboardMouse = !string.IsNullOrEmpty(playerInput.currentControlScheme) &&
-                               playerInput.currentControlScheme == keyboardMouseSchemeName;
+        if (IsSceneForcedVisible())
+        {
+            ShowCursor();
+            return;
+        }
+
+        bool inLoading = !string.IsNullOrEmpty(loadingActionMapName)
+            && string.Equals(lastMap, loadingActionMapName, System.StringComparison.OrdinalIgnoreCase);
+
+        if (inLoading)
+        {
+            HideCursor();
+            return;
+        }
+
+        bool inUI = IsMatch(lastMap, uiActionMapNames);
+        bool onKeyboardMouse = IsMatch(lastScheme, keyboardMouseSchemeNames);
 
         if (inUI && onKeyboardMouse)
             ShowCursor();
@@ -65,7 +120,31 @@ public class CursorBySchemeAndMap : MonoBehaviour
             HideCursor();
     }
 
-    // Public helpers if you want to call them elsewhere
+    private static bool IsMatch(string value, string[] candidates)
+    {
+        if (string.IsNullOrEmpty(value) || candidates == null)
+            return false;
+
+        foreach (var candidate in candidates)
+        {
+            if (string.IsNullOrEmpty(candidate))
+                continue;
+            if (string.Equals(value, candidate, System.StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsSceneForcedVisible()
+    {
+        if (forceShowCursorScenes == null || forceShowCursorScenes.Length == 0)
+            return false;
+
+        string sceneName = SceneManager.GetActiveScene().name;
+        return IsMatch(sceneName, forceShowCursorScenes);
+    }
+
     public void ShowCursor()
     {
         Cursor.visible = true;
