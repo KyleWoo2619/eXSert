@@ -1277,9 +1277,16 @@ public class PlayerMovement : MonoBehaviour
     public void SuppressLocomotionAnimations(bool suppress)
     {
         locomotionAnimationSuppressed = suppress;
+        if (suppress)
+            wasMoving = false;
     }
 
     public bool IsLocomotionAnimationSuppressed => locomotionAnimationSuppressed;
+
+    public void ForceLocomotionRefresh()
+    {
+        wasMoving = false;
+    }
 
     public bool IsJumpPending => pendingJump != PendingJumpType.None;
 

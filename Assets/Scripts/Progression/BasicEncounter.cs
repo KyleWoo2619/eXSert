@@ -26,6 +26,9 @@ namespace Progression.Encounters
 
         [SerializeField]
         public BasicEncounter encounterToEnable;
+
+        [SerializeField, Tooltip("Seconds to wait before enabling the next encounter.")]
+        protected float enableNextEncounterDelaySeconds = 0f;
         #endregion
 
         /// <summary>
@@ -63,6 +66,8 @@ namespace Progression.Encounters
 
             // basic encounter setup
             SetupEncounter();
+
+            SetEncounterEnabled(startEnabled);
         }
 
         #region Setup Functions
@@ -91,6 +96,8 @@ namespace Progression.Encounters
         #region Collider Functions
         protected virtual void OnTriggerEnter(Collider other)
         {
+            if (!zoneEnabled)
+                return;
             if (other.gameObject.tag != "Player")
                 return;
             zoneActive = true;
@@ -99,10 +106,45 @@ namespace Progression.Encounters
 
         protected virtual void OnTriggerExit(Collider other)
         {
+            if (!zoneEnabled)
+                return;
             if (other.gameObject.tag != "Player")
                 return;
             zoneActive = false;
             Debug.Log("Zone Left");
+        }
+
+        public void SetEncounterEnabled(bool enabled)
+        {
+            zoneEnabled = enabled;
+            if (encounterZone != null)
+                encounterZone.enabled = enabled;
+        }
+
+        protected void HandleEncounterCompleted()
+        {
+            if (enableEncounterOnComplete && encounterToEnable != null)
+            {
+                if (enableNextEncounterDelaySeconds > 0f)
+                {
+                    StartCoroutine(EnableEncounterAfterDelay());
+                }
+                else
+                {
+                    encounterToEnable.SetEncounterEnabled(true);
+                }
+            }
+        }
+
+        private System.Collections.IEnumerator EnableEncounterAfterDelay()
+        {
+            yield return new WaitForSeconds(enableNextEncounterDelaySeconds);
+            encounterToEnable.SetEncounterEnabled(true);
+        }
+
+        protected void SetEnableNextEncounterDelaySeconds(float seconds)
+        {
+            enableNextEncounterDelaySeconds = Mathf.Max(0f, seconds);
         }
         #endregion
 
