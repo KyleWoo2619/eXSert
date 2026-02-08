@@ -981,6 +981,13 @@ public class PlayerMovement : MonoBehaviour
 
             bool movementBuffered = InputReader.MoveInput.sqrMagnitude > moveInputDeadZone * moveInputDeadZone;
             landingAnimationLockTimer = landedFromPlunge || movementBuffered ? 0f : landingLockDuration;
+
+            if (movementBuffered && !locomotionAnimationSuppressed && !airborneAnimationLocked)
+            {
+                // Force locomotion to cancel lingering fall/land clips when input is held.
+                wasMoving = false;
+                PlayMovementAnimation();
+            }
         }
         else if (!grounded)
         {

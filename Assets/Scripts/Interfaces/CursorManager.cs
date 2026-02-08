@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 /*
 Written by Kyle Woo
@@ -14,6 +15,7 @@ public class CursorBySchemeAndMap : MonoBehaviour
     [SerializeField] private string[] uiActionMapNames = new[] { "UI", "Menu" };
     [SerializeField] private string loadingActionMapName = "Loading";
     [SerializeField] private string[] keyboardMouseSchemeNames = new[] { "Keyboard&Mouse", "KeyboardMouse" };
+    [SerializeField] private string[] forceShowCursorScenes = new[] { "MainMenu" };
     [SerializeField] private CursorLockMode lockModeWhenHidden = CursorLockMode.Locked;
 
     private static bool forceHidden;
@@ -94,6 +96,12 @@ public class CursorBySchemeAndMap : MonoBehaviour
             return;
         }
 
+        if (IsSceneForcedVisible())
+        {
+            ShowCursor();
+            return;
+        }
+
         bool inLoading = !string.IsNullOrEmpty(loadingActionMapName)
             && string.Equals(lastMap, loadingActionMapName, System.StringComparison.OrdinalIgnoreCase);
 
@@ -126,6 +134,15 @@ public class CursorBySchemeAndMap : MonoBehaviour
         }
 
         return false;
+    }
+
+    private bool IsSceneForcedVisible()
+    {
+        if (forceShowCursorScenes == null || forceShowCursorScenes.Length == 0)
+            return false;
+
+        string sceneName = SceneManager.GetActiveScene().name;
+        return IsMatch(sceneName, forceShowCursorScenes);
     }
 
     public void ShowCursor()

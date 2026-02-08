@@ -7,6 +7,10 @@ using UnityEngine;
 /// </summary>
 public class AttackStateDriver : StateMachineBehaviour
 {
+    private static readonly int CanChainH = Animator.StringToHash("CanChain");
+    private static readonly int BufferedXH = Animator.StringToHash("BufferedX");
+    private static readonly int BufferedYH = Animator.StringToHash("BufferedY");
+
     [Header("Attack Id")] public string attackId = ""; // e.g., SX1, AX2, SY1, AY2
 
     [Header("Active Window (seconds)")]
@@ -20,8 +24,6 @@ public class AttackStateDriver : StateMachineBehaviour
     private bool spawned;
     private bool chainOpened;
     private PlayerAttackManager attackManager;
-    private AnimFacade anim;
-
     public override void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
         spawned = false;
@@ -48,12 +50,9 @@ public class AttackStateDriver : StateMachineBehaviour
             }
         }
         
-        if (!anim)
-        {
-            anim = animator.GetComponent<AnimFacade>();
-            if (!anim) anim = animator.GetComponentInParent<AnimFacade>();
-            if (!anim) anim = animator.GetComponentInChildren<AnimFacade>();
-        }
+        animator.SetBool(CanChainH, false);
+        animator.SetBool(BufferedXH, false);
+        animator.SetBool(BufferedYH, false);
 
         // Lock input while the state plays
         InputReader.inputBusy = true;
@@ -93,7 +92,7 @@ public class AttackStateDriver : StateMachineBehaviour
         if (!chainOpened && chainOpenAt >= 0f && t >= chainOpenAt)
         {
             chainOpened = true;
-            anim?.OpenChainWindow();
+            animator.SetBool(CanChainH, true);
         }
     }
 
@@ -101,7 +100,8 @@ public class AttackStateDriver : StateMachineBehaviour
     {
         // Release input and close chain window on exit
         InputReader.inputBusy = false;
-        anim?.CloseChainWindow();
-        anim?.ClearBufferedInputs();
+        animator.SetBool(CanChainH, false);
+        animator.SetBool(BufferedXH, false);
+        animator.SetBool(BufferedYH, false);
     }
 }
