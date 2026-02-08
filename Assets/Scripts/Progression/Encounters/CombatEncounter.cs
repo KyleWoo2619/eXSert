@@ -1,95 +1,94 @@
 using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 namespace Progression.Encounters
 {
-    public class CombatEncounter : BasicEncounter
+    /// <summary>
+    /// Subclass Wave to hold the data for the individual waves for encounters.
+    /// Additionally holds wave specific functionality.
+    /// </summary>
+    internal class Wave
     {
-        [SerializeField] private bool tempIsCompleted;
+        // Holds all the enemy game objects in this wave, and whether they are alive
+        internal List<BaseEnemyCore> enemies = new List<BaseEnemyCore>();
 
-        public override bool isCompleted
+        public event Action<Wave> OnWaveComplete;
+
+        // class constructor
+        public Wave(List<GameObject> _enemies)
         {
-            get
+            foreach (var enemy in _enemies)
             {
-                return tempIsCompleted;
+                BaseEnemyCore enemyCore = enemy.GetComponent<BaseEnemyCore>();
+                if (enemyCore != null)
+                {
+                    enemies.Add(enemyCore);
+
+                    enemyCore.OnDeath += OnEnemyDefeated;
+                }
+                else
+                    Debug.LogWarning($"[CombatEncounter] Detected nonenemy gameobject {enemy.name} attached to encounter. Skipping object");
             }
         }
 
         /// <summary>
-        /// Subclass Wave to hold the data for the individual waves for encounters.
-        /// Additionally holds wave specific functionality.
+        /// Function to spawn all enemies in this wave
+        /// Currently only activates the gameobjects but eventially should trigger spawn behavior in base enemy script
         /// </summary>
-        internal class Wave
+        public void SpawnEnemies()
         {
-            // Holds all the enemy game objects in this wave, and whether they are alive
-            internal List<BaseEnemyCore> enemies = new List<BaseEnemyCore>();
-
-            public event Action<Wave> OnWaveComplete;
-
-            // class constructor
-            public Wave(List<GameObject> _enemies)
+            foreach (BaseEnemyCore enemy in enemies)
             {
-                foreach (var enemy in _enemies)
-                {
-                    BaseEnemyCore enemyCore = enemy.GetComponent<BaseEnemyCore>();
-                    if (enemyCore != null)
-                    {
-                        enemies.Add(enemyCore);
-
-                        enemyCore.OnDeath += OnEnemyDefeated;
-                    }
-                    else
-                        Debug.LogWarning($"[CombatEncounter] Detected nonenemy gameobject {enemy.name} attached to encounter. Skipping object");
-                }
-            }
-
-            
-
-
-            /// <summary>
-            /// Function to spawn all enemies in this wave
-            /// Currently only activates the gameobjects but eventially should trigger spawn behavior in base enemy script
-            /// </summary>
-            public void SpawnEnemies()
-            {
-                foreach (BaseEnemyCore enemy in enemies)
-                {
-                    enemy.Spawn();
-                }
-            }
-
-            /// <summary>
-            /// Function to reset all enemies in this wave
-            /// Currently only deactivates the gameobjects but eventially should trigger reset behavior in base enemy script
-            /// </summary>
-            public void ResetEnemies()
-            {
-                foreach (BaseEnemyCore enemy in enemies)
-                {
-                    enemy.ResetEnemy();
-                }
-            }
-
-            /// <summary>
-            /// Handles the logic for when an enemy is defeated
-            /// Function should be subscribed to the enemy's OnDefeated event
-            /// </summary>
-            /// <param name="enemy"></param>
-            private void OnEnemyDefeated(BaseEnemyCore enemy)
-            {
-                if (enemies.Contains(enemy) && AreAllEnemiesDefeated()) // check if all enemies are defeated
-                    OnWaveComplete?.Invoke(this); // trigger next wave or end encounter
-
-                bool AreAllEnemiesDefeated()
-                {
-                    foreach (var enemy in enemies)
-                        if (enemy.isAlive) // if any enemy is still alive
-                            return false;
-                    return true;
-                }
+                enemy.Spawn();
             }
         }
+
+        /// <summary>
+        /// Function to reset all enemies in this wave
+        /// Currently only deactivates the gameobjects but eventially should trigger reset behavior in base enemy script
+        /// </summary>
+        public void ResetEnemies()
+        {
+            foreach (BaseEnemyCore enemy in enemies)
+            {
+                enemy.ResetEnemy();
+            }
+        }
+
+        /// <summary>
+        /// Handles the logic for when an enemy is defeated
+        /// Function should be subscribed to the enemy's OnDefeated event
+        /// </summary>
+        /// <param name="enemy"></param>
+        private void OnEnemyDefeated(BaseEnemyCore enemy)
+        {
+            if (enemies.Contains(enemy) && AreAllEnemiesDefeated()) // check if all enemies are defeated
+                OnWaveComplete?.Invoke(this); // trigger next wave or end encounter
+
+            bool AreAllEnemiesDefeated()
+            {
+                foreach (var enemy in enemies)
+                    if (enemy.isAlive) // if any enemy is still alive
+                        return false;
+                return true;
+            }
+        }
+
+        public void CleanUp()
+        {
+            foreach (var enemy in enemies)
+                enemy.OnDeath -= OnEnemyDefeated;
+
+            // removes all the enemies from the wave and clears the list to free up memory
+            enemies.Clear();
+        }
+    }
+
+    public class CombatEncounter : BasicEncounter
+    {
+        public override bool isCompleted => wavesQueue.Count == 0;
 
         protected override Color DebugColor { get => Color.red; }
 
@@ -112,13 +111,14 @@ namespace Progression.Encounters
 
                 newWave.OnWaveComplete += WaveComplete;
 
+                // adds the new wave to the list of all waves
                 allWaves.Add(newWave);
             }
 
             ResetWaves();
 
             // sub function to create a new wave of enemies using all the gameobjects childed to an empty gameobject
-            Wave CreateWave(Transform parentObject)
+            static Wave CreateWave(Transform parentObject)
             {
                 List<GameObject> enemiesToAdd = new List<GameObject>();
                 foreach (Transform waveChild in parentObject)
@@ -128,15 +128,36 @@ namespace Progression.Encounters
             }
         }
 
+        protected override void CleanupEncounter()
+        {
+            foreach (var wave in allWaves)
+            {
+                wave.OnWaveComplete -= WaveComplete;
+                wave.CleanUp();
+            }
+            allWaves.Clear();
+            wavesQueue.Clear();
+
+            base.CleanupEncounter();
+        }
+
         private void WaveComplete(Wave compleatedWave)
         {
-            if(wavesQueue.Peek() == compleatedWave)
-            {
-                compleatedWave.OnWaveComplete -= WaveComplete;
-                wavesQueue.Dequeue();
+            // ensures that the wave that triggered the event is the current wave.
+            if (wavesQueue.Peek() != compleatedWave)
+                return;
 
-                SpawnNextWave();
+            compleatedWave.OnWaveComplete -= WaveComplete;
+            wavesQueue.Dequeue();
+
+            // check if there are any more waves to spawn, if not the encounter is compleated
+            if (wavesQueue.Count == 0)
+            {
+                Debug.Log($"Combat Encounter {gameObject.name} Completed!");
+                return;
             }
+
+            SpawnNextWave();
         }
 
         private void SpawnNextWave()

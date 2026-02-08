@@ -42,6 +42,12 @@ namespace Progression.Encounters
         /// Indicates whether the encounter has been completed
         /// </summary>
         public abstract bool isCompleted { get; }
+
+        /// <summary>
+        /// Indicates whether the encounter has been cleaned up after completion.
+        /// </summary>
+        public bool isCleanedUp { get; private set; } = false;
+
         protected BoxCollider encounterZone;
 
         protected virtual void Awake()
@@ -86,6 +92,23 @@ namespace Progression.Encounters
         /// The setup function for the encounter, called during Start after being added to the ProgressionManager
         /// </summary>
         protected abstract void SetupEncounter();
+
+        /// <summary>
+        /// The function to clean up the encounter after it is completed, called by the ProgressionManager when this encounter is marked as completed.
+        /// </summary>
+        protected virtual void CleanupEncounter()
+        {
+            isCleanedUp = true;
+
+            // disables the encounter collider for simplicity
+            encounterZone.enabled = false;
+        }
+
+        public void ManualCleanUpCall()
+        {
+            Debug.Log($"Manual cleanup call for encounter {encounterName} in scene {SceneAsset.GetSceneAssetOfObject(this.gameObject).name}.");
+            CleanupEncounter();
+        }
         #endregion
 
         #region Collider Functions
@@ -103,6 +126,11 @@ namespace Progression.Encounters
                 return;
             zoneActive = false;
             Debug.Log("Zone Left");
+
+            if(isCompleted && !isCleanedUp)
+            {
+                CleanupEncounter();
+            }
         }
         #endregion
 
