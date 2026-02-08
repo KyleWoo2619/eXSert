@@ -119,6 +119,9 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField, Range(1, 50)]
     private float terminalVelocity = 20;
 
+    [SerializeField, Range(0f, 0.3f)]
+    private float jumpEventTimeout = 0.12f;
+
     [SerializeField]
     private bool canDoubleJump;
 
@@ -207,6 +210,9 @@ public class PlayerMovement : MonoBehaviour
     private float inputReleaseTimer;
     private Vector2 cachedMoveInput;
     private bool doubleJumpAvailable;
+    private enum PendingJumpType { None, Ground, Double }
+    private PendingJumpType pendingJump = PendingJumpType.None;
+    private float pendingJumpTimer;
     private bool airborneAnimationLocked;
     private bool fallingAnimationPlaying;
     private float landingAnimationLockTimer;
@@ -234,6 +240,9 @@ public class PlayerMovement : MonoBehaviour
     // External velocity injection (used by vacuum suction, knockback, etc.)
     private Vector3 externalVelocity = Vector3.zero;
     private bool externalVelocityActive;
+    private Vector3 attackMoveVelocity = Vector3.zero;
+    private bool attackMoveActive;
+    private Coroutine attackMoveRoutine;
     private bool isKnockbackActive;
     private Vector3 knockbackVelocity;
     private float knockbackStartMagnitude;
@@ -328,7 +337,10 @@ public class PlayerMovement : MonoBehaviour
     void Start()
     {
         characterController = GetComponent<CharacterController>();
-        animationController = animationController != null ? animationController : GetComponent<PlayerAnimationController>();
+        animationController = animationController
+            ?? GetComponent<PlayerAnimationController>()
+            ?? GetComponentInChildren<PlayerAnimationController>()
+            ?? GetComponentInParent<PlayerAnimationController>();
 
         if (aerialComboManager == null)
         {
@@ -416,6 +428,22 @@ public class PlayerMovement : MonoBehaviour
             s_instance = null;
     }
 
+    private void Update()
+    {
+        if (_jumpAction != null && _jumpAction.action != null && _jumpAction.action.triggered)
+            OnJump();
+
+        if (_dashAction != null && _dashAction.action != null && _dashAction.action.triggered)
+            OnDash();
+
+        if (pendingJump != PendingJumpType.None && pendingJumpTimer > 0f)
+        {
+            pendingJumpTimer -= Time.deltaTime;
+            if (pendingJumpTimer <= 0f)
+                HandleAnimationJumpEvent();
+        }
+    }
+
     // Update is called once per frame
     public void FixedUpdate()
     {
@@ -436,12 +464,6 @@ public class PlayerMovement : MonoBehaviour
 
         Move();
 
-        if (_jumpAction != null && _jumpAction.action != null && _jumpAction.action.triggered)
-            OnJump();
-
-        if (_dashAction != null && _dashAction.action != null && _dashAction.action.triggered)
-            OnDash();
-
         HandleAirborneAnimations();
 
         ApplyMovement();
@@ -450,6 +472,13 @@ public class PlayerMovement : MonoBehaviour
     private void Move()
     {
         if (InputReader.inputBusy || isDashing)
+        {
+            currentMovement.x = 0f;
+            currentMovement.z = 0f;
+            return;
+        }
+
+        if (isPlunging || plungeLandingPending)
         {
             currentMovement.x = 0f;
             currentMovement.z = 0f;
@@ -497,7 +526,7 @@ public class PlayerMovement : MonoBehaviour
                 transform.rotation = Quaternion.Slerp(transform.rotation, toRotation, Time.deltaTime * 10f);
             }
 
-            if (!locomotionAnimationSuppressed && !previouslyMoving && !stateChanged)
+            if (!locomotionAnimationSuppressed && pendingJump == PendingJumpType.None && !previouslyMoving && !stateChanged)
             {
                 PlayMovementAnimation();
             }
@@ -514,7 +543,7 @@ public class PlayerMovement : MonoBehaviour
             currentMovement.x = Mathf.MoveTowards(currentMovement.x, 0f, friction * Time.deltaTime);
             currentMovement.z = Mathf.MoveTowards(currentMovement.z, 0f, friction * Time.deltaTime);
 
-            if (!locomotionAnimationSuppressed && characterController.isGrounded && !airborneAnimationLocked && landingAnimationLockTimer <= 0f &&
+            if (!locomotionAnimationSuppressed && pendingJump == PendingJumpType.None && characterController.isGrounded && !airborneAnimationLocked && landingAnimationLockTimer <= 0f &&
                 (previouslyMoving || (Mathf.Abs(currentMovement.x) < 0.01f && Mathf.Abs(currentMovement.z) < 0.01f)))
             {
                 EnsureCombatIdleControllerReference();
@@ -552,27 +581,71 @@ public class PlayerMovement : MonoBehaviour
         if (CombatManager.isGuarding)
             return;
 
+        if (InputReader.inputBusy)
+            attackManager?.ForceCancelCurrentAttack(resetCombo: false);
+
+        if (characterController == null)
+            return;
+
+        if (pendingJump != PendingJumpType.None)
+            return;
+
         // checks to see if the player can jump or double jump
         if (characterController.isGrounded)
         {
-            currentMovement.y = jumpForce;
-            doubleJumpAvailable = canDoubleJump;
             airborneAnimationLocked = true;
             fallingAnimationPlaying = false;
             highFallActive = false;
-
+            pendingJump = PendingJumpType.Ground;
+            pendingJumpTimer = jumpEventTimeout;
             animationController?.PlayJump();
+            if (animationController == null || jumpEventTimeout <= 0f)
+                HandleAnimationJumpEvent();
         }
         else if (canDoubleJump && doubleJumpAvailable)
         {
-            currentMovement.y += doubleJumpForce;
-            doubleJumpAvailable = false;
             airborneAnimationLocked = true;
             fallingAnimationPlaying = false;
             highFallActive = true;
+            pendingJump = PendingJumpType.Double;
+            pendingJumpTimer = jumpEventTimeout;
             animationController?.PlayAirJumpStart();
-            DoubleJumpPerformed?.Invoke();
+            if (animationController == null || jumpEventTimeout <= 0f)
+                HandleAnimationJumpEvent();
         }
+    }
+
+    public void HandleAnimationJumpEvent()
+    {
+        if (pendingJump == PendingJumpType.None)
+            return;
+
+        pendingJumpTimer = 0f;
+
+        if (pendingJump == PendingJumpType.Ground)
+        {
+            if (!characterController.isGrounded)
+            {
+                pendingJump = PendingJumpType.None;
+                return;
+            }
+
+            currentMovement.y = jumpForce;
+            doubleJumpAvailable = canDoubleJump;
+            pendingJump = PendingJumpType.None;
+            return;
+        }
+
+        if (!canDoubleJump || !doubleJumpAvailable)
+        {
+            pendingJump = PendingJumpType.None;
+            return;
+        }
+
+        currentMovement.y += doubleJumpForce;
+        doubleJumpAvailable = false;
+        pendingJump = PendingJumpType.None;
+        DoubleJumpPerformed?.Invoke();
     }
 
     private void OnDash()
@@ -926,6 +999,12 @@ public class PlayerMovement : MonoBehaviour
         {
             horizontalMovement += new Vector3(externalVelocity.x, 0, externalVelocity.z);
         }
+
+        // Add attack forward-move velocity (smooth lunge)
+        if (attackMoveActive)
+        {
+            horizontalMovement += new Vector3(attackMoveVelocity.x, 0, attackMoveVelocity.z);
+        }
         
         // Handle knockback with wall collision
         if (isKnockbackActive)
@@ -953,6 +1032,12 @@ public class PlayerMovement : MonoBehaviour
     private void HandleAirborneAnimations()
     {
         bool grounded = characterController.isGrounded;
+
+        if (pendingJump != PendingJumpType.None)
+        {
+            wasGrounded = grounded;
+            return;
+        }
 
         if (!wasGrounded && grounded)
         {
@@ -982,7 +1067,7 @@ public class PlayerMovement : MonoBehaviour
             bool movementBuffered = InputReader.MoveInput.sqrMagnitude > moveInputDeadZone * moveInputDeadZone;
             landingAnimationLockTimer = landedFromPlunge || movementBuffered ? 0f : landingLockDuration;
 
-            if (movementBuffered && !locomotionAnimationSuppressed && !airborneAnimationLocked)
+            if (movementBuffered && !landedFromPlunge && !locomotionAnimationSuppressed && !airborneAnimationLocked)
             {
                 // Force locomotion to cancel lingering fall/land clips when input is held.
                 wasMoving = false;
@@ -1195,6 +1280,8 @@ public class PlayerMovement : MonoBehaviour
     }
 
     public bool IsLocomotionAnimationSuppressed => locomotionAnimationSuppressed;
+
+    public bool IsJumpPending => pendingJump != PendingJumpType.None;
 
     public void SetMovementSpeedOverride(float speed)
     {
@@ -1457,6 +1544,55 @@ public class PlayerMovement : MonoBehaviour
 #endif
         externalVelocity = Vector3.zero;
         externalVelocityActive = false;
+    }
+
+    /// <summary>
+    /// Smoothly moves the player forward over a duration without vertical displacement.
+    /// This uses a velocity blend so movement remains grounded and non-teleporting.
+    /// </summary>
+    public void StartAttackForwardMove(Vector3 forwardDirection, float distance, float duration)
+    {
+        if (distance <= 0f)
+            return;
+
+        Vector3 planarForward = new Vector3(forwardDirection.x, 0f, forwardDirection.z);
+        if (planarForward.sqrMagnitude <= 0.0001f)
+            return;
+
+        planarForward.Normalize();
+
+        if (attackMoveRoutine != null)
+            StopCoroutine(attackMoveRoutine);
+
+        attackMoveRoutine = StartCoroutine(AttackForwardMoveRoutine(planarForward, distance, duration));
+    }
+
+    private IEnumerator AttackForwardMoveRoutine(Vector3 forwardDirection, float distance, float duration)
+    {
+        duration = Mathf.Max(0.02f, duration);
+
+        attackMoveActive = true;
+        float elapsed = 0f;
+        float moved = 0f;
+
+        while (elapsed < duration)
+        {
+            float t = Mathf.Clamp01(elapsed / duration);
+            float eased = t * t * (3f - 2f * t); // smoothstep
+            float targetDistance = distance * eased;
+            float delta = targetDistance - moved;
+
+            if (Time.deltaTime > 0f)
+                attackMoveVelocity = forwardDirection * (delta / Time.deltaTime);
+
+            moved = targetDistance;
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        attackMoveVelocity = Vector3.zero;
+        attackMoveActive = false;
+        attackMoveRoutine = null;
     }
 
     /// <summary>

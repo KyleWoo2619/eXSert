@@ -28,6 +28,8 @@ public class PlayerCombatIdleController : MonoBehaviour
     private PlayerAnimationController animationController;
     [SerializeField]
     private CharacterController characterController;
+    [SerializeField]
+    private PlayerMovement playerMovement;
 
     [Header("Timing")]
     [SerializeField]
@@ -59,6 +61,9 @@ public class PlayerCombatIdleController : MonoBehaviour
         characterController ??= GetComponent<CharacterController>();
         if (characterController == null)
             characterController = GetComponentInParent<CharacterController>();
+        playerMovement ??= GetComponent<PlayerMovement>()
+            ?? GetComponentInParent<PlayerMovement>()
+            ?? GetComponentInChildren<PlayerMovement>();
     }
 
     private void Start()
@@ -128,13 +133,21 @@ public class PlayerCombatIdleController : MonoBehaviour
             return;
         }
 
+        if (playerMovement != null && playerMovement.IsJumpPending)
+        {
+            ResetBreathingTimer();
+            return;
+        }
+
         if (inputBusyLastFrame)
         {
             inputBusyLastFrame = false;
             lastStateName = string.Empty;
         }
 
-        bool grounded = characterController == null || characterController.isGrounded;
+        bool grounded = characterController != null
+            ? characterController.isGrounded
+            : playerMovement != null && PlayerMovement.isGrounded;
         bool hasMovementInput = InputReader.MoveInput.sqrMagnitude >= movementThreshold;
 
         if (combatTimer > 0f)
