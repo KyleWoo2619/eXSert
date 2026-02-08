@@ -107,7 +107,9 @@ public class InputReader : Singleton<InputReader>
             if (_playerInput != null) return _playerInput;
 
             // Creates a PlayerInput component on the singleton GameObject if none exists
-            return _playerInput = Instance.gameObject.AddComponent<PlayerInput>();
+            PlayerInput newInput = Instance.gameObject.AddComponent<PlayerInput>();
+            newInput.neverAutoSwitchControlSchemes = false;
+            return _playerInput = newInput;
         }
 
         private set { _playerInput = value; }
