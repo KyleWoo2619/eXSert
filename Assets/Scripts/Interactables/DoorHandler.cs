@@ -65,6 +65,10 @@ public class DoorHandler : MonoBehaviour
         {
             hingeOriginalRot = hingePivot.rotation;
         }
+        if (bottomDoorPart == null)
+        {
+            Debug.Log("No bottomDoorPart reference assigned.");
+        }
     }
 
     private void Update()
@@ -226,48 +230,56 @@ public class DoorHandler : MonoBehaviour
     {
         Vector3 topTartetPos = topDoorPart.transform.position + new Vector3(0f, distToOpenParts, 0f);
         Vector3 bottomTargetPos = bottomDoorPart.transform.position - new Vector3(0f, distToOpenParts, 0f);
-
-        if(topDoorPart.transform.position == topTartetPos && bottomDoorPart.transform.position == bottomTargetPos)
+        if (topDoorPart != null || bottomDoorPart != null)
         {
+            if (topDoorPart.transform.position == topTartetPos && bottomDoorPart.transform.position == bottomTargetPos)
+            {
+                isOpened = true;
+                yield break;
+            }
+            if (bottomDoorPart != null)
+            {
+                while (Vector3.Distance(topDoorPart.transform.position, topTartetPos) > 0.01f ||
+                Vector3.Distance(bottomDoorPart.transform.position, bottomTargetPos) > 0.01f)
+                {
+                    float t = Mathf.Clamp01(openSpeed * Time.deltaTime);
+                    topDoorPart.transform.position = Vector3.Lerp(topDoorPart.transform.position, topTartetPos, t);
+                    bottomDoorPart.transform.position = Vector3.Lerp(bottomDoorPart.transform.position, bottomTargetPos, t);
+                    yield return null;
+                }
+            }
+            // mark opened when finished
             isOpened = true;
-            yield break;
-        }
-
-        while (Vector3.Distance(topDoorPart.transform.position, topTartetPos) > 0.01f || 
-        Vector3.Distance(bottomDoorPart.transform.position, bottomTargetPos) > 0.01f)
-        {
-            float t = Mathf.Clamp01(openSpeed * Time.deltaTime);
-            topDoorPart.transform.position = Vector3.Lerp(topDoorPart.transform.position, topTartetPos, t);
-            bottomDoorPart.transform.position = Vector3.Lerp(bottomDoorPart.transform.position, bottomTargetPos, t);
             yield return null;
         }
-        // mark opened when finished
-        isOpened = true;
-        yield return null;
     }
 
     private IEnumerator CloseUpCoroutine()
     {
         Vector3 topTartetPos = topDoorPart.transform.position;
         Vector3 bottomTargetPos = bottomDoorPart.transform.position;
-    
-        if(topDoorPart .transform.position == doorPosOrigin + new Vector3(0f, distToOpenParts, 0f) &&
-           bottomDoorPart.transform.position == doorPosOrigin - new Vector3(0f, distToOpenParts, 0f))
+        if (topDoorPart != null || bottomDoorPart != null)
         {
+            if (topDoorPart.transform.position == doorPosOrigin + new Vector3(0f, distToOpenParts, 0f) &&
+            bottomDoorPart.transform.position == doorPosOrigin - new Vector3(0f, distToOpenParts, 0f))
+            {
+                isOpened = false;
+                yield break;
+            }
+            if (bottomDoorPart != null)
+            {
+                while (Vector3.Distance(topDoorPart.transform.position, topTartetPos) > 0.01f ||
+                Vector3.Distance(bottomDoorPart.transform.position, bottomTargetPos) > 0.01f)
+                {
+                    float t = Mathf.Clamp01(openSpeed * Time.deltaTime);
+                    topDoorPart.transform.position = Vector3.Lerp(topDoorPart.transform.position, topTartetPos, t);
+                    bottomDoorPart.transform.position = Vector3.Lerp(bottomDoorPart.transform.position, bottomTargetPos, t);
+                    yield return null;
+                }
+            }
+            // mark closed when finished
             isOpened = false;
-            yield break;
-        }
-
-        while (Vector3.Distance(topDoorPart.transform.position, topTartetPos) > 0.01f || 
-        Vector3.Distance(bottomDoorPart.transform.position, bottomTargetPos) > 0.01f)
-        {
-            float t = Mathf.Clamp01(openSpeed * Time.deltaTime);
-            topDoorPart.transform.position = Vector3.Lerp(topDoorPart.transform.position, topTartetPos, t);
-            bottomDoorPart.transform.position = Vector3.Lerp(bottomDoorPart.transform.position, bottomTargetPos, t);
             yield return null;
         }
-        // mark closed when finished
-        isOpened = false;
-        yield return null;
     }
 }
