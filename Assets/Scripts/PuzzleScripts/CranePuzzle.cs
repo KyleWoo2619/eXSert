@@ -134,66 +134,58 @@ public class CranePuzzle : PuzzlePart
 
         CacheCranePartStartPositions();
 
+        if (!TryResolveRuntimeActions())
+        {
+            enabled = false;
+            return;
+        }
+    }
+
+    private bool TryResolveRuntimeActions()
+    {
         // Safely obtain a PlayerInput reference from InputReader
         PlayerInput playerInput = InputReader.PlayerInput;
 
         if (playerInput == null)
         {
-            Debug.LogError("[CranePuzzle] Awake: InputReader.playerInput is null. Ensure InputReader is initialized before CranePuzzle.Awake runs.");
-            // Prevent further null-reference issues by disabling this component
-            enabled = false;
-            return;
+            Debug.LogError("[CranePuzzle] InputReader.playerInput is null. Ensure InputReader is initialized.");
+            return false;
         }
 
         var actions = playerInput.actions;
         if (actions == null)
         {
-            Debug.LogError("[CranePuzzle] Awake: playerInput.actions is null.");
-            enabled = false;
-            return;
+            Debug.LogError("[CranePuzzle] playerInput.actions is null.");
+            return false;
         }
 
         craneMap = actions.FindActionMap("CranePuzzle");
         if (craneMap == null)
         {
-            Debug.LogError("[CranePuzzle] Awake: 'CranePuzzle' action map not found in playerInput.actions.");
-            enabled = false;
-            return;
+            Debug.LogError("[CranePuzzle] 'CranePuzzle' action map not found in playerInput.actions.");
+            return false;
         }
 
         // Safely resolve runtime actions (only if the serialized references and their .action are valid)
-        if (craneMoveAction != null && craneMoveAction.action != null)
+        runtimeCraneMoveAction = ResolveRuntimeAction(craneMoveAction, "craneMoveAction");
+        runtimeConfirmAction = ResolveRuntimeAction(_confirmPuzzleAction, "_confirmPuzzleAction");
+        runtimeEscapeAction = ResolveRuntimeAction(_escapePuzzleAction, "_escapePuzzleAction");
+
+        return true;
+    }
+
+    private InputAction ResolveRuntimeAction(InputActionReference reference, string label)
+    {
+        if (reference != null && reference.action != null)
         {
-            runtimeCraneMoveAction = craneMap.FindAction(craneMoveAction.action.name);
-            if (runtimeCraneMoveAction == null)
-                Debug.LogWarning($"[CranePuzzle] Awake: Action '{craneMoveAction.action.name}' not found in CranePuzzle map.");
-        }
-        else
-        {
-            Debug.LogWarning("[CranePuzzle] Awake: craneMoveAction reference is null or has no action assigned.");
+            InputAction resolved = craneMap.FindAction(reference.action.name);
+            if (resolved == null)
+                Debug.LogWarning($"[CranePuzzle] Action '{reference.action.name}' not found in CranePuzzle map.");
+            return resolved;
         }
 
-        if (_confirmPuzzleAction != null && _confirmPuzzleAction.action != null)
-        {
-            runtimeConfirmAction = craneMap.FindAction(_confirmPuzzleAction.action.name);
-            if (runtimeConfirmAction == null)
-                Debug.LogWarning($"[CranePuzzle] Awake: Action '{_confirmPuzzleAction.action.name}' not found in CranePuzzle map.");
-        }
-        else
-        {
-            Debug.LogWarning("[CranePuzzle] Awake: _confirmPuzzleAction reference is null or has no action assigned.");
-        }
-
-        if (_escapePuzzleAction != null && _escapePuzzleAction.action != null)
-        {
-            runtimeEscapeAction = craneMap.FindAction(_escapePuzzleAction.action.name);
-            if (runtimeEscapeAction == null)
-                Debug.LogWarning($"[CranePuzzle] Awake: Action '{_escapePuzzleAction.action.name}' not found in CranePuzzle map.");
-        }
-        else
-        {
-            Debug.LogWarning("[CranePuzzle] Awake: _escapePuzzleAction reference is null or has no action assigned.");
-        }
+        Debug.LogWarning($"[CranePuzzle] {label} reference is null or has no action assigned.");
+        return null;
     }
 
     private int SetupCranePuzzle()
@@ -203,6 +195,15 @@ public class CranePuzzle : PuzzlePart
         SetupCraneUI(); // Sets up the crane's custom UI
 
         SwapActionMaps(true); // Switches player to crane controls
+
+        if (runtimeCraneMoveAction == null || runtimeConfirmAction == null || runtimeEscapeAction == null)
+        {
+            if (!TryResolveRuntimeActions())
+                return EmergencyExit("[CranePuzzle] Missing input actions. Check CranePuzzle action map and input references.");
+
+            if (runtimeCraneMoveAction == null || runtimeConfirmAction == null || runtimeEscapeAction == null)
+                return EmergencyExit("[CranePuzzle] Missing input actions. Check CranePuzzle action map and input references.");
+        }
 
         runtimeCraneMoveAction.Enable();
         runtimeConfirmAction.Enable();
@@ -471,6 +472,15 @@ public class CranePuzzle : PuzzlePart
     public bool IsRetracting()
     {
         return isRetracting;
+    }
+
+    protected bool IsConfirmTriggered()
+    {
+        InputAction actionToRead = runtimeConfirmAction != null
+            ? runtimeConfirmAction
+            : (_confirmPuzzleAction != null ? _confirmPuzzleAction.action : null);
+
+        return actionToRead != null && actionToRead.triggered;
     }
 
     #region Restrict/Restore Movement

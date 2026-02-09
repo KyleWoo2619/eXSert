@@ -7,6 +7,10 @@ namespace Progression.Encounters
     {
         protected override Color DebugColor { get => Color.purple; }
 
+        [Header("Optional Overrides")]
+        [SerializeField] private PuzzlePart overridePuzzlePart;
+        [SerializeField] private PuzzleInteraction[] overrideInteractPoints;
+
         private PuzzlePart part;
         private IConsoleSelectable consoleSelectable;
         private PuzzleInteraction[] interactPoints;
@@ -18,9 +22,11 @@ namespace Progression.Encounters
 
         protected override void SetupEncounter()
         {
-            part = FindPieces<PuzzlePart>();
+            part = overridePuzzlePart != null ? overridePuzzlePart : FindPieces<PuzzlePart>();
             consoleSelectable = part as IConsoleSelectable;
-            interactPoints = GetComponentsInChildren<PuzzleInteraction>();
+            interactPoints = (overrideInteractPoints != null && overrideInteractPoints.Length > 0)
+                ? overrideInteractPoints
+                : GetComponentsInChildren<PuzzleInteraction>();
 
             if (part == null)
                 return;
