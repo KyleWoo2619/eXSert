@@ -1706,15 +1706,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1436585362612444196, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
       propertyPath: m_Name
-      value: Enemy_Zone
+      value: Enemy_Zone1
       objectReference: {fileID: 0}
     - target: {fileID: 5397671498543919012, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
       propertyPath: size.x
       value: 50
       objectReference: {fileID: 0}
     - target: {fileID: 5397671498543919012, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: size.y
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 5397671498543919012, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
       propertyPath: size.z
-      value: 100
+      value: 33
       objectReference: {fileID: 0}
     - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1722,11 +1726,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.97000885
+      value: 2.69
       objectReference: {fileID: 0}
     - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 79.1
+      value: 45.12
       objectReference: {fileID: 0}
     - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1761,6 +1765,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+--- !u!114 &121672089 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5397671498543919012, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+  m_PrefabInstance: {fileID: 121672088}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 520c3009c1e153b4f97611b9c7a0a2a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Zone
 --- !u!1 &122705597
 GameObject:
   m_ObjectHideFlags: 0
@@ -2297,7 +2312,7 @@ Transform:
   m_GameObject: {fileID: 144235145}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 2.84062, y: -8.82994, z: 0.40665436}
+  m_LocalPosition: {x: 2.84062, y: -8.764, z: 0.40665436}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -3718,6 +3733,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: BoxerEnemy (11)
       objectReference: {fileID: 0}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: currentZone
+      value: 
+      objectReference: {fileID: 509857495}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: allowZoneRelocation
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -4735,6 +4758,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: BoxerEnemy (10)
       objectReference: {fileID: 0}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: currentZone
+      value: 
+      objectReference: {fileID: 509857495}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: allowZoneRelocation
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -5144,6 +5175,14 @@ PrefabInstance:
     - target: {fileID: 7586660143841223563, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
       propertyPath: m_Name
       value: BoxerEnemy (9)
+      objectReference: {fileID: 0}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: currentZone
+      value: 
+      objectReference: {fileID: 509857495}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: allowZoneRelocation
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -5578,6 +5617,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: BoxerEnemy (6)
       objectReference: {fileID: 0}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: currentZone
+      value: 
+      objectReference: {fileID: 395602507}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: allowZoneRelocation
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -5903,7 +5950,7 @@ Transform:
   m_GameObject: {fileID: 339521292}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 3.7656507, y: -6.12538, z: 17.13002}
+  m_LocalPosition: {x: 3.7656507, y: -6.049, z: 17.13002}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -6129,7 +6176,7 @@ Transform:
   m_GameObject: {fileID: 364063968}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -7.6074896, y: -8.83, z: 0.941658}
+  m_LocalPosition: {x: -7.6074896, y: -8.76, z: 0.941658}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -6732,6 +6779,86 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.5799999, y: 0.5800003, z: 0.58000004}
   m_Center: {x: 0, y: 0.0000019073486, z: 0.00000008940697}
+--- !u!1001 &395602506
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1436585362612444196, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_Name
+      value: Enemy_Zone2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5397671498543919012, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: size.x
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 5397671498543919012, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: size.y
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 5397671498543919012, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: size.z
+      value: 25
+      objectReference: {fileID: 0}
+    - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 9.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 2.69
+      objectReference: {fileID: 0}
+    - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 74.69
+      objectReference: {fileID: 0}
+    - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+--- !u!114 &395602507 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5397671498543919012, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+  m_PrefabInstance: {fileID: 395602506}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 520c3009c1e153b4f97611b9c7a0a2a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Zone
 --- !u!1001 &396286618
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7280,6 +7407,14 @@ PrefabInstance:
     - target: {fileID: 7586660143841223563, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
       propertyPath: m_Name
       value: BoxerEnemy
+      objectReference: {fileID: 0}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: currentZone
+      value: 
+      objectReference: {fileID: 121672089}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: allowZoneRelocation
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -8925,6 +9060,86 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.0100000035, y: 0.025861967, z: 0.009937438}
   m_Center: {x: -0.000000014905902, y: 0.0000019189856, z: 0.00005093496}
+--- !u!1001 &509857494
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1436585362612444196, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_Name
+      value: Enemy_Zone3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5397671498543919012, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: size.x
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 5397671498543919012, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: size.y
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 5397671498543919012, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: size.z
+      value: 40
+      objectReference: {fileID: 0}
+    - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 9.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 2.69
+      objectReference: {fileID: 0}
+    - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 109.15
+      objectReference: {fileID: 0}
+    - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7656147645263268458, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+--- !u!114 &509857495 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5397671498543919012, guid: 0deb09467781fa849a173252e71eb5cf, type: 3}
+  m_PrefabInstance: {fileID: 509857494}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 520c3009c1e153b4f97611b9c7a0a2a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Zone
 --- !u!4 &512558383 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5635658829868840894, guid: c89c6345c96a18d45b8d78b36009f92e, type: 3}
@@ -12160,6 +12375,14 @@ PrefabInstance:
     - target: {fileID: 7586660143841223563, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
       propertyPath: m_Name
       value: BoxerEnemy (13)
+      objectReference: {fileID: 0}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: currentZone
+      value: 
+      objectReference: {fileID: 509857495}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: allowZoneRelocation
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -16618,11 +16841,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3446815131762501537, guid: 7304e6f8ecf3bc64cb762537f93570c5, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -13.612439
+      value: -13.612
       objectReference: {fileID: 0}
     - target: {fileID: 3446815131762501537, guid: 7304e6f8ecf3bc64cb762537f93570c5, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -1.65
+      value: -1.715
       objectReference: {fileID: 0}
     - target: {fileID: 3446815131762501537, guid: 7304e6f8ecf3bc64cb762537f93570c5, type: 3}
       propertyPath: m_LocalPosition.z
@@ -16654,6 +16877,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3446815131762501537, guid: 7304e6f8ecf3bc64cb762537f93570c5, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8315034985916432300, guid: 7304e6f8ecf3bc64cb762537f93570c5, type: 3}
+      propertyPath: allowZoneRelocation
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
@@ -16759,7 +16986,7 @@ Transform:
   m_GameObject: {fileID: 991881426}
   serializedVersion: 2
   m_LocalRotation: {x: 0.70710677, y: -0, z: -0, w: 0.7071069}
-  m_LocalPosition: {x: 18.94, y: 4.836, z: 33.13}
+  m_LocalPosition: {x: 18.94, y: 4.83, z: 33.13}
   m_LocalScale: {x: 3.126865, y: 3.0506, z: 13.11758}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -16897,7 +17124,7 @@ Transform:
   m_GameObject: {fileID: 1000464678}
   serializedVersion: 2
   m_LocalRotation: {x: 0.70710677, y: -0, z: -0, w: 0.7071069}
-  m_LocalPosition: {x: 18.94, y: 6.64, z: 33.13}
+  m_LocalPosition: {x: 18.94, y: 6.634, z: 33.13}
   m_LocalScale: {x: 3.126865, y: 3.0506, z: 13.11758}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -17612,7 +17839,7 @@ Transform:
   m_GameObject: {fileID: 1051257873}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -7.6074896, y: -8.83, z: 0.941658}
+  m_LocalPosition: {x: -7.6074896, y: -8.76, z: 0.941658}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -19121,6 +19348,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 144235146}
     m_Modifications:
+    - target: {fileID: 4770665618775230118, guid: e0d9a2cd77fdcd748b3f41f31a5b8a01, type: 3}
+      propertyPath: allowZoneRelocation
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5070969307154705865, guid: e0d9a2cd77fdcd748b3f41f31a5b8a01, type: 3}
       propertyPath: m_Name
       value: ProjectileTurret (6)
@@ -19131,7 +19362,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5554173208630736755, guid: e0d9a2cd77fdcd748b3f41f31a5b8a01, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.0299997
+      value: 1.001
       objectReference: {fileID: 0}
     - target: {fileID: 5554173208630736755, guid: e0d9a2cd77fdcd748b3f41f31a5b8a01, type: 3}
       propertyPath: m_LocalPosition.z
@@ -21991,6 +22222,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: BoxerEnemy (2)
       objectReference: {fileID: 0}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: currentZone
+      value: 
+      objectReference: {fileID: 121672089}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: allowZoneRelocation
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -23503,6 +23742,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 144235146}
     m_Modifications:
+    - target: {fileID: 4770665618775230118, guid: e0d9a2cd77fdcd748b3f41f31a5b8a01, type: 3}
+      propertyPath: allowZoneRelocation
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5070969307154705865, guid: e0d9a2cd77fdcd748b3f41f31a5b8a01, type: 3}
       propertyPath: m_Name
       value: ProjectileTurret (9)
@@ -23745,7 +23988,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5554173208630736755, guid: e0d9a2cd77fdcd748b3f41f31a5b8a01, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.0299997
+      value: 0.985
       objectReference: {fileID: 0}
     - target: {fileID: 5554173208630736755, guid: e0d9a2cd77fdcd748b3f41f31a5b8a01, type: 3}
       propertyPath: m_LocalPosition.z
@@ -24134,6 +24377,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: BoxerEnemy (5)
       objectReference: {fileID: 0}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: currentZone
+      value: 
+      objectReference: {fileID: 121672089}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: allowZoneRelocation
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -24421,6 +24672,14 @@ PrefabInstance:
     - target: {fileID: 7586660143841223563, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
       propertyPath: m_Name
       value: BoxerEnemy (3)
+      objectReference: {fileID: 0}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: currentZone
+      value: 
+      objectReference: {fileID: 121672089}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: allowZoneRelocation
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -26449,6 +26708,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: BoxerEnemy (7)
       objectReference: {fileID: 0}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: currentZone
+      value: 
+      objectReference: {fileID: 395602507}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: allowZoneRelocation
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -26685,7 +26952,7 @@ Transform:
   m_GameObject: {fileID: 1601308160}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 2.84062, y: -8.82994, z: 0.40665436}
+  m_LocalPosition: {x: 2.84062, y: -8.752, z: 0.40665436}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -28044,6 +28311,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: BoxerEnemy (12)
       objectReference: {fileID: 0}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: currentZone
+      value: 
+      objectReference: {fileID: 509857495}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: allowZoneRelocation
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -29350,6 +29625,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: BoxerEnemy (14)
       objectReference: {fileID: 0}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: currentZone
+      value: 
+      objectReference: {fileID: 509857495}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: allowZoneRelocation
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -30291,6 +30574,14 @@ PrefabInstance:
     - target: {fileID: 7586660143841223563, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
       propertyPath: m_Name
       value: BoxerEnemy (4)
+      objectReference: {fileID: 0}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: currentZone
+      value: 
+      objectReference: {fileID: 121672089}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: allowZoneRelocation
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -31396,7 +31687,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5554173208630736755, guid: e0d9a2cd77fdcd748b3f41f31a5b8a01, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.0299997
+      value: 0.983
       objectReference: {fileID: 0}
     - target: {fileID: 5554173208630736755, guid: e0d9a2cd77fdcd748b3f41f31a5b8a01, type: 3}
       propertyPath: m_LocalPosition.z
@@ -34118,6 +34409,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: BoxerEnemy (8)
       objectReference: {fileID: 0}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: currentZone
+      value: 
+      objectReference: {fileID: 395602507}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: allowZoneRelocation
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -34574,6 +34873,14 @@ PrefabInstance:
     - target: {fileID: 7586660143841223563, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
       propertyPath: m_Name
       value: BoxerEnemy (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: currentZone
+      value: 
+      objectReference: {fileID: 121672089}
+    - target: {fileID: 8745190545570156504, guid: 0343bb976e3c6114db5cfe44c4380bd2, type: 3}
+      propertyPath: allowZoneRelocation
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -35971,5 +36278,7 @@ SceneRoots:
   - {fileID: 1998933766}
   - {fileID: 920568085}
   - {fileID: 121672088}
+  - {fileID: 395602506}
+  - {fileID: 509857494}
   - {fileID: 434871987}
   - {fileID: 1770759019}
