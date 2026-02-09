@@ -9,6 +9,7 @@
 
 using UnityEngine;
 using System.Collections;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -51,6 +52,8 @@ public class DoorHandler : MonoBehaviour
     private Quaternion hingeTargetRot;
     private Quaternion hingeOriginalRot; // Store the original hinge rotation before any animation
     private Coroutine hingeAnimCoroutine = null;
+    private Vector3 bottomTargetPos;
+    private Vector3 topTartetPos;
 
     // Store original parent to reparent door after using hinge pivot
     private Transform originalParent;
@@ -64,6 +67,10 @@ public class DoorHandler : MonoBehaviour
         if (hingePivot != null)
         {
             hingeOriginalRot = hingePivot.rotation;
+        }
+        if (bottomDoorPart == null)
+        {
+            Debug.Log("No bottomDoorPart reference assigned.");
         }
     }
 
@@ -224,21 +231,44 @@ public class DoorHandler : MonoBehaviour
     // Coroutines for opening and closing the door upwards
     private IEnumerator OpenUpCoroutine()
     {
-        Vector3 topTartetPos = topDoorPart.transform.position + new Vector3(0f, distToOpenParts, 0f);
-        Vector3 bottomTargetPos = bottomDoorPart.transform.position - new Vector3(0f, distToOpenParts, 0f);
+        if(topDoorPart == null && bottomDoorPart == null)
+        {
+            Debug.LogError("Top or Bottom door part references are missing for OpenUp door type.");
+            yield break;
+        }
 
-        if(topDoorPart.transform.position == topTartetPos && bottomDoorPart.transform.position == bottomTargetPos)
+        if (topDoorPart != null)
+        {
+            topTartetPos = topDoorPart.transform.position + new Vector3(0f, distToOpenParts, 0f);
+        }
+        if (bottomDoorPart != null)
+        {
+            bottomTargetPos = bottomDoorPart.transform.position - new Vector3(0f, distToOpenParts, 0f);
+        }
+
+        // Check if already at target positions
+        bool topAtTarget = topDoorPart == null || topDoorPart.transform.position == topTartetPos;
+        bool bottomAtTarget = bottomDoorPart == null || bottomDoorPart.transform.position == bottomTargetPos;
+
+        if (topAtTarget && bottomAtTarget)
         {
             isOpened = true;
             yield break;
         }
 
-        while (Vector3.Distance(topDoorPart.transform.position, topTartetPos) > 0.01f || 
-        Vector3.Distance(bottomDoorPart.transform.position, bottomTargetPos) > 0.01f)
+        // Animate the door parts to their target positions
+        while ((topDoorPart != null && Vector3.Distance(topDoorPart.transform.position, topTartetPos) > 0.01f) ||
+               (bottomDoorPart != null && Vector3.Distance(bottomDoorPart.transform.position, bottomTargetPos) > 0.01f))
         {
             float t = Mathf.Clamp01(openSpeed * Time.deltaTime);
-            topDoorPart.transform.position = Vector3.Lerp(topDoorPart.transform.position, topTartetPos, t);
-            bottomDoorPart.transform.position = Vector3.Lerp(bottomDoorPart.transform.position, bottomTargetPos, t);
+            if (topDoorPart != null)
+            {
+                topDoorPart.transform.position = Vector3.Lerp(topDoorPart.transform.position, topTartetPos, t);
+            }
+            if (bottomDoorPart != null)
+            {
+                bottomDoorPart.transform.position = Vector3.Lerp(bottomDoorPart.transform.position, bottomTargetPos, t);
+            }
             yield return null;
         }
         // mark opened when finished
@@ -248,26 +278,43 @@ public class DoorHandler : MonoBehaviour
 
     private IEnumerator CloseUpCoroutine()
     {
-        Vector3 topTartetPos = topDoorPart.transform.position;
-        Vector3 bottomTargetPos = bottomDoorPart.transform.position;
-    
-        if(topDoorPart .transform.position == doorPosOrigin + new Vector3(0f, distToOpenParts, 0f) &&
-           bottomDoorPart.transform.position == doorPosOrigin - new Vector3(0f, distToOpenParts, 0f))
+        if(topDoorPart == null && bottomDoorPart == null)
+        {
+            Debug.LogError("Top or Bottom door part references are missing for OpenUp door type.");
+            yield break;
+        }
+
+        Vector3 topClosePos = doorPosOrigin;
+        Vector3 bottomClosePos = doorPosOrigin;
+
+        // Check if already at closed positions
+        bool topAtTarget = topDoorPart == null || topDoorPart.transform.position == topClosePos;
+        bool bottomAtTarget = bottomDoorPart == null || bottomDoorPart.transform.position == bottomClosePos;
+
+        if (topAtTarget && bottomAtTarget)
         {
             isOpened = false;
             yield break;
         }
 
-        while (Vector3.Distance(topDoorPart.transform.position, topTartetPos) > 0.01f || 
-        Vector3.Distance(bottomDoorPart.transform.position, bottomTargetPos) > 0.01f)
+        // Animate the door parts to their closed positions
+        while ((topDoorPart != null && Vector3.Distance(topDoorPart.transform.position, topClosePos) > 0.01f) ||
+               (bottomDoorPart != null && Vector3.Distance(bottomDoorPart.transform.position, bottomClosePos) > 0.01f))
         {
             float t = Mathf.Clamp01(openSpeed * Time.deltaTime);
-            topDoorPart.transform.position = Vector3.Lerp(topDoorPart.transform.position, topTartetPos, t);
-            bottomDoorPart.transform.position = Vector3.Lerp(bottomDoorPart.transform.position, bottomTargetPos, t);
+            if (topDoorPart != null)
+            {
+                topDoorPart.transform.position = Vector3.Lerp(topDoorPart.transform.position, topClosePos, t);
+            }
+            if (bottomDoorPart != null)
+            {
+                bottomDoorPart.transform.position = Vector3.Lerp(bottomDoorPart.transform.position, bottomClosePos, t);
+            }
             yield return null;
         }
         // mark closed when finished
         isOpened = false;
         yield return null;
     }
+
 }
