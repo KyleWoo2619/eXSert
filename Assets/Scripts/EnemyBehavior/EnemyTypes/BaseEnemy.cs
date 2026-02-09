@@ -32,6 +32,8 @@ public abstract class BaseEnemy<TState, TTrigger> : BaseEnemyCore, IQueuedAttack
     [Header("Zone Management")]
     [SerializeField, Tooltip("The zone this enemy is currently in.")]
     public Zone currentZone;
+    [SerializeField, Tooltip("If true, the enemy can relocate to other zones. If false, the enemy stays within its current zone.")]
+    public bool allowZoneRelocation = true;
     [SerializeField, Tooltip("How long the enemy remains idle before relocating to another zone.")]
     public float idleTimerDuration = 15f;
 
