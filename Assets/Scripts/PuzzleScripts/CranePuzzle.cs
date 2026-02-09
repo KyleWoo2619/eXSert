@@ -79,7 +79,7 @@ public class CranePuzzle : PuzzlePart
     [Space(10)]
     [Header("Camera")]
     // Cinemachine camera for the puzzle
-    [SerializeField, CriticalReference] CinemachineCamera puzzleCamera;
+    [SerializeField, CriticalReference] protected CinemachineCamera puzzleCamera;
 
     [Space(10)]
 
@@ -252,6 +252,17 @@ public class CranePuzzle : PuzzlePart
         {
             puzzleCamera.Priority = 21;
         }
+    }
+
+    protected void SetPuzzleCamera(CinemachineCamera camera)
+    {
+        if (camera == puzzleCamera)
+            return;
+
+        if (puzzleCamera != null)
+            puzzleCamera.Priority = 9;
+
+        puzzleCamera = camera;
     }
 
     #region PuzzlePart Methods

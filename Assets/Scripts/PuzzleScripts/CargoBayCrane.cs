@@ -4,8 +4,9 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
+using Unity.Cinemachine;
 
-public class CargoBayCrane : CranePuzzle
+public class CargoBayCrane : CranePuzzle, IConsoleSelectable
 {
     protected enum DetectionResult
     {
@@ -23,10 +24,16 @@ public class CargoBayCrane : CranePuzzle
 
     [Header("Grab Settings")]
     [Tooltip("Object crane needs to grab")]
-    [SerializeField] internal GameObject targetObject;
+    [SerializeField] private GameObject firstTargetObject;
+    [SerializeField] private GameObject secondTargetObject;
     [SerializeField] protected LayerMask grabLayerMask;
     [SerializeField] protected float magnetDetectLength;
-    [SerializeField] protected GameObject targetDropZone;
+    [SerializeField] private GameObject firstTargetDropZone;
+    [SerializeField] private GameObject secondTargetDropZone;
+
+    [Header("Puzzle Cameras")]
+    [SerializeField] private CinemachineCamera firstPuzzleCamera;
+    [SerializeField] private CinemachineCamera secondPuzzleCamera;
 
     [Space(10)]
     [Header("Crane Ambience/SFX")]
@@ -34,11 +41,38 @@ public class CargoBayCrane : CranePuzzle
     
     protected Coroutine retractCoroutine;
     internal bool isGrabbed;
+    internal GameObject targetObject;
+    private GameObject activeTargetDropZone;
     
     private void Start()
     {
         if(playCraneAmbience != null)
             playCraneAmbience.Invoke();
+
+        SetActiveConsole(0);
+    }
+
+    public override void ConsoleInteracted()
+    {
+        SetActiveConsole(0);
+        base.ConsoleInteracted();
+    }
+
+    public void ConsoleInteracted(PuzzleInteraction interaction)
+    {
+        int consoleIndex = interaction != null ? interaction.ConsoleIndex : 0;
+        SetActiveConsole(consoleIndex);
+        base.ConsoleInteracted();
+    }
+
+    private void SetActiveConsole(int consoleIndex)
+    {
+        bool useSecond = consoleIndex == 1;
+
+        targetObject = useSecond ? secondTargetObject : firstTargetObject;
+        activeTargetDropZone = useSecond ? secondTargetDropZone : firstTargetDropZone;
+
+        SetPuzzleCamera(useSecond ? secondPuzzleCamera : firstPuzzleCamera);
     }
 
     protected IEnumerator AnimateMagnet(GameObject magnet, Vector3 targetPosition, float duration, bool magnetRetract = true)
@@ -286,7 +320,14 @@ public class CargoBayCrane : CranePuzzle
             LockOrUnlockMovement(false);
 
             // Move crane to target drop zone
-            Vector3 targetWorldPos = targetDropZone.transform.position;
+            if (activeTargetDropZone == null)
+            {
+                Debug.LogWarning("[CargoBayCrane] No target drop zone assigned for this console.");
+                EndPuzzle();
+                yield break;
+            }
+
+            Vector3 targetWorldPos = activeTargetDropZone.transform.position;
             Vector3 magnetTargetWorldPos = CalculateMagnetTargetWorldPos(targetWorldPos);
 
             yield return StartCoroutine(MoveCraneToMagnetTarget(magnetTargetWorldPos));
