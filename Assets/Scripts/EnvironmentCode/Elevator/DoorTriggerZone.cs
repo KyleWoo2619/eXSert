@@ -23,6 +23,9 @@ public class DoorTriggerZone : MonoBehaviour
     [Header("Player Filter")]
     [SerializeField] private string playerTag = "Player";       // set your player’s tag
 
+    [Header("Disable Zone")]
+    [SerializeField] private BoxCollider disableTriggerZone;
+
     // cached start/end positions (local space to avoid parent movement jumps)
     private Vector3 _topClosedLocal, _bottomClosedLocal;
     private Vector3 _topOpenLocal, _bottomOpenLocal;
@@ -55,6 +58,13 @@ public class DoorTriggerZone : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag(playerTag)) return;
+
+        if (disableTriggerZone != null && IsInsideDisableZone(other))
+        {
+            DisableDoorTrigger();
+            return;
+        }
+
         _overlapCount++;
         if (_overlapCount == 1) StartMove(open: true);
     }
@@ -62,8 +72,32 @@ public class DoorTriggerZone : MonoBehaviour
     private void OnTriggerExit(Collider other)
     {
         if (!other.CompareTag(playerTag)) return;
+
+        if (!enabled) return;
+
         _overlapCount = Mathf.Max(0, _overlapCount - 1);
         if (_overlapCount == 0) StartMove(open: false);
+    }
+
+    private bool IsInsideDisableZone(Collider other)
+    {
+        return disableTriggerZone.bounds.Contains(other.bounds.center);
+    }
+
+    private void DisableDoorTrigger()
+    {
+        _overlapCount = 0;
+
+        if (_motion != null)
+        {
+            StopCoroutine(_motion);
+            _motion = null;
+        }
+
+        topDoor.transform.localPosition = _topClosedLocal;
+        bottomDoor.transform.localPosition = _bottomClosedLocal;
+
+        enabled = false;
     }
 
     private void StartMove(bool open)
