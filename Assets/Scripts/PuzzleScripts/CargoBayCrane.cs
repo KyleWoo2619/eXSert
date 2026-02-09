@@ -40,6 +40,14 @@ public class CargoBayCrane : CranePuzzle, IConsoleSelectable
     [SerializeField, Tooltip("Speed at which the magnet drops.")]
     private float dropSpeed = 5f;
 
+    [Header("Magnet Indicator")]
+    [SerializeField] private bool showMagnetIndicator = true;
+    [SerializeField] private float indicatorMaxDistance = 50f;
+    [SerializeField] private float indicatorWidth = 0.05f;
+    [SerializeField] private Color indicatorColor = Color.red;
+    [SerializeField] private LayerMask indicatorMask = ~0;
+    [SerializeField] private Vector3 indicatorOffset = Vector3.zero;
+
     [Header("Puzzle Cameras")]
     [SerializeField] private CinemachineCamera firstPuzzleCamera;
     [SerializeField] private CinemachineCamera secondPuzzleCamera;
@@ -57,6 +65,7 @@ public class CargoBayCrane : CranePuzzle, IConsoleSelectable
     internal bool isGrabbed;
     internal GameObject targetObject;
     private GameObject activeTargetDropZone;
+    private LineRenderer magnetIndicator;
     
     private void Start()
     {
@@ -64,6 +73,12 @@ public class CargoBayCrane : CranePuzzle, IConsoleSelectable
             playCraneAmbience.Invoke();
 
         SetActiveConsole(0);
+        EnsureMagnetIndicator();
+    }
+
+    private void Update()
+    {
+        UpdateMagnetIndicator();
     }
 
     public override void ConsoleInteracted()
@@ -597,6 +612,54 @@ public class CargoBayCrane : CranePuzzle, IConsoleSelectable
             }
         }
         return layers.Count > 0 ? string.Join(", ", layers) : "None";
+    }
+
+    private void EnsureMagnetIndicator()
+    {
+        if (!showMagnetIndicator || magnetExtender == null || magnetIndicator != null)
+            return;
+
+        var lineObj = new GameObject("MagnetIndicator");
+        lineObj.transform.SetParent(magnetExtender.transform);
+        lineObj.transform.localPosition = Vector3.zero;
+        lineObj.transform.localRotation = Quaternion.identity;
+        lineObj.transform.localScale = Vector3.one;
+
+        magnetIndicator = lineObj.AddComponent<LineRenderer>();
+        magnetIndicator.useWorldSpace = true;
+        magnetIndicator.positionCount = 2;
+        magnetIndicator.startWidth = Mathf.Max(0.001f, indicatorWidth);
+        magnetIndicator.endWidth = Mathf.Max(0.001f, indicatorWidth);
+        magnetIndicator.material = new Material(Shader.Find("Sprites/Default"));
+        magnetIndicator.startColor = indicatorColor;
+        magnetIndicator.endColor = indicatorColor;
+        magnetIndicator.enabled = false;
+    }
+
+    private void UpdateMagnetIndicator()
+    {
+        if (!showMagnetIndicator || magnetExtender == null)
+        {
+            if (magnetIndicator != null)
+                magnetIndicator.enabled = false;
+            return;
+        }
+
+        EnsureMagnetIndicator();
+        if (magnetIndicator == null)
+            return;
+
+        Vector3 start = magnetExtender.transform.position + magnetExtender.transform.TransformDirection(indicatorOffset);
+        Vector3 dir = magnetExtender.transform.TransformDirection(Vector3.down);
+        float maxDist = Mathf.Max(0.01f, indicatorMaxDistance);
+
+        Vector3 end = start + dir * maxDist;
+        if (Physics.Raycast(start, dir, out var hit, maxDist, indicatorMask, QueryTriggerInteraction.Ignore))
+            end = hit.point;
+
+        magnetIndicator.SetPosition(0, start);
+        magnetIndicator.SetPosition(1, end);
+        magnetIndicator.enabled = true;
     }
 
     #endregion

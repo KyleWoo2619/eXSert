@@ -511,7 +511,7 @@ MonoBehaviour:
   attackBoxSize: {x: 2, y: 2, z: 2}
   attackBoxDistance: 1.5
   attackBoxHeightOffset: 1
-  attackInterval: 1
+  attackInterval: 6
   attackActiveDuration: 0.5
   showAttackGizmo: 1
   canBeParried: 1
@@ -541,7 +541,7 @@ MonoBehaviour:
   attackColor: {r: 1, g: 0.5, b: 0, a: 1}
   hitboxActiveColor: {r: 1, g: 0, b: 0, a: 1}
   turnSpeed: 360
-  fireCooldown: 1
+  fireCooldown: 6
   projectilePrefab: {fileID: 2499624202759768534, guid: 47a09bde03f77704a92b4a7d45cd169e, type: 3}
   projectileSpeed: 25
   firePoint: {fileID: 6014760702953166162}
@@ -593,7 +593,7 @@ CapsuleCollider:
   m_Radius: 0.68
   m_Height: 2.5
   m_Direction: 1
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 1.25, z: 0}
 --- !u!4 &9116645942203580927 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 602533745100996598, guid: 19c3c3d0528f8df4eb99ecd98355e2cf, type: 3}
