@@ -9,6 +9,8 @@ using UnityEngine.Audio;
 
 public class SoundManager : Singleton<SoundManager>
 {
+    protected override bool ShouldPersistAcrossScenes => false;
+
     // Main Categories
     public AudioSource masterSource;
     public AudioSource musicSource;
@@ -44,5 +46,25 @@ public class SoundManager : Singleton<SoundManager>
         }
 
         base.Awake();
+
+        if (SoundManager.Instance != this)
+            return;
+
+        ApplySavedVolumes();
+    }
+
+    private void ApplySavedVolumes()
+    {
+        if (masterSource != null && PlayerPrefs.HasKey("masterVolume"))
+            masterSource.volume = PlayerPrefs.GetFloat("masterVolume");
+
+        if (musicSource != null && PlayerPrefs.HasKey("musicVolume"))
+            musicSource.volume = PlayerPrefs.GetFloat("musicVolume");
+
+        if (sfxSource != null && PlayerPrefs.HasKey("sfxVolume"))
+            sfxSource.volume = PlayerPrefs.GetFloat("sfxVolume");
+
+        if (voiceSource != null && PlayerPrefs.HasKey("voiceVolume"))
+            voiceSource.volume = PlayerPrefs.GetFloat("voiceVolume");
     }
 }
