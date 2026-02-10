@@ -49,7 +49,7 @@ public class MenuListManager : MonoBehaviour
 
     public void SetAsLastSibling(GameObject menuToMove)
     {
-        if (menuToMove.tag == "Untagged" || menuToMove.tag == "Canvas")
+        if (menuToMove != firstMenuToOpen && menuToMove != canvas)
             menuToMove.transform.SetAsLastSibling();
     }
 
