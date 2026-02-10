@@ -20270,6 +20270,7 @@ GameObject:
   - component: {fileID: 576894536}
   - component: {fileID: 576894535}
   - component: {fileID: 576894534}
+  - component: {fileID: 576894537}
   m_Layer: 0
   m_Name: LifeBox
   m_TagString: Untagged
@@ -20290,7 +20291,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LifeBox
   showHitBox: 1
-  boxSize: {x: 25, y: 35, z: 25}
+  boxSize: {x: 25, y: 40, z: 25}
 --- !u!65 &576894535
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -20310,7 +20311,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 25, y: 35, z: 25}
+  m_Size: {x: 25, y: 40, z: 25}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!4 &576894536
 Transform:
@@ -20321,12 +20322,39 @@ Transform:
   m_GameObject: {fileID: 576894533}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 2.24495, y: -5.04596, z: 9.56925}
+  m_LocalPosition: {x: 2.24495, y: -10.2, z: 9.56925}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 844122118}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!54 &576894537
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 576894533}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1001 &580631931
 PrefabInstance:
   m_ObjectHideFlags: 0

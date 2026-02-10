@@ -7709,6 +7709,7 @@ GameObject:
   - component: {fileID: 6150044602222399215}
   - component: {fileID: 3007275964402751658}
   - component: {fileID: 8127531854480134888}
+  - component: {fileID: 2026860560813373367}
   m_Layer: 6
   m_Name: MC_VFX FIx
   m_TagString: Player
@@ -7914,6 +7915,21 @@ MonoBehaviour:
   attackManager: {fileID: 2445762002116463598}
   healthBar: {fileID: 0}
   debugDamageAmount: 100
+--- !u!114 &2026860560813373367
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3646038222488559394}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30407f1e0f298a84faa3f1c362d5725d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerLifeBoxDetector
+  killPlayerWhenOutOfLifeBox: 1
+  checkInterval: 0.5
+  lifeBoxes: []
 --- !u!1 &3685624653661851214
 GameObject:
   m_ObjectHideFlags: 0

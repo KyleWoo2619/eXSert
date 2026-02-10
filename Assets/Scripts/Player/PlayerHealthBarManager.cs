@@ -161,7 +161,7 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
 
         if (currentHealth <= 0f)
         {
-            HandleDeath();
+            HandleDeath(true);
         }
     }
 
@@ -198,7 +198,7 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
 
         if (currentHealth <= 0f)
         {
-            HandleDeath();
+            HandleDeath(true);
         }
     }
 
@@ -225,7 +225,7 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
         data.health = currentHealth;
     }
 
-    private void HandleDeath()
+    public void HandleDeath(bool playDeathAnimation)
     {
         if (isDead)
             return;
@@ -236,6 +236,17 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
         CancelFlinchRoutine();
         attackManager?.ForceCancelCurrentAttack();
 
+        var normalizedThreshold = deathFadeNormalizedThreshold;
+        var deathfadeDelay = deathFadeDelaySeconds;
+
+        if(!playDeathAnimation || normalizedThreshold <= 0f || animationController == null){
+            // If we're not playing the death animation or the fade threshold is 0, we can immediately trigger the fade and skip right to checkpoint restart
+            deathFadeNormalizedThreshold = 0f;
+            deathFadeDelaySeconds = .5f;
+        }
+
+
+
         OnPlayerDied?.Invoke();
 
         if (deathSequenceRoutine != null)
@@ -243,7 +254,7 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
             StopCoroutine(deathSequenceRoutine);
         }
 
-        deathSequenceRoutine = StartCoroutine(DeathSequenceRoutine());
+        deathSequenceRoutine = StartCoroutine(DeathSequenceRoutine(playDeathAnimation));
     }
 
     private void NotifyHealthChanged()
@@ -301,11 +312,12 @@ public class PlayerHealthBarManager : MonoBehaviour, IHealthSystem, IDataPersist
         flinchRoutine = null;
     }
 
-    private IEnumerator DeathSequenceRoutine()
+    private IEnumerator DeathSequenceRoutine(bool playDeathAnimation)
     {
         playerMovement?.EnterDeathState();
         AcquireDeathInputLock();
-        animationController?.PlayDeath();
+        if(playDeathAnimation)
+            animationController?.PlayDeath();
 
         yield return WaitForDeathFadeTiming();
 
