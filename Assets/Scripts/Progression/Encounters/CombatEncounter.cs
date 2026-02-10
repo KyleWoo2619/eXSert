@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using EnemyBehavior.Boss;
 
 namespace Progression.Encounters
 {
@@ -19,6 +20,9 @@ namespace Progression.Encounters
         [SerializeField] private List<GameObject> encounterEnemies = new List<GameObject>();
         [SerializeField] private bool autoFindByTag = false;
         [SerializeField] private string enemyTag = "Enemy";
+        [SerializeField, Tooltip("If true, also include objects tagged as Boss when auto-finding.")]
+        private bool includeBossTag = false;
+        [SerializeField] private string bossTag = "Boss";
 
 
         [SerializeField] private bool dropObjectOnClear = false;
@@ -145,6 +149,9 @@ namespace Progression.Encounters
         private readonly List<BaseEnemyCore> additionalEnemies = new();
         private readonly HashSet<BaseEnemyCore> defeatedAdditionalEnemies = new();
         private int remainingAdditionalEnemies;
+        private readonly List<BossHealth> additionalBosses = new();
+        private readonly HashSet<BossHealth> defeatedAdditionalBosses = new();
+        private int remainingAdditionalBosses;
 
         private bool encounterStarted;
         private Coroutine waveAdvanceRoutine;
@@ -183,6 +190,14 @@ namespace Progression.Encounters
 
                 return new Wave(parentObject.gameObject, enemiesToAdd);
             }
+        }
+
+        private void Update()
+        {
+            if (!encounterStarted || tempIsCompleted)
+                return;
+
+            CheckAdditionalBosses();
         }
 
         private void WaveComplete(Wave compleatedWave)
@@ -314,6 +329,11 @@ namespace Progression.Encounters
             if ((encounterEnemies == null || encounterEnemies.Count == 0) && autoFindByTag)
             {
                 encounterEnemies = GameObject.FindGameObjectsWithTag(enemyTag).ToList();
+
+                if (includeBossTag && !string.IsNullOrWhiteSpace(bossTag) && bossTag != enemyTag)
+                {
+                    encounterEnemies.AddRange(GameObject.FindGameObjectsWithTag(bossTag));
+                }
             }
 
             if (encounterEnemies != null)
@@ -326,6 +346,9 @@ namespace Progression.Encounters
             additionalEnemies.Clear();
             defeatedAdditionalEnemies.Clear();
             remainingAdditionalEnemies = 0;
+            additionalBosses.Clear();
+            defeatedAdditionalBosses.Clear();
+            remainingAdditionalBosses = 0;
 
             if (encounterEnemies == null || encounterEnemies.Count == 0)
                 return;
@@ -348,7 +371,23 @@ namespace Progression.Encounters
                 BaseEnemyCore enemyCore = enemyObject.GetComponent<BaseEnemyCore>();
                 if (enemyCore == null)
                 {
-                    Debug.LogWarning($"[CombatEncounter] Encounter enemy '{enemyObject.name}' has no BaseEnemyCore. Skipping additional tracking.");
+                    var bossHealth = enemyObject.GetComponentInChildren<BossHealth>(true)
+                        ?? enemyObject.GetComponentInParent<BossHealth>();
+                    if (bossHealth == null)
+                    {
+                        Debug.LogWarning($"[CombatEncounter] Encounter enemy '{enemyObject.name}' has no BaseEnemyCore or BossHealth. Skipping additional tracking.");
+                        continue;
+                    }
+
+                    if (!additionalBosses.Contains(bossHealth))
+                    {
+                        additionalBosses.Add(bossHealth);
+                        if (bossHealth.IsDefeated)
+                            defeatedAdditionalBosses.Add(bossHealth);
+                        else
+                            remainingAdditionalBosses++;
+                    }
+
                     continue;
                 }
 
@@ -369,6 +408,8 @@ namespace Progression.Encounters
         {
             defeatedAdditionalEnemies.Clear();
             remainingAdditionalEnemies = 0;
+            defeatedAdditionalBosses.Clear();
+            remainingAdditionalBosses = 0;
 
             foreach (var enemy in additionalEnemies)
             {
@@ -380,6 +421,17 @@ namespace Progression.Encounters
                     remainingAdditionalEnemies++;
                 else
                     defeatedAdditionalEnemies.Add(enemy);
+            }
+
+            foreach (var boss in additionalBosses)
+            {
+                if (boss == null)
+                    continue;
+
+                if (boss.IsDefeated)
+                    defeatedAdditionalBosses.Add(boss);
+                else
+                    remainingAdditionalBosses++;
             }
         }
 
@@ -393,7 +445,33 @@ namespace Progression.Encounters
 
             remainingAdditionalEnemies = Mathf.Max(0, remainingAdditionalEnemies - 1);
 
-            if (remainingAdditionalEnemies == 0 && wavesQueue.Count == 0 && !tempIsCompleted)
+            if (remainingAdditionalEnemies == 0 && remainingAdditionalBosses == 0 && wavesQueue.Count == 0 && !tempIsCompleted)
+            {
+                CompleteEncounter();
+            }
+        }
+
+        private void CheckAdditionalBosses()
+        {
+            if (additionalBosses.Count == 0 || remainingAdditionalBosses == 0)
+                return;
+
+            foreach (var boss in additionalBosses)
+            {
+                if (boss == null)
+                {
+                    if (defeatedAdditionalBosses.Add(boss))
+                        remainingAdditionalBosses = Mathf.Max(0, remainingAdditionalBosses - 1);
+                    continue;
+                }
+
+                if (boss.IsDefeated && defeatedAdditionalBosses.Add(boss))
+                {
+                    remainingAdditionalBosses = Mathf.Max(0, remainingAdditionalBosses - 1);
+                }
+            }
+
+            if (remainingAdditionalEnemies == 0 && remainingAdditionalBosses == 0 && wavesQueue.Count == 0 && !tempIsCompleted)
             {
                 CompleteEncounter();
             }
@@ -522,7 +600,9 @@ namespace Progression.Encounters
 
             foreach (var obj in selectedObjects)
             {
-                if (obj.GetComponentInChildren<IHealthSystem>() != null || obj.CompareTag("Enemy"))
+                if (obj.GetComponentInChildren<IHealthSystem>() != null
+                    || obj.CompareTag(encounter.enemyTag)
+                    || (!string.IsNullOrWhiteSpace(encounter.bossTag) && obj.CompareTag(encounter.bossTag)))
                 {
                     if (!encounter.encounterEnemies.Contains(obj))
                     {

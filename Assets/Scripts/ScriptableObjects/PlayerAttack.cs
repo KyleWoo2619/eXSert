@@ -270,7 +270,7 @@ namespace Utilities.Combat.Attacks
         public GameObject CreateHitBoxAt(Vector3 spawnPosition, Quaternion spawnRotation)
         {
             GameObject hitbox = new GameObject(attackName + " Hitbox");
-            hitbox.tag = "PlayerAttackHitbox"; // Tag for identification
+            TryAssignHitboxTag(hitbox);
             hitbox.transform.SetPositionAndRotation(spawnPosition, spawnRotation);
 
             BoxCollider hb = hitbox.AddComponent<BoxCollider>();
@@ -286,6 +286,22 @@ namespace Utilities.Combat.Attacks
             debugVisual.attackName = attackName;
 
             return hitbox;
+        }
+
+        private static void TryAssignHitboxTag(GameObject hitbox)
+        {
+            if (hitbox == null)
+                return;
+
+            const string hitboxTag = "PlayerAttackHitbox";
+            try
+            {
+                hitbox.tag = hitboxTag;
+            }
+            catch (UnityException)
+            {
+                Debug.LogWarning($"[PlayerAttack] Tag '{hitboxTag}' is not defined. Hitbox will be untagged.");
+            }
         }
     }
 }
