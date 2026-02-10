@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using EnemyBehavior.Boss;
 
@@ -32,6 +33,12 @@ namespace Progression.Encounters
         [SerializeField] private bool loadSceneOnClear = false;
         [SerializeField] private string nextSceneName = string.Empty;
         [SerializeField] private bool loadAdditive = true;
+        [Header("Debug")]
+        [SerializeField, Tooltip("Enable developer hotkey to force the encounter clear logic.")]
+        private bool enableDebugAdvance = false;
+        [SerializeField] private KeyCode debugAdvanceKey = KeyCode.I;
+        [SerializeField, Tooltip("Require Ctrl (Left or Right) with the debug key.")]
+        private bool requireCtrlForDebugAdvance = true;
         private static readonly HashSet<string> loadedScenes = new HashSet<string>();
         private GameObject lastEnemyAlive;
 
@@ -194,6 +201,12 @@ namespace Progression.Encounters
 
         private void Update()
         {
+            if (enableDebugAdvance && !tempIsCompleted && IsDebugAdvancePressed())
+            {
+                ForceDebugComplete();
+                return;
+            }
+
             if (!encounterStarted || tempIsCompleted)
                 return;
 
@@ -482,6 +495,40 @@ namespace Progression.Encounters
             tempIsCompleted = true;
             HandleCompletionProgression();
             HandleEncounterCompleted();
+        }
+
+        private void ForceDebugComplete()
+        {
+            tempIsCompleted = true;
+            HandleCompletionProgression();
+            HandleEncounterCompleted();
+        }
+
+        private bool IsDebugAdvancePressed()
+        {
+            var keyboard = Keyboard.current;
+            if (keyboard == null)
+                return false;
+
+            if (!IsKeyPressedThisFrame(keyboard, debugAdvanceKey))
+                return false;
+
+            if (!requireCtrlForDebugAdvance)
+                return true;
+
+            return keyboard.leftCtrlKey.isPressed || keyboard.rightCtrlKey.isPressed;
+        }
+
+        private static bool IsKeyPressedThisFrame(Keyboard keyboard, KeyCode key)
+        {
+            if (keyboard == null)
+                return false;
+
+            return key switch
+            {
+                KeyCode.I => keyboard.iKey.wasPressedThisFrame,
+                _ => false
+            };
         }
 
         private void HandleCompletionProgression()
