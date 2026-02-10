@@ -23,6 +23,7 @@ public class DoorHandler : MonoBehaviour
     public enum DoorType { OpenUp, OpenOut, OpenIn }
 
     public DoorState currentDoorState;
+    public DoorLockState doorLockState = DoorLockState.Locked;
     public DoorType doorType;
     public DoorLockState doorLockState;
     
