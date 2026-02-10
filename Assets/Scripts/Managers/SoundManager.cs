@@ -9,7 +9,7 @@ using UnityEngine.Audio;
 
 public class SoundManager : Singleton<SoundManager>
 {
-    protected override bool ShouldPersistAcrossScenes => false;
+    protected override bool ShouldPersistAcrossScenes => true;
 
     // Main Categories
     public AudioSource masterSource;

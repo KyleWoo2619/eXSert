@@ -126,6 +126,10 @@ public abstract class BaseEnemy<TState, TTrigger> : BaseEnemyCore, IQueuedAttack
     private string dieTriggerName = "Die";
     [SerializeField, Tooltip("Animator float parameter name for locomotion speed (optional).")]
     private string moveSpeedParameterName = "MoveSpeed";
+
+    [Header("SFX")]
+    [SerializeField, Tooltip("Audio clip to play when the enemy is hit.")]
+    private AudioClip[] hitSFX;
     
     [Header("Behavior Profile")]
     [SerializeField, Tooltip("Optional behavior profile for NavMeshAgent settings. If assigned, these settings will be applied on Awake.")]
@@ -637,6 +641,7 @@ public abstract class BaseEnemy<TState, TTrigger> : BaseEnemyCore, IQueuedAttack
         if (currentHealth > 0f)
         {
             PlayHitAnim();
+            PlaySFXOnHit();
         }
     }
 
@@ -687,6 +692,15 @@ public abstract class BaseEnemy<TState, TTrigger> : BaseEnemyCore, IQueuedAttack
     public override void HealHP(float hp)
     {
         SetHealth(currentHealth + hp);
+    }
+
+    private void PlaySFXOnHit()
+    {
+        if (hitSFX != null && hitSFX.Length > 0)
+        {
+            int index = Random.Range(0, hitSFX.Length);
+            SoundManager.Instance.sfxSource.PlayOneShot(hitSFX[index]);
+        }
     }
 
     // SetHealth now clamps and updates health, but expects the new value

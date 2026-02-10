@@ -24,7 +24,7 @@ public abstract class InteractionManager : MonoBehaviour, IInteractable
     [Header("Input Action Reference")]
     [SerializeField, CriticalReference] internal InputActionReference _interactInputAction;
 
-    private InteractionUI ResolveInteractionUI()
+    internal InteractionUI ResolveInteractionUI()
     {
         return FindObjectOfType<InteractionUI>(true);
     }

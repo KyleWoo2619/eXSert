@@ -274,6 +274,8 @@ public class CranePuzzle : PuzzlePart
     // Called by whatever system starts this puzzle
     public override void StartPuzzle()
     {   
+        DisableInteractUIDuringPuzzle();
+
         int status = SetupCranePuzzle();
         if (status == -1)
         {
@@ -284,6 +286,7 @@ public class CranePuzzle : PuzzlePart
     // Call this when the puzzle is finished or cancelled
     public override void EndPuzzle()
     {
+
         isCompleted = true;
 
         foreach (GameObject img in craneUI)
@@ -554,6 +557,32 @@ public class CranePuzzle : PuzzlePart
                 cranePartStartLocalPositions[part] = part.partObject.transform.localPosition;
             }
         }
+    }
+
+    private void DisableInteractUIDuringPuzzle()
+    {
+        var ui = FindObjectOfType<InteractionUI>(true);
+        if (ui == null)
+            return;
+
+        if (ui._interactIcon != null)
+            ui._interactIcon.gameObject.SetActive(false);
+
+        if (ui._interactText != null)
+            ui._interactText.gameObject.SetActive(false);
+    }
+
+    private void EnableInteractUIAfterPuzzle()
+    {
+        var ui = FindObjectOfType<InteractionUI>(true);
+        if (ui == null)
+            return;
+
+        if (ui._interactIcon != null)
+            ui._interactIcon.gameObject.SetActive(true);
+
+        if (ui._interactText != null)
+            ui._interactText.gameObject.SetActive(true);
     }
 
     private void SetupCraneUI()

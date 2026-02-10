@@ -25,7 +25,6 @@ public class DoorHandler : MonoBehaviour
     public DoorState currentDoorState;
     public DoorLockState doorLockState = DoorLockState.Locked;
     public DoorType doorType;
-
     
 
     private Vector3 doorPosOrigin;
@@ -75,13 +74,6 @@ public class DoorHandler : MonoBehaviour
         {
             Debug.Log("No bottomDoorPart reference assigned.");
         }
-    }
-
-    private void Update()
-    {
-        // For testing purposes: open/close door with the Interact action
-        if (InputReader.InteractTriggered)
-            Interact();
     }
 
     /// <summary>

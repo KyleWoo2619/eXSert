@@ -25,11 +25,10 @@ public class DoorInteractions : UnlockableInteraction
                     doorHandler.doorLockState = DoorHandler.DoorLockState.Unlocked;
                     Debug.Log("Door Unlocked!");
                 }
-                else
-                {
-                    doorHandler.Interact();
-                    Debug.Log("Door Interacted With!");
-                }
+
+                // Open/close after ensuring unlock so a single console use works.
+                doorHandler.Interact();
+                Debug.Log("Door Interacted With!");
             }
             else
             {
