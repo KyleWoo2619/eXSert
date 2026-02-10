@@ -48,7 +48,7 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
     [Tooltip("Sound effect played on each shot.")]
     [SerializeField] private AudioClip gunfireSfx;
     [Tooltip("Optional AudioSource to play gunfire SFX. If empty, will use one on this object or create one.")]
-    [SerializeField] private AudioSource gunfireSource;
+    private AudioSource gunfireSource;
 
     [Header("Projectile Pool")]
     [Tooltip("How many projectiles to pre-instantiate for this turret.")]
@@ -131,9 +131,7 @@ public abstract class BaseTurretEnemy : BaseEnemy<EnemyState, EnemyTrigger>, IPr
 
         if (gunfireSource == null)
         {
-            gunfireSource = GetComponent<AudioSource>();
-            if (gunfireSource == null)
-                gunfireSource = gameObject.AddComponent<AudioSource>();
+            gunfireSource = SoundManager.Instance != null ? SoundManager.Instance.sfxSource : GetComponent<AudioSource>();
         }
 
         telegraphCycleStartTime = Time.time;

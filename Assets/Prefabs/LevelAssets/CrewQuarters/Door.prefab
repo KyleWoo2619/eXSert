@@ -84,10 +84,8 @@ MonoBehaviour:
   _interactionPrompt: Press to Open
   _interactInputAction: {fileID: 732862687902746896, guid: 2b1b6753ddb602a428e3f74f6a31bd6b, type: 3}
   requiredItemID: 
-  doorHandler: {fileID: 98182257937175027}
-  doorhandler2: {fileID: 0}
-  doorhandler3: {fileID: 0}
-  doorhandler4: {fileID: 0}
+  doorHandlers:
+  - {fileID: 98182257937175027}
 --- !u!65 &5925842294498272219
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -190,6 +188,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DoorHandler
   currentDoorState: 1
+  doorLockState: 0
   doorType: 1
   topDoorPart: {fileID: 0}
   bottomDoorPart: {fileID: 0}
