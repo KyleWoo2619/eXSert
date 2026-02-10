@@ -269,16 +269,16 @@ public class CranePuzzle : PuzzlePart
     #region PuzzlePart Methods
     public override void ConsoleInteracted()
     {
-        int status = SetupCranePuzzle();
-        if(status == -1)
-        {
-            Debug.LogError("[CranePuzzle] Crane Puzzle Set Up script failed");
-        }
+        StartPuzzle();
     }
     // Called by whatever system starts this puzzle
     public override void StartPuzzle()
     {   
-        
+        int status = SetupCranePuzzle();
+        if (status == -1)
+        {
+            Debug.LogError("[CranePuzzle] Crane Puzzle Set Up script failed");
+        }
     }
 
     // Call this when the puzzle is finished or cancelled
@@ -561,19 +561,38 @@ public class CranePuzzle : PuzzlePart
         if (craneUI == null || craneUI.Length < 1)
             return;
 
-        if (InputReader.activeControlScheme == "Gamepad")
+        for (int i = 0; i < craneUI.Length; i++)
+        {
+            if (craneUI[i] != null)
+                craneUI[i].SetActive(false);
+        }
+
+        string scheme = InputReader.activeControlScheme;
+        if (string.IsNullOrEmpty(scheme) && InputReader.PlayerInput != null)
+            scheme = InputReader.PlayerInput.currentControlScheme;
+
+        if (scheme == "Gamepad")
         {
             if (craneUI.Length > 1 && craneUI[1] != null)
             {
                 craneUI[1].SetActive(true);
             }
+            else if (craneUI[0] != null)
+            {
+                craneUI[0].SetActive(true);
+            }
         }
-        else if (InputReader.activeControlScheme == "Keyboard&Mouse")
+        else if (scheme == "Keyboard&Mouse")
         {
             if (craneUI[0] != null)
             {
                 craneUI[0].SetActive(true);
             }
+        }
+        else
+        {
+            if (craneUI[0] != null)
+                craneUI[0].SetActive(true);
         }
     }
 

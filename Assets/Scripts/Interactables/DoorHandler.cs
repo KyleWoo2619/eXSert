@@ -76,11 +76,9 @@ public class DoorHandler : MonoBehaviour
 
     private void Update()
     {
-        // For testing purposes: open/close door with the O key
-        if (Input.GetKeyDown(KeyCode.O))
-        {
+        // For testing purposes: open/close door with the Interact action
+        if (InputReader.InteractTriggered)
             Interact();
-        }
     }
 
     /// <summary>

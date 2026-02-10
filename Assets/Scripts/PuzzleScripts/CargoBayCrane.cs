@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
@@ -42,9 +41,16 @@ public class CargoBayCrane : CranePuzzle, IConsoleSelectable
 
     [Header("Magnet Indicator")]
     [SerializeField] private bool showMagnetIndicator = true;
+    [SerializeField] private bool showIndicatorOnlyWhenActive = true;
     [SerializeField] private float indicatorMaxDistance = 50f;
     [SerializeField] private float indicatorWidth = 0.05f;
     [SerializeField] private Color indicatorColor = Color.red;
+    [SerializeField] private Color indicatorHighlightColor = Color.white;
+    [SerializeField, Tooltip("World-space distance to consider the indicator centered on the target.")]
+    private float indicatorHighlightDistance = 0.15f;
+    [SerializeField, Range(0f, 2f)] private float indicatorPulseSpeed = 0.5f;
+    [SerializeField, Range(0f, 1f)] private float indicatorPulseMinAlpha = 0.35f;
+    [SerializeField, Range(0f, 1f)] private float indicatorPulseMaxAlpha = 0.85f;
     [SerializeField] private LayerMask indicatorMask = ~0;
     [SerializeField] private Vector3 indicatorOffset = Vector3.zero;
 
@@ -57,6 +63,9 @@ public class CargoBayCrane : CranePuzzle, IConsoleSelectable
     [SerializeField] private Vector2 firstConsoleZLimits = new Vector2(-3.69f, 19.42f);
     [SerializeField] private Vector2 secondConsoleZLimits = new Vector2(6f, 55f);
 
+    [Header("Console Completion")]
+    [SerializeField] private bool lockCompletedConsoles = true;
+
     [Space(10)]
     [Header("Crane Ambience/SFX")]
     [SerializeField] private UnityEvent playCraneAmbience;
@@ -66,6 +75,9 @@ public class CargoBayCrane : CranePuzzle, IConsoleSelectable
     internal GameObject targetObject;
     private GameObject activeTargetDropZone;
     private LineRenderer magnetIndicator;
+    private bool indicatorActive;
+    private int activeConsoleIndex;
+    private readonly bool[] consoleCompleted = new bool[2];
     
     private void Start()
     {
@@ -74,6 +86,7 @@ public class CargoBayCrane : CranePuzzle, IConsoleSelectable
 
         SetActiveConsole(0);
         EnsureMagnetIndicator();
+        indicatorActive = false;
     }
 
     private void Update()
@@ -83,19 +96,35 @@ public class CargoBayCrane : CranePuzzle, IConsoleSelectable
 
     public override void ConsoleInteracted()
     {
+        if (!CanUseConsole(0))
+            return;
+
         SetActiveConsole(0);
+        indicatorActive = true;
         base.ConsoleInteracted();
     }
 
     public void ConsoleInteracted(PuzzleInteraction interaction)
     {
         int consoleIndex = interaction != null ? interaction.ConsoleIndex : 0;
+
+        if (!CanUseConsole(consoleIndex))
+            return;
+
         SetActiveConsole(consoleIndex);
+        indicatorActive = true;
         base.ConsoleInteracted();
+    }
+
+    public override void EndPuzzle()
+    {
+        indicatorActive = false;
+        base.EndPuzzle();
     }
 
     private void SetActiveConsole(int consoleIndex)
     {
+        activeConsoleIndex = consoleIndex;
         bool useSecond = consoleIndex == 1;
 
         targetObject = useSecond ? secondTargetObject : firstTargetObject;
@@ -104,6 +133,17 @@ public class CargoBayCrane : CranePuzzle, IConsoleSelectable
         SetPuzzleCamera(useSecond ? secondPuzzleCamera : firstPuzzleCamera);
 
         ApplyZLimits(useSecond ? secondConsoleZLimits : firstConsoleZLimits);
+    }
+
+    private bool CanUseConsole(int consoleIndex)
+    {
+        if (!lockCompletedConsoles)
+            return true;
+
+        if (consoleIndex < 0 || consoleIndex >= consoleCompleted.Length)
+            return true;
+
+        return !consoleCompleted[consoleIndex];
     }
 
     private void ApplyZLimits(Vector2 limits)
@@ -391,7 +431,10 @@ public class CargoBayCrane : CranePuzzle, IConsoleSelectable
             yield return StartCoroutine(LowerMagnetUntilCollision(dropSpeed, maxDropDistance, result => reachedDropTarget = result));
 
             if (reachedDropTarget && craneGrabObjectScript != null && targetObject != null)
+            {
                 craneGrabObjectScript.ReleaseObject(targetObject);
+                MarkConsoleCompleted();
+            }
 
             isGrabbed = false;
             targetObject = null;
@@ -403,6 +446,17 @@ public class CargoBayCrane : CranePuzzle, IConsoleSelectable
         }
 
         isRetracting = false;
+    }
+
+    private void MarkConsoleCompleted()
+    {
+        if (!lockCompletedConsoles)
+            return;
+
+        if (activeConsoleIndex < 0 || activeConsoleIndex >= consoleCompleted.Length)
+            return;
+
+        consoleCompleted[activeConsoleIndex] = true;
     }
 
     // Checks for confirm input to start magnet extension
@@ -645,6 +699,13 @@ public class CargoBayCrane : CranePuzzle, IConsoleSelectable
             return;
         }
 
+        if (showIndicatorOnlyWhenActive && !indicatorActive)
+        {
+            if (magnetIndicator != null)
+                magnetIndicator.enabled = false;
+            return;
+        }
+
         EnsureMagnetIndicator();
         if (magnetIndicator == null)
             return;
@@ -657,9 +718,46 @@ public class CargoBayCrane : CranePuzzle, IConsoleSelectable
         if (Physics.Raycast(start, dir, out var hit, maxDist, indicatorMask, QueryTriggerInteraction.Ignore))
             end = hit.point;
 
+        Color baseColor = indicatorColor;
+        if (IsIndicatorNearTarget(end))
+            baseColor = indicatorHighlightColor;
+
+        float pulseAlpha = GetPulseAlpha();
+        Color pulseColor = new Color(baseColor.r, baseColor.g, baseColor.b, pulseAlpha);
+        magnetIndicator.startColor = pulseColor;
+        magnetIndicator.endColor = pulseColor;
+
         magnetIndicator.SetPosition(0, start);
         magnetIndicator.SetPosition(1, end);
         magnetIndicator.enabled = true;
+    }
+
+    private bool IsIndicatorNearTarget(Vector3 indicatorEnd)
+    {
+        if (targetObject == null)
+            return false;
+
+        Vector3 targetCenter = targetObject.transform.position;
+        Collider targetCollider = targetObject.GetComponentInChildren<Collider>();
+        if (targetCollider != null)
+            targetCenter = targetCollider.bounds.center;
+
+        return Vector3.Distance(indicatorEnd, targetCenter) <= indicatorHighlightDistance;
+    }
+
+    private float GetPulseAlpha()
+    {
+        float speed = Mathf.Max(0.01f, indicatorPulseSpeed);
+        float t = (Mathf.Sin(Time.unscaledTime * Mathf.PI * 2f * speed) + 1f) * 0.5f;
+        float minA = Mathf.Clamp01(indicatorPulseMinAlpha);
+        float maxA = Mathf.Clamp01(indicatorPulseMaxAlpha);
+        if (maxA < minA)
+        {
+            float swap = minA;
+            minA = maxA;
+            maxA = swap;
+        }
+        return Mathf.Lerp(minA, maxA, t);
     }
 
     #endregion
