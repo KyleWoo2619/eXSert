@@ -16,6 +16,8 @@ public abstract class UnlockableInteraction : InteractionManager
 
     protected bool needsItem => !string.IsNullOrEmpty(requiredItemID);
     protected bool canUnlock => InternalPlayerInventory.Instance.HasItem(requiredItemID);
+    [Header("Error SFX")]
+    [SerializeField] private AudioClip errorSFXClip;
 
     protected override void Awake()
     {
@@ -49,7 +51,11 @@ public abstract class UnlockableInteraction : InteractionManager
         }
         else
         {
-            Debug.Log($"Cannot interact yet. Required item: {requiredItemID}");
+            Debug.Log($"Cannot interact with {gameObject.name}. Player does not have required item: {requiredItemID}");
+            if (errorSFXClip != null)
+            {
+                SoundManager.Instance.puzzleSource.PlayOneShot(errorSFXClip);
+            }
         }
     }
 }

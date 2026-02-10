@@ -1231,11 +1231,6 @@ Mesh:
       - serializedVersion: 1
         m_IndexStart: 0
         m_IndexCount: 0
---- !u!1 &89714859 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 8798096061373481816, guid: 7304e6f8ecf3bc64cb762537f93570c5, type: 3}
-  m_PrefabInstance: {fileID: 974099099}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &109043109 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1882941503567755830, guid: 8bd40292b1f4fc54ba5f2774109bd447, type: 3}
@@ -18110,6 +18105,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3446815131762501537, guid: 7304e6f8ecf3bc64cb762537f93570c5, type: 3}
   m_PrefabInstance: {fileID: 974099099}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &974099101 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2638648365043514651, guid: 7304e6f8ecf3bc64cb762537f93570c5, type: 3}
+  m_PrefabInstance: {fileID: 974099099}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &991881426
 GameObject:
   m_ObjectHideFlags: 0
@@ -23280,7 +23280,11 @@ PrefabInstance:
     - target: {fileID: 8530458340202710104, guid: efc588e010d594a4c94830813166a9e0, type: 3}
       propertyPath: 'encounterEnemies.Array.data[3]'
       value: 
-      objectReference: {fileID: 89714859}
+      objectReference: {fileID: 974099101}
+    - target: {fileID: 8530458340202710104, guid: efc588e010d594a4c94830813166a9e0, type: 3}
+      propertyPath: 'encounterEnemies.Array.data[4]'
+      value: 
+      objectReference: {fileID: 974099101}
     - target: {fileID: 8530458340202710104, guid: efc588e010d594a4c94830813166a9e0, type: 3}
       propertyPath: enableNextEncounterDelaySeconds
       value: 3
@@ -37750,6 +37754,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 376809103}
     - target: {fileID: 3611071323446665129, guid: 9c2ac6d0d836019459d0bfb4e3391823, type: 3}
+      propertyPath: errorSFXClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 450a080ad3d152b44817e05e79d96651, type: 3}
+    - target: {fileID: 3611071323446665129, guid: 9c2ac6d0d836019459d0bfb4e3391823, type: 3}
       propertyPath: requiredItemID
       value: CrewQuarterDoor
       objectReference: {fileID: 0}
@@ -40439,9 +40447,17 @@ PrefabInstance:
       value: SecondCrane
       objectReference: {fileID: 0}
     - target: {fileID: 3473652998857998926, guid: 10dbd02a78bec9a478fc9e850ba47166, type: 3}
+      propertyPath: errorSFXClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 450a080ad3d152b44817e05e79d96651, type: 3}
+    - target: {fileID: 3473652998857998926, guid: 10dbd02a78bec9a478fc9e850ba47166, type: 3}
       propertyPath: _interactionPrompt
       value: Press to Interact
       objectReference: {fileID: 0}
+    - target: {fileID: 4965247282811737687, guid: 10dbd02a78bec9a478fc9e850ba47166, type: 3}
+      propertyPath: errorSFXClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 450a080ad3d152b44817e05e79d96651, type: 3}
     - target: {fileID: 4965247282811737687, guid: 10dbd02a78bec9a478fc9e850ba47166, type: 3}
       propertyPath: requiredItemID
       value: FirstCrane

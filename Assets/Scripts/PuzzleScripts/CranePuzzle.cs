@@ -221,13 +221,17 @@ public class CranePuzzle : PuzzlePart
             return EmergencyExit("Error in trying to find player");
 
         // Try to find PlayerMovement on the player, its children, or parent; fallback to any active instance
-        var pm = player.GetComponent<PlayerMovement>();
+        var pm = FindPlayerMovement(player);
 
         // If found, disable movement and cache for restoration
         if (pm != null)
         {
             cachedPlayerMovement = pm;
             pm.enabled = false;
+        }
+        else
+        {
+            Debug.LogWarning("[CranePuzzle] PlayerMovement not found; player input may remain enabled during the puzzle.");
         }
 
         SwitchPuzzleCamera();
@@ -253,6 +257,26 @@ public class CranePuzzle : PuzzlePart
         {
             puzzleCamera.Priority = 21;
         }
+    }
+
+    private PlayerMovement FindPlayerMovement(GameObject player)
+    {
+        if (player == null)
+            return null;
+
+        var pm = player.GetComponent<PlayerMovement>();
+        if (pm != null)
+            return pm;
+
+        pm = player.GetComponentInChildren<PlayerMovement>(true);
+        if (pm != null)
+            return pm;
+
+        pm = player.GetComponentInParent<PlayerMovement>();
+        if (pm != null)
+            return pm;
+
+        return FindObjectOfType<PlayerMovement>();
     }
 
     protected void SetPuzzleCamera(CinemachineCamera camera)
