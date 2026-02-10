@@ -18,6 +18,8 @@ public class DoorHandler : MonoBehaviour
 {
     public enum DoorState { Open, Closed }
 
+    public enum DoorLockState { Locked, Unlocked }
+
     public enum DoorType { OpenUp, OpenOut, OpenIn }
 
     public DoorState currentDoorState;
