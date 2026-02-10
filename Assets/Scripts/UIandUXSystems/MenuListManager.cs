@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -22,6 +23,28 @@ public class MenuListManager : MonoBehaviour
         {
             AddToMenuList(firstMenuToOpen);
         }
+    }
+
+    private void OnEnable()
+    {
+        if (backButtonInputAction != null && backButtonInputAction.action != null)
+        {
+            backButtonInputAction.action.performed += OnBackButtonPressed;
+            backButtonInputAction.action.Enable();
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (backButtonInputAction != null && backButtonInputAction.action != null)
+        {
+            backButtonInputAction.action.performed -= OnBackButtonPressed;
+        }
+    }
+
+    private void OnBackButtonPressed(InputAction.CallbackContext context)
+    {
+        GoBackToPreviousMenu();
     }
 
     public void SetAsLastSibling(GameObject menuToMove)
@@ -112,6 +135,30 @@ public class MenuListManager : MonoBehaviour
         if(menuToCheck.transform.parent == menusToManage[0].transform.parent && menuToCheck != firstMenuToOpen && menuToCheck != canvas)
         {
             RemoveFirstItemInMenuList();
+        }
+    }
+
+    public void GoBackToPreviousMenu()
+    {
+        if(menusToManage.Count <= 2)
+            return;
+
+        // Remove current top menu
+        GameObject currentTop = menusToManage[0];
+        if (currentTop != null)
+        {
+            currentTop.SetActive(false);
+        }
+        menusToManage.RemoveAt(0);
+
+        // Select the first selectable in the new top menu
+        if (menusToManage.Count > 0)
+        {
+            GameObject newTop = menusToManage[0];
+            if (newTop != null)
+            {
+                SelectFirstSelectOnBack(newTop);
+            }
         }
     }
 
