@@ -12,6 +12,14 @@ public class KeybindIconSwapper : MonoBehaviour
         Gamepad
     }
 
+    public enum CraneDirection
+    {
+        Forward,
+        Back,
+        Left,
+        Right
+    }
+
     [Header("References")]
     [SerializeField] private KeybindIconSet iconSet;
     [SerializeField] private Image targetImage;
@@ -19,6 +27,10 @@ public class KeybindIconSwapper : MonoBehaviour
     [Header("Binding")]
     [SerializeField] private KeybindAction action;
     [SerializeField] private DeviceMode deviceMode = DeviceMode.Auto;
+
+    [Header("Crane Move")]
+    [SerializeField] private bool useCraneMoveIcon = false;
+    [SerializeField] private CraneDirection craneDirection = CraneDirection.Forward;
 
     [Header("Behavior")]
     [SerializeField] private bool hideWhenMissing = false;
@@ -114,6 +126,22 @@ public class KeybindIconSwapper : MonoBehaviour
         if (deviceMode == DeviceMode.Auto)
             useGamepad = iconSet.IsGamepadScheme(GetCurrentScheme());
 
+        if (useCraneMoveIcon)
+        {
+            string partName = GetCranePartName(craneDirection);
+            if (iconSet.TryGetCompositePartIcon(action, useGamepad, partName, out Sprite craneIcon, out _))
+            {
+                targetImage.sprite = craneIcon;
+                targetImage.enabled = true;
+            }
+            else if (hideWhenMissing)
+            {
+                targetImage.enabled = false;
+            }
+
+            return;
+        }
+
         if (iconSet.TryGetIcon(action, useGamepad, out Sprite icon, out _))
         {
             targetImage.sprite = icon;
@@ -122,6 +150,21 @@ public class KeybindIconSwapper : MonoBehaviour
         else if (hideWhenMissing)
         {
             targetImage.enabled = false;
+        }
+    }
+
+    private static string GetCranePartName(CraneDirection direction)
+    {
+        switch (direction)
+        {
+            case CraneDirection.Back:
+                return "down";
+            case CraneDirection.Left:
+                return "left";
+            case CraneDirection.Right:
+                return "right";
+            default:
+                return "up";
         }
     }
 

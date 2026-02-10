@@ -1,6 +1,4 @@
 using UnityEngine;
-using TMPro;
-using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using System;
 
@@ -20,10 +18,16 @@ public abstract class InteractionManager : MonoBehaviour, IInteractable
     [Header("Interaction Animation and ID")]
     [SerializeField] private AnimationClip _interactAnimation;
     [SerializeField] private string _interactId;
+    [SerializeField] private string _interactionPrompt = "Press to Interact";
     
     [Space(10)]
     [Header("Input Action Reference")]
     [SerializeField, CriticalReference] internal InputActionReference _interactInputAction;
+
+    private InteractionUI ResolveInteractionUI()
+    {
+        return FindObjectOfType<InteractionUI>(true);
+    }
 
     protected virtual void Awake()
     {
@@ -33,10 +37,14 @@ public abstract class InteractionManager : MonoBehaviour, IInteractable
 
         
 
-        if(InteractionUI.Instance._interactText != null)
-            InteractionUI.Instance._interactText.gameObject.SetActive(false);
-        if(InteractionUI.Instance._interactIcon != null)
-            InteractionUI.Instance._interactIcon.gameObject.SetActive(false);
+        var ui = ResolveInteractionUI();
+        if (ui == null)
+            return;
+
+        if (ui._interactText != null)
+            ui._interactText.gameObject.SetActive(false);
+        if (ui._interactIcon != null)
+            ui._interactIcon.gameObject.SetActive(false);
     }
     public void OnInteractButtonPressed()
     {
@@ -45,7 +53,8 @@ public abstract class InteractionManager : MonoBehaviour, IInteractable
 
         Debug.Log($"Player interacted with {gameObject.name} using input action {_interactInputAction.action.name}");
         Interact();
-        InteractionUI.Instance._interactEffect?.Play();
+        var ui = ResolveInteractionUI();
+        ui?._interactEffect?.Play();
     }
 
     private void Update()
@@ -54,12 +63,6 @@ public abstract class InteractionManager : MonoBehaviour, IInteractable
     }
 
     protected abstract void Interact();
-
-    public bool IsUsingKeyboard()
-    {
-        var scheme = InputReader.Instance != null ? InputReader.activeControlScheme ?? string.Empty : string.Empty;
-        return scheme.IndexOf("keyboard", StringComparison.OrdinalIgnoreCase) >= 0;
-    }
 
     public void DeactivateInteractable(MonoBehaviour interactable)
     {
@@ -77,59 +80,33 @@ public abstract class InteractionManager : MonoBehaviour, IInteractable
 
         interactable.gameObject.SetActive(false);
 
-        if(InteractionUI.Instance._interactIcon != null)
-            InteractionUI.Instance._interactIcon.gameObject.SetActive(false);
+        var ui = ResolveInteractionUI();
+        if (ui == null)
+            return;
 
-        if(InteractionUI.Instance._interactText != null)
-            InteractionUI.Instance._interactText.gameObject.SetActive(false);
+        if (ui._interactIcon != null)
+            ui._interactIcon.gameObject.SetActive(false);
+
+        if (ui._interactText != null)
+            ui._interactText.gameObject.SetActive(false);
     }
     
     public void SwapBasedOnInputMethod()
     {
-        if (_interactInputAction == null || _interactInputAction.action == null || _interactInputAction.action.controls.Count == 0)
-        {
-            // Fallback if input action is not properly configured
-            if(InteractionUI.Instance._interactText != null)
-            {
-                InteractionUI.Instance._interactText.text = "Press to interact";
-                InteractionUI.Instance._interactText.gameObject.SetActive(true);
-            }
-            if(InteractionUI.Instance._interactIcon != null)
-                InteractionUI.Instance._interactIcon.gameObject.SetActive(false);
+        var ui = ResolveInteractionUI();
+        if (ui == null)
             return;
+
+        if (ui._interactText != null)
+        {
+            ui._interactText.text = string.IsNullOrWhiteSpace(_interactionPrompt)
+                ? "Press to Interact"
+                : _interactionPrompt;
+            ui._interactText.gameObject.SetActive(true);
         }
 
-        if (IsUsingKeyboard())
-        {
-            if(InteractionUI.Instance._interactText != null)
-            {
-                InteractionUI.Instance._interactText.text = $"Press {(_interactInputAction.action.controls[0].name).ToUpperInvariant()} to interact";
-                InteractionUI.Instance._interactText.gameObject.SetActive(true);
-            }
-            if(InteractionUI.Instance._interactIcon != null)
-                InteractionUI.Instance._interactIcon.gameObject.SetActive(false);
-        }
-        else
-        {
-            string gamePadButtonName = _interactInputAction.action.controls[0].name;
-            if(InteractionUI.Instance._interactIcon != null)
-                InteractionUI.Instance._interactIcon.gameObject.SetActive(true);
-
-            foreach(var iconEntry in SettingsManager.Instance.gamePadIcons)
-            {
-                if(iconEntry.Key == gamePadButtonName)
-                {
-                    if(InteractionUI.Instance._interactIcon != null)
-                        InteractionUI.Instance._interactIcon.sprite = iconEntry.Value;
-                    break;
-                }
-            }
-            if(InteractionUI.Instance._interactText != null)
-            {
-                InteractionUI.Instance._interactText.text = "Press \n\n to interact";
-                InteractionUI.Instance._interactText.gameObject.SetActive(true);
-            }
-        }
+        if (ui._interactIcon != null)
+            ui._interactIcon.gameObject.SetActive(true);
     }
 
     protected virtual void OnTriggerEnter(Collider other)
@@ -144,21 +121,19 @@ public abstract class InteractionManager : MonoBehaviour, IInteractable
 
         SwapBasedOnInputMethod();
 
-        if (InteractionUI.Instance == null)
+        var ui = ResolveInteractionUI();
+        if (ui == null)
             return;
 
-        if (InteractionUI.Instance._interactText != null)
+        if (ui._interactText != null)
         {
-            InteractionUI.Instance._interactText.gameObject.SetActive(true);
-            if (InteractionUI.Instance._interactText.transform.parent != null)
-                InteractionUI.Instance._interactText.transform.parent.gameObject.SetActive(true);
+            ui._interactText.gameObject.SetActive(true);
+            if (ui._interactText.transform.parent != null)
+                ui._interactText.transform.parent.gameObject.SetActive(true);
         }
-        if (InteractionUI.Instance._interactIcon != null && !IsUsingKeyboard())
-        {
-            InteractionUI.Instance._interactIcon.gameObject.SetActive(true);
-            if (InteractionUI.Instance._interactIcon.transform.parent != null)
-                InteractionUI.Instance._interactIcon.transform.parent.gameObject.SetActive(true);
-        }
+
+        if (ui._interactIcon != null)
+            ui._interactIcon.gameObject.SetActive(true);
     }
 
     protected virtual void OnTriggerExit(Collider other)
@@ -168,13 +143,14 @@ public abstract class InteractionManager : MonoBehaviour, IInteractable
 
         isPlayerNearby = false;
 
-        if (InteractionUI.Instance == null)
+        var ui = ResolveInteractionUI();
+        if (ui == null)
             return;
-        if (InteractionUI.Instance._interactText != null)
-            InteractionUI.Instance._interactText.gameObject.SetActive(false);
+        if (ui._interactText != null)
+            ui._interactText.gameObject.SetActive(false);
 
-        if (InteractionUI.Instance._interactIcon != null)
-            InteractionUI.Instance._interactIcon.gameObject.SetActive(false);
+        if (ui._interactIcon != null)
+            ui._interactIcon.gameObject.SetActive(false);
     }
 
     private void OnDrawGizmos()

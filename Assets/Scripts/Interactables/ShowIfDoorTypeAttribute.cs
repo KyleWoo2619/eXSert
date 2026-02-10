@@ -1,6 +1,7 @@
-#if UNITY_EDITOR
 using UnityEngine;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 
 public class ShowIfDoorTypeAttribute : PropertyAttribute
 {
@@ -12,6 +13,7 @@ public class ShowIfDoorTypeAttribute : PropertyAttribute
     }
 }
 
+#if UNITY_EDITOR
 [CustomPropertyDrawer(typeof(ShowIfDoorTypeAttribute))]
 public class ShowIfDoorTypeDrawer : PropertyDrawer
 {

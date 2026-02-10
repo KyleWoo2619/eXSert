@@ -72,7 +72,7 @@ public class DiaryScrollingList : MonoBehaviour
 
         RectTransform buttonRectTranform = diaryButton.GetComponent<RectTransform>();
 
-        diaryButton.InitializeButton(diaries.info.diaryID, () =>
+        diaryButton.InitializeButton(diaries.info.diaryTitle, () =>
         {
             selectAction();
             UpdateScrolling(buttonRectTranform);

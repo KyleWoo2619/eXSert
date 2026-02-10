@@ -142,6 +142,9 @@ namespace Progression.Encounters
         /// The queue of the incoming waves. Waves are removed once they are compleated
         /// </summary>
         private Queue<Wave> wavesQueue = new();
+        private readonly List<BaseEnemyCore> additionalEnemies = new();
+        private readonly HashSet<BaseEnemyCore> defeatedAdditionalEnemies = new();
+        private int remainingAdditionalEnemies;
 
         private bool encounterStarted;
         private Coroutine waveAdvanceRoutine;
@@ -169,6 +172,7 @@ namespace Progression.Encounters
             }
 
             ResetWaves();
+            TrackAdditionalEnemies();
 
             // sub function to create a new wave of enemies using all the gameobjects childed to an empty gameobject
             Wave CreateWave(Transform parentObject)
@@ -193,9 +197,10 @@ namespace Progression.Encounters
 
                 if (wavesQueue.Count == 0)
                 {
-                    tempIsCompleted = true;
-                    HandleCompletionProgression();
-                    HandleEncounterCompleted();
+                    if (remainingAdditionalEnemies > 0)
+                        return;
+
+                    CompleteEncounter();
                     return;
                 }
 
@@ -244,6 +249,8 @@ namespace Progression.Encounters
                 wavesQueue.Enqueue(wave);
                 wave.ResetEnemies();
             }
+
+            ResetAdditionalEnemies();
         }
 
         #region Trigger Events
@@ -263,6 +270,8 @@ namespace Progression.Encounters
             // reset enemies
             foreach (var wave in allWaves)
                 wave.ResetEnemies();
+
+            ResetAdditionalEnemies();
         }
 
         private bool IsPlayerInsideZone()
@@ -310,6 +319,91 @@ namespace Progression.Encounters
             if (encounterEnemies != null)
                 encounterEnemies.RemoveAll(e => e == null);
 
+        }
+
+        private void TrackAdditionalEnemies()
+        {
+            additionalEnemies.Clear();
+            defeatedAdditionalEnemies.Clear();
+            remainingAdditionalEnemies = 0;
+
+            if (encounterEnemies == null || encounterEnemies.Count == 0)
+                return;
+
+            HashSet<BaseEnemyCore> waveEnemies = new HashSet<BaseEnemyCore>();
+            foreach (var wave in allWaves)
+            {
+                foreach (var enemy in wave.enemies)
+                {
+                    if (enemy != null)
+                        waveEnemies.Add(enemy);
+                }
+            }
+
+            foreach (var enemyObject in encounterEnemies)
+            {
+                if (enemyObject == null)
+                    continue;
+
+                BaseEnemyCore enemyCore = enemyObject.GetComponent<BaseEnemyCore>();
+                if (enemyCore == null)
+                {
+                    Debug.LogWarning($"[CombatEncounter] Encounter enemy '{enemyObject.name}' has no BaseEnemyCore. Skipping additional tracking.");
+                    continue;
+                }
+
+                if (waveEnemies.Contains(enemyCore))
+                    continue;
+
+                additionalEnemies.Add(enemyCore);
+                enemyCore.OnDeath += OnAdditionalEnemyDefeated;
+
+                if (enemyCore.isAlive)
+                    remainingAdditionalEnemies++;
+                else
+                    defeatedAdditionalEnemies.Add(enemyCore);
+            }
+        }
+
+        private void ResetAdditionalEnemies()
+        {
+            defeatedAdditionalEnemies.Clear();
+            remainingAdditionalEnemies = 0;
+
+            foreach (var enemy in additionalEnemies)
+            {
+                if (enemy == null)
+                    continue;
+
+                enemy.ResetEnemy();
+                if (enemy.isAlive)
+                    remainingAdditionalEnemies++;
+                else
+                    defeatedAdditionalEnemies.Add(enemy);
+            }
+        }
+
+        private void OnAdditionalEnemyDefeated(BaseEnemyCore enemy)
+        {
+            if (!additionalEnemies.Contains(enemy))
+                return;
+
+            if (!defeatedAdditionalEnemies.Add(enemy))
+                return;
+
+            remainingAdditionalEnemies = Mathf.Max(0, remainingAdditionalEnemies - 1);
+
+            if (remainingAdditionalEnemies == 0 && wavesQueue.Count == 0 && !tempIsCompleted)
+            {
+                CompleteEncounter();
+            }
+        }
+
+        private void CompleteEncounter()
+        {
+            tempIsCompleted = true;
+            HandleCompletionProgression();
+            HandleEncounterCompleted();
         }
 
         private void HandleCompletionProgression()
