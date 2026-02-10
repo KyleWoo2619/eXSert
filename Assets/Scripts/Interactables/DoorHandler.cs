@@ -24,7 +24,7 @@ public class DoorHandler : MonoBehaviour
 
     public DoorState currentDoorState;
     public DoorType doorType;
-
+    public DoorLockState doorLockState;
     
 
     private Vector3 doorPosOrigin;

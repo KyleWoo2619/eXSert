@@ -7878,7 +7878,7 @@ MonoBehaviour:
   softLockRadius: 4
   softLockMoveDistance: 0.75
   softLockStopBuffer: 0.5
-  softLockNoMoveRadius: 1.5
+  softLockNoMoveRadius: 0.3
   softLockMoveDuration: 0.1
   onlySoftLockSingleTarget: 0
   steerCamera: 1
@@ -17094,11 +17094,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TempAoEVfxSwitcher
   attackManager: {fileID: 2445762002116463598}
   playerMovement: {fileID: 6150044602222399215}
-  audioSource: {fileID: 4805367996917460818}
   leftAttackVfx: {fileID: 1456974626908723287}
   rightAttackVfx: {fileID: 3755443737881139097}
   attackDuration: 0.5
-  attackAudioClip: {fileID: 0}
+  attackAudioClip: {fileID: 8300000, guid: c7a28a6dc531ab64bac3452a4768d1ea, type: 3}
   airMoveVfxObjects:
   - {fileID: 0}
   airMoveDuration: 0.5

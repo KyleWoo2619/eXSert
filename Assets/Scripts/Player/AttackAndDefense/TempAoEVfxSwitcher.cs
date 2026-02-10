@@ -12,7 +12,7 @@ public sealed class TempAoEVfxSwitcher : MonoBehaviour
 {
     [SerializeField] private PlayerAttackManager attackManager;
     [SerializeField] private PlayerMovement playerMovement;
-    [SerializeField] private AudioSource audioSource;
+    private AudioSource audioSource;
 
     [Header("Attack VFX")]
     [SerializeField, Tooltip("Rig-mounted left-hand VFX (enabled by LeftFire animation event).")]
@@ -41,7 +41,7 @@ public sealed class TempAoEVfxSwitcher : MonoBehaviour
     {
         attackManager ??= GetComponentInChildren<PlayerAttackManager>() ?? GetComponent<PlayerAttackManager>();
         playerMovement ??= GetComponentInChildren<PlayerMovement>() ?? GetComponent<PlayerMovement>() ?? GetComponentInParent<PlayerMovement>();
-        audioSource ??= GetComponent<AudioSource>() ?? SoundManager.Instance?.sfxSource;
+        audioSource = SoundManager.Instance?.sfxSource;
 
         SetVfxActive(leftAttackVfx, false);
         SetVfxActive(rightAttackVfx, false);
@@ -128,6 +128,7 @@ public sealed class TempAoEVfxSwitcher : MonoBehaviour
 
         SetVfxActive(rightAttackVfx, true);
         PlayAudio(attackAudioClip);
+        Debug.Log("Playing right attack audio clip: " + (attackAudioClip != null ? attackAudioClip.name : "null"));
         RestartSingleRoutine(
             ref rightAttackDeactivateRoutine,
             attackDuration,
