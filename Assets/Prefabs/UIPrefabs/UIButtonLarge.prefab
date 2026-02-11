@@ -822,6 +822,7 @@ GameObject:
   - component: {fileID: 8677787420231928550}
   - component: {fileID: 2107303046510771377}
   - component: {fileID: 2605978852568688044}
+  - component: {fileID: 2467777571527973859}
   m_Layer: 5
   m_Name: Image
   m_TagString: Untagged
@@ -886,6 +887,25 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &2467777571527973859
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7416865818752497396}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c90228feae360cc4895f08ce8185e090, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::KeybindIconSwapper
+  iconSet: {fileID: 11400000, guid: 77f0940b5e0ed114c8391847927da1c9, type: 2}
+  targetImage: {fileID: 2605978852568688044}
+  action: 0
+  deviceMode: 0
+  useCraneMoveIcon: 0
+  craneDirection: 0
+  hideWhenMissing: 0
 --- !u!1 &7536006302874759930
 GameObject:
   m_ObjectHideFlags: 0

@@ -553,10 +553,10 @@ public class KeybindIconSet : ScriptableObject
         AddIconBySpriteName(pathMap, spriteMap, "KB_UpArrow", "<Keyboard>/upArrow");
         AddIconBySpriteName(pathMap, spriteMap, "KB_DownArrow", "<Keyboard>/downArrow");
 
-        AddIconBySpriteName(pathMap, spriteMap, "LeftMouseClick", "<Mouse>/leftButton");
-        AddIconBySpriteName(pathMap, spriteMap, "RightMouseClick", "<Mouse>/rightButton");
-        AddIconBySpriteName(pathMap, spriteMap, "MouseScroll", "<Mouse>/scroll");
-        AddIconBySpriteName(pathMap, spriteMap, "MouseDelta", "<Mouse>/delta");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_LeftMouseClick", "<Mouse>/leftButton");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_RightMouseClick", "<Mouse>/rightButton");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_MouseScroll", "<Mouse>/scroll");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_MouseDelta", "<Mouse>/delta");
 
         if (keyboardFallbackIcon == null && spriteMap.TryGetValue("KB_EMPTY", out Sprite emptyKey))
             keyboardFallbackIcon = emptyKey;
@@ -717,7 +717,6 @@ public enum KeybindAction
     CraneExit,
     CraneConfirm,
     CraneMove,
-    UIConfirm,
-    UICancel,
-    UISelect
+    Confirm,
+    Cancel
 }
