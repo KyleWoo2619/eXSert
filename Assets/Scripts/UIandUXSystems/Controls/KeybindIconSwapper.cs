@@ -22,7 +22,7 @@ public class KeybindIconSwapper : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private KeybindIconSet iconSet;
-    [SerializeField] private Image targetImage;
+    [SerializeField] internal Image targetImage;
 
     [Header("Binding")]
     [SerializeField] private KeybindAction action;
@@ -37,6 +37,7 @@ public class KeybindIconSwapper : MonoBehaviour
 
     private string lastScheme = string.Empty;
     private bool isSubscribed;
+    private string lastBindingPath = string.Empty;
 
     private void Awake()
     {

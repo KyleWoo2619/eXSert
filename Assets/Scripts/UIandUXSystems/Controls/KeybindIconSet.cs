@@ -57,6 +57,7 @@ public class KeybindIconSet : ScriptableObject
     public string KeyboardMouseSchemeName => keyboardMouseSchemeName;
     public string GamepadSchemeName => gamepadSchemeName;
 
+    
     public bool TryGetIcon(KeybindAction actionId, bool useGamepad, out Sprite icon, out string controlPath)
     {
         icon = null;
@@ -715,5 +716,8 @@ public enum KeybindAction
     Select,
     CraneExit,
     CraneConfirm,
-    CraneMove
+    CraneMove,
+    UIConfirm,
+    UICancel,
+    UISelect
 }
