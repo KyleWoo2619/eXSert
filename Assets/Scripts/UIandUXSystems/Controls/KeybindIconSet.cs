@@ -57,6 +57,7 @@ public class KeybindIconSet : ScriptableObject
     public string KeyboardMouseSchemeName => keyboardMouseSchemeName;
     public string GamepadSchemeName => gamepadSchemeName;
 
+    
     public bool TryGetIcon(KeybindAction actionId, bool useGamepad, out Sprite icon, out string controlPath)
     {
         icon = null;
@@ -552,10 +553,10 @@ public class KeybindIconSet : ScriptableObject
         AddIconBySpriteName(pathMap, spriteMap, "KB_UpArrow", "<Keyboard>/upArrow");
         AddIconBySpriteName(pathMap, spriteMap, "KB_DownArrow", "<Keyboard>/downArrow");
 
-        AddIconBySpriteName(pathMap, spriteMap, "LeftMouseClick", "<Mouse>/leftButton");
-        AddIconBySpriteName(pathMap, spriteMap, "RightMouseClick", "<Mouse>/rightButton");
-        AddIconBySpriteName(pathMap, spriteMap, "MouseScroll", "<Mouse>/scroll");
-        AddIconBySpriteName(pathMap, spriteMap, "MouseDelta", "<Mouse>/delta");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_LeftMouseClick", "<Mouse>/leftButton");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_RightMouseClick", "<Mouse>/rightButton");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_MouseScroll", "<Mouse>/scroll");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_MouseDelta", "<Mouse>/delta");
 
         if (keyboardFallbackIcon == null && spriteMap.TryGetValue("KB_EMPTY", out Sprite emptyKey))
             keyboardFallbackIcon = emptyKey;
@@ -715,5 +716,7 @@ public enum KeybindAction
     Select,
     CraneExit,
     CraneConfirm,
-    CraneMove
+    CraneMove,
+    Confirm,
+    Cancel
 }
