@@ -33536,8 +33536,9 @@ GameObject:
   - component: {fileID: 932951639}
   - component: {fileID: 932951638}
   - component: {fileID: 932951637}
+  - component: {fileID: 932951640}
   m_Layer: 0
-  m_Name: LifeBox
+  m_Name: RoombaLifeBox
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -33556,7 +33557,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LifeBox
   showHitBox: 1
-  boxSize: {x: 50, y: 25, z: 60}
+  boxSize: {x: 50, y: 15.9, z: 79.6}
 --- !u!65 &932951638
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -33576,7 +33577,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 50, y: 25, z: 60}
+  m_Size: {x: 50, y: 15.9, z: 79.6}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!4 &932951639
 Transform:
@@ -33587,12 +33588,39 @@ Transform:
   m_GameObject: {fileID: 932951636}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -19.100002, y: 15.34169, z: 404.0809}
+  m_LocalPosition: {x: -19.100002, y: 16.1, z: 416.9}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!54 &932951640
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 932951636}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1001 &937239622
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -79542,8 +79570,8 @@ SceneRoots:
   - {fileID: 1175262292}
   - {fileID: 1147001270}
   - {fileID: 52832045}
-  - {fileID: 932951639}
   - {fileID: 1062568735}
   - {fileID: 1789049215}
   - {fileID: 857687504}
   - {fileID: 1144106567}
+  - {fileID: 932951639}

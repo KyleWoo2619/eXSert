@@ -20272,7 +20272,7 @@ GameObject:
   - component: {fileID: 576894534}
   - component: {fileID: 576894537}
   m_Layer: 0
-  m_Name: LifeBox
+  m_Name: ElevatorLifeBox
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -20291,7 +20291,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LifeBox
   showHitBox: 1
-  boxSize: {x: 25, y: 40, z: 25}
+  boxSize: {x: 25, y: 19, z: 39}
 --- !u!65 &576894535
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -20311,7 +20311,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 25, y: 40, z: 25}
+  m_Size: {x: 25, y: 19, z: 39}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!4 &576894536
 Transform:
@@ -20322,7 +20322,7 @@ Transform:
   m_GameObject: {fileID: 576894533}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 2.24495, y: -10.2, z: 9.56925}
+  m_LocalPosition: {x: 1.74495, y: -1.5659599, z: 14.599251}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -30994,11 +30994,11 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 576894536}
   - {fileID: 533135881}
   - {fileID: 740473389}
   - {fileID: 3950156108789771571}
   - {fileID: 689486240}
+  - {fileID: 576894536}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &845862235
