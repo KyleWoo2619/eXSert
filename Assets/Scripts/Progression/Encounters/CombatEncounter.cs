@@ -6,8 +6,99 @@ using UnityEngine.SceneManagement;
 
 namespace Progression.Encounters
 {
+    /// <summary>
+    /// Subclass Wave to hold the data for the individual waves for encounters.
+    /// Additionally holds wave specific functionality.
+    /// </summary>
+    internal class Wave
+    {
+        private readonly GameObject waveRoot;
+        // Holds all the enemy game objects in this wave, and whether they are alive
+        internal List<BaseEnemyCore> enemies = new List<BaseEnemyCore>();
+        private readonly HashSet<BaseEnemyCore> defeatedEnemies = new HashSet<BaseEnemyCore>();
+        private int remainingEnemies;
+
+        public event Action<Wave> OnWaveComplete;
+
+        // class constructor
+        public Wave(GameObject _waveRoot, List<GameObject> _enemies)
+        {
+            waveRoot = _waveRoot;
+            foreach (var enemy in _enemies)
+            {
+                BaseEnemyCore enemyCore = enemy.GetComponent<BaseEnemyCore>();
+                if (enemyCore != null)
+                {
+                    enemies.Add(enemyCore);
+
+                    enemyCore.OnDeath += OnEnemyDefeated;
+                }
+                else
+                    Debug.LogWarning($"[CombatEncounter] Detected nonenemy gameobject {enemy.name} attached to encounter. Skipping object");
+            }
+
+            remainingEnemies = enemies.Count;
+        }
+
+        /// <summary>
+        /// Function to spawn all enemies in this wave
+        /// Currently only activates the gameobjects but eventially should trigger spawn behavior in base enemy script
+        /// </summary>
+        public void SpawnEnemies()
+        {
+            if (waveRoot != null && !waveRoot.activeSelf)
+                waveRoot.SetActive(true);
+
+            defeatedEnemies.Clear();
+            remainingEnemies = enemies.Count;
+
+            foreach (BaseEnemyCore enemy in enemies)
+            {
+                enemy.Spawn();
+            }
+        }
+
+        /// <summary>
+        /// Function to reset all enemies in this wave
+        /// Currently only deactivates the gameobjects but eventially should trigger reset behavior in base enemy script
+        /// </summary>
+        public void ResetEnemies()
+        {
+            if (waveRoot != null && waveRoot.activeSelf)
+                waveRoot.SetActive(false);
+
+            defeatedEnemies.Clear();
+            remainingEnemies = enemies.Count;
+
+            foreach (BaseEnemyCore enemy in enemies)
+            {
+                enemy.ResetEnemy();
+            }
+        }
+
+        /// <summary>
+        /// Handles the logic for when an enemy is defeated
+        /// Function should be subscribed to the enemy's OnDefeated event
+        /// </summary>
+        /// <param name="enemy"></param>
+        private void OnEnemyDefeated(BaseEnemyCore enemy)
+        {
+            if (!enemies.Contains(enemy))
+                return;
+
+            if (!defeatedEnemies.Add(enemy))
+                return;
+
+            remainingEnemies = Mathf.Max(0, remainingEnemies - 1);
+            if (remainingEnemies == 0)
+                OnWaveComplete?.Invoke(this); // trigger next wave or end encounter
+        }
+    }
+
     public class CombatEncounter : BasicEncounter
     {
+        [Header("Combat Encounter Settings")]
+
         [SerializeField] private bool tempIsCompleted;
 
         [Header("Timing")]
@@ -39,109 +130,17 @@ namespace Progression.Encounters
             }
         }
 
-        /// <summary>
-        /// Subclass Wave to hold the data for the individual waves for encounters.
-        /// Additionally holds wave specific functionality.
-        /// </summary>
-        internal class Wave
-        {
-            private readonly GameObject waveRoot;
-            // Holds all the enemy game objects in this wave, and whether they are alive
-            internal List<BaseEnemyCore> enemies = new List<BaseEnemyCore>();
-            private readonly HashSet<BaseEnemyCore> defeatedEnemies = new HashSet<BaseEnemyCore>();
-            private int remainingEnemies;
-
-            public event Action<Wave> OnWaveComplete;
-
-            // class constructor
-            public Wave(GameObject _waveRoot, List<GameObject> _enemies)
-            {
-                waveRoot = _waveRoot;
-                foreach (var enemy in _enemies)
-                {
-                    BaseEnemyCore enemyCore = enemy.GetComponent<BaseEnemyCore>();
-                    if (enemyCore != null)
-                    {
-                        enemies.Add(enemyCore);
-
-                        enemyCore.OnDeath += OnEnemyDefeated;
-                    }
-                    else
-                        Debug.LogWarning($"[CombatEncounter] Detected nonenemy gameobject {enemy.name} attached to encounter. Skipping object");
-                }
-
-                remainingEnemies = enemies.Count;
-            }
-
-            
-
-
-            /// <summary>
-            /// Function to spawn all enemies in this wave
-            /// Currently only activates the gameobjects but eventially should trigger spawn behavior in base enemy script
-            /// </summary>
-            public void SpawnEnemies()
-            {
-                if (waveRoot != null && !waveRoot.activeSelf)
-                    waveRoot.SetActive(true);
-
-                defeatedEnemies.Clear();
-                remainingEnemies = enemies.Count;
-
-                foreach (BaseEnemyCore enemy in enemies)
-                {
-                    enemy.Spawn();
-                }
-            }
-
-            /// <summary>
-            /// Function to reset all enemies in this wave
-            /// Currently only deactivates the gameobjects but eventially should trigger reset behavior in base enemy script
-            /// </summary>
-            public void ResetEnemies()
-            {
-                if (waveRoot != null && waveRoot.activeSelf)
-                    waveRoot.SetActive(false);
-
-                defeatedEnemies.Clear();
-                remainingEnemies = enemies.Count;
-
-                foreach (BaseEnemyCore enemy in enemies)
-                {
-                    enemy.ResetEnemy();
-                }
-            }
-
-            /// <summary>
-            /// Handles the logic for when an enemy is defeated
-            /// Function should be subscribed to the enemy's OnDefeated event
-            /// </summary>
-            /// <param name="enemy"></param>
-            private void OnEnemyDefeated(BaseEnemyCore enemy)
-            {
-                if (!enemies.Contains(enemy))
-                    return;
-
-                if (!defeatedEnemies.Add(enemy))
-                    return;
-
-                remainingEnemies = Mathf.Max(0, remainingEnemies - 1);
-                if (remainingEnemies == 0)
-                    OnWaveComplete?.Invoke(this); // trigger next wave or end encounter
-            }
-        }
-
         protected override Color DebugColor { get => Color.red; }
 
         /// <summary>
         /// The entire list of each wave. All waves persist even once they are compleated
         /// </summary>
-        private List<Wave> allWaves = new();
+        private readonly List<Wave> allWaves = new();
 
         /// <summary>
         /// The queue of the incoming waves. Waves are removed once they are compleated
         /// </summary>
-        private Queue<Wave> wavesQueue = new();
+        private readonly Queue<Wave> wavesQueue = new();
 
         private bool encounterStarted;
         private Coroutine waveAdvanceRoutine;
@@ -149,8 +148,6 @@ namespace Progression.Encounters
         protected override void Start()
         {
             base.Start();
-
-            SyncNextEncounterDelay();
 
             if (IsPlayerInsideZone())
                 BeginEncounter();
@@ -268,23 +265,7 @@ namespace Progression.Encounters
             foreach (var wave in allWaves)
                 wave.ResetEnemies();
         }
-
-        private bool IsPlayerInsideZone()
-        {
-            if (encounterZone == null)
-                return false;
-
-            Bounds bounds = encounterZone.bounds;
-            Collider[] hits = Physics.OverlapBox(bounds.center, bounds.extents, encounterZone.transform.rotation, ~0, QueryTriggerInteraction.Collide);
-
-            foreach (var hit in hits)
-            {
-                if (hit != null && hit.CompareTag("Player"))
-                    return true;
-            }
-
-            return false;
-        }
+        #endregion
 
         private void BeginEncounter()
         {
@@ -463,7 +444,6 @@ namespace Progression.Encounters
             }
         }
 #endif
-        #endregion
     }
 }
 

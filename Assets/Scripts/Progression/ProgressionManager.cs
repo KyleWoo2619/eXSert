@@ -17,16 +17,28 @@ namespace Progression
 
     public class ProgressionManager : SceneSingleton<ProgressionManager>
     {
+        #region Inspector Setup
+        [Header("Progression Settings")]
+        [SerializeField, Tooltip("The next scene to load at the end of the level.")]
+        private SceneAsset nextScene;
+        [Space]
+        [SerializeField, Tooltip("Use when the player would load already inside an encounter, such as the elevator fight")]
+        private bool startEncounterOnStart = false;
+        [SerializeField, Tooltip("The encounter to automatically start")]
+        private BasicEncounter encounterToStart;
+
+        #endregion
+        
         /// <summary>
         /// Indicates whether all encounters in the scene have been completed
         /// </summary>
         private bool allZonesComplete = false;
 
-        private List<BasicEncounter> encounterCompletionMap = new List<BasicEncounter>();
+        private readonly List<BasicEncounter> encounterCompletionMap = new();
 
         protected override void Awake()
         {
-            base.Awake();
+            base.Awake(); // Singleton behavior
 
             this.gameObject.name = $"[{SceneAsset.GetSceneAssetOfObject(this.gameObject).name}] Progression Manager";
         }
