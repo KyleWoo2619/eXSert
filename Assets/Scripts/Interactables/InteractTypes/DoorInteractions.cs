@@ -6,33 +6,34 @@
     It could be on a console, a button, or even the door itself.
     Make sure to assign the DoorHandler component of the door you want to interact with in the inspector.
 */
+using System.Collections.Generic;
 using UnityEngine;
 
 public class DoorInteractions : UnlockableInteraction
 {
     [Tooltip("Place the gameObject with the DoorHandler component here, it may be on a different object or the same object as this script.")]
-    [SerializeField] private DoorHandler doorHandler;
-    [SerializeField] private DoorHandler doorhandler2;
+    [SerializeField] private List<DoorHandler> doorHandlers;
 
     protected override void ExecuteInteraction()
     {
-        if (doorHandler != null)
+        foreach (DoorHandler doorHandler in doorHandlers)
         {
-            doorHandler.Interact();
-
-            if (doorhandler2 != null)
+            if (doorHandler != null)
             {
-                doorhandler2.Interact();
+                if (doorHandler.doorLockState == DoorHandler.DoorLockState.Locked)
+                {
+                    doorHandler.doorLockState = DoorHandler.DoorLockState.Unlocked;
+                    Debug.Log("Door Unlocked!");
+                }
+
+                // Open/close after ensuring unlock so a single console use works.
+                doorHandler.Interact();
+                Debug.Log("Door Interacted With!");
             }
             else
             {
-                Debug.LogError($"DoorHandler2 not assigned on {gameObject.name}");
+                Debug.LogError("DoorHandler reference is missing. Please assign it in the inspector.");
             }
         }
-        else
-        {
-            Debug.LogError($"DoorHandler not assigned on {gameObject.name}");
-        }
-        
     }
 }

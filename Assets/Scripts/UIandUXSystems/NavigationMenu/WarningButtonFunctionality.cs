@@ -76,6 +76,7 @@ public class WarningButtonFunctionality : MonoBehaviour
     {
         pendingAction = action;
         ActivateTextBlock(textToEnable);
+        SetWarningVisible(true);
     }
 
     private void ActivateTextBlock(GameObject target)

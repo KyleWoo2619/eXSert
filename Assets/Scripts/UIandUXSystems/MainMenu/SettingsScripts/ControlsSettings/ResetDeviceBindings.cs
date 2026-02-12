@@ -11,7 +11,19 @@ public class ResetDeviceBindings : MonoBehaviour
     [SerializeField] private InputActionAsset _inputActions;
 
     //Assign this string in the editor to the control scheme name you wish to reset
-    [SerializeField] private string _targetControlScheme;
+    private string _targetControlScheme;
+
+    public void WhichControlSchemeIsOpen(int schemeIndex)
+    {
+        if(schemeIndex == 0)
+        {
+            _targetControlScheme = "Keyboard&Mouse";
+        }
+        else if(schemeIndex == 1)
+        {
+            _targetControlScheme = "Gamepad";
+        }
+    }
 
     //This script looks through all the actions in Input action assigned and will reset only the bindings in the target control scheme
     public void ResetControlSchemeBinding()
@@ -23,5 +35,7 @@ public class ResetDeviceBindings : MonoBehaviour
                     action.RemoveBindingOverride(InputBinding.MaskByGroup(_targetControlScheme));
                 }
         }
+
+        Debug.Log($"Reset {_targetControlScheme} bindings to default.");
     }
 }

@@ -4409,15 +4409,15 @@ LineRenderer:
   m_SortingOrder: 0
   m_Positions:
   - {x: -1.7079964, y: 1.4613862, z: -13.732997}
-  - {x: -1.7587384, y: 1.3942704, z: -13.732038}
-  - {x: -1.8094804, y: 1.3407066, z: -13.731081}
-  - {x: -1.8602222, y: 1.3006945, z: -13.730122}
-  - {x: -1.9109645, y: 1.2742344, z: -13.729162}
-  - {x: -1.9617062, y: 1.2613263, z: -13.728203}
-  - {x: -2.0124483, y: 1.2619702, z: -13.727244}
-  - {x: -2.0631902, y: 1.276166, z: -13.726286}
-  - {x: -2.1139324, y: 1.3039137, z: -13.7253275}
-  - {x: -2.1646743, y: 1.3452132, z: -13.724368}
+  - {x: -1.7587384, y: 1.3672704, z: -13.732038}
+  - {x: -1.8094804, y: 1.2927066, z: -13.731081}
+  - {x: -1.8602222, y: 1.2376945, z: -13.730122}
+  - {x: -1.9109645, y: 1.2022345, z: -13.729162}
+  - {x: -1.9617062, y: 1.1863264, z: -13.728203}
+  - {x: -2.0124483, y: 1.1899703, z: -13.727244}
+  - {x: -2.0631902, y: 1.213166, z: -13.726286}
+  - {x: -2.1139324, y: 1.2559137, z: -13.7253275}
+  - {x: -2.1646743, y: 1.3182132, z: -13.724368}
   - {x: -2.2154162, y: 1.4000648, z: -13.72341}
   m_Parameters:
     serializedVersion: 3
@@ -4503,9 +4503,9 @@ MonoBehaviour:
   midPoint: {fileID: 0}
   endPoint: {fileID: 7536781618381251674}
   linePoints: 10
-  stiffness: 700
-  damping: 15
-  ropeLength: 0.85
+  stiffness: 600
+  damping: 14
+  ropeLength: 1
   ropeWidth: 11.29
   midPointWeight: 1
   midPointPosition: 0.5
@@ -5529,11 +5529,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 34e70bb17c3ba73478a8f20712811ec1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Parry
-  parrySoundEffect: {fileID: 0}
-  parryEffect: {fileID: 8926484042661614526, guid: 5c652b3d84f2d4f4eac03e01c6a0d1cc, type: 3}
+  parrySoundEffect: {fileID: 8300000, guid: af9c3ad391ae39c4d9bdafa01254938a, type: 3}
+  parryEffect: {fileID: 8926484042661614526, guid: b0902efa133e21b44926742b93fc8e46, type: 3}
   parryEffectDuration: 1
   pauseTimeOnParry: 1
-  parryPauseDuration: 0.05
+  parryPauseDuration: 0.3
   howSlowTimeScales: 0.5
 --- !u!1 &2525516429101545011
 GameObject:
@@ -7709,6 +7709,7 @@ GameObject:
   - component: {fileID: 6150044602222399215}
   - component: {fileID: 3007275964402751658}
   - component: {fileID: 8127531854480134888}
+  - component: {fileID: 2026860560813373367}
   m_Layer: 6
   m_Name: MC_VFX FIx
   m_TagString: Player
@@ -7878,7 +7879,7 @@ MonoBehaviour:
   softLockRadius: 4
   softLockMoveDistance: 0.75
   softLockStopBuffer: 0.5
-  softLockNoMoveRadius: 1.5
+  softLockNoMoveRadius: 0.3
   softLockMoveDuration: 0.1
   onlySoftLockSingleTarget: 0
   steerCamera: 1
@@ -7899,10 +7900,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d148d6942d9792e4ea0b56afc1424cbc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealthBarManager
-  maxHealth: 1e+9
-  currentHealth: 1e+9
+  maxHealth: 1000
+  currentHealth: 1000
   startingHealthPercent: 1
-  invulnerable: 0
+  invulnerable: 1
   restartFromCheckpointOnDeath: 1
   destroyPlayerOnDeath: 0
   deathFadeDelaySeconds: 3.5
@@ -7914,6 +7915,21 @@ MonoBehaviour:
   attackManager: {fileID: 2445762002116463598}
   healthBar: {fileID: 0}
   debugDamageAmount: 100
+--- !u!114 &2026860560813373367
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3646038222488559394}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30407f1e0f298a84faa3f1c362d5725d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerLifeBoxDetector
+  killPlayerWhenOutOfLifeBox: 1
+  checkInterval: 0.5
+  lifeBoxes: []
 --- !u!1 &3685624653661851214
 GameObject:
   m_ObjectHideFlags: 0
@@ -14994,7 +15010,7 @@ GameObject:
   - component: {fileID: 4586771806983760143}
   - component: {fileID: 6934024178243747345}
   - component: {fileID: 897994802152428115}
-  m_Layer: 0
+  m_Layer: 17
   m_Name: MoveCamera
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -17094,11 +17110,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TempAoEVfxSwitcher
   attackManager: {fileID: 2445762002116463598}
   playerMovement: {fileID: 6150044602222399215}
-  audioSource: {fileID: 4805367996917460818}
   leftAttackVfx: {fileID: 1456974626908723287}
   rightAttackVfx: {fileID: 3755443737881139097}
   attackDuration: 0.5
-  attackAudioClip: {fileID: 0}
+  attackAudioClip: {fileID: 8300000, guid: c7a28a6dc531ab64bac3452a4768d1ea, type: 3}
   airMoveVfxObjects:
   - {fileID: 0}
   airMoveDuration: 0.5
@@ -18169,15 +18184,15 @@ LineRenderer:
   m_SortingOrder: 0
   m_Positions:
   - {x: -1.100233, y: 1.4588846, z: -13.733328}
-  - {x: -1.0491428, y: 1.3934124, z: -13.732494}
-  - {x: -0.9980525, y: 1.341409, z: -13.731662}
-  - {x: -0.9469622, y: 1.3028742, z: -13.730827}
-  - {x: -0.895872, y: 1.2778084, z: -13.729995}
-  - {x: -0.8447817, y: 1.2662115, z: -13.72916}
-  - {x: -0.7936914, y: 1.2680833, z: -13.728326}
-  - {x: -0.74260116, y: 1.2834241, z: -13.727492}
-  - {x: -0.6915109, y: 1.3122337, z: -13.72666}
-  - {x: -0.6404206, y: 1.3545121, z: -13.725825}
+  - {x: -1.0491428, y: 1.3664123, z: -13.732494}
+  - {x: -0.9980525, y: 1.293409, z: -13.731662}
+  - {x: -0.9469622, y: 1.2398741, z: -13.730827}
+  - {x: -0.895872, y: 1.2058085, z: -13.729995}
+  - {x: -0.8447817, y: 1.1912115, z: -13.72916}
+  - {x: -0.7936914, y: 1.1960834, z: -13.728326}
+  - {x: -0.74260116, y: 1.220424, z: -13.727492}
+  - {x: -0.6915109, y: 1.2642338, z: -13.72666}
+  - {x: -0.6404206, y: 1.327512, z: -13.725825}
   - {x: -0.5893304, y: 1.4102594, z: -13.724992}
   m_Parameters:
     serializedVersion: 3
@@ -18263,9 +18278,9 @@ MonoBehaviour:
   midPoint: {fileID: 0}
   endPoint: {fileID: 704766459067214353}
   linePoints: 10
-  stiffness: 700
-  damping: 15
-  ropeLength: 0.85
+  stiffness: 600
+  damping: 14
+  ropeLength: 1
   ropeWidth: 11.29
   midPointWeight: 1
   midPointPosition: 0.5
