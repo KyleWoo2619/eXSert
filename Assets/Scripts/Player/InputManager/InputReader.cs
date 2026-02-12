@@ -420,7 +420,7 @@ public class InputReader : Singleton<InputReader>
 
         if (newPlayerInput == null)
         {
-            Debug.LogError("InputReader: Cannot assign null PlayerInput!");
+            Debug.LogWarning("InputReader: Cannot assign null PlayerInput!");
             return;
         }
 
