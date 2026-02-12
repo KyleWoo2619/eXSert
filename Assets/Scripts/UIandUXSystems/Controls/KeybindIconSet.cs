@@ -57,12 +57,37 @@ public class KeybindIconSet : ScriptableObject
     public string KeyboardMouseSchemeName => keyboardMouseSchemeName;
     public string GamepadSchemeName => gamepadSchemeName;
 
+    
     public bool TryGetIcon(KeybindAction actionId, bool useGamepad, out Sprite icon, out string controlPath)
     {
         icon = null;
         controlPath = string.Empty;
 
         if (!TryGetBindingPath(actionId, useGamepad, out controlPath))
+        {
+            icon = useGamepad ? gamepadFallbackIcon : keyboardFallbackIcon;
+            return icon != null;
+        }
+
+        icon = GetIconForControlPath(controlPath, useGamepad);
+        if (icon != null)
+            return true;
+
+        icon = useGamepad ? gamepadFallbackIcon : keyboardFallbackIcon;
+        return icon != null;
+    }
+
+    public bool TryGetCompositePartIcon(
+        KeybindAction actionId,
+        bool useGamepad,
+        string partName,
+        out Sprite icon,
+        out string controlPath)
+    {
+        icon = null;
+        controlPath = string.Empty;
+
+        if (!TryGetCompositePartPath(actionId, useGamepad, partName, out controlPath))
         {
             icon = useGamepad ? gamepadFallbackIcon : keyboardFallbackIcon;
             return icon != null;
@@ -87,13 +112,60 @@ public class KeybindIconSet : ScriptableObject
             return false;
 
         var action = bindingData.actionReference.action;
+        InputAction runtimeAction = ResolveRuntimeAction(action);
+        if (runtimeAction != null)
+            action = runtimeAction;
         int bindingIndex = ResolveBindingIndex(action, bindingData, useGamepad);
-        if (bindingIndex < 0 || bindingIndex >= action.bindings.Count)
+        if (bindingIndex >= 0 && bindingIndex < action.bindings.Count)
+        {
+            var binding = action.bindings[bindingIndex];
+            controlPath = string.IsNullOrEmpty(binding.effectivePath) ? binding.path : binding.effectivePath;
+            if (!string.IsNullOrEmpty(controlPath))
+                return true;
+        }
+
+        return TryGetCompositeControlPath(action, bindingData, useGamepad, out controlPath);
+    }
+
+    public bool TryGetCompositePartPath(
+        KeybindAction actionId,
+        bool useGamepad,
+        string partName,
+        out string controlPath)
+    {
+        controlPath = string.Empty;
+        if (string.IsNullOrEmpty(partName))
             return false;
 
-        var binding = action.bindings[bindingIndex];
-        controlPath = string.IsNullOrEmpty(binding.effectivePath) ? binding.path : binding.effectivePath;
-        return !string.IsNullOrEmpty(controlPath);
+        if (!TryGetActionBinding(actionId, out ActionBinding bindingData))
+            return false;
+
+        if (bindingData.actionReference == null || bindingData.actionReference.action == null)
+            return false;
+
+        var action = bindingData.actionReference.action;
+        InputAction runtimeAction = ResolveRuntimeAction(action);
+        if (runtimeAction != null)
+            action = runtimeAction;
+        string groupName = useGamepad ? bindingData.gamepadBindingGroup : bindingData.keyboardBindingGroup;
+        if (string.IsNullOrEmpty(groupName))
+            groupName = useGamepad ? gamepadSchemeName : keyboardMouseSchemeName;
+
+        for (int i = 0; i < action.bindings.Count; i++)
+        {
+            var binding = action.bindings[i];
+            if (!binding.isComposite)
+                continue;
+
+            bool groupMatch = HasBindingGroup(binding, groupName);
+            if (!groupMatch && !CompositeHasSchemeParts(action, i, useGamepad))
+                continue;
+
+            if (TryGetCompositePartPath(action, i, useGamepad, partName, groupMatch, out controlPath))
+                return true;
+        }
+
+        return false;
     }
 
     public bool IsGamepadScheme(string schemeName)
@@ -174,6 +246,7 @@ public class KeybindIconSet : ScriptableObject
 
         int fallbackIndex = -1;
         int deviceMatchIndex = -1;
+        int groupMatchIndex = -1;
 
         for (int i = 0; i < action.bindings.Count; i++)
         {
@@ -191,13 +264,161 @@ public class KeybindIconSet : ScriptableObject
                 continue;
 
             if (binding.groups.Contains(groupName))
-                return i;
+                groupMatchIndex = i;
         }
+
+        if (groupMatchIndex >= 0)
+            return groupMatchIndex;
 
         if (deviceMatchIndex >= 0)
             return deviceMatchIndex;
 
         return fallbackIndex;
+    }
+
+    private static InputAction ResolveRuntimeAction(InputAction action)
+    {
+        if (action == null)
+            return null;
+
+        if (InputReader.PlayerInput == null || InputReader.PlayerInput.actions == null)
+            return null;
+
+        string mapName = action.actionMap != null ? action.actionMap.name : string.Empty;
+        if (!string.IsNullOrEmpty(mapName))
+        {
+            var map = InputReader.PlayerInput.actions.FindActionMap(mapName);
+            if (map != null)
+            {
+                var runtimeAction = map.FindAction(action.name);
+                if (runtimeAction != null)
+                    return runtimeAction;
+            }
+        }
+
+        return InputReader.PlayerInput.actions.FindAction(action.name);
+    }
+
+    private bool TryGetCompositeControlPath(InputAction action, ActionBinding bindingData, bool useGamepad, out string controlPath)
+    {
+        controlPath = string.Empty;
+        string groupName = useGamepad ? bindingData.gamepadBindingGroup : bindingData.keyboardBindingGroup;
+        if (string.IsNullOrEmpty(groupName))
+            groupName = useGamepad ? gamepadSchemeName : keyboardMouseSchemeName;
+
+        for (int i = 0; i < action.bindings.Count; i++)
+        {
+            var binding = action.bindings[i];
+            if (!binding.isComposite)
+                continue;
+
+            bool groupMatch = HasBindingGroup(binding, groupName);
+            if (!groupMatch && !CompositeHasSchemeParts(action, i, useGamepad))
+                continue;
+
+            if (TryGetCompositeRepresentativePath(action, i, useGamepad, out controlPath))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryGetCompositePartPath(
+        InputAction action,
+        int compositeIndex,
+        bool useGamepad,
+        string partName,
+        bool groupMatch,
+        out string controlPath)
+    {
+        controlPath = string.Empty;
+
+        for (int i = compositeIndex + 1; i < action.bindings.Count; i++)
+        {
+            var part = action.bindings[i];
+            if (!part.isPartOfComposite)
+                break;
+
+            if (!string.Equals(part.name, partName, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            string path = string.IsNullOrEmpty(part.effectivePath) ? part.path : part.effectivePath;
+            if (string.IsNullOrEmpty(path))
+                continue;
+
+            if (groupMatch || IsPathForScheme(path, useGamepad))
+            {
+                controlPath = path;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool CompositeHasSchemeParts(InputAction action, int compositeIndex, bool useGamepad)
+    {
+        for (int i = compositeIndex + 1; i < action.bindings.Count; i++)
+        {
+            var part = action.bindings[i];
+            if (!part.isPartOfComposite)
+                break;
+
+            string path = string.IsNullOrEmpty(part.effectivePath) ? part.path : part.effectivePath;
+            if (IsPathForScheme(path, useGamepad))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryGetCompositeRepresentativePath(InputAction action, int compositeIndex, bool useGamepad, out string controlPath)
+    {
+        controlPath = string.Empty;
+        string firstPartPath = string.Empty;
+        bool hasDpad = false;
+        bool hasLeftStick = false;
+
+        for (int i = compositeIndex + 1; i < action.bindings.Count; i++)
+        {
+            var part = action.bindings[i];
+            if (!part.isPartOfComposite)
+                break;
+
+            string path = string.IsNullOrEmpty(part.effectivePath) ? part.path : part.effectivePath;
+            if (string.IsNullOrEmpty(path))
+                continue;
+
+            if (string.IsNullOrEmpty(firstPartPath))
+                firstPartPath = path;
+
+            if (!useGamepad)
+                continue;
+
+            if (path.StartsWith("<Gamepad>/dpad", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith("<XInputController>/dpad", StringComparison.OrdinalIgnoreCase))
+                hasDpad = true;
+
+            if (path.StartsWith("<Gamepad>/leftStick", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith("<XInputController>/leftStick", StringComparison.OrdinalIgnoreCase))
+                hasLeftStick = true;
+        }
+
+        if (useGamepad)
+        {
+            if (hasDpad)
+                controlPath = "<Gamepad>/dpad";
+            else if (hasLeftStick)
+                controlPath = "<Gamepad>/leftStick";
+            else
+                controlPath = firstPartPath;
+        }
+        else
+        {
+            controlPath = firstPartPath;
+        }
+
+        return !string.IsNullOrEmpty(controlPath);
     }
 
     private Sprite GetIconForControlPath(string controlPath, bool useGamepad)
@@ -251,6 +472,11 @@ public class KeybindIconSet : ScriptableObject
     private static bool IsBindingForScheme(InputBinding binding, bool useGamepad)
     {
         string path = string.IsNullOrEmpty(binding.effectivePath) ? binding.path : binding.effectivePath;
+        return IsPathForScheme(path, useGamepad);
+    }
+
+    private static bool IsPathForScheme(string path, bool useGamepad)
+    {
         if (string.IsNullOrEmpty(path))
             return false;
 
@@ -260,6 +486,14 @@ public class KeybindIconSet : ScriptableObject
 
         return path.StartsWith("<Keyboard>", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("<Mouse>", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool HasBindingGroup(InputBinding binding, string groupName)
+    {
+        if (string.IsNullOrEmpty(groupName) || string.IsNullOrEmpty(binding.groups))
+            return false;
+
+        return binding.groups.Contains(groupName);
     }
 
 #if UNITY_EDITOR
@@ -319,10 +553,10 @@ public class KeybindIconSet : ScriptableObject
         AddIconBySpriteName(pathMap, spriteMap, "KB_UpArrow", "<Keyboard>/upArrow");
         AddIconBySpriteName(pathMap, spriteMap, "KB_DownArrow", "<Keyboard>/downArrow");
 
-        AddIconBySpriteName(pathMap, spriteMap, "LeftMouseClick", "<Mouse>/leftButton");
-        AddIconBySpriteName(pathMap, spriteMap, "RightMouseClick", "<Mouse>/rightButton");
-        AddIconBySpriteName(pathMap, spriteMap, "MouseScroll", "<Mouse>/scroll");
-        AddIconBySpriteName(pathMap, spriteMap, "MouseDelta", "<Mouse>/delta");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_LeftMouseClick", "<Mouse>/leftButton");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_RightMouseClick", "<Mouse>/rightButton");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_MouseScroll", "<Mouse>/scroll");
+        AddIconBySpriteName(pathMap, spriteMap, "KB_MouseDelta", "<Mouse>/delta");
 
         if (keyboardFallbackIcon == null && spriteMap.TryGetValue("KB_EMPTY", out Sprite emptyKey))
             keyboardFallbackIcon = emptyKey;
@@ -358,6 +592,7 @@ public class KeybindIconSet : ScriptableObject
         AddIconBySpriteName(pathMap, spriteMap, "Cont_DpadDown", "<Gamepad>/dpad/down");
         AddIconBySpriteName(pathMap, spriteMap, "Cont_DpadLeft", "<Gamepad>/dpad/left");
         AddIconBySpriteName(pathMap, spriteMap, "Cont_DpadRight", "<Gamepad>/dpad/right");
+        AddIconBySpriteName(pathMap, spriteMap, "Cont_Dpad", "<Gamepad>/dpad");
         AddIconBySpriteName(pathMap, spriteMap, "Cont_LeftArrow", "<Gamepad>/dpad/left");
         AddIconBySpriteName(pathMap, spriteMap, "Cont_RightArrow", "<Gamepad>/dpad/right");
 
@@ -479,6 +714,9 @@ public enum KeybindAction
     Interact,
     Jump,
     Select,
-    Back,
-    Swap
+    CraneExit,
+    CraneConfirm,
+    CraneMove,
+    Confirm,
+    Cancel
 }

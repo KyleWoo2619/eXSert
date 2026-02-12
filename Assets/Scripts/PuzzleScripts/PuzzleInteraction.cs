@@ -17,7 +17,14 @@ public class PuzzleInteraction : UnlockableInteraction
 {
     private bool inProgress;
 
+    [Header("Console Settings")]
+    [Tooltip("0 = first console, 1 = second console")]
+    [SerializeField] private int consoleIndex = 0;
+
     public event Action ButtonPressed;
+    public event Action<PuzzleInteraction> ButtonPressedWithSender;
+
+    public int ConsoleIndex => consoleIndex;
 
     protected override void ExecuteInteraction()
     {
@@ -25,5 +32,6 @@ public class PuzzleInteraction : UnlockableInteraction
         if (ButtonPressed == null)
             Debug.LogWarning("ButtonPressed event has no subscribers. Make sure to subscribe to it in order for the puzzle interaction to work.");
         ButtonPressed?.Invoke();
+        ButtonPressedWithSender?.Invoke(this);
     }
 }

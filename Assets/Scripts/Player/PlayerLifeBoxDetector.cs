@@ -16,8 +16,11 @@ public class PlayerLifeBoxDetector : MonoBehaviour
 
     protected string lifeBoxTag = "LifeBox";
 
+    private PlayerHealthBarManager healthBarManager;
+
     private void Start()
     {
+        healthBarManager = GetComponent<PlayerHealthBarManager>();
         StartCoroutine(CheckIfInLifeBox());
     }
 
@@ -26,31 +29,41 @@ public class PlayerLifeBoxDetector : MonoBehaviour
     {
         while(true)
         {
-            if (CheckIfLifeBoxesEmpty() && killPlayerWhenOutOfLifeBox)
+            if (CheckIfLifeBoxesEmpty())
             {
-                // Player is out of life boxes, trigger death
-                Debug.Log("Player has left all life boxes and will die.");
+                TryKillPlayer();
                 yield break; // Exit the coroutine after death
             }
             yield return new WaitForSeconds(checkInterval); // Check every half second            
         }
     }
 
-    private bool CheckIfLifeBoxesEmpty()
+    private void RemoveLifeBox(LifeBox boxToRemove)
     {
-        if(lifeBoxes.Count == 0)
+        if(lifeBoxes.Contains(boxToRemove))
         {
-            return true;
+            lifeBoxes.Remove(boxToRemove);
         }
-
-        return false;
     }
 
-    // Doesnt immediately remove the life box to avoid issues with OnTriggerExit being called before OnTriggerEnter
-    private IEnumerator WaitToDeleteLifeBox(LifeBox box)
+    private bool CheckIfLifeBoxesEmpty()
     {
-        yield return new WaitForSeconds(0.5f);
-        lifeBoxes.Remove(box);
+        lifeBoxes.RemoveAll(box => box == null);
+        return lifeBoxes.Count == 0;
+    }
+
+    private void TryKillPlayer()
+    {
+        if (!killPlayerWhenOutOfLifeBox)
+            return;
+
+        if (healthBarManager == null)
+        {
+            Debug.LogWarning("[PlayerLifeBoxDetector] PlayerHealthBarManager not found; cannot kill player.");
+            return;
+        }
+
+        healthBarManager.HandleDeath(false);
     }
 
     private void OnTriggerEnter(Collider other)
@@ -66,7 +79,11 @@ public class PlayerLifeBoxDetector : MonoBehaviour
     {
         if (other.CompareTag(lifeBoxTag))
         { 
-            StartCoroutine(WaitToDeleteLifeBox(other.GetComponent<LifeBox>()));
+            RemoveLifeBox(other.GetComponent<LifeBox>());
+            if (CheckIfLifeBoxesEmpty())
+            {
+                TryKillPlayer();
+            }
         }
     }
 }

@@ -28,7 +28,7 @@ namespace Progression.Encounters
         public BasicEncounter encounterToEnable;
 
         [SerializeField, Tooltip("Seconds to wait before enabling the next encounter.")]
-        protected float enableNextEncounterDelaySeconds = 0f;
+        protected float enableNextEncounterDelaySeconds = 3f;
         #endregion
 
         /// <summary>

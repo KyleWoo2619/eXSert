@@ -6,7 +6,6 @@
  * The instance is created if it doesn't already exist and is marked to not be destroyed on scene load.
  */
 
-using UnityEditor.ShaderGraph.Internal;
 using UnityEngine;
 
 // makes singletons a namespace that must be opted in to use

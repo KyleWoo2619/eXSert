@@ -89,10 +89,9 @@ public class PlayerAttackManager : MonoBehaviour
 
         if (attackAudioSource == null)
         {
-            attackAudioSource = GetComponent<AudioSource>()
-                ?? GetComponentInChildren<AudioSource>()
-                ?? fallbackSfxSource;
+            attackAudioSource = SoundManager.Instance != null ? SoundManager.Instance.sfxSource : null;
         }
+
     }
 
     private void OnDisable()
@@ -491,13 +490,20 @@ public class PlayerAttackManager : MonoBehaviour
     private void PlaySfx(AudioClip clip)
     {
         if (clip == null)
+        {
+            Debug.LogWarning("[PlayerAttackManager] PlaySfx called with null AudioClip.");
             return;
+        }
 
         var source = attackAudioSource != null ? attackAudioSource : fallbackSfxSource;
         if (source == null)
+        {
+            Debug.LogError("[PlayerAttackManager] No AudioSource available! attackAudioSource and fallbackSfxSource are both null. Check SoundManager.Instance.");
             return;
+        }
 
         source.PlayOneShot(clip);
+        Debug.Log($"[PlayerAttackManager] Playing SFX: {clip.name} on {source.gameObject.name}");
     }
 
     private void ClearHitbox()

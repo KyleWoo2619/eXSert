@@ -368,6 +368,7 @@ MonoBehaviour:
   lowHealthThresholdPercent: 0.25
   handleLowHealth: 1
   currentZone: {fileID: 0}
+  allowZoneRelocation: 1
   idleTimerDuration: 15
   detectionRange: 10
   showDetectionGizmo: 1
@@ -378,6 +379,7 @@ MonoBehaviour:
   attackInterval: 1
   attackActiveDuration: 0.5
   showAttackGizmo: 1
+  canBeParried: 1
   healthBarPrefab: {fileID: 5126943973119965438, guid: ba84b42810b4ba14b8c277e64607a584, type: 3}
   healthBarAnchor: {fileID: 1847539679579535266}
   healthBarInstance: {fileID: 0}
@@ -396,6 +398,10 @@ MonoBehaviour:
   hitTriggerName: Hit
   dieTriggerName: Die
   moveSpeedParameterName: MoveSpeed
+  hitSFX:
+  - {fileID: 8300000, guid: 9140d9d040f3f6540b85d369ee7b6cb3, type: 3}
+  - {fileID: 8300000, guid: 822262151de15304fbd21c9717e83c06, type: 3}
+  behaviorProfile: {fileID: 0}
   patrolColor: {r: 0, g: 1, b: 0, a: 1}
   chaseColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   attackColor: {r: 1, g: 0.5, b: 0, a: 1}
@@ -411,8 +417,7 @@ MonoBehaviour:
   maxYawLeft: 90
   maxYawRight: 90
   muzzleForwardOffset: 0.1
-  gunfireSfx: {fileID: 0}
-  gunfireSource: {fileID: 0}
+  gunfireSfx: {fileID: 8300000, guid: 38a315f3cb914af48b952a8101d88e62, type: 3}
   projectilePoolSize: 16
   showTelegraphLine: 1
   telegraphColor: {r: 1, g: 0.15, b: 0.15, a: 1}

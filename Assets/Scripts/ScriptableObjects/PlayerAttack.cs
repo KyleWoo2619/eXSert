@@ -270,7 +270,6 @@ namespace Utilities.Combat.Attacks
         public GameObject CreateHitBoxAt(Vector3 spawnPosition, Quaternion spawnRotation)
         {
             GameObject hitbox = new GameObject(attackName + " Hitbox");
-            hitbox.tag = "PlayerAttackHitbox"; // Tag for identification
             hitbox.transform.SetPositionAndRotation(spawnPosition, spawnRotation);
 
             BoxCollider hb = hitbox.AddComponent<BoxCollider>();

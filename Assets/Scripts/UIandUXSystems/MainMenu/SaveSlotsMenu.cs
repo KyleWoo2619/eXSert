@@ -17,6 +17,7 @@ public class SaveSlotsMenu : Menu
     [SerializeField] private MainMenu mainMenu;
 
     [SerializeField] private Button backButton;
+    [SerializeField] private Button playButton;
 
     private SaveSlots[] saveSlots;
 
@@ -39,6 +40,8 @@ public class SaveSlotsMenu : Menu
     /// </summary>
     public void OnSaveSlotClicked()
     {
+        playButton.interactable = false; // Prevent multiple clicks
+
         DisableMenuButtons();
 
         // Safety check for SceneLoader

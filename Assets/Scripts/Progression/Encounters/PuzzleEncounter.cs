@@ -7,8 +7,13 @@ namespace Progression.Encounters
     {
         protected override Color DebugColor { get => Color.purple; }
 
+        [Header("Optional Overrides")]
+        [SerializeField] private PuzzlePart overridePuzzlePart;
+        [SerializeField] private PuzzleInteraction[] overrideInteractPoints;
+
         private PuzzlePart part;
-        private PuzzleInteraction interactPoint;
+        private IConsoleSelectable consoleSelectable;
+        private PuzzleInteraction[] interactPoints;
 
         /// <summary>
         /// Override of isCompleted that checks the completion status of the puzzle part instead.
@@ -17,20 +22,52 @@ namespace Progression.Encounters
 
         protected override void SetupEncounter()
         {
-            part = FindPieces<PuzzlePart>();
-            interactPoint = FindPieces<PuzzleInteraction>();
+            part = overridePuzzlePart != null ? overridePuzzlePart : FindPieces<PuzzlePart>();
+            consoleSelectable = part as IConsoleSelectable;
+            interactPoints = (overrideInteractPoints != null && overrideInteractPoints.Length > 0)
+                ? overrideInteractPoints
+                : GetComponentsInChildren<PuzzleInteraction>();
 
-            if (part != null && interactPoint != null)
-                interactPoint.ButtonPressed += part.ConsoleInteracted;
+            if (part == null)
+                return;
+
+            if (interactPoints == null || interactPoints.Length == 0)
+            {
+                Debug.LogError($"[PuzzleEncounter] No {nameof(PuzzleInteraction)} scripts found in child objects in encounter {gameObject.name}.");
+                return;
+            }
+
+            foreach (var interactPoint in interactPoints)
+            {
+                if (interactPoint == null)
+                    continue;
+
+                if (consoleSelectable != null)
+                    interactPoint.ButtonPressedWithSender += consoleSelectable.ConsoleInteracted;
+                else
+                    interactPoint.ButtonPressed += part.ConsoleInteracted;
+            }
         }
 
         protected override void CleanupEncounter()
         {
-            if (part != null && interactPoint != null)
-                interactPoint.ButtonPressed -= part.ConsoleInteracted;
+            if (part != null && interactPoints != null)
+            {
+                foreach (var interactPoint in interactPoints)
+                {
+                    if (interactPoint == null)
+                        continue;
+
+                    if (consoleSelectable != null)
+                        interactPoint.ButtonPressedWithSender -= consoleSelectable.ConsoleInteracted;
+                    else
+                        interactPoint.ButtonPressed -= part.ConsoleInteracted;
+                }
+            }
 
             part = null;
-            interactPoint = null;
+            consoleSelectable = null;
+            interactPoints = null;
 
             base.CleanupEncounter();
         }
