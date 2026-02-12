@@ -630,7 +630,10 @@ public class PlayerMovement : MonoBehaviour
                 return;
             }
 
+
             currentMovement.y = jumpForce;
+
+            
             doubleJumpAvailable = canDoubleJump;
             pendingJump = PendingJumpType.None;
             return;
@@ -642,7 +645,7 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        currentMovement.y += doubleJumpForce;
+        currentMovement.y = MathF.Max(currentMovement.y, doubleJumpForce);
         doubleJumpAvailable = false;
         pendingJump = PendingJumpType.None;
         DoubleJumpPerformed?.Invoke();
