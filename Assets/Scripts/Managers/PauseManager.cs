@@ -29,6 +29,8 @@ public class PauseManager : Singletons.Singleton<PauseManager>
     [SerializeField] private InputActionReference _swapMenuActionReference;
     [SerializeField] private InputActionReference _backActionReference; // UI/Back button
 
+    private MenuListManager menuListManager;
+
     public static bool IsPaused { get; private set; } = false;
     
     private enum ActiveMenu
@@ -46,6 +48,7 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         base.Awake();
         CacheHudRootName();
         HideAllMenus();
+        menuListManager = this.GetComponent<MenuListManager>();
     }
 
     private void OnEnable()
@@ -109,6 +112,13 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         }
         Debug.Log($"[PauseManager] OnPause called - Current menu: {currentActiveMenu}, IsPaused: {IsPaused}");
         
+        // If submenus are open, let back button handle it
+        if (menuListManager.menusToManage.Count > 2)
+        {
+            Debug.Log("[PauseManager] OnPause ignored - submenus active, use back button");
+            return;
+        }
+        
         if (currentActiveMenu == ActiveMenu.None)
         {
             // Open pause menu
@@ -131,6 +141,13 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         }
         Debug.Log($"[PauseManager] OnNavigationMenu called - Current menu: {currentActiveMenu}, IsPaused: {IsPaused}");
         
+        // If submenus are open, let back button handle it
+        if (menuListManager.menusToManage.Count > 2)
+        {
+            Debug.Log("[PauseManager] OnNavigationMenu ignored - submenus active, use back button");
+            return;
+        }
+        
         if (currentActiveMenu == ActiveMenu.None)
         {
             // Open navigation menu
@@ -144,18 +161,42 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         // If pause menu is active, navigation menu button is ignored (locked)
     }
 
+    private void GoBackOnce()
+    {
+        menuListManager.RemoveFirstItemInMenuList();
+        menuListManager.SelectFirstSelectOnBack(menuListManager.menusToManage[0]);
+    }
+
     private void OnBackButton(InputAction.CallbackContext context)
     {
-        if (ConfirmationDialog.AnyOpen)
+        Debug.Log($"[PauseManager] OnBackButton called - Current menu: {currentActiveMenu}, Menu count: {menuListManager.menusToManage.Count}");
+
+        // If we have more than 2 menus (canvas + first menu), just go back one level
+        if (menuListManager.menusToManage.Count > 2)
         {
-            Debug.Log("[PauseManager] OnBackButton ignored - confirmation dialog open");
+            GoBackOnce();
             return;
         }
-        Debug.Log($"[PauseManager] OnBackButton called - Current menu: {currentActiveMenu}");
 
+        // Don't process back button if no menu is active and we're at base level
+        if (currentActiveMenu == ActiveMenu.None)
+        {
+            Debug.Log("[PauseManager] OnBackButton ignored - no menu active");
+            return;
+        }
+
+        if(currentActiveMenu == ActiveMenu.NavigationMenu)
+        {
+            // If we're in the navigation menu, back button takes us to the pause menu
+            SwapToPauseMenu();
+            return;
+        }
+
+        // At base level (canvas + first menu), close settings if open and resume game
         if (settingsMenuOpen)
         {
             CloseSettingsMenu();
+            ResumeGame();
             return;
         }
 
@@ -163,12 +204,6 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         {
             Debug.Log("[PauseManager] OnBackButton ignored - submenu or popup still active");
             return;
-        }
-        
-        // Back button closes whatever menu is currently open (resumes game)
-        if (currentActiveMenu != ActiveMenu.None)
-        {
-            ResumeGame();
         }
     }
 
@@ -228,9 +263,9 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         Debug.Log("Pause Menu Opened");
         
         // Switch to UI input - make sure actions remain subscribed
-        if (InputReader.playerInput != null)
+        if (InputReader.PlayerInput != null)
         {
-            InputReader.playerInput.SwitchCurrentActionMap("UI");
+            InputReader.PlayerInput.SwitchCurrentActionMap("UI");
         }
     }
 
@@ -245,9 +280,9 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         Debug.Log("Navigation Menu Opened");
         
         // Switch to UI input
-        if (InputReader.playerInput != null)
+        if (InputReader.PlayerInput != null)
         {
-            InputReader.playerInput.SwitchCurrentActionMap("UI");
+            InputReader.PlayerInput.SwitchCurrentActionMap("UI");
         }
     }
 
@@ -280,9 +315,9 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         Debug.Log("Game Resumed");
         
         // Switch back to Gameplay input
-        if (InputReader.playerInput != null)
+        if (InputReader.PlayerInput != null)
         {
-            InputReader.playerInput.SwitchCurrentActionMap("Gameplay");
+            InputReader.PlayerInput.SwitchCurrentActionMap("Gameplay");
         }
     }
 
@@ -296,9 +331,9 @@ public class PauseManager : Singletons.Singleton<PauseManager>
         currentActiveMenu = ActiveMenu.None;
         HideAllMenus();
 
-        if (InputReader.playerInput != null)
+        if (InputReader.PlayerInput != null)
         {
-            InputReader.playerInput.SwitchCurrentActionMap("Gameplay");
+            InputReader.PlayerInput.SwitchCurrentActionMap("Gameplay");
         }
     }
 

@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_SkyboxMaterial: {fileID: 2100000, guid: 96f287ff612bbaa42b5d89c7374ef2d9, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -365,7 +365,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &226243661
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -411,9 +411,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BrightnessOverlayController
   targetVolume: {fileID: 226243661}
+  logChanges: 0
   minGamma: 0.5
   maxGamma: 1.2
-  gammaValuesInPercent: 1
   maxSliderValue: 1
   minSliderValue: 0
 --- !u!1 &229584381
@@ -737,6 +737,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -778,6 +779,70 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 261915722}
   m_CullTransparentMesh: 1
+--- !u!1 &317748734
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 317748736}
+  - component: {fileID: 317748735}
+  m_Layer: 0
+  m_Name: Sceneloader.Debug
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &317748735
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 317748734}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9feb184afd5d593458cb994febd2c03c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MainMenuCheatLoader
+  requireCtrl: 1
+  requireShift: 1
+  onlyFromMainMenu: 1
+  mainMenuSceneName: MainMenu
+  entries:
+  - key: 49
+    sceneName: CargoBay
+    spawnPointId: cargo
+  - key: 50
+    sceneName: CrewQuarters
+    spawnPointId: crewquarters
+  - key: 51
+    sceneName: Hangar
+    spawnPointId: hangar
+  - key: 52
+    sceneName: Boss
+    spawnPointId: boss
+  - key: 53
+    sceneName: Conservatory
+    spawnPointId: conservatory
+--- !u!4 &317748736
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 317748734}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.33778, y: -3.51397, z: 179.88736}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &345701674
 GameObject:
   m_ObjectHideFlags: 0
@@ -1002,7 +1067,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &471838827
 Transform:
   m_ObjectHideFlags: 0
@@ -1595,6 +1660,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -1910,3 +1976,4 @@ SceneRoots:
   - {fileID: 345701677}
   - {fileID: 226243662}
   - {fileID: 106567728}
+  - {fileID: 317748736}

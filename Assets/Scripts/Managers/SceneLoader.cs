@@ -810,13 +810,17 @@ public class SceneLoader : Singleton<SceneLoader>
 
     private GameObject FindActivePlayerRoot()
     {
-        var tagged = GameObject.FindGameObjectWithTag("Player");
-        if (tagged != null)
-            return tagged;
-
         var movement = FindAnyObjectByType<PlayerMovement>();
         if (movement != null)
             return movement.gameObject;
+
+        var health = FindAnyObjectByType<PlayerHealthBarManager>();
+        if (health != null)
+            return health.gameObject;
+
+        var tagged = GameObject.FindGameObjectWithTag("Player");
+        if (tagged != null)
+            return tagged;
 
         return null;
     }
@@ -827,6 +831,8 @@ public class SceneLoader : Singleton<SceneLoader>
             return;
 
         playerRoot.SetActive(true);
+
+        ResetPlayerModelTransform(playerRoot);
 
         var movement = playerRoot.GetComponent<PlayerMovement>() ?? playerRoot.GetComponentInChildren<PlayerMovement>(true);
         if (movement != null)
@@ -842,6 +848,37 @@ public class SceneLoader : Singleton<SceneLoader>
         animationController?.PlayIdle();
 
         CombatManager.ExitGuard();
+    }
+
+    private void ResetPlayerModelTransform(GameObject playerRoot)
+    {
+        var model = FindPlayerModelTransform(playerRoot);
+        if (model == null)
+            return;
+
+        model.localPosition = new Vector3(0f, -1f, 0f);
+        model.localRotation = Quaternion.identity;
+    }
+
+    private Transform FindPlayerModelTransform(GameObject playerRoot)
+    {
+        var named = playerRoot.transform.Find("PlayerModel");
+        if (named != null && named != playerRoot.transform)
+            return named;
+
+        var animationController = playerRoot.GetComponentInChildren<PlayerAnimationController>(true);
+        if (animationController != null && animationController.transform != playerRoot.transform)
+            return animationController.transform;
+
+        var animator = playerRoot.GetComponentInChildren<Animator>(true);
+        if (animator != null && animator.transform != playerRoot.transform)
+            return animator.transform;
+
+        var skinned = playerRoot.GetComponentInChildren<SkinnedMeshRenderer>(true);
+        if (skinned != null && skinned.transform != playerRoot.transform)
+            return skinned.transform;
+
+        return null;
     }
 
     /// <summary>

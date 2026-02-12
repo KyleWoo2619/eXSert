@@ -12,13 +12,18 @@ using UnityEditor;
 #endif
 
 [RequireComponent(typeof(BoxCollider))]
+[RequireComponent(typeof(Rigidbody))]
 public class LifeBox : MonoBehaviour
 {
+    [Header("Debugging")]
     [SerializeField] private bool showHitBox = true;
 
+    [Header("Life Box Settings")]
     [SerializeField] private Vector3 boxSize = Vector3.one;
 
     private BoxCollider boxCollider;
+    private Rigidbody rb;
+
 
     private void Awake()
     {
@@ -26,6 +31,10 @@ public class LifeBox : MonoBehaviour
         boxCollider = GetComponent<BoxCollider>();
         boxCollider.size = boxSize;
         boxCollider.isTrigger = true;
+
+        rb = GetComponent<Rigidbody>();
+        rb.isKinematic = true;
+        rb.useGravity = false;
     }
 
     private void OnValidate()
@@ -37,6 +46,15 @@ public class LifeBox : MonoBehaviour
         {
             boxCollider.size = boxSize;
             boxCollider.isTrigger = true;
+        }
+
+        if (rb == null)
+            rb = GetComponent<Rigidbody>();
+
+        if (rb != null)
+        {
+            rb.isKinematic = true;
+            rb.useGravity = false;
         }
     }
 
@@ -56,9 +74,9 @@ public class LifeBox : MonoBehaviour
     {
         if (showHitBox)
         {
-            Gizmos.color = Color.purple * new Color(1, 1, 1, 0.25f);
+            Gizmos.color = Color.yellow * new Color(1, 1, 1, 0.25f);
             Gizmos.DrawCube(transform.position, boxSize);
-            Gizmos.color = Color.purple;
+            Gizmos.color = Color.blanchedAlmond;
             Gizmos.DrawWireCube(transform.position, boxSize);
         }
     }

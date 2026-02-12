@@ -198,13 +198,25 @@ namespace UnityEngine.InputSystem.Samples.RebindUI
             var deviceLayoutName = default(string);
             var controlPath = default(string);
 
-            // Get display string from action.
-            var action = m_Action?.action;
-            if (action != null)
+            // Check if binding text override is enabled
+            if (overrideBindingText)
             {
-                var bindingIndex = action.bindings.IndexOf(x => x.id.ToString() == m_BindingId);
-                if (bindingIndex != -1)
-                    displayString = action.GetBindingDisplayString(bindingIndex, out deviceLayoutName, out controlPath, displayStringOptions);
+                displayString = bindingTextString;
+                Debug.Log($"[RebindActionUI] UpdateBindingDisplay: Using override text '{displayString}' on {gameObject.name}");
+            }
+            else
+            {
+                // Get display string from action.
+                var action = m_Action?.action;
+                if (action != null)
+                {
+                    var bindingIndex = action.bindings.IndexOf(x => x.id.ToString() == m_BindingId);
+                    if (bindingIndex != -1)
+                    {
+                        displayString = action.GetBindingDisplayString(bindingIndex, out deviceLayoutName, out controlPath, displayStringOptions);
+                        Debug.Log($"[RebindActionUI] UpdateBindingDisplay: Action '{action.name}' binding updated to '{displayString}' on {gameObject.name}");
+                    }
+                }
             }
 
             // Set on label (if any).
@@ -222,12 +234,18 @@ namespace UnityEngine.InputSystem.Samples.RebindUI
     public void ResetToDefault()
         {
             if (!ResolveActionAndBinding(out var action, out var bindingIndex))
+            {
+                Debug.LogWarning($"[RebindActionUI] Failed to resolve action and binding for reset on {gameObject.name}");
                 return;
+            }
+
+            Debug.Log($"[RebindActionUI] Resetting binding to default for action '{action.name}' on {gameObject.name}");
 
             ResetBinding(action, bindingIndex);
 
             if (action.bindings[bindingIndex].isComposite)
             {
+                Debug.Log($"[RebindActionUI] Resetting composite binding and all its parts");
                 // It's a composite. Remove overrides from part bindings.
                 for (var i = bindingIndex + 1; i < action.bindings.Count && action.bindings[i].isPartOfComposite; ++i)
                     action.RemoveBindingOverride(i);
@@ -238,6 +256,7 @@ namespace UnityEngine.InputSystem.Samples.RebindUI
             }
 
             UpdateBindingDisplay();
+            Debug.Log($"[RebindActionUI] Reset complete. New path: {action.bindings[bindingIndex].effectivePath}");
         }
 
        private void ResetBinding(InputAction action, int bindingIndex)
@@ -287,11 +306,17 @@ namespace UnityEngine.InputSystem.Samples.RebindUI
         public void StartInteractiveRebind()
         {
             if (!ResolveActionAndBinding(out var action, out var bindingIndex))
+            {
+                Debug.LogWarning($"[RebindActionUI] Failed to resolve action and binding for rebind on {gameObject.name}");
                 return;
+            }
+
+            Debug.Log($"[RebindActionUI] Starting interactive rebind for action '{action.name}' on {gameObject.name}");
 
             // If the binding is a composite, we need to rebind each part in turn.
             if (action.bindings[bindingIndex].isComposite)
             {
+                Debug.Log($"[RebindActionUI] Binding is composite, rebinding all parts");
                 var firstPartIndex = bindingIndex + 1;
                 if (firstPartIndex < action.bindings.Count && action.bindings[firstPartIndex].isPartOfComposite)
                     PerformInteractiveRebind(action, firstPartIndex, allCompositeParts: true);
@@ -306,13 +331,19 @@ namespace UnityEngine.InputSystem.Samples.RebindUI
         {
             m_RebindOperation?.Cancel(); // Will null out m_RebindOperation.
 
+            var binding = action.bindings[bindingIndex];
+            var bindingName = binding.isPartOfComposite ? $"{binding.name} (part of composite)" : "simple binding";
+            Debug.Log($"[RebindActionUI] Performing rebind for '{action.name}' [{bindingName}] at index {bindingIndex}. Current path: {binding.effectivePath}, Override path: {binding.overridePath}");
+
             void CleanUp()
             {
                 m_RebindOperation?.Dispose();
                 m_RebindOperation = null;
 
+                Debug.Log($"[RebindActionUI] CleanUp: Enabling action map '{action.actionMap.name}' and action '{action.name}'");
                 action.actionMap.Enable();
                 m_UIInputActionMap?.Enable();
+                Debug.Log($"[RebindActionUI] CleanUp complete. Action enabled: {action.enabled}, ActionMap enabled: {action.actionMap.enabled}");
             }
 
             //disable the action before use
@@ -337,6 +368,7 @@ namespace UnityEngine.InputSystem.Samples.RebindUI
                 .OnCancel(
                     operation =>
                     {
+                        Debug.Log($"[RebindActionUI] Rebind CANCELED for action '{action.name}' on {gameObject.name}");
                         action.Enable();
                         m_RebindStopEvent?.Invoke(this, operation);
                         if (m_RebindOverlay != null)
@@ -347,24 +379,33 @@ namespace UnityEngine.InputSystem.Samples.RebindUI
                 .OnComplete(
                     operation =>
                     {
+                            var newBinding = action.bindings[bindingIndex];
+                            Debug.Log($"[RebindActionUI] Rebind COMPLETE for action '{action.name}' on {gameObject.name}. New path: {newBinding.effectivePath}");
+                            
+                            // Hide rebind overlay
                             if (m_RebindOverlay != null)
-                                action.Enable();
                                 m_RebindOverlay.SetActive(false);
+                                
                             m_RebindStopEvent?.Invoke(this, operation);
 
                             if (CheckDuplicateBindings(action, bindingIndex, allCompositeParts))
                             {
-                                action.RemoveBindingOverride(bindingIndex);
-                                CleanUp();
-                                PerformInteractiveRebind(action, bindingIndex, allCompositeParts);
-                                return;
+                                Debug.LogWarning($"[RebindActionUI] Duplicate binding detected, clearing old duplicate binding");
+                                ClearDuplicateBinding(action, bindingIndex);
                             }
 
-
-
+                            // Update display to show new binding
                             UpdateBindingDisplay();
+                            
+                            // Log the final binding state
+                            var finalBinding = action.bindings[bindingIndex];
+                            Debug.Log($"[RebindActionUI] Final binding state - Path: {finalBinding.path}, OverridePath: {finalBinding.overridePath}, EffectivePath: {finalBinding.effectivePath}");
+                            
+                            // Re-enable action and action maps
+                            action.Enable();
                             CleanUp();
-                        
+                            
+                            Debug.Log($"[RebindActionUI] Rebind finalized! Action '{action.name}' is now bound to '{newBinding.effectivePath}'");
 
                         // If there's more composite parts we should bind, initiate a rebind
                         // for the next part.
@@ -372,7 +413,14 @@ namespace UnityEngine.InputSystem.Samples.RebindUI
                         {
                             var nextBindingIndex = bindingIndex + 1;
                             if (nextBindingIndex < action.bindings.Count && action.bindings[nextBindingIndex].isPartOfComposite)
+                            {
+                                Debug.Log($"[RebindActionUI] Moving to next composite part at index {nextBindingIndex}");
                                 PerformInteractiveRebind(action, nextBindingIndex, true);
+                            }
+                            else
+                            {
+                                Debug.Log($"[RebindActionUI] All composite parts rebound successfully");
+                            }
                         }
                     });
 
@@ -405,50 +453,134 @@ namespace UnityEngine.InputSystem.Samples.RebindUI
         private bool CheckDuplicateBindings(InputAction action, int bindingIndex, bool allCompositeParts = false)
         {
             InputBinding newBinding = action.bindings[bindingIndex];
-            int currentIndex = -1;
+            string newPath = newBinding.effectivePath;
+            
+            Debug.Log($"[RebindActionUI] Checking for duplicates: new path = '{newPath}', binding index = {bindingIndex}");
 
-            foreach (InputBinding binding in action.actionMap.bindings)
+            // Check all bindings in the same action map for duplicates
+            for (int i = 0; i < action.bindings.Count; i++)
             {
-                currentIndex++;
+                // Skip checking against itself
+                if (i == bindingIndex)
+                    continue;
 
-                if (binding.action == newBinding.action)
+                InputBinding otherBinding = action.bindings[i];
+                string otherPath = otherBinding.effectivePath;
+
+                // Skip empty paths
+                if (string.IsNullOrEmpty(newPath) || string.IsNullOrEmpty(otherPath))
+                    continue;
+
+                if (otherPath == newPath)
                 {
-                    if (binding.isPartOfComposite && currentIndex != bindingIndex)
-                    {
-                        if (binding.effectivePath == newBinding.effectivePath)
-                        {
-                            Debug.Log("Duplicate binding found in composite: " + newBinding.effectivePath);
-                            return true;
-                        }
-                    }
+                    Debug.LogWarning($"[RebindActionUI] Duplicate binding found within same action! Path '{newPath}' is already bound to binding at index {i}");
+                    return true;
+                }
+            }
 
-                    else
+            // Also check bindings in other actions within the same action map
+            if (action.actionMap != null)
+            {
+                int actionMapBindingIndex = -1;
+                for (int i = 0; i < action.actionMap.bindings.Count; i++)
+                {
+                    if (action.actionMap.bindings[i].id == newBinding.id)
                     {
-                        continue;
+                        actionMapBindingIndex = i;
+                        break;
                     }
                 }
 
-                if (binding.effectivePath == newBinding.effectivePath)
+                for (int i = 0; i < action.actionMap.bindings.Count; i++)
                 {
-                    Debug.Log("Duplicate binding found: " + newBinding.effectivePath);
-                    return true;
-                }               
+                    // Skip current binding
+                    if (i == actionMapBindingIndex)
+                        continue;
 
-            }
+                    InputBinding otherBinding = action.actionMap.bindings[i];
+                    string otherPath = otherBinding.effectivePath;
 
-            if (allCompositeParts)
-            {
-                for (int i = 1; i < bindingIndex; i++)
-                {
-                    if (action.bindings[i].effectivePath == newBinding.overridePath)
+                    // Skip empty paths
+                    if (string.IsNullOrEmpty(newPath) || string.IsNullOrEmpty(otherPath))
+                        continue;
+
+                    if (otherPath == newPath)
                     {
-                        //Debug.Log("Duplicate binding found: " + newBinding.effectivePath);
+                        Debug.LogWarning($"[RebindActionUI] Duplicate binding found! Path '{newPath}' is already bound in action '{otherBinding.action}'");
                         return true;
                     }
                 }
             }
 
             return false;
+        }
+
+        private void ClearDuplicateBinding(InputAction action, int bindingIndex)
+        {
+            InputBinding newBinding = action.bindings[bindingIndex];
+            string newPath = newBinding.effectivePath;
+
+            if (string.IsNullOrEmpty(newPath))
+                return;
+
+            // Find and clear bindings in other actions that use the same path
+            if (action.actionMap != null)
+            {
+                for (int i = 0; i < action.actionMap.bindings.Count; i++)
+                {
+                    InputBinding otherBinding = action.actionMap.bindings[i];
+                    
+                    // Skip the binding we just changed
+                    if (otherBinding.id == newBinding.id)
+                        continue;
+
+                    string otherPath = otherBinding.effectivePath;
+                    
+                    if (otherPath == newPath)
+                    {
+                        // Find the action that owns this binding
+                        var otherAction = action.actionMap.FindAction(otherBinding.action);
+                        if (otherAction != null)
+                        {
+                            // Find the binding index in that action
+                            int otherBindingIndex = otherAction.bindings.IndexOf(x => x.id == otherBinding.id);
+                            if (otherBindingIndex >= 0)
+                            {
+                                // Apply an empty binding override to show "-" in the UI
+                                otherAction.ApplyBindingOverride(otherBindingIndex, "");
+                                Debug.Log($"[RebindActionUI] Cleared duplicate binding from action '{otherAction.name}' at index {otherBindingIndex}");
+                                
+                                // Force update all RebindActionUI components that display this action
+                                UpdateRebindUIForAction(otherAction);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        private void UpdateRebindUIForAction(InputAction targetAction)
+        {
+            if (s_RebindActionUIs == null)
+                return;
+
+            for (int i = 0; i < s_RebindActionUIs.Count; i++)
+            {
+                var ui = s_RebindActionUIs[i];
+                var referencedAction = ui.actionReference?.action;
+                
+                if (referencedAction == targetAction)
+                {
+                    // Disable and re-enable the action to force binding re-evaluation
+                    bool wasEnabled = referencedAction.enabled;
+                    referencedAction.Disable();
+                    
+                    ui.UpdateBindingDisplay();
+                    Debug.Log($"[RebindActionUI] Updated binding display for UI component on {ui.gameObject.name}");
+                    
+                    if (wasEnabled)
+                        referencedAction.Enable();
+                }
+            }
         }
 
         protected void OnEnable()
@@ -460,12 +592,36 @@ namespace UnityEngine.InputSystem.Samples.RebindUI
                 InputSystem.onActionChange += OnActionChange;
             if (m_DefaultInputActions != null && m_UIInputActionMap == null)
                 m_UIInputActionMap = m_DefaultInputActions.FindActionMap("UI");
+            // Refresh the binding display when component is enabled
+            // This ensures saved bindings show the correct text when the scene loads
+            UpdateActionLabel();
+            UpdateBindingDisplay();
+            Debug.Log($"[RebindActionUI] OnEnable - Refreshed binding display for {gameObject.name}");
+
+            // Hook up button click listeners
+            var button = GetComponent<Button>();
+            if (button != null)
+            {
+                button.onClick.AddListener(StartInteractiveRebind);
+                Debug.Log($"[RebindActionUI] Button click listener attached to {gameObject.name}");
+            }
+            else
+            {
+                Debug.LogWarning($"[RebindActionUI] No Button component found on {gameObject.name}. Button clicks will not trigger rebinding.");
+            }
         }
 
         protected void OnDisable()
         {
             m_RebindOperation?.Dispose();
             m_RebindOperation = null;
+
+            // Remove button click listener
+            var button = GetComponent<Button>();
+            if (button != null)
+            {
+                button.onClick.RemoveListener(StartInteractiveRebind);
+            }
 
             s_RebindActionUIs.Remove(this);
             if (s_RebindActionUIs.Count == 0)
@@ -521,6 +677,10 @@ namespace UnityEngine.InputSystem.Samples.RebindUI
         [SerializeField]
         private TMPro.TextMeshProUGUI m_BindingText;
 
+        [Tooltip("Image component that displays the binding icon (controlled by GamepadIconsExample or similar icon handlers).")]
+        [SerializeField]
+        public Image m_BindingImage = null;
+
         [Tooltip("Optional UI that will be shown while a rebind is in progress.")]
         [SerializeField]
         private GameObject m_RebindOverlay;
@@ -535,6 +695,41 @@ namespace UnityEngine.InputSystem.Samples.RebindUI
         [Tooltip("What text should be displayed for the action label?")]
         [SerializeField]
         private string m_ActionLabelString;
+        /// <summary>
+        /// Whether to override the binding text with a custom string.
+        /// </summary>
+        public bool overrideBindingText
+        {
+            get => m_OverrideBindingText;
+            set
+            {
+                m_OverrideBindingText = value;
+                UpdateBindingDisplay();
+                Debug.Log($"[RebindActionUI] Override binding text changed to {value} on {gameObject.name}");
+            }
+        }
+
+        /// <summary>
+        /// The custom text to display for the binding when override is enabled.
+        /// </summary>
+        public string bindingTextString
+        {
+            get => m_BindingTextString;
+            set
+            {
+                m_BindingTextString = value;
+                UpdateBindingDisplay();
+                Debug.Log($"[RebindActionUI] Binding text string changed to '{value}' on {gameObject.name}");
+            }
+        }
+
+        [Tooltip("Optional bool field which allows you to override the binding text with custom text")]
+        [SerializeField]
+        private bool m_OverrideBindingText;
+
+        [Tooltip("What text should be displayed for the binding?")]
+        [SerializeField]
+        private string m_BindingTextString;
         
 
         [Tooltip("Optional reference to default input actions containing the UI action map. The UI action map is "
@@ -588,7 +783,6 @@ namespace UnityEngine.InputSystem.Samples.RebindUI
                     m_ActionLabel.text = action != null ? action.name : string.Empty;
                     m_ActionLabelString = String.Empty;
                 }
-                
             }
         }
 

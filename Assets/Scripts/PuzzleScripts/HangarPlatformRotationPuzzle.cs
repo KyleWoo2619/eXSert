@@ -41,6 +41,11 @@ public class HangarPlatformRotationPuzzle : PuzzlePart
         }
     }
 
+    public override void ConsoleInteracted()
+    {
+        throw new System.NotImplementedException();
+    }
+
     public override void StartPuzzle()
     {
         if(!isCompleted)

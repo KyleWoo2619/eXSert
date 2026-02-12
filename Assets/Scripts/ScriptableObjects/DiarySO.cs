@@ -7,6 +7,8 @@ public class DiarySO : ScriptableObject
 {
     [field: SerializeField] public string diaryID { get; private set; }
 
+    [field: SerializeField] public string diaryTitle { get; private set; }
+
     [TextArea(3, 10)]
     public string diaryDescription;
 
@@ -20,6 +22,8 @@ public class DiarySO : ScriptableObject
     #if UNITY_EDITOR
         string idName = this.name.Replace("Diary", "");
         diaryID = "#00" + idName;
+        if (string.IsNullOrWhiteSpace(diaryTitle))
+            diaryTitle = this.name;
         EditorUtility.SetDirty(this);
 
     #endif

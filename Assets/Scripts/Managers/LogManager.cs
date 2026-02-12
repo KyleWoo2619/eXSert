@@ -59,6 +59,17 @@ public class LogManager : Singleton<LogManager>
         }
     }
 
+    /// <summary>
+    /// Re-broadcasts all log states. Call this when UI becomes active to populate buttons.
+    /// </summary>
+    public void RefreshAllLogs()
+    {
+        foreach(Logs log in logMap.Values)
+        {
+            EventsManager.Instance.logEvents.LogStateChange(log);
+        }
+    }
+
     //Changes the state of the log and if it is Found, it will turn isLogFound true
     private void FindLog(string id)
     {
@@ -125,14 +136,26 @@ public class LogManager : Singleton<LogManager>
         Logs log = null;
         try
         {
+            // Check if manually set to true in inspector (takes priority over saved data)
+            bool inspectorValueIsTrue = logInfo.isFound;
+            
             if (PlayerPrefs.HasKey(logInfo.logID) && loadLogState)
             {
                 string serializedData = PlayerPrefs.GetString(logInfo.logID);
                 LogData logData = JsonUtility.FromJson<LogData>(serializedData);
                 log = new Logs(logInfo);
-                // Apply the loaded state to the ScriptableObject
-                log.info.isFound = logData.isFound;
-                Debug.Log($"Loaded log {logInfo.logID}: isFound={logData.isFound}");
+                
+                // If inspector value is true, keep it; otherwise use saved data
+                if (inspectorValueIsTrue)
+                {
+                    log.info.isFound = true;
+                    Debug.Log($"Loaded log {logInfo.logID}: using inspector value isFound=true (overriding saved data)");
+                }
+                else
+                {
+                    log.info.isFound = logData.isFound;
+                    Debug.Log($"Loaded log {logInfo.logID}: isFound={logData.isFound}");
+                }
             }
             else
             {

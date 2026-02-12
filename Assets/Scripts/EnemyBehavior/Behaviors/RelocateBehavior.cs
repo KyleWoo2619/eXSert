@@ -16,11 +16,19 @@ namespace Behaviors
         {
             this.enemy = enemy;
             // Removed SetEnemyColor - using animations instead
+            
+            // If zone relocation is disabled, stay within current zone
+            if (!enemy.allowZoneRelocation)
+            {
+                MoveWithinCurrentZone();
+                return;
+            }
+            
             var otherZones = GetOtherZones();
             if (otherZones.Count == 0)
             {
-                // No other zones to relocate to, transition back to Idle
-                enemy.TryFireTriggerByName("ReachZone");
+                // No other zones to relocate to, move within current zone instead
+                MoveWithinCurrentZone();
                 return;
             }
 
@@ -37,6 +45,25 @@ namespace Behaviors
                     enemy.StopCoroutine(zoneArrivalCoroutine);
                 zoneArrivalCoroutine = enemy.StartCoroutine(WaitForArrivalAndUpdateZone());
             }
+        }
+        
+        private void MoveWithinCurrentZone()
+        {
+            if (enemy.currentZone != null)
+            {
+                Vector3 target = enemy.currentZone.GetRandomPointInZone();
+                NavMeshHit hit;
+                if (NavMesh.SamplePosition(target, out hit, 2.0f, NavMesh.AllAreas))
+                {
+                    enemy.agent.SetDestination(hit.position);
+                    if (zoneArrivalCoroutine != null)
+                        enemy.StopCoroutine(zoneArrivalCoroutine);
+                    zoneArrivalCoroutine = enemy.StartCoroutine(WaitForArrivalAndUpdateZone());
+                    return;
+                }
+            }
+            // No current zone or failed to find valid position, transition back to Idle
+            enemy.TryFireTriggerByName("ReachZone");
         }
         public virtual void OnExit(BaseEnemy<TState, TTrigger> enemy)
         {

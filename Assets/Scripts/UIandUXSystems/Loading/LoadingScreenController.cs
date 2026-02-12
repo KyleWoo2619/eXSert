@@ -111,6 +111,8 @@ namespace UI.Loading
             if (loadingCanvasRoot != null)
                 loadingCanvasRoot.SetActive(true);
 
+            CursorBySchemeAndMap.SetForceHidden(true);
+
             propManager?.ShowRandomProp();
 
             yield return FadeBlack(1f, 0f);
@@ -134,6 +136,8 @@ namespace UI.Loading
                 loadingCanvasRoot.SetActive(false);
 
             yield return FadeOutAndResume(pauseGame);
+
+            CursorBySchemeAndMap.SetForceHidden(false);
 
             // Loading input (spin/zoom) disabled – we only show the prefab now.
             // DisableLoadingInput();

@@ -143,10 +143,29 @@ namespace EnemyBehavior.Boss
             }
         }
 
+
         public void EnableBothArms()
         {
             EnableLeftArm();
             EnableRightArm();
+        }
+        
+        /// <summary>
+        /// Enable both arms with dash knockback mode.
+        /// Used during dashes to apply knockback even if arm hitboxes don't normally have it enabled.
+        /// </summary>
+        public void EnableBothArmsWithDashKnockback(float forceOverride = 0f)
+        {
+            if (leftArmHitbox != null)
+            {
+                leftArmHitbox.EnableHitboxWithDashKnockback(forceOverride);
+                Debug.Log("[AnimMediator] Left arm enabled with DASH KNOCKBACK");
+            }
+            if (rightArmHitbox != null)
+            {
+                rightArmHitbox.EnableHitboxWithDashKnockback(forceOverride);
+                Debug.Log("[AnimMediator] Right arm enabled with DASH KNOCKBACK");
+            }
         }
 
         public void DisableBothArms()
@@ -187,6 +206,23 @@ namespace EnemyBehavior.Boss
             {
                 chargeHitbox.EnableHitbox();
                 Debug.Log("[AnimMediator] Charge hitbox enabled");
+            }
+            else
+            {
+                Debug.LogWarning("[AnimMediator] Charge hitbox not assigned!");
+            }
+        }
+
+        /// <summary>
+        /// Enables the charge hitbox with dash knockback mode.
+        /// Used for DashLungeNoArms where the charge hitbox needs to apply knockback like arms do.
+        /// </summary>
+        public void EnableChargeWithDashKnockback(float forceOverride = 0f)
+        {
+            if (chargeHitbox != null)
+            {
+                chargeHitbox.EnableHitboxWithDashKnockback(forceOverride);
+                Debug.Log("[AnimMediator] Charge hitbox enabled with DASH KNOCKBACK");
             }
             else
             {

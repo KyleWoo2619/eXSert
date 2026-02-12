@@ -17,8 +17,16 @@ public class EnemyHealthBar : MonoBehaviour
     [Header("Behavior")]
     [SerializeField, Tooltip("Hide the bar when the enemy is at full health to cut down on clutter.")]
     private bool hideWhenFull = true;
+    [SerializeField, Tooltip("Hide the bar when the enemy is at zero health.")]
+    private bool hideWhenEmpty = true;
     [SerializeField, Tooltip("How quickly the slider value interpolates toward the real HP value.")]
     private float sliderLerpSpeed = 12f;
+    [SerializeField, Tooltip("Limit fallback camera selection to specific layers.")]
+    private LayerMask cameraLayerMask = ~0;
+    [SerializeField, Tooltip("Keep the bar flat to the camera (screen-parallel) instead of yaw-only billboarding.")]
+    private bool alignToCameraRotation = true;
+    [SerializeField, Tooltip("Flip the bar 180 degrees if it appears backwards.")]
+    private bool flipFacing = false;
 
     private IHealthSystem health;
     private Transform enemyTransform;
@@ -70,7 +78,10 @@ public class EnemyHealthBar : MonoBehaviour
         float target = Mathf.Clamp(health.currentHP, 0f, slider.maxValue);
         slider.value = Mathf.MoveTowards(slider.value, target, sliderLerpSpeed * Time.deltaTime * slider.maxValue);
 
-        if (hideWhenFull && Mathf.Approximately(target, slider.maxValue))
+        bool shouldHide = (hideWhenFull && Mathf.Approximately(target, slider.maxValue))
+            || (hideWhenEmpty && Mathf.Approximately(target, 0f));
+
+        if (shouldHide)
         {
             if (slider.gameObject.activeSelf)
                 slider.gameObject.SetActive(false);
@@ -92,12 +103,25 @@ public class EnemyHealthBar : MonoBehaviour
         if (camTransform == null)
             return;
 
+        if (alignToCameraRotation)
+        {
+            Quaternion target = camTransform.rotation;
+            if (flipFacing)
+                target *= Quaternion.Euler(0f, 180f, 0f);
+
+            transform.rotation = target;
+            return;
+        }
+
         Vector3 toCamera = camTransform.position - transform.position;
-        toCamera.y = 0f;
         if (toCamera.sqrMagnitude < 0.0001f)
             return;
 
-        transform.rotation = Quaternion.LookRotation(toCamera, Vector3.up);
+        Quaternion facing = Quaternion.LookRotation(toCamera, camTransform.up);
+        if (flipFacing)
+            facing *= Quaternion.Euler(0f, 180f, 0f);
+
+        transform.rotation = facing;
     }
 
     private Transform ResolveCameraTransform()
@@ -109,13 +133,29 @@ public class EnemyHealthBar : MonoBehaviour
                 return cineCam.transform;
         }
 
-        if (fallbackCameraTransform == null)
-        {
-            Camera mainCam = Camera.main;
-            if (mainCam != null)
-                fallbackCameraTransform = mainCam.transform;
-        }
+        if (fallbackCameraTransform == null || !fallbackCameraTransform.gameObject.activeInHierarchy)
+            fallbackCameraTransform = FindFallbackCameraTransform();
 
         return fallbackCameraTransform;
+    }
+
+    private Transform FindFallbackCameraTransform()
+    {
+        Camera best = null;
+        foreach (Camera cam in Camera.allCameras)
+        {
+            if (cam == null || !cam.enabled)
+                continue;
+            if ((cameraLayerMask.value & (1 << cam.gameObject.layer)) == 0)
+                continue;
+
+            if (best == null || cam.depth > best.depth)
+                best = cam;
+        }
+
+        if (best == null)
+            best = Camera.main;
+
+        return best != null ? best.transform : null;
     }
 }

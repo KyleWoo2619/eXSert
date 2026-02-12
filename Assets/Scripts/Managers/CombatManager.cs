@@ -51,7 +51,7 @@ namespace Utilities.Combat
         public static event Action OnStanceChanged;
 
         // Unity Action event for successful parry for other scripts to subscribe to
-        public static event Action OnSuccessfulParry;
+        public static event Action<BaseEnemy<EnemyState, EnemyTrigger>> OnSuccessfulParry;
 
         override protected void Awake()
         {
@@ -126,7 +126,7 @@ namespace Utilities.Combat
         {
             Debug.Log("Parry successful! Counterattack opportunity granted.");
 
-            OnSuccessfulParry?.Invoke();
+            OnSuccessfulParry?.Invoke(null);
 
             // Additional logic for successful parry can be added here
         }

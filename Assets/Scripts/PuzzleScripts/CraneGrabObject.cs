@@ -8,18 +8,28 @@ using UnityEngine;
 
 public class CraneGrabObject : MonoBehaviour
 {
-    [SerializeField] private CranePuzzle cranePuzzle;
+    [SerializeField] private CargoBayCrane cargoBayCrane;
+    [SerializeField] private Transform grabAnchor;
+    [SerializeField] private Vector3 grabLocalOffset = new Vector3(0f, -1.7f, 0f);
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        if (grabLocalOffset == Vector3.zero)
+            grabLocalOffset = new Vector3(0f, -1.7f, 0f);
+    }
+#endif
 
     private void Start()
     {
         // Verify setup
-        if (cranePuzzle == null)
+        if (cargoBayCrane == null)
         {
             Debug.LogError("CraneGrabObject: CranePuzzle reference not set!");
             return;
         }
         
-        if (cranePuzzle.magnetExtender == null)
+        if (cargoBayCrane.magnetExtender == null)
         {
             Debug.LogError("CraneGrabObject: magnetExtender not set on CranePuzzle!");
             return;
@@ -32,27 +42,45 @@ public class CraneGrabObject : MonoBehaviour
             Debug.LogError($"CraneGrabObject: {gameObject.name} has no Collider component!");
             return;
         }
-        
-        if (!col.isTrigger)
-        {
-            Debug.LogWarning($"CraneGrabObject: {gameObject.name} Collider is not set as trigger!");
-        }
-
-        Debug.Log("CraneGrabObject initialized successfully");
     }
 
     public void GrabObject(GameObject obj)
     {
-        // Parent to the magnet extender while preserving world position
-        obj.transform.SetParent(cranePuzzle.magnetExtender.transform, true);
-        Debug.Log($"Object parented to magnet: {obj.name}");
+        Transform parent = grabAnchor != null ? grabAnchor : cargoBayCrane.magnetExtender.transform;
+
+        // Parent to the anchor, keep world scale, then snap to the desired local offset
+        Vector3 worldScale = obj.transform.lossyScale;
+        obj.transform.SetParent(parent, true);
+        PreserveWorldScale(obj.transform, worldScale);
+        obj.transform.localPosition = grabLocalOffset;
+    }
+
+    private void PreserveWorldScale(Transform target, Vector3 worldScale)
+    {
+        Transform parent = target.parent;
+        if (parent == null)
+        {
+            target.localScale = worldScale;
+            return;
+        }
+
+        Vector3 parentScale = parent.lossyScale;
+        target.localScale = new Vector3(
+            SafeDivide(worldScale.x, parentScale.x),
+            SafeDivide(worldScale.y, parentScale.y),
+            SafeDivide(worldScale.z, parentScale.z)
+        );
+    }
+
+    private float SafeDivide(float value, float divisor)
+    {
+        return Mathf.Approximately(divisor, 0f) ? 0f : value / divisor;
     }
 
     public void ReleaseObject(GameObject obj)
     {
         // Unparent the object
-        obj.transform.SetParent(null, true);
-        Debug.Log($"Object released from magnet: {obj.name}");
+        obj.transform.SetParent(null, true);;
     }
 
 }

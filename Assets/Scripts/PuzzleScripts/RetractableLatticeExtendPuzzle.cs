@@ -40,6 +40,20 @@ public class RetractableLatticeExtendPuzzle : PuzzlePart
     protected Vector3 magnetTwoOrigin;
     #endregion
 
+    #region Magnet Indicator
+    [Header("Magnet Indicator")]
+    [SerializeField] private bool showMagnetIndicator = true;
+    [SerializeField] private float indicatorMaxDistance = 50f;
+    [SerializeField] private float indicatorWidth = 0.05f;
+    [SerializeField] private Color indicatorColor = Color.red;
+    [SerializeField] private LayerMask indicatorMask = ~0;
+    [SerializeField] private bool indicatorUseLocalDown = false;
+    [SerializeField] private Vector3 indicatorOffset = Vector3.zero;
+
+    private LineRenderer magnetOneIndicator;
+    private LineRenderer magnetTwoIndicator;
+    #endregion
+
     private bool isExtending = false;
 
     private void Awake()
@@ -48,6 +62,23 @@ public class RetractableLatticeExtendPuzzle : PuzzlePart
         platformOrigin = platform != null ? platform.transform.position : Vector3.zero;
         magnetOneOrigin = magnetOne != null ? magnetOne.transform.position : Vector3.zero;
         magnetTwoOrigin = magnetTwo != null ? magnetTwo.transform.position : Vector3.zero;
+
+        if (showMagnetIndicator)
+        {
+            EnsureMagnetIndicator(magnetOne != null ? magnetOne.transform : null, ref magnetOneIndicator, "MagnetIndicatorOne");
+            EnsureMagnetIndicator(magnetTwo != null ? magnetTwo.transform : null, ref magnetTwoIndicator, "MagnetIndicatorTwo");
+        }
+    }
+
+    private void Update()
+    {
+        UpdateMagnetIndicator(magnetOne != null ? magnetOne.transform : null, ref magnetOneIndicator, "MagnetIndicatorOne");
+        UpdateMagnetIndicator(magnetTwo != null ? magnetTwo.transform : null, ref magnetTwoIndicator, "MagnetIndicatorTwo");
+    }
+
+    public override void ConsoleInteracted()
+    {
+        throw new System.NotImplementedException();
     }
 
     public override void StartPuzzle()
@@ -312,4 +343,52 @@ public class RetractableLatticeExtendPuzzle : PuzzlePart
         }
     }
     #endregion
+
+    private void EnsureMagnetIndicator(Transform origin, ref LineRenderer line, string name)
+    {
+        if (origin == null || line != null)
+            return;
+
+        var lineObj = new GameObject(name);
+        lineObj.transform.SetParent(origin);
+        lineObj.transform.localPosition = Vector3.zero;
+        lineObj.transform.localRotation = Quaternion.identity;
+        lineObj.transform.localScale = Vector3.one;
+
+        line = lineObj.AddComponent<LineRenderer>();
+        line.useWorldSpace = true;
+        line.positionCount = 2;
+        line.startWidth = Mathf.Max(0.001f, indicatorWidth);
+        line.endWidth = Mathf.Max(0.001f, indicatorWidth);
+        line.material = new Material(Shader.Find("Sprites/Default"));
+        line.startColor = indicatorColor;
+        line.endColor = indicatorColor;
+        line.enabled = false;
+    }
+
+    private void UpdateMagnetIndicator(Transform origin, ref LineRenderer line, string name)
+    {
+        if (!showMagnetIndicator || origin == null)
+        {
+            if (line != null)
+                line.enabled = false;
+            return;
+        }
+
+        EnsureMagnetIndicator(origin, ref line, name);
+        if (line == null)
+            return;
+
+        Vector3 start = origin.position + origin.TransformDirection(indicatorOffset);
+        Vector3 dir = indicatorUseLocalDown ? -origin.up : Vector3.down;
+        float maxDist = Mathf.Max(0.01f, indicatorMaxDistance);
+
+        Vector3 end = start + dir * maxDist;
+        if (Physics.Raycast(start, dir, out var hit, maxDist, indicatorMask, QueryTriggerInteraction.Ignore))
+            end = hit.point;
+
+        line.SetPosition(0, start);
+        line.SetPosition(1, end);
+        line.enabled = true;
+    }
 }

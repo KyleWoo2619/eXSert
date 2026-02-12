@@ -20,39 +20,53 @@ namespace Singletons {
         /// </summary>
         protected virtual bool ShouldPersistAcrossScenes => true;
 
-        // The Public static property to access the singleton instance
+        /// <summary>
+        /// Gets the singleton instance of type <typeparamref name="T"/>. If no instance exists in the scene, a new one
+        /// is created automatically.
+        /// </summary>
+        /// <remarks>This property ensures that only one instance of the singleton type <typeparamref
+        /// name="T"/> exists in the scene. If an instance is not found, a new <see cref="GameObject"/> is created and
+        /// the singleton component is attached to it. If the singleton is configured to persist across scenes, the
+        /// created object will not be destroyed on scene load.</remarks>
         public static T Instance
         {
-
             // special functionality which tries to find or creates the singleton instance if it doesn't exist already
             get
             {
-                if (_instance == null)
-                {
-                    // Try to find an existing instance of the singleton type T in the scene
-                    _instance = (T)FindAnyObjectByType(typeof(T));
-                    if (_instance == null)
-                    {
-                        // If no instance is found, create a new GameObject and attach the singleton component to it
-                        Debug.LogWarning($"No instance of singleton {typeof(T)} found in the scene. Creating a new one.");
-                        GameObject singletonObject = new GameObject();
-                        _instance = singletonObject.AddComponent<T>();
-                        singletonObject.name = typeof(T).ToString() + " (Singleton)";
+                // Try to find an existing instance of the singleton type T in the scene
+                if (_instance == null) _instance = (T)FindAnyObjectByType(typeof(T));
 
-                        if (_instance is Singleton<T> singleton && singleton.ShouldPersistAcrossScenes)
-                        {
-                            DontDestroyOnLoad(singletonObject);
-                        }
-                    }
-                }
+                // Return the found instance if it exists
+                if (_instance != null) return _instance;
+
+                // If no instance is found, create a new GameObject and attach the singleton component to it
+                Debug.LogWarning($"No instance of singleton {typeof(T)} found in the scene. Creating a new one.");
+                _instance = CreateInstance();
+
                 return _instance;
             }
 
             private set { _instance = value; }
         }
 
-        // Awake method to enforce the singleton pattern
-        virtual protected void Awake()
+        protected static T CreateInstance()
+        {
+            GameObject singletonObject = new GameObject();
+            T newInstance = singletonObject.AddComponent<T>();
+            singletonObject.name = typeof(T).ToString() + " (Singleton)";
+            if (newInstance is Singleton<T> singleton && singleton.ShouldPersistAcrossScenes)
+                DontDestroyOnLoad(singletonObject);
+            return newInstance;
+        }
+
+        /// <summary>
+        /// Initializes the singleton instance and ensures only one instance of the component exists in the scene.
+        /// </summary>
+        /// <remarks>If no instance exists, this method assigns the current component as the singleton
+        /// instance. If <see cref="ShouldPersistAcrossScenes"/> is <see langword="true"/>, the component persists
+        /// across scene loads. If another instance already exists, this method destroys the duplicate component and
+        /// logs a warning.</remarks>
+        protected virtual void Awake()
         {
             if(_instance == null)
             {
