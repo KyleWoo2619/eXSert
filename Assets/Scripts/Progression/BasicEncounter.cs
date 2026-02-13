@@ -10,10 +10,8 @@ using UnityEngine;
 namespace Progression.Encounters
 {
     [RequireComponent(typeof(BoxCollider))]
-    public abstract class BasicEncounter : MonoBehaviour
+    public abstract class BasicEncounter : ProgressionZone
     {
-        private ProgressionManager progressionManager;
-
         public string encounterName => this.gameObject.name;
 
         #region Inspector Settup
@@ -32,16 +30,6 @@ namespace Progression.Encounters
         #endregion
 
         /// <summary>
-        /// Indicates whether the player is currently within the encounter zone
-        /// </summary>
-        protected bool zoneActive = false;
-
-        /// <summary>
-        /// Indicates if the encounter can be started when the player is in the zone
-        /// </summary>
-        protected bool zoneEnabled = false;
-
-        /// <summary>
         /// Indicates whether the encounter has been completed
         /// </summary>
         public abstract bool isCompleted { get; }
@@ -51,48 +39,17 @@ namespace Progression.Encounters
         /// </summary>
         public bool isCleanedUp { get; private set; } = false;
 
-        protected BoxCollider encounterZone;
-
-        protected virtual void Awake()
+        
+        protected override void Start()
         {
-            encounterZone = GetComponent<BoxCollider>();
+            base.Start();
 
-            if (encounterZone == null)
-                Debug.LogError("Encounter couldn't find BoxCollider attached to gameobject");
-        }
-        protected virtual void Start()
-        {
-            // Find ProgressionManager in Scene and add this under its database
-            progressionManager = FindManager();
-            if (progressionManager == null)
-                return;
-
-            // add this to the manager's database
-            AddEncounterToManager();
-
-            // basic encounter setup
             SetupEncounter();
 
             SetEncounterEnabled(startEnabled);
         }
 
         #region Setup Functions
-        private ProgressionManager FindManager()
-        {
-            SceneAsset asset = SceneAsset.GetSceneAssetOfObject(this.gameObject);
-            ProgressionManager manager = ProgressionManager.GetInstance(asset);
-            if (manager == null)
-            {
-                Debug.LogError($"{this.gameObject.name} could not find ProgressionManager in scene {asset.name}");
-            }
-            return manager;
-        }
-
-        private void AddEncounterToManager()
-        {
-            progressionManager.AddEncounter(this);
-        }
-
         /// <summary>
         /// The setup function for the encounter, called during Start after being added to the ProgressionManager
         /// </summary>
@@ -106,13 +63,12 @@ namespace Progression.Encounters
             isCleanedUp = true;
 
             // disables the encounter collider for simplicity
-            encounterZone.enabled = false;
+            progressionCollider.enabled = false;
         }
 
         public void ManualEncounterStart()
         {
             Debug.Log($"Manual start call for encounter {encounterName} in scene {SceneAsset.GetSceneAssetOfObject(this.gameObject).name}.");
-            SetupEncounter();
             SetEncounterEnabled(true);
         }
 
@@ -124,36 +80,22 @@ namespace Progression.Encounters
         #endregion
 
         #region Collider Functions
-        protected virtual void OnTriggerEnter(Collider other)
+        protected override void PlayerEnteredZone()
         {
-            if (!zoneEnabled)
-                return;
-            if (other.gameObject.tag != "Player")
-                return;
-            zoneActive = true;
-            Debug.Log("Zone Entered");
+            Debug.Log($"Player entered encounter zone: {encounterName}.");
         }
 
-        protected virtual void OnTriggerExit(Collider other)
+        protected override void PlayerExitedZone()
         {
-            if (!zoneEnabled)
-                return;
-            if (other.gameObject.tag != "Player")
-                return;
-            zoneActive = false;
-            Debug.Log("Zone Left");
-
-            if(isCompleted && !isCleanedUp)
-            {
+            if (isCompleted && !isCleanedUp)
                 CleanupEncounter();
-            }
         }
 
         public void SetEncounterEnabled(bool enabled)
         {
             zoneEnabled = enabled;
-            if (encounterZone != null)
-                encounterZone.enabled = enabled;
+            if (progressionCollider != null)
+                progressionCollider.enabled = enabled;
         }
 
         protected void HandleEncounterCompleted()
@@ -180,19 +122,6 @@ namespace Progression.Encounters
         protected void SetEnableNextEncounterDelaySeconds(float seconds)
         {
             enableNextEncounterDelaySeconds = Mathf.Max(0f, seconds);
-        }
-        #endregion
-
-        #region Debug Scripts
-        protected abstract Color DebugColor { get; }
-
-        private void OnDrawGizmos()
-        {
-            if(encounterZone == null)
-                encounterZone = GetComponent<BoxCollider>();
-
-            Gizmos.color = DebugColor;
-            Gizmos.DrawWireCube(encounterZone.bounds.center, encounterZone.bounds.size);
         }
         #endregion
     }

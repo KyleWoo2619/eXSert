@@ -5,7 +5,7 @@ namespace Progression.Encounters
 {
     public class PuzzleEncounter : BasicEncounter
     {
-        protected override Color DebugColor { get => Color.purple; }
+        protected override Color DebugColor => Color.purple;
 
         [Header("Optional Overrides")]
         [SerializeField] private PuzzlePart overridePuzzlePart;

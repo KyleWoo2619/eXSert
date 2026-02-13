@@ -307,18 +307,9 @@ namespace Progression.Encounters
         #endregion
 
         #region Trigger Events
-        protected override void OnTriggerEnter(Collider other)
+        protected override void PlayerEnteredZone()
         {
-            base.OnTriggerEnter(other);
-
             BeginEncounter();
-        }
-
-        protected override void OnTriggerExit(Collider other)
-        {
-            base.OnTriggerExit(other);
-
-            // ResetWaves();
         }
         #endregion
     }
