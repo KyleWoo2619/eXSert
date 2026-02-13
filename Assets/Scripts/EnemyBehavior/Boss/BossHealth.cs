@@ -44,10 +44,17 @@ namespace EnemyBehavior.Boss
         [SerializeField, Tooltip("Reference to boss brain for panel count and defeat callback")]
         private BossRoombaBrain brain;
         
+        [Header("UI")]
+        [SerializeField, Tooltip("Reference to the boss health bar script on the canvas")]
+        private HealthBar healthBar;
+        [SerializeField, Tooltip("How quickly the health bar animates to the current value")]
+        private float healthBarLerpSpeed = 8f;
+        
         [Header("Debug")]
         [SerializeField] private bool showDebugLogs = true;
 
         private bool isDefeated = false;
+        private float displayedHealth;
 
         // IHealthSystem interface properties
         public float currentHP => currentHealth;
@@ -56,11 +63,36 @@ namespace EnemyBehavior.Boss
         void Awake()
         {
             currentHealth = maxHealth;
+            displayedHealth = maxHealth;
             
             if (brain == null)
             {
                 brain = GetComponent<BossRoombaBrain>();
             }
+            
+            InitializeHealthBar();
+        }
+        
+        private void InitializeHealthBar()
+        {
+            if (healthBar != null)
+            {
+                healthBar.SetHealth(currentHealth, maxHealth);
+            }
+        }
+        
+        void Update()
+        {
+            UpdateHealthBar();
+        }
+        
+        private void UpdateHealthBar()
+        {
+            if (healthBar == null) return;
+            
+            // Smoothly lerp the displayed health for a nice animation effect
+            displayedHealth = Mathf.MoveTowards(displayedHealth, currentHealth, healthBarLerpSpeed * Time.deltaTime * maxHealth);
+            healthBar.SetHealth(displayedHealth, maxHealth);
         }
 
         /// <summary>
