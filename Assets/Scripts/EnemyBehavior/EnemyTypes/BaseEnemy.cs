@@ -729,6 +729,8 @@ public abstract class BaseEnemy<TState, TTrigger> : BaseEnemyCore, IQueuedAttack
                 
                 // Fire the OnDeath event for any listeners
                 InvokeOnDeath();
+
+                Debug.Log("Health reached 0, triggering death sequence.");
                 
                 bool fired = TryFireTriggerByName("Die");
                 if (!fired)
@@ -795,7 +797,13 @@ public abstract class BaseEnemy<TState, TTrigger> : BaseEnemyCore, IQueuedAttack
             agent.enabled = true;
         }
         
-        // Ensure the GameObject is active
+        // Re-enable health bar if it was disabled during death
+        if (healthBarInstance != null && !healthBarInstance.gameObject.activeSelf)
+        {
+            healthBarInstance.gameObject.SetActive(true);
+        }
+        
+        // Ensure the GameObject is inactive (ready for Spawn to activate)
         if (gameObject.activeSelf)
         {
             gameObject.SetActive(false);
@@ -859,20 +867,22 @@ public abstract class BaseEnemy<TState, TTrigger> : BaseEnemyCore, IQueuedAttack
         if (agent != null)
         {
             agent.ResetPath();
-        agent.enabled = false;
+            agent.enabled = false;
         }
 
         yield return WaitForSecondsCache.Get(3f);
 
+        // Hide health bar but don't destroy it (can be re-enabled on reset)
         if (healthBarInstance != null)
         {
-            Destroy(healthBarInstance.gameObject);
-            healthBarInstance = null;
+            healthBarInstance.gameObject.SetActive(false);
         }
 
         CleanupExternalHelpers();
         deathFallbackRoutine = null;
-        Destroy(gameObject);
+        
+        // Disable instead of destroy for pooling/encounter reset support
+        gameObject.SetActive(false);
     }
 
     protected virtual void OnTriggerEnter(Collider other)
