@@ -178,10 +178,19 @@ namespace Progression.Encounters
         private readonly Queue<Wave> wavesQueue = new();
 
         private bool encounterStarted;
+        private bool encounterSetUp; // Prevents double setup
         private Coroutine waveAdvanceRoutine;
 
         protected override void SetupEncounter()
         {
+            // Prevent double setup (ManualEncounterStart and Start can both call this)
+            if (encounterSetUp)
+            {
+                Debug.LogWarning($"[CombatEncounter] SetupEncounter called twice on {gameObject.name} - ignoring duplicate call.");
+                return;
+            }
+            encounterSetUp = true;
+
             // iterates through each child object under this encounter
             foreach(Transform child in transform)
             {
