@@ -37,6 +37,11 @@ namespace Progression.Encounters
             }
         }
 
+        public override string ToString()
+        {
+            return $"{waveRoot.name} with {enemies.Count} enemies";
+        }
+
         /// <summary>
         /// Function to spawn all enemies in this wave
         /// Currently only activates the gameobjects but eventially should trigger spawn behavior in base enemy script
@@ -74,6 +79,8 @@ namespace Progression.Encounters
         /// <param name="enemy"></param>
         private void OnEnemyDefeated(BaseEnemyCore enemy)
         {
+            Debug.Log($"[CombatEncounter] Enemy defeated: {enemy.name}");
+
             if (!enemies.Contains(enemy))
                 return;
 
@@ -113,10 +120,8 @@ namespace Progression.Encounters
 
         [SerializeField] private bool dropObjectOnClear = false;
         [SerializeField] private GameObject objectToDrop;
-        [SerializeField] private bool dropAtLastEnemyPosition = true;
+        private bool dropAtLastEnemyPosition = true;
 
-
-        private static readonly HashSet<string> loadedScenes = new HashSet<string>();
         private Vector3 lastEnemyPosition;
 
         public override bool isCompleted
@@ -186,6 +191,13 @@ namespace Progression.Encounters
 
         private void CompleteEncounter()
         {
+            Debug.Log($"[CombatEncounter] Encounter completed: {name}");
+
+            DropItem();
+        }
+
+        private void DropItem()
+        {
             if (!dropObjectOnClear || objectToDrop == null)
                 return;
 
@@ -193,7 +205,7 @@ namespace Progression.Encounters
             if (dropAtLastEnemyPosition && lastEnemyPosition != null)
                 dropPosition = lastEnemyPosition + Vector3.forward;
 
-            Debug.Log($"[CombatEncounter] Encounter completed. Dropping object {objectToDrop.name} at position {dropPosition}");
+            Debug.Log($"[CombatEncounter] Dropping object {objectToDrop.name} at position {dropPosition}");
 
             objectToDrop.transform.position = dropPosition;
             objectToDrop.SetActive(true);
@@ -204,8 +216,7 @@ namespace Progression.Encounters
         {
             Debug.Log($"[CombatEncounter] Wave completed: {completedWave}");
 
-            if (wavesQueue.Count == 0 || wavesQueue.Peek() != completedWave)
-                return;
+            // if (wavesQueue.Peek() != completedWave) return;
 
             completedWave.OnWaveComplete -= WaveComplete;
             wavesQueue.Dequeue();
@@ -218,10 +229,10 @@ namespace Progression.Encounters
         private void SpawnNextWave()
         {
             // Ejects from the function early if there are no more waves to spawn
-            if (wavesQueue.Count == 0)
-                return;
+            if (wavesQueue.Count == 0) return;
 
             Wave currentWave = wavesQueue.Peek();
+            Debug.Log($"[CombatEncounter] Spawning next wave: {currentWave}");
             currentWave.SpawnEnemies();
         }
 

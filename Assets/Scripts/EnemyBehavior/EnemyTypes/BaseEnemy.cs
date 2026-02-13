@@ -729,6 +729,8 @@ public abstract class BaseEnemy<TState, TTrigger> : BaseEnemyCore, IQueuedAttack
                 
                 // Fire the OnDeath event for any listeners
                 InvokeOnDeath();
+
+                Debug.Log("Health reached 0, triggering death sequence.");
                 
                 bool fired = TryFireTriggerByName("Die");
                 if (!fired)
