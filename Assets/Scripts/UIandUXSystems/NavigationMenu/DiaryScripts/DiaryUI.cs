@@ -20,6 +20,11 @@ public class DiaryUI : MonoBehaviour
     private void OnEnable()
     {
         EventsManager.Instance.diaryEvents.onDiaryStateChange += DiaryStateChange;
+        // Refresh all diaries to populate buttons when UI becomes active
+        if (DiaryManager.Instance != null)
+        {
+            DiaryManager.Instance.RefreshAllDiaries();
+        }
     }
 
     private void OnDisable()
@@ -40,8 +45,17 @@ public class DiaryUI : MonoBehaviour
     //Sets each diary info
     private void SetDiaryInfo(Diaries diaries)
     {
-        diaryID.text = diaries.info.diaryID;
+        diaryID.text = diaries.info.diaryTitle;
         diaryDescription.GetComponent<TMP_Text>().text = diaries.info.diaryDescription;
-        diaryImage.sprite = diaries.info.diaryImage.sprite;
+        
+        if (diaries.info.diaryImage != null && diaries.info.diaryImage.sprite != null)
+        {
+            diaryImage.sprite = diaries.info.diaryImage.sprite;
+        }
+        else
+        {
+            diaryImage.sprite = null;
+            Debug.LogWarning($"Diary {diaries.info.diaryID} has no image assigned");
+        }
     }
 }

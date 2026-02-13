@@ -32,6 +32,8 @@ public abstract class BaseEnemy<TState, TTrigger> : BaseEnemyCore, IQueuedAttack
     [Header("Zone Management")]
     [SerializeField, Tooltip("The zone this enemy is currently in.")]
     public Zone currentZone;
+    [SerializeField, Tooltip("If true, the enemy can relocate to other zones. If false, the enemy stays within its current zone.")]
+    public bool allowZoneRelocation = true;
     [SerializeField, Tooltip("How long the enemy remains idle before relocating to another zone.")]
     public float idleTimerDuration = 15f;
 
@@ -124,6 +126,10 @@ public abstract class BaseEnemy<TState, TTrigger> : BaseEnemyCore, IQueuedAttack
     private string dieTriggerName = "Die";
     [SerializeField, Tooltip("Animator float parameter name for locomotion speed (optional).")]
     private string moveSpeedParameterName = "MoveSpeed";
+
+    [Header("SFX")]
+    [SerializeField, Tooltip("Audio clip to play when the enemy is hit.")]
+    private AudioClip[] hitSFX;
     
     [Header("Behavior Profile")]
     [SerializeField, Tooltip("Optional behavior profile for NavMeshAgent settings. If assigned, these settings will be applied on Awake.")]
@@ -157,6 +163,7 @@ public abstract class BaseEnemy<TState, TTrigger> : BaseEnemyCore, IQueuedAttack
     /// Returns true if this enemy is alive and able to attack.
     /// </summary>
     public bool IsAlive => currentHealth > 0f && gameObject != null && gameObject.activeInHierarchy;
+    public override bool isAlive => IsAlive;
     
     /// <summary>
     /// Returns the GameObject for the queue manager.
@@ -634,6 +641,7 @@ public abstract class BaseEnemy<TState, TTrigger> : BaseEnemyCore, IQueuedAttack
         if (currentHealth > 0f)
         {
             PlayHitAnim();
+            PlaySFXOnHit();
         }
     }
 
@@ -684,6 +692,15 @@ public abstract class BaseEnemy<TState, TTrigger> : BaseEnemyCore, IQueuedAttack
     public override void HealHP(float hp)
     {
         SetHealth(currentHealth + hp);
+    }
+
+    private void PlaySFXOnHit()
+    {
+        if (hitSFX != null && hitSFX.Length > 0)
+        {
+            int index = Random.Range(0, hitSFX.Length);
+            SoundManager.Instance.sfxSource.PlayOneShot(hitSFX[index]);
+        }
     }
 
     // SetHealth now clamps and updates health, but expects the new value

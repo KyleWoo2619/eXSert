@@ -10,24 +10,22 @@ using UnityEngine;
 
 public abstract class UnlockableInteraction : InteractionManager
 {
+    [Header("Unlockable Interaction Settings")]
     [Tooltip("Insert the ID of the item needed to unlock this interaction; leave empty if none is needed")]
     [SerializeField] protected string requiredItemID = "";
+
+    protected bool needsItem => !string.IsNullOrEmpty(requiredItemID);
+    protected bool canUnlock => InternalPlayerInventory.Instance.HasItem(requiredItemID);
+    [Header("Error SFX")]
+    [SerializeField] private AudioClip errorSFXClip;
 
     protected override void Awake()
     {
         base.Awake();
         
         // Normalize required item ID
-        if (!string.IsNullOrEmpty(requiredItemID))
+        if (needsItem)
             requiredItemID = requiredItemID.Trim().ToLowerInvariant();
-    }
-
-    /// <summary>
-    /// Checks if the player has the required item to unlock this interaction.
-    /// </summary>
-    protected bool CanUnlock()
-    {
-        return InternalPlayerInventory.Instance.HasItem(requiredItemID);
     }
 
     /// <summary>
@@ -38,13 +36,26 @@ public abstract class UnlockableInteraction : InteractionManager
 
     protected override void Interact()
     {
-        if (CanUnlock())
+        if (!needsItem)
+        { 
+            Debug.Log($"Interacting with {gameObject.name} which requires no item.");
+            ExecuteInteraction();
+            return;
+        }
+
+        Debug.Log($"Attempting to interact with {gameObject.name}. Required item: {requiredItemID}, Player has item: {canUnlock}");
+
+        if (canUnlock)
         {
             ExecuteInteraction();
         }
         else
         {
-            Debug.Log($"Cannot interact yet. Required item: {requiredItemID}");
+            Debug.Log($"Cannot interact with {gameObject.name}. Player does not have required item: {requiredItemID}");
+            if (errorSFXClip != null)
+            {
+                SoundManager.Instance.puzzleSource.PlayOneShot(errorSFXClip);
+            }
         }
     }
 }

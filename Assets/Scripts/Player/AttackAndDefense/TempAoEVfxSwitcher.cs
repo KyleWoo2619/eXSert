@@ -12,17 +12,15 @@ public sealed class TempAoEVfxSwitcher : MonoBehaviour
 {
     [SerializeField] private PlayerAttackManager attackManager;
     [SerializeField] private PlayerMovement playerMovement;
-    [SerializeField] private AudioSource audioSource;
+    private AudioSource audioSource;
 
     [Header("Attack VFX")]
-    [SerializeField, Tooltip("Rig-mounted VFX toggled for AoE/plunge attacks.")]
-    private GameObject[] attackVfxObjects = Array.Empty<GameObject>();
+    [SerializeField, Tooltip("Rig-mounted left-hand VFX (enabled by LeftFire animation event).")]
+    private GameObject leftAttackVfx;
+    [SerializeField, Tooltip("Rig-mounted right-hand VFX (enabled by RightFire animation event).")]
+    private GameObject rightAttackVfx;
     [SerializeField, Tooltip("Duration before attack VFX are hidden again.")]
     private float attackDuration = 1f;
-    [SerializeField, Tooltip("Toggle when attacks are tagged as HeavyAOE (AY1-AY3).")]
-    private bool includeAoEAttacks = true;
-    [SerializeField, Tooltip("Toggle when the heavy aerial plunge attack fires.")]
-    private bool includePlungeAttacks = true;
     [SerializeField, Tooltip("Audio clip played when attack VFX enable.")]
     private AudioClip attackAudioClip;
 
@@ -34,7 +32,8 @@ public sealed class TempAoEVfxSwitcher : MonoBehaviour
     [SerializeField, Tooltip("Audio clip played when double jump / air dash VFX enable.")]
     private AudioClip airMoveAudioClip;
 
-    private Coroutine attackDeactivateRoutine;
+    private Coroutine leftAttackDeactivateRoutine;
+    private Coroutine rightAttackDeactivateRoutine;
     private Coroutine airMoveDeactivateRoutine;
     private bool airMoveCallbacksRegistered;
 
@@ -42,17 +41,17 @@ public sealed class TempAoEVfxSwitcher : MonoBehaviour
     {
         attackManager ??= GetComponentInChildren<PlayerAttackManager>() ?? GetComponent<PlayerAttackManager>();
         playerMovement ??= GetComponentInChildren<PlayerMovement>() ?? GetComponent<PlayerMovement>() ?? GetComponentInParent<PlayerMovement>();
-        audioSource ??= GetComponent<AudioSource>() ?? SoundManager.Instance?.sfxSource;
+        audioSource = SoundManager.Instance?.sfxSource;
 
-        SetVfxActive(attackVfxObjects, false);
+        SetVfxActive(leftAttackVfx, false);
+        SetVfxActive(rightAttackVfx, false);
         SetVfxActive(airMoveVfxObjects, false);
     }
 
     private void OnEnable()
     {
-        PlayerAttackManager.OnAttack += HandleAttackStarted;
-
         playerMovement ??= GetComponentInChildren<PlayerMovement>() ?? GetComponent<PlayerMovement>() ?? GetComponentInParent<PlayerMovement>();
+        PlayerAttackManager.OnAttack += HandleAttackStarted;
         RegisterAirMoveCallbacks();
     }
 
@@ -61,22 +60,13 @@ public sealed class TempAoEVfxSwitcher : MonoBehaviour
         PlayerAttackManager.OnAttack -= HandleAttackStarted;
         UnregisterAirMoveCallbacks();
 
-        StopAndClearRoutine(ref attackDeactivateRoutine);
+        StopAndClearRoutine(ref leftAttackDeactivateRoutine);
+        StopAndClearRoutine(ref rightAttackDeactivateRoutine);
         StopAndClearRoutine(ref airMoveDeactivateRoutine);
 
-        SetVfxActive(attackVfxObjects, false);
+        SetVfxActive(leftAttackVfx, false);
+        SetVfxActive(rightAttackVfx, false);
         SetVfxActive(airMoveVfxObjects, false);
-    }
-
-    private void HandleAttackStarted(PlayerAttack attack)
-    {
-        if (attack == null)
-            return;
-
-        if (!ShouldReactToAttack(attack.attackType))
-            return;
-
-        TriggerAttackVfx();
     }
 
     private void HandleAirMoveTriggered()
@@ -93,18 +83,57 @@ public sealed class TempAoEVfxSwitcher : MonoBehaviour
             () => airMoveDeactivateRoutine = null);
     }
 
-    private void TriggerAttackVfx()
+    private void HandleAttackStarted(PlayerAttack attack)
     {
-        if (attackVfxObjects == null || attackVfxObjects.Length == 0)
+        if (attack == null)
             return;
 
-        SetVfxActive(attackVfxObjects, true);
+        bool isAerial = attack.attackType == AttackType.LightAerial
+            || attack.attackType == AttackType.HeavyAerial;
+        bool isLauncher = string.Equals(attack.attackId, "Launcher", StringComparison.OrdinalIgnoreCase);
+        bool isAirDash = string.Equals(attack.attackId, "AirDash", StringComparison.OrdinalIgnoreCase);
+
+        if ((isAerial || isLauncher) && !isAirDash)
+            PlayAudio(airMoveAudioClip);
+    }
+
+    public void LeftFire()
+    {
+        TriggerLeftAttackVfx();
+    }
+
+    public void RightFire()
+    {
+        TriggerRightAttackVfx();
+    }
+
+    private void TriggerLeftAttackVfx()
+    {
+        if (leftAttackVfx == null)
+            return;
+
+        SetVfxActive(leftAttackVfx, true);
         PlayAudio(attackAudioClip);
-        RestartGroupRoutine(
-            ref attackDeactivateRoutine,
+        RestartSingleRoutine(
+            ref leftAttackDeactivateRoutine,
             attackDuration,
-            attackVfxObjects,
-            () => attackDeactivateRoutine = null);
+            leftAttackVfx,
+            ClearLeftAttackRoutine);
+    }
+
+    private void TriggerRightAttackVfx()
+    {
+        if (rightAttackVfx == null)
+            return;
+
+        SetVfxActive(rightAttackVfx, true);
+        PlayAudio(attackAudioClip);
+        Debug.Log("Playing right attack audio clip: " + (attackAudioClip != null ? attackAudioClip.name : "null"));
+        RestartSingleRoutine(
+            ref rightAttackDeactivateRoutine,
+            attackDuration,
+            rightAttackVfx,
+            ClearRightAttackRoutine);
     }
 
     private void RestartGroupRoutine(ref Coroutine routine, float duration, GameObject[] targets, Action onComplete)
@@ -121,10 +150,41 @@ public sealed class TempAoEVfxSwitcher : MonoBehaviour
         routine = StartCoroutine(DisableAfter(duration, targets, onComplete));
     }
 
+    private void RestartSingleRoutine(ref Coroutine routine, float duration, GameObject target, Action onComplete)
+    {
+        StopAndClearRoutine(ref routine);
+
+        if (duration <= 0f)
+        {
+            SetVfxActive(target, false);
+            onComplete?.Invoke();
+            return;
+        }
+
+        routine = StartCoroutine(DisableAfter(duration, target, onComplete));
+    }
+
+    private void ClearLeftAttackRoutine()
+    {
+        leftAttackDeactivateRoutine = null;
+    }
+
+    private void ClearRightAttackRoutine()
+    {
+        rightAttackDeactivateRoutine = null;
+    }
+
     private IEnumerator DisableAfter(float duration, GameObject[] targets, Action onComplete)
     {
         yield return new WaitForSeconds(duration);
         SetVfxActive(targets, false);
+        onComplete?.Invoke();
+    }
+
+    private IEnumerator DisableAfter(float duration, GameObject target, Action onComplete)
+    {
+        yield return new WaitForSeconds(duration);
+        SetVfxActive(target, false);
         onComplete?.Invoke();
     }
 
@@ -140,13 +200,10 @@ public sealed class TempAoEVfxSwitcher : MonoBehaviour
         }
     }
 
-    private bool ShouldReactToAttack(AttackType attackType)
+    private void SetVfxActive(GameObject target, bool active)
     {
-        bool isAoE = attackType == AttackType.HeavyAOE;
-        bool isPlunge = attackType == AttackType.HeavyAerial;
-
-        return (includeAoEAttacks && isAoE)
-            || (includePlungeAttacks && isPlunge);
+        if (target != null)
+            target.SetActive(active);
     }
 
     private void RegisterAirMoveCallbacks()

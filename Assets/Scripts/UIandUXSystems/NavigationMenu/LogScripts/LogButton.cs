@@ -86,22 +86,22 @@ public class LogButton : MonoBehaviour, ISelectHandler
 
     public void FindAddMenusToList()
     {
-        GameObject NavigationMenuObject = GameObject.FindGameObjectWithTag("NavigationMenu");
+        GameObject canvas = GameObject.FindGameObjectWithTag("Canvas");
 
         GameObject individualLogMenuObject = GameObject.FindGameObjectWithTag("IndividualLogMenu");
 
-        if(NavigationMenuObject != null)
+        if(canvas != null)
         {
-            var MenuToManage = NavigationMenuObject.GetComponent<MenuListManager>();
+            var menuToManage = canvas.GetComponent<MenuListManager>();
             if(individualLogMenuObject != null)
             {
                 Transform child = individualLogMenuObject.transform.GetChild(0);
-                MenuToManage.AddToMenuList(child.gameObject);
-            }
+                menuToManage.AddToMenuList(child.gameObject);
+            }   
         }
         else
         {
-            Debug.LogError("GameObject with tag 'NavigationMenu' not found");
+            Debug.LogError("GameObject with tag 'Canvas' not found");
         }
         
     }
@@ -110,13 +110,11 @@ public class LogButton : MonoBehaviour, ISelectHandler
     public void AddOverlay()
     {
 
-        GameObject overlayParent = GameObject.FindGameObjectWithTag("Overlay");
+        GameObject overlayParent = GameObject.FindGameObjectWithTag("IndividualLogMenu");
         if (overlayParent != null)
         {
             Transform child = overlayParent.transform.GetChild(0);
             child.gameObject.SetActive(true);
-        } else {
-            Debug.LogError("GameObject with tag 'Overlay' not found");
-        }
+        } 
     }
 }

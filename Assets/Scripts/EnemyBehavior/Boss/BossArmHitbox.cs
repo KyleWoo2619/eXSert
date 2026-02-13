@@ -30,6 +30,10 @@ namespace EnemyBehavior.Boss
         private Collider[] hitboxColliders;
         private bool isActive;
         private bool hasHitThisActivation;
+        
+        // Temporary knockback override for dash mode
+        private bool dashModeKnockback;
+        private float dashModeForceOverride;
 
         public enum ArmSide { Left, Right, Center, Charge }
 
@@ -67,7 +71,26 @@ namespace EnemyBehavior.Boss
             }
             isActive = true;
             hasHitThisActivation = false;
+            dashModeKnockback = false; // Reset dash mode
+            dashModeForceOverride = 0f;
             Debug.Log($"[BossArmHitbox] {armSide} arm hitbox ENABLED ({hitboxColliders.Length} segments)");
+        }
+        
+        /// <summary>
+        /// Enable hitbox with dash-mode knockback.
+        /// Forces knockback to be applied even if applyKnockback is false in Inspector.
+        /// </summary>
+        public void EnableHitboxWithDashKnockback(float forceOverride = 0f)
+        {
+            foreach (var col in hitboxColliders)
+            {
+                if (col != null) col.enabled = true;
+            }
+            isActive = true;
+            hasHitThisActivation = false;
+            dashModeKnockback = true;
+            dashModeForceOverride = forceOverride;
+            Debug.Log($"[BossArmHitbox] {armSide} arm hitbox ENABLED with DASH KNOCKBACK ({hitboxColliders.Length} segments, force override: {forceOverride})");
         }
 
         public void DisableHitbox()
@@ -78,6 +101,8 @@ namespace EnemyBehavior.Boss
             }
             isActive = false;
             hasHitThisActivation = false;
+            dashModeKnockback = false; // Clear dash mode
+            dashModeForceOverride = 0f;
             Debug.Log($"[BossArmHitbox] {armSide} arm hitbox DISABLED");
         }
 
@@ -122,8 +147,8 @@ namespace EnemyBehavior.Boss
                 healthSystem.LoseHP(finalDamage);
                 Debug.Log($"[BossArmHitbox] {armSide} HIT PLAYER for {finalDamage} damage!");
                 
-                // Apply knockback if enabled
-                if (applyKnockback && bossBrain != null)
+                // Apply knockback if enabled (either via Inspector setting OR dash mode)
+                if ((applyKnockback || dashModeKnockback) && bossBrain != null)
                 {
                     ApplyKnockbackToPlayer(player);
                 }
@@ -138,10 +163,37 @@ namespace EnemyBehavior.Boss
         
         private void ApplyKnockbackToPlayer(GameObject player)
         {
-            // Calculate knockback direction (from boss to player)
-            Vector3 knockbackDir = (player.transform.position - bossBrain.transform.position).normalized;
-            knockbackDir.y = 0f; // Keep horizontal
-            knockbackDir.Normalize();
+            // Check if knockback was already applied by the manual collision check (or another hitbox)
+            // This prevents double-knockback during dashes
+            if (dashModeKnockback && bossBrain != null && bossBrain.HasDashHitBeenApplied)
+            {
+                Debug.Log($"[BossArmHitbox] Skipping knockback - dash hit already applied by manual check");
+                return;
+            }
+            
+            // Calculate radial knockback direction (from boss to player) as base
+            Vector3 radialDir = (player.transform.position - bossBrain.transform.position).normalized;
+            radialDir.y = 0f;
+            radialDir.Normalize();
+            
+            // Get attack direction from brain (if available) for directional knockback
+            Vector3 attackDir = bossBrain.CurrentAttackDirection;
+            
+            // Blend between radial and attack direction based on weight
+            // If no attack direction set, use pure radial
+            Vector3 knockbackDir;
+            if (attackDir.sqrMagnitude > 0.01f)
+            {
+                float weight = bossBrain.KnockbackAttackDirectionWeight;
+                knockbackDir = Vector3.Lerp(radialDir, attackDir, weight).normalized;
+                Debug.Log($"[BossArmHitbox] Knockback blend: radial={radialDir}, attack={attackDir}, weight={weight}, result={knockbackDir}");
+            }
+            else
+            {
+                knockbackDir = radialDir;
+                Debug.Log($"[BossArmHitbox] Knockback using radial only: {knockbackDir}");
+            }
+            
             
             // Determine force and upward component based on attack type
             float force;
@@ -152,6 +204,13 @@ namespace EnemyBehavior.Boss
             {
                 force = bossBrain.IsTargetedCharge ? bossBrain.ChargeKnockbackForce : bossBrain.DashKnockbackForce;
                 upwardForce = bossBrain.IsTargetedCharge ? bossBrain.ChargeKnockbackUpwardForce : bossBrain.DashKnockbackUpwardForce;
+            }
+            else if (dashModeKnockback)
+            {
+                // Dash mode - use dash knockback force (or override if set)
+                force = dashModeForceOverride > 0 ? dashModeForceOverride : bossBrain.DashKnockbackForce;
+                upwardForce = bossBrain.DashKnockbackUpwardForce;
+                Debug.Log($"[BossArmHitbox] Using dash mode knockback - force: {force}");
             }
             else
             {
@@ -175,6 +234,13 @@ namespace EnemyBehavior.Boss
             {
                 playerMovement.ApplyKnockback(knockbackImpulse);
                 Debug.Log($"[BossArmHitbox] Applied knockback via PlayerMovement.ApplyKnockback: impulse={knockbackImpulse}, magnitude={knockbackImpulse.magnitude:F1}");
+                
+                // Notify the brain that a dash hit was applied (if in dash mode)
+                if (dashModeKnockback && bossBrain != null)
+                {
+                    bossBrain.NotifyDashHitApplied();
+                    Debug.Log($"[BossArmHitbox] Notified brain - dash hit applied");
+                }
                 return;
             }
             
@@ -184,8 +250,15 @@ namespace EnemyBehavior.Boss
             {
                 rb.AddForce(knockbackImpulse, ForceMode.Impulse);
                 Debug.Log($"[BossArmHitbox] Applied knockback via Rigidbody: dir={knockbackDir}, force={force}");
+                
+                // Notify the brain that a dash hit was applied (if in dash mode)
+                if (dashModeKnockback && bossBrain != null)
+                {
+                    bossBrain.NotifyDashHitApplied();
+                }
                 return;
             }
+            
             
             // Last resort: try CharacterController directly (single frame push)
             var cc = player.GetComponent<CharacterController>();

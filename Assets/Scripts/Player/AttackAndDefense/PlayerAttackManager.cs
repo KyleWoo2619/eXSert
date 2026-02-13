@@ -89,10 +89,9 @@ public class PlayerAttackManager : MonoBehaviour
 
         if (attackAudioSource == null)
         {
-            attackAudioSource = GetComponent<AudioSource>()
-                ?? GetComponentInChildren<AudioSource>()
-                ?? fallbackSfxSource;
+            attackAudioSource = SoundManager.Instance != null ? SoundManager.Instance.sfxSource : null;
         }
+
     }
 
     private void OnDisable()
@@ -396,8 +395,6 @@ public class PlayerAttackManager : MonoBehaviour
 
         PlaySfx(attackData.attackSFX);
 
-        ApplyHeavyAttackForwardMove(attackData);
-
         if (animationOverride != null)
             animationOverride(animationController);
         else if (playDefaultAnimation)
@@ -408,12 +405,9 @@ public class PlayerAttackManager : MonoBehaviour
         Debug.Log($"[PlayerAttackManager] Executing attack {attackData.attackName} ({attackId})");
     }
 
-    private void ApplyHeavyAttackForwardMove(PlayerAttack attackData)
+    private void ApplyAttackForwardMove(PlayerAttack attackData)
     {
         if (attackData == null)
-            return;
-
-        if (!IsHeavyAttack(attackData))
             return;
 
         float distance = attackData.forwardMoveDistance;
@@ -427,6 +421,12 @@ public class PlayerAttackManager : MonoBehaviour
         forward.Normalize();
 
         float duration = attackData.forwardMoveDuration;
+        if (playerMovement != null)
+        {
+            playerMovement.StartAttackForwardMove(forward, distance, duration);
+            return;
+        }
+
         if (duration <= 0f)
         {
             MoveXZ(forward * distance);
@@ -479,16 +479,6 @@ public class PlayerAttackManager : MonoBehaviour
             transform.position += planarDelta;
     }
 
-    private static bool IsHeavyAttack(PlayerAttack attackData)
-    {
-        if (attackData == null)
-            return false;
-
-        return attackData.attackType == AttackType.HeavySingle
-            || attackData.attackType == AttackType.HeavyAOE
-            || attackData.attackType == AttackType.HeavyAerial;
-    }
-
     private bool IsGrounded()
     {
         if (characterController != null)
@@ -500,13 +490,20 @@ public class PlayerAttackManager : MonoBehaviour
     private void PlaySfx(AudioClip clip)
     {
         if (clip == null)
+        {
+            Debug.LogWarning("[PlayerAttackManager] PlaySfx called with null AudioClip.");
             return;
+        }
 
         var source = attackAudioSource != null ? attackAudioSource : fallbackSfxSource;
         if (source == null)
+        {
+            Debug.LogError("[PlayerAttackManager] No AudioSource available! attackAudioSource and fallbackSfxSource are both null. Check SoundManager.Instance.");
             return;
+        }
 
         source.PlayOneShot(clip);
+        Debug.Log($"[PlayerAttackManager] Playing SFX: {clip.name} on {source.gameObject.name}");
     }
 
     private void ClearHitbox()
@@ -744,6 +741,8 @@ public class PlayerAttackManager : MonoBehaviour
     private void CompleteCancelWindow()
     {
         InputReader.inputBusy = false;
+        playerMovement?.SuppressLocomotionAnimations(false);
+        playerMovement?.ForceLocomotionRefresh();
 
         var finishedAttack = currentAttack;
 
@@ -765,6 +764,17 @@ public class PlayerAttackManager : MonoBehaviour
             return;
 
         tierComboManager?.StartComboResetCountdown();
+    }
+
+    public void HandleAnimationMoveForward()
+    {
+        if (currentAttack == null)
+        {
+            Debug.LogWarning("[PlayerAttackManager] Animation requested a forward move but no attack is active.");
+            return;
+        }
+
+        ApplyAttackForwardMove(currentAttack);
     }
 
     private void PlayCombatIdle(float transition)
@@ -835,6 +845,7 @@ public class PlayerAttackManager : MonoBehaviour
         ClearHitbox();
         currentAttack = null;
         InputReader.inputBusy = false;
+        playerMovement?.ForceLocomotionRefresh();
 
         if (resetCombo)
         {

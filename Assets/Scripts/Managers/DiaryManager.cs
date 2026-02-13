@@ -38,6 +38,17 @@ public class DiaryManager : Singleton<DiaryManager>
         }
     }
 
+    /// <summary>
+    /// Re-broadcasts all diary states. Call this when UI becomes active to populate buttons.
+    /// </summary>
+    public void RefreshAllDiaries()
+    {
+        foreach(Diaries diary in diaryMap.Values)
+        {
+            EventsManager.Instance.diaryEvents.DiaryStateChange(diary);
+        }
+    }
+
     //Changes the state of the diary and if it is Found, it will turn isDiaryFound truetrue
     private void FindDiary(string id)
     {
@@ -104,14 +115,26 @@ public class DiaryManager : Singleton<DiaryManager>
         Diaries diary = null;
         try
         {
+            // Check if manually set to true in inspector (takes priority over saved data)
+            bool inspectorValueIsTrue = diaryInfo.isFound;
+            
             if (PlayerPrefs.HasKey(diaryInfo.diaryID) && loadDiaryState)
             {
                 string serializedData = PlayerPrefs.GetString(diaryInfo.diaryID);
                 DiaryData diaryData = JsonUtility.FromJson<DiaryData>(serializedData);
                 diary = new Diaries(diaryInfo);
-                // Apply the loaded state to the ScriptableObject
-                diary.info.isFound = diaryData.isFound;
-                Debug.Log($"Loaded diary {diaryInfo.diaryID}: isFound={diaryData.isFound}");
+                
+                // If inspector value is true, keep it; otherwise use saved data
+                if (inspectorValueIsTrue)
+                {
+                    diary.info.isFound = true;
+                    Debug.Log($"Loaded diary {diaryInfo.diaryID}: using inspector value isFound=true (overriding saved data)");
+                }
+                else
+                {
+                    diary.info.isFound = diaryData.isFound;
+                    Debug.Log($"Loaded diary {diaryInfo.diaryID}: isFound={diaryData.isFound}");
+                }
             }
             else
             {

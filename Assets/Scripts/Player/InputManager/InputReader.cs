@@ -107,7 +107,9 @@ public class InputReader : Singleton<InputReader>
             if (_playerInput != null) return _playerInput;
 
             // Creates a PlayerInput component on the singleton GameObject if none exists
-            return _playerInput = Instance.gameObject.AddComponent<PlayerInput>();
+            PlayerInput newInput = Instance.gameObject.AddComponent<PlayerInput>();
+            newInput.neverAutoSwitchControlSchemes = false;
+            return _playerInput = newInput;
         }
 
         private set { _playerInput = value; }
@@ -265,6 +267,8 @@ public class InputReader : Singleton<InputReader>
 
         // Use squared deadzone comparisons internally; set the default min to match the smallest deadzone
         InputSystem.settings.defaultDeadzoneMin = Mathf.Min(leftStickDeadzoneValue, rightStickDeadzoneValue);
+
+        EnsureCursorManager(PlayerInput);
     }
 
     private void OnDestroy()
@@ -444,6 +448,8 @@ public class InputReader : Singleton<InputReader>
 
         PlayerInput = newPlayerInput;
 
+        EnsureCursorManager(PlayerInput);
+
         if (PlayerInput.actions == null)
         {
             if (playerControls != null)
@@ -510,6 +516,15 @@ public class InputReader : Singleton<InputReader>
         }
 
         Debug.Log("[InputReader] Rebound to new PlayerInput and actions re-enabled.");
+    }
+
+    private static void EnsureCursorManager(PlayerInput target)
+    {
+        if (target == null)
+            return;
+
+        if (target.GetComponent<CursorBySchemeAndMap>() == null)
+            target.gameObject.AddComponent<CursorBySchemeAndMap>();
     }
 
     private void RegisterActionCallbacks()

@@ -7,8 +7,6 @@
 using System.Linq;
 using UnityEditor;
 
-////TODO: support multi-object editing
-
 namespace UnityEngine.InputSystem.Samples.RebindUI
 {
     /// <summary>
@@ -16,6 +14,7 @@ namespace UnityEngine.InputSystem.Samples.RebindUI
     /// picking the binding which to rebind.
     /// </summary>
     [CustomEditor(typeof(RebindActionUI))]
+    [CanEditMultipleObjects]
     public class RebindActionUIEditor : UnityEditor.Editor
     {
 
@@ -38,6 +37,8 @@ namespace UnityEngine.InputSystem.Samples.RebindUI
             m_DisplayStringOptionsProperty = serializedObject.FindProperty("m_DisplayStringOptions");
             m_ActionOverrideProperty = serializedObject.FindProperty("m_OverrideActionLabel");
             m_ActionOverrideStringProperty = serializedObject.FindProperty("m_ActionLabelString");
+            m_BindingOverrideProperty = serializedObject.FindProperty("m_OverrideBindingText");
+            m_BindingOverrideStringProperty = serializedObject.FindProperty("m_BindingTextString");
 
             RefreshBindingOptions();
         }
@@ -52,7 +53,11 @@ namespace UnityEngine.InputSystem.Samples.RebindUI
             {
                 EditorGUILayout.PropertyField(m_ActionProperty);
 
+                // Show mixed value indicator when different bindings are selected
+                EditorGUI.showMixedValue = m_BindingIdProperty.hasMultipleDifferentValues;
                 var newSelectedBinding = EditorGUILayout.Popup(m_BindingLabel, m_SelectedBindingOption, m_BindingOptions);
+                EditorGUI.showMixedValue = false;
+                
                 if (newSelectedBinding != m_SelectedBindingOption)
                 {
                     var bindingId = m_BindingOptionValues[newSelectedBinding];
@@ -78,15 +83,26 @@ namespace UnityEngine.InputSystem.Samples.RebindUI
                 EditorGUILayout.PropertyField(m_DefaultInputActionsProperty);
             }
 
-            //Cuztomise UI Labels
+            //Customize UI Labels
             EditorGUILayout.Space();
             EditorGUILayout.LabelField(m_CustomizeUILabel, Styles.boldLabel);
             using (new EditorGUI.IndentLevelScope())
             {
                 EditorGUILayout.PropertyField(m_ActionOverrideProperty);
-                if (m_RebindActionUI.m_OverrideActionLabel)
+                // Only show override string if at least one selected object has override enabled
+                // or if there are mixed values
+                if (m_ActionOverrideProperty.hasMultipleDifferentValues || m_ActionOverrideProperty.boolValue)
                 {
                     EditorGUILayout.PropertyField(m_ActionOverrideStringProperty);
+                }
+
+                EditorGUILayout.Space();
+                EditorGUILayout.PropertyField(m_BindingOverrideProperty);
+                // Only show override string if at least one selected object has override enabled
+                // or if there are mixed values
+                if (m_BindingOverrideProperty.hasMultipleDifferentValues || m_BindingOverrideProperty.boolValue)
+                {
+                    EditorGUILayout.PropertyField(m_BindingOverrideStringProperty);
                 }
             }
 
@@ -127,7 +143,8 @@ namespace UnityEngine.InputSystem.Samples.RebindUI
             m_BindingOptionValues = new string[bindingCount];
             m_SelectedBindingOption = -1;
 
-            var currentBindingId = m_BindingIdProperty.stringValue;
+            // Handle multi-object editing - check if binding IDs have mixed values
+            var currentBindingId = m_BindingIdProperty.hasMultipleDifferentValues ? "" : m_BindingIdProperty.stringValue;
             for (var i = 0; i < bindingCount; ++i)
             {
                 var binding = bindings[i];
@@ -188,6 +205,8 @@ namespace UnityEngine.InputSystem.Samples.RebindUI
         private SerializedProperty m_DisplayStringOptionsProperty;
         private SerializedProperty m_ActionOverrideProperty;
         private SerializedProperty m_ActionOverrideStringProperty;
+        private SerializedProperty m_BindingOverrideProperty;
+        private SerializedProperty m_BindingOverrideStringProperty;
         private GUIContent m_BindingLabel = new GUIContent("Binding");
         private GUIContent m_DisplayOptionsLabel = new GUIContent("Display Options");
         private GUIContent m_UILabel = new GUIContent("UI");

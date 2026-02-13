@@ -5,6 +5,8 @@
 
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using EnemyBehavior.Boss;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -53,6 +55,7 @@ public class BossRoombaController : MonoBehaviour
     [Tooltip("Legacy: used if specific arrays are empty")]
     public Transform[] pocketSpawnPoints;
 
+
     public GameObject dronePrefab;
     public GameObject crawlerPrefab;
     [Tooltip("Maximum number of each enemy type that can exist at once")]
@@ -60,6 +63,15 @@ public class BossRoombaController : MonoBehaviour
     public int maxCrawlers = 2;
     public int dronesPerSpawn = 4;
     public int crawlersPerSpawn = 2;
+    
+    [Header("Add Flee Settings")]
+    [Tooltip("Speed multiplier applied to adds when fleeing to spawn points during vacuum sequence")]
+    public float AddFleeSpeedMultiplier = 2.5f;
+    [Tooltip("Distance threshold to consider an add has arrived at spawn point")]
+    public float AddFleeArrivalThreshold = 2f;
+    [Tooltip("Time in seconds before fleeing adds are destroyed after arriving at spawn point")]
+    public float AddFleeDestroyDelay = 1.5f;
+    
     public float suctionRadius = 5f;
     public float suctionStrength = 10f;
     public float dashSpeedMultiplier = 3f;
@@ -83,6 +95,7 @@ public class BossRoombaController : MonoBehaviour
     [SerializeField] private string ParamIsMoving = "IsMoving";
     [SerializeField] private string ParamTurn = "Turn";
 
+
     [Header("Top-Wander (Player On Top)")]
     [Tooltip("Speed multiplier during top-wander movement.")]
     public float TopWanderSpeedMultiplier = 1.1f;
@@ -97,6 +110,9 @@ public class BossRoombaController : MonoBehaviour
     private readonly Queue<GameObject> dronePool = new Queue<GameObject>();
     private readonly Queue<GameObject> crawlerPool = new Queue<GameObject>();
     public int initialPoolSize = 8;
+    
+    // Track which adds are currently fleeing (shouldn't be redirected by ManageSpawnsRoutine)
+    private readonly HashSet<GameObject> fleeingAdds = new HashSet<GameObject>();
 
     private Coroutine followRoutine;
     private Coroutine animParamsRoutine;
@@ -656,6 +672,323 @@ public class BossRoombaController : MonoBehaviour
     
     #endregion
     
+    
+    
+    
+    /// <summary>
+    /// Orders all active adds to flee to their nearest spawn point.
+    /// Called when the boss starts moving towards the vacuum position,
+    /// giving adds time to clear the arena center before walls go up.
+    /// Adds are tracked as "fleeing" so ManageSpawnsRoutine won't redirect them.
+    /// Once they arrive at spawn points, they are stopped and destroyed after a delay.
+    /// </summary>
+    public void OrderAddsToFleeToSpawnPoints()
+    {
+        Debug.Log("[BossRoombaController] Ordering all adds to flee to nearest spawn points");
+        
+        // Clear previous fleeing tracking
+        fleeingAdds.Clear();
+        
+        int dronesFleeing = 0;
+        int crawlersFleeing = 0;
+        
+        // Determine which spawn points to use for each type (fall back to legacy if specific arrays are empty)
+        Transform[] droneTargets = (droneSpawnPoints != null && droneSpawnPoints.Length > 0) 
+            ? droneSpawnPoints 
+            : pocketSpawnPoints;
+        Transform[] crawlerTargets = (crawlerSpawnPoints != null && crawlerSpawnPoints.Length > 0) 
+            ? crawlerSpawnPoints 
+            : pocketSpawnPoints;
+        
+        // Log spawn point availability for debugging
+        Debug.Log($"[BossRoombaController] Spawn points - drones: {droneTargets?.Length ?? 0}, crawlers: {crawlerTargets?.Length ?? 0}, legacy: {pocketSpawnPoints?.Length ?? 0}");
+        Debug.Log($"[BossRoombaController] Active adds - drones: {activeDrones.Count}, crawlers: {activeCrawlers.Count}");
+        
+        // Order all active drones to flee to nearest spawn point
+        var droneKeys = new List<Transform>(activeDrones.Keys);
+        foreach (var key in droneKeys)
+        {
+            try
+            {
+                if (!activeDrones.TryGetValue(key, out var drone)) continue;
+                if (drone == null || !drone.activeInHierarchy) continue;
+                
+                Transform nearestSpawn = FindNearestSpawnPoint(drone.transform.position, droneTargets);
+                if (nearestSpawn != null)
+                {
+                    var droneAgent = drone.GetComponent<NavMeshAgent>();
+                    if (droneAgent != null && droneAgent.enabled && droneAgent.isOnNavMesh)
+                    {
+                        // Mark as fleeing so ManageSpawnsRoutine won't redirect
+                        fleeingAdds.Add(drone);
+                        
+                        // Apply flee speed multiplier
+                        droneAgent.speed *= AddFleeSpeedMultiplier;
+                        droneAgent.isStopped = false;
+                        droneAgent.SetDestination(nearestSpawn.position);
+                        
+                        // Start coroutine to monitor arrival and destroy
+                        StartCoroutine(MonitorFleeingAddArrival(drone, droneAgent, nearestSpawn.position, true));
+                        
+                        dronesFleeing++;
+                        Debug.Log($"[BossRoombaController] Drone {drone.name} fleeing to spawn point at {nearestSpawn.position} (speed: {droneAgent.speed})");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"[BossRoombaController] No spawn point found for drone {drone.name}");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[BossRoombaController] Error ordering drone to flee: {e.Message}");
+            }
+        }
+        
+        // Order all active crawlers to flee to nearest spawn point
+        var crawlerKeys = new List<Transform>(activeCrawlers.Keys);
+        foreach (var key in crawlerKeys)
+        {
+            try
+            {
+                if (!activeCrawlers.TryGetValue(key, out var crawlerObj)) continue;
+                if (crawlerObj == null || !crawlerObj.activeInHierarchy) continue;
+                
+                Transform nearestSpawn = FindNearestSpawnPoint(crawlerObj.transform.position, crawlerTargets);
+                if (nearestSpawn != null)
+                {
+                    // CRITICAL: Crawlers use BaseCrawlerEnemy.agent, not GetComponent<NavMeshAgent>()
+                    // Try both root and children since component might be on a child object
+                    var crawlerEnemy = crawlerObj.GetComponent<BaseCrawlerEnemy>()
+                        ?? crawlerObj.GetComponentInChildren<BaseCrawlerEnemy>();
+                    NavMeshAgent crawlerAgent = null;
+                    
+                    if (crawlerEnemy != null && crawlerEnemy.agent != null)
+                    {
+                        crawlerAgent = crawlerEnemy.agent;
+                        Debug.Log($"[BossRoombaController] Crawler {crawlerObj.name} - found via crawlerEnemy.agent");
+                    }
+                    else
+                    {
+                        // Fallback: try direct component lookup
+                        crawlerAgent = crawlerObj.GetComponent<NavMeshAgent>()
+                            ?? crawlerObj.GetComponentInChildren<NavMeshAgent>();
+                        
+                        if (crawlerEnemy == null)
+                        {
+                            // Still null - log what components ARE on the object for debugging
+                            var components = crawlerObj.GetComponents<Component>();
+                            var componentNames = string.Join(", ", components.Select(c => c?.GetType().Name ?? "null"));
+                            Debug.LogWarning($"[BossRoombaController] BaseCrawlerEnemy component NOT FOUND on {crawlerObj.name}! Components: {componentNames}");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"[BossRoombaController] Crawler {crawlerObj.name} - crawlerEnemy.agent is null, using fallback NavMeshAgent");
+                        }
+                    }
+                    
+                    
+                if (crawlerAgent != null && crawlerAgent.enabled && crawlerAgent.isOnNavMesh)
+                    {
+                        // Mark as fleeing so ManageSpawnsRoutine won't redirect
+                        fleeingAdds.Add(crawlerObj);
+                        
+                        // DEBUG: Log the crawler enemy status
+                        Debug.Log($"[BossRoombaController] Crawler {crawlerObj.name} - crawlerEnemy is {(crawlerEnemy != null ? "NOT NULL" : "NULL")}");
+                        
+                        // CRITICAL: Stop ALL coroutines and remove from SwarmManager FIRST!
+                        // The SwarmManager continuously updates crawler destinations, which will
+                        // override our flee destination unless we unregister the crawler.
+                        if (crawlerEnemy != null)
+                        {
+                            // Unregister from SwarmManager FIRST - this is critical!
+                            // The SwarmManager overrides destinations every frame.
+                            crawlerEnemy.UnregisterFromSwarmManager();
+                            Debug.Log($"[BossRoombaController] Unregistered {crawlerObj.name} from SwarmManager");
+                            
+                            // Stop all coroutines (ChaseBehavior, etc.)
+                            crawlerEnemy.StopAllCoroutines();
+                            
+                            // Disable the MonoBehaviour to prevent Update/FixedUpdate
+                            crawlerEnemy.enabled = false;
+                            Debug.Log($"[BossRoombaController] Stopped coroutines and disabled state machine for {crawlerObj.name}");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"[BossRoombaController] crawlerEnemy is NULL for {crawlerObj.name} - cannot unregister from SwarmManager!");
+                        }
+                        
+                        // Apply flee speed multiplier
+                        crawlerAgent.speed *= AddFleeSpeedMultiplier;
+                        crawlerAgent.isStopped = false;
+                        crawlerAgent.ResetPath(); // Clear any existing path first
+                        crawlerAgent.SetDestination(nearestSpawn.position);
+                        
+                        // Log distance from crawler to chosen spawn vs all spawn points for debugging
+                        float chosenDist = Vector3.Distance(crawlerObj.transform.position, nearestSpawn.position);
+                        Debug.Log($"[BossRoombaController] Crawler {crawlerObj.name} at {crawlerObj.transform.position} -> nearest spawn {nearestSpawn.name} at {nearestSpawn.position} (dist: {chosenDist:F1}m)");
+                        
+                        // Start coroutine to monitor arrival (destruction happens when walls raise)
+                        StartCoroutine(MonitorFleeingAddArrival(crawlerObj, crawlerAgent, nearestSpawn.position, false));
+                        
+                        crawlersFleeing++;
+                        Debug.Log($"[BossRoombaController] Crawler {crawlerObj.name} fleeing to spawn point at {nearestSpawn.position} (speed: {crawlerAgent.speed})");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[BossRoombaController] Crawler {crawlerObj.name} has no valid NavMeshAgent (crawlerEnemy: {crawlerEnemy != null}, agent: {crawlerAgent}, enabled: {crawlerAgent?.enabled}, onNavMesh: {crawlerAgent?.isOnNavMesh})");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"[BossRoombaController] No spawn point found for crawler {crawlerObj.name} (crawlerTargets: {crawlerTargets?.Length ?? 0})");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[BossRoombaController] Error ordering crawler to flee: {e.Message}");
+            }
+        }
+        
+        Debug.Log($"[BossRoombaController] Ordered {dronesFleeing} drones and {crawlersFleeing} crawlers to flee to spawn points (speed multiplier: {AddFleeSpeedMultiplier}x)");
+    }
+    
+    
+    
+    
+    /// <summary>
+    /// Monitors a fleeing add until it arrives at its destination, then destroys it.
+    /// Both drones and crawlers are destroyed on arrival (looks like returning to spawn points).
+    /// OnCageMatchStart() is the fallback for any stragglers that don't arrive in time.
+    /// </summary>
+    private IEnumerator MonitorFleeingAddArrival(GameObject add, NavMeshAgent addAgent, Vector3 destination, bool isDrone)
+    {
+        if (add == null || addAgent == null) yield break;
+        
+        float timeout = 10f; // Safety timeout
+        float elapsed = 0f;
+        
+        // CRITICAL: Wait a few frames before checking distance to give pathfinding time to start
+        // This prevents immediate "arrival" detection for adds that were spawned at their spawn points
+        yield return null;
+        yield return null;
+        yield return null;
+        
+        // Get the current distance - if the add hasn't moved at all after 3 frames,
+        // check if they're actually moving toward the destination
+        float initialDist = Vector3.Distance(add.transform.position, destination);
+        
+        // Wait until the add arrives at destination or timeout
+        while (elapsed < timeout && add != null && add.activeInHierarchy)
+        {
+            float distToDestination = Vector3.Distance(add.transform.position, destination);
+            
+            // Only count as "arrived" if they actually moved OR were genuinely at the destination
+            // This prevents immediate arrival for adds that start near their spawn point
+            bool hasMovedSignificantly = Mathf.Abs(distToDestination - initialDist) > 0.5f;
+            bool isAtDestination = distToDestination <= AddFleeArrivalThreshold;
+            
+            if (isAtDestination && (hasMovedSignificantly || elapsed > 2f))
+            {
+                Debug.Log($"[BossRoombaController] {(isDrone ? "Drone" : "Crawler")} {add.name} arrived at spawn point (moved: {hasMovedSignificantly}, elapsed: {elapsed:F1}s)");
+                break;
+            }
+            
+            // Check if agent stopped moving (might be stuck)
+            if (addAgent != null && addAgent.enabled && addAgent.velocity.magnitude < 0.1f && elapsed > 1f)
+            {
+                // Try to re-set destination in case it got cleared
+                addAgent.SetDestination(destination);
+            }
+            
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        
+        if (add == null || !add.activeInHierarchy) yield break;
+        
+        // Stop the agent
+        if (addAgent != null && addAgent.enabled)
+        {
+            addAgent.isStopped = true;
+            addAgent.ResetPath();
+            Debug.Log($"[BossRoombaController] {(isDrone ? "Drone" : "Crawler")} {add.name} stopped at spawn point");
+        }
+        
+        // Wait for destroy delay, then destroy (both drones and crawlers)
+        yield return WaitForSecondsCache.Get(AddFleeDestroyDelay);
+        
+        if (add == null || !add.activeInHierarchy) yield break;
+        
+        // Remove from fleeing tracking and destroy
+        fleeingAdds.Remove(add);
+        Debug.Log($"[BossRoombaController] Destroying fleeing {(isDrone ? "drone" : "crawler")} {add.name}");
+        add.SetActive(false);
+        
+        if (isDrone)
+        {
+            dronePool.Enqueue(add);
+        }
+        else
+        {
+            crawlerPool.Enqueue(add);
+        }
+    }
+    
+    /// <summary>
+    /// Finds the nearest spawn point from the given position.
+    /// </summary>
+    private Transform FindNearestSpawnPoint(Vector3 position, Transform[] spawnPoints)
+    {
+        if (spawnPoints == null || spawnPoints.Length == 0) return null;
+        
+        Transform nearest = null;
+        float nearestDist = float.MaxValue;
+        
+        // Get arena center for path scoring (prefer paths that don't go through center)
+        Vector3 arenaCenter = Vector3.zero;
+        bool hasArenaManager = false;
+        var arenaManager = GetComponent<BossArenaManager>();
+        if (arenaManager != null)
+        {
+            arenaCenter = arenaManager.GetArenaCenter();
+            hasArenaManager = true;
+        }
+        
+        foreach (var sp in spawnPoints)
+        {
+            if (sp == null) continue;
+            
+            float dist = Vector3.Distance(position, sp.position);
+            
+            // Penalty for paths that go through arena center
+            // This encourages enemies to go around the edges instead of through the middle
+            if (hasArenaManager)
+            {
+                Vector3 midpoint = (position + sp.position) * 0.5f;
+                float midpointToCenter = Vector3.Distance(new Vector3(midpoint.x, 0, midpoint.z), 
+                                                           new Vector3(arenaCenter.x, 0, arenaCenter.z));
+                
+                // If the midpoint of the path is very close to arena center, add a penalty
+                // This biases toward spawn points that don't require crossing the center
+                if (midpointToCenter < 10f) // Within 10m of center
+                {
+                    float penalty = (10f - midpointToCenter) * 2f; // Up to 20m penalty
+                    dist += penalty;
+                }
+            }
+            
+            if (dist < nearestDist)
+            {
+                nearestDist = dist;
+                nearest = sp;
+            }
+        }
+        
+        return nearest;
+    }
+    
+    
     /// <summary>
     /// Called when cage match starts (walls go up). Despawns ALL active adds.
     /// During the cage match, no adds should be present - it's a 1v1 with the boss.
@@ -693,6 +1026,9 @@ public class BossRoombaController : MonoBehaviour
             }
         }
         
+        // Clear fleeing tracking since all adds are despawned
+        fleeingAdds.Clear();
+        
         Debug.Log($"[BossRoombaController] Cage match started - despawned {despawnedDrones} drones and {despawnedCrawlers} crawlers");
     }
     
@@ -724,6 +1060,7 @@ public class BossRoombaController : MonoBehaviour
             RespawnDeadEnemies(activeCrawlers, crawlerSpawnPoints, crawlerPrefab, maxCrawlers, crawlerPool);
             
             // Ensure all active enemies continue chasing player (backup for state machine issues)
+            // SKIP enemies that are currently fleeing to spawn points!
             if (player != null)
             {
                 // Update crawler destinations
@@ -731,6 +1068,9 @@ public class BossRoombaController : MonoBehaviour
                 {
                     if (kvp.Value != null && kvp.Value.activeInHierarchy)
                     {
+                        // Skip if this add is fleeing
+                        if (fleeingAdds.Contains(kvp.Value)) continue;
+                        
                         var crawler = kvp.Value.GetComponent<BaseCrawlerEnemy>();
                         if (crawler != null && crawler.agent != null && crawler.agent.enabled && crawler.agent.isOnNavMesh)
                         {
@@ -745,6 +1085,9 @@ public class BossRoombaController : MonoBehaviour
                 {
                     if (kvp.Value != null && kvp.Value.activeInHierarchy)
                     {
+                        // Skip if this add is fleeing
+                        if (fleeingAdds.Contains(kvp.Value)) continue;
+                        
                         var drone = kvp.Value.GetComponent<DroneEnemy>();
                         if (drone != null && drone.agent != null && drone.agent.enabled && drone.agent.isOnNavMesh)
                         {

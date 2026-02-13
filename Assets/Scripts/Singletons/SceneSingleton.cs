@@ -15,9 +15,12 @@ namespace Singletons {
         // Singleton instance dictionary to ensure one ProgressionManager per scene
         private static Dictionary<SceneAsset, T> instances = new Dictionary<SceneAsset, T>();
 
+        private SceneAsset instanceSceneAsset;
+
         // Get the ProgressionManager instance for a specific scene
         public static T GetInstance(SceneAsset scene)
         {
+            CleanupNullInstances();
             if (instances.TryGetValue(scene, out T instance))
                 return instance;
             else
@@ -32,7 +35,10 @@ namespace Singletons {
         {
             // implement singletonish functionality
 
+            CleanupNullInstances();
+
             SceneAsset asset = SceneAsset.GetSceneAssetOfObject(this.gameObject);
+            instanceSceneAsset = asset;
             if (instances.ContainsKey(asset))
             {
                 Debug.LogWarning($"Another instance of SceneSingleton {typeof(T)} already exists in Scene {asset.name}. Destroying this component only.");
@@ -42,6 +48,36 @@ namespace Singletons {
             {
                 instances.Add(asset, this as T);
             }
+        }
+
+        protected virtual void OnDestroy()
+        {
+            if (instanceSceneAsset == null)
+                return;
+
+            if (instances.TryGetValue(instanceSceneAsset, out var existing) && existing == (this as T))
+            {
+                instances.Remove(instanceSceneAsset);
+            }
+        }
+
+        private static void CleanupNullInstances()
+        {
+            if (instances.Count == 0)
+                return;
+
+            var toRemove = new List<SceneAsset>();
+            foreach (var kvp in instances)
+            {
+                if (kvp.Value == null)
+                    toRemove.Add(kvp.Key);
+            }
+
+            for (int i = 0; i < toRemove.Count; i++)
+            {
+                instances.Remove(toRemove[i]);
+            }
+
         }
     }
 }

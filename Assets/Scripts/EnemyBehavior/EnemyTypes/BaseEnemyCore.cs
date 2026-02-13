@@ -16,7 +16,7 @@ public abstract class BaseEnemyCore : MonoBehaviour, IHealthSystem
     protected void InvokeOnSpawn() => OnSpawn?.Invoke(this);
     protected void InvokeOnReset() => OnReset?.Invoke(this);
 
-    public bool isAlive { get; }
+    public abstract bool isAlive { get; }
     public abstract float currentHP { get; }
     public abstract float maxHP { get; }
 

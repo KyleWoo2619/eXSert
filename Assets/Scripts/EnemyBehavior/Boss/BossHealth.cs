@@ -36,6 +36,10 @@ namespace EnemyBehavior.Boss
         [SerializeField, Tooltip("Minimum damage that always gets through regardless of armor (0 = can reduce to zero)")]
         private float minimumDamageThreshold = 1f;
         
+        [Header("SFX")]
+        [SerializeField, Tooltip("Sound effect to play when the boss takes damage")]
+        private AudioClip[] damageSFX;
+
         [Header("References")]
         [SerializeField, Tooltip("Reference to boss brain for panel count and defeat callback")]
         private BossRoombaBrain brain;
@@ -151,6 +155,14 @@ namespace EnemyBehavior.Boss
             Log($"Boss healed {hp}. Current health: {currentHealth}/{maxHealth}");
         }
 
+        private void PlayDamageSFX()
+        {
+            if (damageSFX != null && SoundManager.Instance != null)
+            {
+                SoundManager.Instance.sfxSource.PlayOneShot(damageSFX[Random.Range(0, damageSFX.Length)]);
+            }
+        }
+
         /// <summary>
         /// Apply damage to the boss directly (bypasses panel armor).
         /// Used by vulnerable zones and internal systems.
@@ -162,7 +174,7 @@ namespace EnemyBehavior.Boss
             currentHealth -= damage;
             currentHealth = Mathf.Max(0, currentHealth);
             
-            
+            PlayDamageSFX();
             Log($"Boss took {damage} damage. Current health: {currentHealth}/{maxHealth}");
 
             if (currentHealth <= 0 && !isDefeated)

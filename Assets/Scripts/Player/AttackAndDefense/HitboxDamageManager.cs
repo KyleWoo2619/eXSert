@@ -17,6 +17,8 @@ public class HitboxDamageManager : MonoBehaviour, IAttackSystem
     [SerializeField] private float damageAmount;
     [SerializeField, Tooltip("Maximum unique enemies this hitbox may damage per activation. 0 = unlimited.")]
     private int maxTargetsPerActivation;
+    [SerializeField, Tooltip("Tag treated as a boss target for damage.")]
+    private string bossTag = "Boss";
 
     private BoxCollider boxCollider;
     private HashSet<int> hitThisActivation = new HashSet<int>(); // Track which enemies were hit during this activation
@@ -103,8 +105,8 @@ public class HitboxDamageManager : MonoBehaviour, IAttackSystem
         // Debug.Log($"  - Root object: {other.transform.root.name} (Tag: {other.transform.root.tag})");
         // Debug.Log($"  - All components on this object: {string.Join(", ", other.GetComponents<Component>().Select(c => c.GetType().Name))}");
         
-        // IMPORTANT: Only damage enemies, never the player or player's components
-        if (!other.CompareTag("Enemy")) 
+        // IMPORTANT: Only damage enemies/bosses, never the player or player's components
+        if (!IsDamageableTag(other)) 
         {
             // Debug.Log($"{weaponName} hit non-enemy object: {other.gameObject.name} with tag '{other.tag}' - ignoring");
             return;
@@ -175,6 +177,12 @@ public class HitboxDamageManager : MonoBehaviour, IAttackSystem
         
         // Debug.Log($"{weaponName} OnTriggerEnter with {other.gameObject.name}");
         ProcessPotentialHit(other);
+    }
+
+    private bool IsDamageableTag(Component component)
+    {
+        if (component == null) return false;
+        return component.CompareTag("Enemy") || (!string.IsNullOrWhiteSpace(bossTag) && component.CompareTag(bossTag));
     }
     
 
