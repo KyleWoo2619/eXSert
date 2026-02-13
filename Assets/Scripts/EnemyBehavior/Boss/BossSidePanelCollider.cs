@@ -32,6 +32,8 @@ namespace EnemyBehavior.Boss
         private AudioClip[] panelHitSounds;
         [SerializeField, Tooltip("Sound clips for hits after panel breaks (vulnerable)")]
         private AudioClip[] vulnerableHitSounds;
+        [SerializeField, Tooltip("Sound clips for when the panel breaks and falls off")]
+        private AudioClip[] panelBreakSounds;
 
         /// <summary>
         /// Current health of this panel. Synced from BossRoombaBrain.SidePanels.
@@ -131,6 +133,14 @@ namespace EnemyBehavior.Boss
             {
                 hitAudioSource.PlayOneShot(clip);
             }
+        }
+
+        /// <summary>
+        /// Plays the panel break sound effect. Called by BossRoombaBrain when the panel is destroyed.
+        /// </summary>
+        public void PlayPanelBreakSound()
+        {
+            PlayHitSound(panelBreakSounds);
         }
 
         /// <summary>
