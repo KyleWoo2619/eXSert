@@ -43,6 +43,14 @@ namespace Progression
             this.gameObject.name = $"[{SceneAsset.GetSceneAssetOfObject(this.gameObject).name}] Progression Manager";
         }
 
+        protected void Start()
+        {
+            if (startEncounterOnStart && encounterToStart != null)
+            {
+                encounterToStart.ManualEncounterStart();
+            }
+        }
+
         private void OnDisable()
         {
             foreach (BasicEncounter encounter in encounterCompletionMap)

@@ -109,6 +109,13 @@ namespace Progression.Encounters
             encounterZone.enabled = false;
         }
 
+        public void ManualEncounterStart()
+        {
+            Debug.Log($"Manual start call for encounter {encounterName} in scene {SceneAsset.GetSceneAssetOfObject(this.gameObject).name}.");
+            SetupEncounter();
+            SetEncounterEnabled(true);
+        }
+
         public void ManualCleanUpCall()
         {
             Debug.Log($"Manual cleanup call for encounter {encounterName} in scene {SceneAsset.GetSceneAssetOfObject(this.gameObject).name}.");

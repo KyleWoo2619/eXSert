@@ -872,7 +872,7 @@ public abstract class BaseEnemy<TState, TTrigger> : BaseEnemyCore, IQueuedAttack
 
         CleanupExternalHelpers();
         deathFallbackRoutine = null;
-        Destroy(gameObject);
+        // Destroy(gameObject);
     }
 
     protected virtual void OnTriggerEnter(Collider other)
