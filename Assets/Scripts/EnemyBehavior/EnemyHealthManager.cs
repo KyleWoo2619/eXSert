@@ -80,8 +80,12 @@ public class EnemyHealthManager : MonoBehaviour, IHealthSystem
         
         Debug.Log($"{gameObject.name} took {damage} damage. Current HP: {currentHealth}/{maxHealth}");
         
-        // Check if we need to trigger health thresholds for the enemy AI
-        if (enemyScript != null)
+        // Note: We intentionally do NOT call enemyScript.CheckHealthThreshold() here
+        // because EnemyHealthManager handles the death flow independently via its own
+        // TryFireTriggerByName("Die") call below. Calling CheckHealthThreshold would
+        // result in duplicate death events being fired.
+        // However, we still need to check for LowHealth threshold for flee/recover behaviors.
+        if (enemyScript != null && currentHealth > 0f)
         {
             enemyScript.CheckHealthThreshold();
         }
