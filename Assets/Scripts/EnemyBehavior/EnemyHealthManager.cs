@@ -9,7 +9,7 @@ using Behaviors;
 using Stateless;
 using System.Collections;
 
-public class EnemyHealthManager : MonoBehaviour, IHealthSystem
+public class EnemyHealthManager : MonoBehaviour
 {
     [Header("Health Settings")]
     [SerializeField] private float maxHealth = 100f;
@@ -32,10 +32,6 @@ public class EnemyHealthManager : MonoBehaviour, IHealthSystem
     private BaseEnemy<EnemyState, EnemyTrigger> enemyScript;
     private bool subscribedToStateMachine;
     private Coroutine deathFallbackRoutine;
-
-    // IHealthSystem implementation
-    public float currentHP => currentHealth;
-    public float maxHP => maxHealth;
 
     void Awake()
     {
@@ -60,6 +56,26 @@ public class EnemyHealthManager : MonoBehaviour, IHealthSystem
         }
     }
 
+    private void OnEnable()
+    {
+        enemyScript.OnDeath += HandleEnemyDeath;
+    }
+
+    private void OnDisable()
+    {
+        enemyScript.OnDeath -= HandleEnemyDeath;
+    }
+
+    private void HandleEnemyDeath(BaseEnemyCore enemy)
+    {
+        if (isDead) return;
+        isDead = true;
+
+        onDeathEvent?.Invoke();
+        onDeath?.Invoke();
+    }
+
+    /*
     public void HealHP(float healAmount)
     {
         if (isDead) return;
@@ -113,6 +129,7 @@ public class EnemyHealthManager : MonoBehaviour, IHealthSystem
             }
         }
     }
+    */
 
     private void Die()
     {
