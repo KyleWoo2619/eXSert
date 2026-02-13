@@ -6,10 +6,11 @@
  * The instance is created if it doesn't already exist and is marked to not be destroyed on scene load.
  */
 
+using Unity.VisualScripting;
 using UnityEngine;
 
 // makes singletons a namespace that must be opted in to use
-namespace Singletons { 
+namespace Singletons {
     public abstract class Singleton<T> : MonoBehaviour where T : MonoBehaviour
     {
         // The private static instance of the singleton
@@ -19,6 +20,8 @@ namespace Singletons {
         /// Override to disable DontDestroyOnLoad behavior for Scene-scoped singletons.
         /// </summary>
         protected virtual bool ShouldPersistAcrossScenes => true;
+
+        protected static bool isApplicationQuitting = false;
 
         /// <summary>
         /// Gets the singleton instance of type <typeparamref name="T"/>. If no instance exists in the scene, a new one
@@ -33,6 +36,12 @@ namespace Singletons {
             // special functionality which tries to find or creates the singleton instance if it doesn't exist already
             get
             {
+                if (isApplicationQuitting)
+                {
+                    Debug.LogWarning($"[Singleton] Instance of {typeof(T)} already destroyed on application quit. Returning null.");
+                    return null;
+                }
+
                 // Try to find an existing instance of the singleton type T in the scene
                 if (_instance == null) _instance = (T)FindAnyObjectByType(typeof(T));
 
@@ -51,6 +60,9 @@ namespace Singletons {
 
         protected static T CreateInstance()
         {
+            if (isApplicationQuitting)
+                return null;
+
             GameObject singletonObject = new GameObject();
             T newInstance = singletonObject.AddComponent<T>();
             singletonObject.name = typeof(T).ToString() + " (Singleton)";
@@ -68,7 +80,7 @@ namespace Singletons {
         /// logs a warning.</remarks>
         protected virtual void Awake()
         {
-            if(_instance == null)
+            if (_instance == null)
             {
                 _instance = this as T;
                 if (ShouldPersistAcrossScenes)
@@ -83,6 +95,22 @@ namespace Singletons {
                 // This prevents destroying Player when InputReader is a duplicate
                 Destroy(this);
             }
+        }
+
+        protected virtual void OnDestroy()
+        {
+            // If the application is quitting, we don't want to reset the instance reference
+            if (isApplicationQuitting) return;
+            // If this instance is being destroyed and it's the current singleton instance, reset the reference
+            if (_instance == this)
+            {
+                _instance = null;
+            }
+        }
+
+        protected virtual void OnApplicationQuit()
+        {
+            isApplicationQuitting = true;
         }
     }
 }
