@@ -14,21 +14,42 @@ using UnityEngine;
 namespace Progression
 {
     using Encounters;
+    using SceneManagement;
 
     public class ProgressionManager : SceneSingleton<ProgressionManager>
     {
+        #region Inspector Setup
+        [Header("Progression Settings")]
+        [SerializeField, Tooltip("The next scene to load at the end of the level.")]
+        private SceneAsset nextScene;
+        [Space]
+        [SerializeField, Tooltip("Use when the player would load already inside an encounter, such as the elevator fight")]
+        private bool startEncounterOnStart = false;
+        [SerializeField, Tooltip("The encounter to automatically start")]
+        private BasicEncounter encounterToStart;
+
+        #endregion
+        
         /// <summary>
         /// Indicates whether all encounters in the scene have been completed
         /// </summary>
         private bool allZonesComplete = false;
 
-        private List<BasicEncounter> encounterCompletionMap = new List<BasicEncounter>();
+        private readonly List<BasicEncounter> encounterCompletionMap = new();
+
+        private readonly List<SceneLoadZone> zonesLoaded = new();
 
         protected override void Awake()
         {
-            base.Awake();
+            base.Awake(); // Singleton behavior
 
             this.gameObject.name = $"[{SceneAsset.GetSceneAssetOfObject(this.gameObject).name}] Progression Manager";
+        }
+
+        protected void Start()
+        {
+            // If we want to start an encounter immediately on start, do that now that all encounters have been added to the manager.
+            if (startEncounterOnStart && encounterToStart != null) encounterToStart.ManualEncounterStart();
         }
 
         private void OnDisable()
@@ -47,9 +68,12 @@ namespace Progression
         /// Adds the encounter to the manager's database
         /// </summary>
         /// <param name="encounter"></param>
-        public void AddEncounter(BasicEncounter encounter)
+        public void AddProgressable(ProgressionZone zone)
         {
-            encounterCompletionMap.Add(encounter);
+            if (zone is BasicEncounter encounter)
+                encounterCompletionMap.Add(encounter);
+            else if (zone is SceneLoadZone loadZone)
+                zonesLoaded.Add(loadZone);
         }
     }
 }

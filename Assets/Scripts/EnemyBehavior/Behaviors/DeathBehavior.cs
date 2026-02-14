@@ -51,11 +51,10 @@ namespace Behaviors
             // Wait for SFX duration
             yield return WaitForSecondsCache.Get(1f);
 
-            // Destroy health bar if it exists
+            // Hide health bar but don't destroy it (can be re-enabled on reset)
             if (enemy.healthBarInstance != null)
             {
-                Object.Destroy(enemy.healthBarInstance.gameObject);
-                enemy.healthBarInstance = null;
+                enemy.healthBarInstance.gameObject.SetActive(false);
             }
 
             // Only remove from pocket if this is a crawler
@@ -64,7 +63,8 @@ namespace Behaviors
                 crawler.Pocket.activeEnemies.Remove(crawler);
             }
 
-            Object.Destroy(enemy.gameObject);
+            // Disable instead of destroy for pooling/encounter reset support
+            enemy.gameObject.SetActive(false);
         }
 
         private void PlayDeathSFX()

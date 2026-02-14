@@ -97,6 +97,12 @@ public class InputReader : Singleton<InputReader>
     {
         get
         {
+            if (isApplicationQuitting)
+            {
+                Debug.LogWarning("[InputReader] Attempted to access PlayerInput during application quit. Returning null.");
+                return null;
+            }
+
             // Ensure the singleton instance exists
             if (Instance == null) CreateInstance();
 
@@ -420,7 +426,7 @@ public class InputReader : Singleton<InputReader>
 
         if (newPlayerInput == null)
         {
-            Debug.LogError("InputReader: Cannot assign null PlayerInput!");
+            Debug.LogWarning("InputReader: Cannot assign null PlayerInput!");
             return;
         }
 
